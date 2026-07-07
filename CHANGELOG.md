@@ -1,6 +1,35 @@
 # EduERP V4 — Changelog
 
-## v0.2.0 — Identity Center (2026-07-07) 🟢 Gate Approved
+## v0.3.0 — Student Domain (2026-07-07) 🟢 Gate #003 Approved (98/100)
+
+### Student Domain (Sprint 3)
+- Student entity: StudentCode auto-generation, basic/contact/school info, tags, status, soft delete
+- StudentStatus enum: ACTIVE / PAUSED / GRADUATED / INACTIVE (terminal state validation)
+- StudentParent many-to-many: one student ↔ multiple parents, one parent ↔ multiple students
+- StudentCodeGeneratorService: centralized `STYYYYMMNNNN` format
+- 7 CRUD endpoints + 4 parent-relation endpoints + 1 import endpoint
+- Field-level audit tracking (oldValue, newValue, fieldName, operator, source)
+- createdSource tracking (ADMIN / IMPORT / API)
+- Reusable ImportService with validation + Import Report
+- import_history table reserved for future import tracking
+- BusinessRules/StudentRules.md — business rules separated from code
+- Review/Sprint-03-Checklist.md — gate review checklist
+
+### Database Tables (4 new)
+- `student` — Student profiles
+- `student_parent` — Parent-Student associations
+- `student_audit_log` — Field-level audit trail
+- `import_history` — Import metadata (reserved)
+
+### Technical
+- TypeORM 1.0.0 compatibility resolved (new Entity() pattern, relations object format)
+- synchronize: false permanently (production-safe)
+- xlsx package added for Excel/CSV parsing
+- @types/multer added for file upload types
+
+---
+
+## v0.2.0 — Identity Center (2026-07-07) 🟢 Gate #002 Approved
 
 ### Identity Center (Sprint 2)
 - 6 database tables: user, role, permission, user_role, role_permission, login_log

@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventBusModule } from '@events/event-bus.module';
 import { IdentityModule } from '@modules/identity/identity.module';
+import { StudentModule } from '@modules/student/student.module';
 import { DatabaseModule } from '@database/database.module';
 import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
@@ -25,6 +26,7 @@ import { databaseConfig } from '@config/database.config';
     }),
     EventBusModule,
     IdentityModule,
+    StudentModule,
     DatabaseModule,
   ],
   providers: [
