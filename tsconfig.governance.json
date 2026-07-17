@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist-governance",
+    "types": ["node", "jest"]
+  },
+  "include": ["scripts/governance/**/*.ts"],
+  "exclude": ["node_modules", "backend"]
+}

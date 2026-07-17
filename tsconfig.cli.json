@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist-cli",
+    "types": ["node"]
+  },
+  "include": ["tools/eos-cli/**/*.ts"],
+  "exclude": ["node_modules", "backend", "tools/eos-cli/generators/templates"]
+}
