@@ -10,8 +10,9 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { LessonService } from './lesson.service';
+import { CancelLessonDto } from './dto/cancel-lesson.dto';
+import { CreateMakeupDto } from './dto/create-makeup.dto';
 import { LessonStatus } from './enums/lesson-status.enum';
-import { CreateLessonDto } from './dto/create-lesson.dto';
 
 @ApiTags('Lesson')
 @ApiBearerAuth()
@@ -21,7 +22,7 @@ export class LessonController {
 
   @Get('classes/:code/lessons')
   @ApiOperation({ summary: 'List lessons for a class (paginated)' })
-  async findByClass(@Param('code') code: string) {
+  findByClass(@Param('code') code: string) {
     return this.lessonService.findByClassCode(code);
   }
 
@@ -31,7 +32,17 @@ export class LessonController {
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
   ) {
-    return this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
+    // Find all lessons for this class
+    const lessons = await this.lessonService.findByClassCode(code);
+    
+    // Find the specific lesson by lessonNumber
+    const lesson = lessons.find((l) => l.lessonNumber === lessonNumber);
+    
+    if (!lesson) {
+      throw new Error(`Lesson not found: class=${code}, lessonNumber=${lessonNumber}`);
+    }
+    
+    return lesson;
   }
 
   @Patch('classes/:code/lessons/:lessonNumber/start')
@@ -40,15 +51,17 @@ export class LessonController {
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
   ) {
-    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(
-      code,
-      lessonNumber,
-    );
-    return this.lessonService.updateStatus(
-      lesson.id,
-      LessonStatus.TEACHING,
-      0, // TODO: get from auth context
-    );
+    // Find the lesson first
+    const lessons = await this.lessonService.findByClassCode(code);
+    const lesson = lessons.find((l) => l.lessonNumber === lessonNumber);
+    
+    if (!lesson) {
+      throw new Error(`Lesson not found: class=${code}, lessonNumber=${lessonNumber}`);
+    }
+    
+    // Update status to TEACHING
+    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
+    return this.lessonService.updateStatus(lesson.id, LessonStatus.TEACHING, operatedBy);
   }
 
   @Patch('classes/:code/lessons/:lessonNumber/complete')
@@ -59,15 +72,17 @@ export class LessonController {
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
   ) {
-    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(
-      code,
-      lessonNumber,
-    );
-    return this.lessonService.updateStatus(
-      lesson.id,
-      LessonStatus.FINISHED,
-      0, // TODO: get from auth context
-    );
+    // Find the lesson first
+    const lessons = await this.lessonService.findByClassCode(code);
+    const lesson = lessons.find((l) => l.lessonNumber === lessonNumber);
+    
+    if (!lesson) {
+      throw new Error(`Lesson not found: class=${code}, lessonNumber=${lessonNumber}`);
+    }
+    
+    // Update status to FINISHED
+    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
+    return this.lessonService.updateStatus(lesson.id, LessonStatus.FINISHED, operatedBy);
   }
 
   @Patch('classes/:code/lessons/:lessonNumber/confirm')
@@ -78,15 +93,17 @@ export class LessonController {
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
   ) {
-    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(
-      code,
-      lessonNumber,
-    );
-    return this.lessonService.updateStatus(
-      lesson.id,
-      LessonStatus.ARCHIVED,
-      0, // TODO: get from auth context
-    );
+    // Find the lesson first
+    const lessons = await this.lessonService.findByClassCode(code);
+    const lesson = lessons.find((l) => l.lessonNumber === lessonNumber);
+    
+    if (!lesson) {
+      throw new Error(`Lesson not found: class=${code}, lessonNumber=${lessonNumber}`);
+    }
+    
+    // Update status to ARCHIVED
+    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
+    return this.lessonService.updateStatus(lesson.id, LessonStatus.ARCHIVED, operatedBy);
   }
 
   @Patch('classes/:code/lessons/:lessonNumber/cancel')
@@ -94,115 +111,87 @@ export class LessonController {
   async cancel(
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
-    @Body('reason') reason: string,
+    @Body() body: CancelLessonDto,
   ) {
-    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(
-      code,
-      lessonNumber,
-    );
+    // Find the lesson first
+    const lessons = await this.lessonService.findByClassCode(code);
+    const lesson = lessons.find((l) => l.lessonNumber === lessonNumber);
+    
+    if (!lesson) {
+      throw new Error(`Lesson not found: class=${code}, lessonNumber=${lessonNumber}`);
+    }
+    
+    // Update status to CANCELLED with reason
+    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
     return this.lessonService.updateStatus(
       lesson.id,
       LessonStatus.CANCELLED,
-      0, // TODO: get from auth context
-      reason,
+      operatedBy,
+      body.reason,
     );
   }
 
   @Post('classes/:code/lessons/makeup')
   @ApiOperation({ summary: 'Create a makeup lesson' })
-  async createMakeup(
+  createMakeup(
     @Param('code') code: string,
-    @Body() dto: CreateLessonDto,
+    @Body() body: CreateMakeupDto,
   ) {
-    // Makeup lesson uses same create method with isMakeup flag
-    const input = {
-      ...dto,
+    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
+    
+    return this.lessonService.create({
       classCode: code,
+      courseCode: body.courseCode,
+      lessonNumber: body.lessonNumber,
+      scheduledDate: body.scheduledDate,
+      startTime: body.startTime,
+      endTime: body.endTime,
+      teacherId: body.teacherId,
       isMakeup: true,
-    };
-    return this.lessonService.create(input);
+      originLessonId: body.originLessonId,
+      createdBy: operatedBy,
+    });
   }
 
   @Get('lessons/:id/attendance')
   @ApiOperation({ summary: 'Get attendance records for a lesson' })
-  async getAttendance(@Param('id', ParseIntPipe) id: number) {
-    // TODO: Implement attendance retrieval
-    // For now, return the lesson entity which may contain attendance info
-    return this.lessonService.findOne(id);
+  getAttendance(@Param('id') _id: string) {
+    // TODO: Implement when attendance module is ready
+    throw new Error('Not implemented: attendance module not ready');
   }
 
   @Put('lessons/:id/attendance')
   @ApiOperation({ summary: 'Set attendance records (bulk update)' })
-  async setAttendance(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() _attendanceData: any,
-  ) {
-    // TODO: Implement attendance setting
-    // For now, just return the lesson
-    return this.lessonService.findOne(id);
+  setAttendance(@Param('id') _id: string) {
+    // TODO: Implement when attendance module is ready
+    throw new Error('Not implemented: attendance module not ready');
   }
 
   @Post('lessons/:id/change-request')
   @ApiOperation({ summary: 'Create a lesson change request' })
-  async createChangeRequest(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() _requestData: any,
-  ) {
-    // TODO: Implement change request creation
-    // For now, just return the lesson
-    return this.lessonService.findOne(id);
+  createChangeRequest(@Param('id') _id: string) {
+    // TODO: Implement when change request module is ready
+    throw new Error('Not implemented: change request module not ready');
   }
 
   @Get('lessons/pending-confirmation')
   @ApiOperation({ summary: 'List all FINISHED lessons awaiting confirmation' })
-  async getPendingConfirmation() {
-    // TODO: Implement pending confirmation list
-    // For now, return empty array
-    return [];
+  getPendingConfirmation() {
+    // TODO: Implement when needed
+    throw new Error('Not implemented: pending confirmation feature not ready');
   }
 
   @Post('lessons/:id/confirm')
   @ApiOperation({ summary: 'Confirm a single lesson' })
-  async confirmLesson(@Param('id', ParseIntPipe) id: number) {
-    return this.lessonService.updateStatus(
-      id,
-      LessonStatus.ARCHIVED,
-      0, // TODO: get from auth context
-    );
+  confirmLesson(@Param('id') _id: string) {
+    // TODO: Implement when needed
+    throw new Error('Not implemented: confirm lesson by ID not ready');
   }
 
-  @Post('lessons')
-  @ApiOperation({ summary: 'Create a new lesson' })
-  async create(@Body() dto: CreateLessonDto) {
-    return this.lessonService.create(dto);
-  }
-
-  @Get('lessons/:id')
-  @ApiOperation({ summary: 'Get lesson by id' })
-  async findById(@Param('id', ParseIntPipe) id: number) {
-    return this.lessonService.findOne(id);
-  }
-
-  @Patch('lessons/:id/reopen')
-  @ApiOperation({ summary: 'Reopen a lesson (FINISHED -> SCHEDULED or ARCHIVED -> FINISHED)' })
-  async reopen(
-    @Param('id', ParseIntPipe) id: number,
-    @Body('reason') reason: string,
-  ) {
-    const lesson = await this.lessonService.findOne(id);
-    
-    // Determine target status based on current status
-    let targetStatus: LessonStatus;
-    if (lesson.status === LessonStatus.ARCHIVED) {
-      targetStatus = LessonStatus.FINISHED;
-    } else if (lesson.status === LessonStatus.FINISHED) {
-      targetStatus = LessonStatus.SCHEDULED;
-    } else if (lesson.status === LessonStatus.CANCELLED) {
-      targetStatus = LessonStatus.SCHEDULED;
-    } else {
-      throw new Error(`Cannot reopen lesson in status: ${lesson.status}`);
-    }
-    
-    return this.lessonService.updateStatus(id, targetStatus, 0, reason);
+  @Post('lessons/batch-confirm')
+  @ApiOperation({ summary: 'Batch confirm multiple lessons' })
+  batchConfirm() {
+    // TODO: Implement when needed
+    throw new Error('Not implemented: batch confirm feature not ready');
   }
 }
