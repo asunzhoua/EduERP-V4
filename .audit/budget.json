@@ -1,0 +1,44 @@
+{
+  "mission": "Sprint 4.8 — Self Governance & Evolution Runtime",
+  "version": "1.0.0",
+  "budgets": {
+    "time": {
+      "totalMinutes": 1440,
+      "usedMinutes": 0,
+      "remainingMinutes": 1440,
+      "objectiveLimits": {
+        "default": 60,
+        "objective6": 120,
+        "objective9": 90,
+        "objective10": 180
+      }
+    },
+    "risk": {
+      "level": "conservative",
+      "maxFilesPerChange": 10,
+      "maxLinesPerChange": 200,
+      "requireValidation": true,
+      "pauseOnHighRisk": true
+    },
+    "change": {
+      "maxNewFiles": 30,
+      "maxModifiedFiles": 50,
+      "maxDeletedFiles": 20,
+      "requireCheckpointAfter": 15
+    },
+    "complexity": {
+      "maxCyclomaticIncrease": 0,
+      "maxNestingDepth": 4,
+      "maxFunctionLength": 100,
+      "preferExtraction": true
+    }
+  },
+  "rules": [
+    "Single objective file count exceeds limit → checkpoint",
+    "Single refactor impact too large → pause objective, log reason, continue other objectives",
+    "No mass rewrites allowed",
+    "All changes must be verifiable",
+    "Repository must be simpler after each objective"
+  ],
+  "violations": []
+}

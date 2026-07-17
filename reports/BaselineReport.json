@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-07-15T07:48:55.382Z",
+  "scriptName": "build-baseline",
+  "results": [
+    {
+      "id": "BASELINE-001",
+      "description": "ArchitectureBaseline.md generated",
+      "severity": "PASS"
+    },
+    {
+      "id": "BASELINE-002",
+      "description": "Baseline contains required metrics",
+      "severity": "PASS"
+    }
+  ],
+  "summary": {
+    "pass": 2,
+    "fail": 0,
+    "warn": 0
+  }
+}

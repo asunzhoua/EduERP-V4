@@ -1,0 +1,59 @@
+{
+  "timestamp": "2026-07-15T08:38:00.044Z",
+  "scriptName": "FreezeAudit",
+  "results": [
+    {
+      "id": "WP1.1",
+      "description": "All EventCatalog events have EventSchema entries",
+      "severity": "PASS",
+      "details": "All 24 events have schema entries"
+    },
+    {
+      "id": "WP1.2",
+      "description": "Owner/domain matches between Catalog and Schema",
+      "severity": "PASS",
+      "details": "All owners match"
+    },
+    {
+      "id": "WP1.3",
+      "description": "StateMachineCatalog contains exactly 9 state machines",
+      "severity": "PASS",
+      "details": "Found 9 state machines"
+    },
+    {
+      "id": "WP1.4",
+      "description": "All governance documents have version headers",
+      "severity": "PASS",
+      "details": "All 4 documents have version headers"
+    },
+    {
+      "id": "WP1.5",
+      "description": "ArchitectureHandbook cross-references resolve to existing files",
+      "severity": "PASS",
+      "details": "All 22 references resolve"
+    },
+    {
+      "id": "WP1.6",
+      "description": "ADR/DEC files have required metadata (Status, Date)",
+      "severity": "PASS",
+      "details": "All 5 ADR files have required metadata"
+    },
+    {
+      "id": "WP1.7",
+      "description": "CURRENT events have corresponding event classes in code",
+      "severity": "PASS",
+      "details": "All 2 CURRENT events have code classes"
+    },
+    {
+      "id": "WP1.8",
+      "description": "All event names follow lowercase dot notation convention",
+      "severity": "PASS",
+      "details": "All 24 event names are valid"
+    }
+  ],
+  "summary": {
+    "pass": 8,
+    "fail": 0,
+    "warn": 0
+  }
+}

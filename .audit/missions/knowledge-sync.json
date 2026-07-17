@@ -1,0 +1,21 @@
+{
+  "id": "knowledge-sync",
+  "name": "Knowledge Sync",
+  "description": "Full rebuild of knowledge artifacts",
+  "status": "pending",
+  "steps": [
+    {
+      "id": "scan",
+      "name": "Scan Codebase",
+      "status": "pending"
+    },
+    {
+      "id": "generate",
+      "name": "Generate Artifacts",
+      "status": "pending"
+    }
+  ],
+  "history": [],
+  "createdAt": "2026-07-15T02:30:31.808Z",
+  "updatedAt": "2026-07-15T02:30:31.811Z"
+}

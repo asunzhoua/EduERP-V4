@@ -1,0 +1,21 @@
+{
+  "id": "health-telemetry",
+  "name": "Health Telemetry Report",
+  "description": "Generate comprehensive health reports",
+  "status": "pending",
+  "steps": [
+    {
+      "id": "health-check",
+      "name": "Run Health Checks",
+      "status": "pending"
+    },
+    {
+      "id": "generate-reports",
+      "name": "Generate Reports",
+      "status": "pending"
+    }
+  ],
+  "history": [],
+  "createdAt": "2026-07-15T02:30:31.808Z",
+  "updatedAt": "2026-07-15T02:30:31.810Z"
+}

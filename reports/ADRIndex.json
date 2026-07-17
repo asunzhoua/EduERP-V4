@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-07-15T08:38:00.144Z",
+  "scriptName": "ADRIndex",
+  "results": [
+    {
+      "id": "WP5.1",
+      "description": "All ADR/DEC files have required metadata (Status, Date)",
+      "severity": "PASS",
+      "details": "All 5 files have required metadata"
+    },
+    {
+      "id": "WP5.2",
+      "description": "No duplicate ADR/DEC IDs",
+      "severity": "PASS",
+      "details": "All 5 IDs are unique"
+    },
+    {
+      "id": "WP5.3",
+      "description": "Status value is valid (PROPOSED, ACCEPTED, DEPRECATED, SUPERSEDED)",
+      "severity": "PASS",
+      "details": "All 5 statuses are valid"
+    }
+  ],
+  "summary": {
+    "pass": 3,
+    "fail": 0,
+    "warn": 0
+  }
+}

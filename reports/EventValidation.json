@@ -1,0 +1,53 @@
+{
+  "timestamp": "2026-07-15T08:37:59.885Z",
+  "scriptName": "EventValidation",
+  "results": [
+    {
+      "id": "WP2.1",
+      "description": "Every EventCatalog event has EventSchema entry",
+      "severity": "PASS",
+      "details": "All 24 catalog events have schema entries"
+    },
+    {
+      "id": "WP2.2",
+      "description": "CURRENT/DESIGNED events have event class in code",
+      "severity": "PASS",
+      "details": "All 11 CURRENT/DESIGNED events have code classes"
+    },
+    {
+      "id": "WP2.3",
+      "description": "Event class fields match Schema payload fields",
+      "severity": "WARNING",
+      "details": "lesson.completed: in schema but not class: attendance; lesson.finished: in schema but not class: attendance"
+    },
+    {
+      "id": "WP2.4",
+      "description": "Every publish() call has event registered in EventCatalog",
+      "severity": "PASS",
+      "details": "All 2 publish() calls are registered"
+    },
+    {
+      "id": "WP2.5",
+      "description": "Publish payload fields match Schema defined fields",
+      "severity": "PASS",
+      "details": "All 2 publish payloads match schemas"
+    },
+    {
+      "id": "WP2.6",
+      "description": "No orphan event classes (code classes not in Catalog)",
+      "severity": "PASS",
+      "details": "All 11 event classes are cataloged"
+    },
+    {
+      "id": "WP2.7",
+      "description": "CURRENT status accuracy (only events with publish() calls)",
+      "severity": "PASS",
+      "details": "All 2 CURRENT events have publish() calls"
+    }
+  ],
+  "summary": {
+    "pass": 6,
+    "fail": 0,
+    "warn": 1
+  }
+}

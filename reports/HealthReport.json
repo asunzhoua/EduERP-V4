@@ -1,0 +1,136 @@
+{
+  "timestamp": "2026-07-15T02:28:11.700Z",
+  "healthScore": 89,
+  "categories": [
+    {
+      "category": "TypeScript",
+      "score": 20,
+      "max": 20,
+      "percentage": 100,
+      "details": "0 errors, Exists",
+      "items": [
+        {
+          "name": "Compilation",
+          "score": 10,
+          "detail": "0 errors"
+        },
+        {
+          "name": "tsconfig.json",
+          "score": 10,
+          "detail": "Exists"
+        }
+      ]
+    },
+    {
+      "category": "Tests",
+      "score": 30,
+      "max": 40,
+      "percentage": 75,
+      "details": "11 suites, 188 tests, 100%, 11/152 (7.2%)",
+      "items": [
+        {
+          "name": "Suite Count",
+          "score": 7,
+          "detail": "11 suites"
+        },
+        {
+          "name": "Test Count",
+          "score": 9,
+          "detail": "188 tests"
+        },
+        {
+          "name": "Pass Rate",
+          "score": 10,
+          "detail": "100%"
+        },
+        {
+          "name": "File Coverage",
+          "score": 4,
+          "detail": "11/152 (7.2%)"
+        }
+      ]
+    },
+    {
+      "category": "Governance",
+      "score": 34,
+      "max": 40,
+      "percentage": 85,
+      "details": "1 PASS, 0 FAIL, 0 WARN, 0 failures, 4/4 exist, 4 ADRs",
+      "items": [
+        {
+          "name": "Report Exists",
+          "score": 10,
+          "detail": "1 PASS, 0 FAIL, 0 WARN"
+        },
+        {
+          "name": "No Failures",
+          "score": 10,
+          "detail": "0 failures"
+        },
+        {
+          "name": "Gov Documents",
+          "score": 10,
+          "detail": "4/4 exist"
+        },
+        {
+          "name": "ADRs",
+          "score": 4,
+          "detail": "4 ADRs"
+        }
+      ]
+    },
+    {
+      "category": "Architecture",
+      "score": 28,
+      "max": 30,
+      "percentage": 93,
+      "details": "6 PASS, 0 FAIL, 7 WARN, 8 modules, 10 repositories",
+      "items": [
+        {
+          "name": "DDD Compliance",
+          "score": 10,
+          "detail": "6 PASS, 0 FAIL, 7 WARN"
+        },
+        {
+          "name": "Module Count",
+          "score": 8,
+          "detail": "8 modules"
+        },
+        {
+          "name": "Repository Layer",
+          "score": 10,
+          "detail": "10 repositories"
+        }
+      ]
+    },
+    {
+      "category": "Documentation",
+      "score": 39,
+      "max": 40,
+      "percentage": 98,
+      "details": "11 files, 0h old, Exists, 94 docs",
+      "items": [
+        {
+          "name": "Knowledge Files",
+          "score": 10,
+          "detail": "11 files"
+        },
+        {
+          "name": "Knowledge Freshness",
+          "score": 10,
+          "detail": "0h old"
+        },
+        {
+          "name": "README",
+          "score": 10,
+          "detail": "Exists"
+        },
+        {
+          "name": "Documentation Files",
+          "score": 9,
+          "detail": "94 docs"
+        }
+      ]
+    }
+  ]
+}

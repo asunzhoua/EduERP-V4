@@ -1,0 +1,35 @@
+{
+  "timestamp": "2026-07-15T08:37:59.843Z",
+  "scriptName": "HandbookValidation",
+  "results": [
+    {
+      "id": "WP4.1",
+      "description": "All Handbook cross-references resolve to existing files",
+      "severity": "PASS",
+      "details": "All 22 references resolve"
+    },
+    {
+      "id": "WP4.2",
+      "description": "Appendix A listed documents exist on disk",
+      "severity": "PASS",
+      "details": "All 33 Appendix A documents exist"
+    },
+    {
+      "id": "WP4.3",
+      "description": "Referenced documents have version headers",
+      "severity": "WARNING",
+      "details": "Missing version header: ../00-Constitution/Constitution-v4.0.md, ../02-SAD/SAD-v4.0.md, ../05-EventBus/EventBusSpecification.md, ../DecisionLog/ADR-010-Attendance-Event-Ownership.md, ../04-API/API-Specification.md, ../03-Database/ER.md, ../03-Database/TableDictionary.md, ../10-Deploy/DeployGuide.md, ../06-Permission/PermissionDesign.md, ../09-Test/TestPlan.md"
+    },
+    {
+      "id": "WP4.4",
+      "description": "Unreferenced docs in docs/ (informational)",
+      "severity": "PASS",
+      "details": "73 docs not referenced by Handbook (105 total)"
+    }
+  ],
+  "summary": {
+    "pass": 3,
+    "fail": 0,
+    "warn": 1
+  }
+}

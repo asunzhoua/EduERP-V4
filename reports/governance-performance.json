@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-07-15T08:11:53.158Z",
+  "totalDurationMs": 57,
+  "tasks": [
+    {
+      "taskId": "freeze-audit",
+      "durationMs": 11,
+      "artifactsProcessed": 0,
+      "checksPerformed": 101
+    },
+    {
+      "taskId": "event-validation",
+      "durationMs": 10,
+      "artifactsProcessed": 0,
+      "checksPerformed": 46
+    },
+    {
+      "taskId": "state-machine-validation",
+      "durationMs": 8,
+      "artifactsProcessed": 0,
+      "checksPerformed": 15
+    },
+    {
+      "taskId": "handbook-validation",
+      "durationMs": 7,
+      "artifactsProcessed": 0,
+      "checksPerformed": 23
+    },
+    {
+      "taskId": "adr-index",
+      "durationMs": 2,
+      "artifactsProcessed": 0,
+      "checksPerformed": 15
+    },
+    {
+      "taskId": "build-baseline",
+      "durationMs": 19,
+      "artifactsProcessed": 0,
+      "checksPerformed": 3
+    }
+  ],
+  "summary": {
+    "totalTasks": 6,
+    "totalDurationMs": 57,
+    "totalArtifacts": 0,
+    "totalChecks": 203
+  }
+}

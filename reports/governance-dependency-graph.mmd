@@ -1,0 +1,36 @@
+graph TD
+  freeze-audit["Freeze Audit"]
+  event-validation["Event Validation"]
+  state-machine-validation["State Machine Validation"]
+  handbook-validation["Handbook Validation"]
+  adr-index["ADR Index"]
+  traceability-validation["Traceability Validation"]
+  drift-detection["Drift Detection"]
+  friction-enforcement["Friction Enforcement"]
+  architecture-consistency["Architecture Consistency"]
+  governance-summary["Governance Summary"]
+  build-baseline["ArchitectureBaseline"]
+  freeze-audit --> event-validation
+  freeze-audit --> state-machine-validation
+  freeze-audit --> handbook-validation
+  freeze-audit --> adr-index
+  freeze-audit --> traceability-validation
+  freeze-audit --> drift-detection
+  freeze-audit --> friction-enforcement
+  freeze-audit --> architecture-consistency
+  freeze-audit --> governance-summary
+  event-validation --> governance-summary
+  state-machine-validation --> governance-summary
+  handbook-validation --> governance-summary
+  adr-index --> governance-summary
+  traceability-validation --> governance-summary
+  drift-detection --> governance-summary
+  architecture-consistency --> governance-summary
+  friction-enforcement --> governance-summary
+  event-validation --> build-baseline
+  state-machine-validation --> build-baseline
+
+  classDef default fill:#e1f5fe,stroke:#0288d1,stroke-width:2px
+  classDef pass fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+  classDef warn fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+  classDef fail fill:#ffcdd2,stroke:#d32f2f,stroke-width:2px

@@ -1,0 +1,51 @@
+{
+  "id": "governance-full",
+  "name": "Full Governance Validation",
+  "description": "Run all governance checks, tests, and architecture analysis",
+  "status": "pending",
+  "steps": [
+    {
+      "id": "typescript",
+      "name": "TypeScript Compilation",
+      "status": "pending"
+    },
+    {
+      "id": "freeze-audit",
+      "name": "Freeze Audit",
+      "status": "pending"
+    },
+    {
+      "id": "validate-events",
+      "name": "Event Validation",
+      "status": "pending"
+    },
+    {
+      "id": "validate-state-machine",
+      "name": "State Machine Validation",
+      "status": "pending"
+    },
+    {
+      "id": "build-handbook",
+      "name": "Handbook Validation",
+      "status": "pending"
+    },
+    {
+      "id": "build-adr-index",
+      "name": "ADR Index",
+      "status": "pending"
+    },
+    {
+      "id": "architecture",
+      "name": "Architecture Doctor",
+      "status": "pending"
+    },
+    {
+      "id": "tests",
+      "name": "Test Suite",
+      "status": "pending"
+    }
+  ],
+  "history": [],
+  "createdAt": "2026-07-15T02:30:31.807Z",
+  "updatedAt": "2026-07-15T02:30:31.809Z"
+}

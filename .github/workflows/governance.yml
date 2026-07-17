@@ -1,0 +1,99 @@
+name: Governance Validation
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  governance-check:
+    name: Governance Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: cd backend && npm ci
+
+      - name: TypeScript Compilation
+        run: cd backend && npx tsc --noEmit
+
+      - name: CLI TypeScript Compilation
+        run: cd backend && npx tsc --project ../tsconfig.cli.json --noEmit
+
+      - name: Governance TypeScript Compilation
+        run: cd backend && npx tsc --project ../tsconfig.governance.json --noEmit
+
+      - name: Backend Tests
+        run: cd backend && npm test -- --passWithNoTests
+
+      - name: Governance Tests
+        run: cd backend && npm run governance:test
+
+      - name: Governance Validation
+        run: cd backend && npm run governance:check
+
+      - name: Freeze Audit
+        run: cd backend && npm run governance:freeze-audit
+
+      - name: Event Validation
+        run: cd backend && npm run governance:validate-events
+
+      - name: State Machine Validation
+        run: cd backend && npm run governance:validate-state-machine
+
+      - name: Upload Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-reports
+          path: reports/
+          retention-days: 30
+
+  baseline-check:
+    name: Architecture Baseline
+    runs-on: ubuntu-latest
+    needs: governance-check
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: cd backend && npm ci
+
+      - name: Generate Architecture Baseline
+        run: cd backend && npm run governance:build-baseline
+
+      - name: Verify Baseline Exists
+        run: |
+          if [ ! -f "docs/architecture/ArchitectureBaseline.md" ]; then
+            echo "ERROR: ArchitectureBaseline.md not found"
+            exit 1
+          fi
+          echo "✅ ArchitectureBaseline.md exists"
+
+      - name: Check Baseline Dated
+        run: |
+          if grep -q "Generated.*$(date +%Y-%m-%d)" docs/architecture/ArchitectureBaseline.md; then
+            echo "✅ Baseline is up to date"
+          else
+            echo "⚠️ Baseline may be stale"
+          fi
