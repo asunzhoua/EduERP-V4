@@ -144,11 +144,29 @@ AI永远建议，不是决定。所有财务、工资、课时、退款最终都
 
 **以后所有开发人员（包括AI）必须遵守：**
 
+### 数据安全
 1. 禁止直接修改核心业务数据（必须通过业务单据或事件处理）。
 2. 禁止硬编码业务规则（工资、课时、积分、提醒等均走规则中心）。
 3. 禁止跨模块直接调用（统一通过事件总线通信）。
 4. 禁止删除审计日志（日志只归档，不删除）。
+
+### 开发流程
 5. 任何新增功能，必须先更新文档，再写代码。
+6. 一个 Sprint 只完成一个业务域，禁止跨域开发。
+7. 任何对已冻结模块的修改必须走 Change Request（CR）。
+
+### 业务规则（新增）
+15. **业务对象必须先存在，业务动作才能开发。** 例如：先有 Student，再开发 Lesson，最后开发 Attendance。禁止先开发签到再补学生信息。
+16. **所有资金相关业务必须由 LessonFinished 事件触发。** 任何地方都不能直接扣课。流程：签到 → LessonFinished → EventBus → Attendance → Finance → Points → Notification → Dashboard。
+17. **任何业务只能修改自己的数据，不允许跨 Domain 修改数据库。** 例如：Attendance 不能 UPDATE Student，Finance 不能 UPDATE Lesson。全部发事件通知。
+18. **所有用户看到的数据必须来自数据库，不允许页面自己计算业务结果。** 例如：剩余课时必须在后台计算后返回，不允许前端用总课时减已扣课时自行计算。
+19. **Lesson 是整个 EduOS 唯一的业务时间轴。** 所有业务（工资、签到、反馈、请假、积分、财务）全部围绕 Lesson 展开，不围绕 Class 或 Course。Lesson 是系统中最小的业务原子单位。
+20. **Every Money Must Have A Lesson.** 每一分钱都必须能追溯到一节课。任何涉及资金的业务记录必须关联到具体的 Lesson ID，确保资金流向完全可审计。
+21. **每一个 Domain 必须公开自己的 Event，不允许其他 Domain 猜测业务。** 例如：Finance 不能猜测 Lesson 是否结束，必须收到明确的 LessonFinished 事件后才能执行扣课和工资计算。
+22. **所有状态变化必须是单向的，不允许跳状态。** 例如：Lesson 不能从 Draft 直接跳 Finished，必须经过 Scheduled → Teaching → Completed → Finished → Archived。跳状态会导致审计漏洞和业务错误。
+23. **任何自动计算结果，都必须能够重新计算（Replayable）。** 例如：工资规则修改后，必须能够通过 Replay LessonFinished 事件重新生成工资数据，而不是直接修改数据库。所有计算结果必须有可重复的推导路径。
+24. **Skeleton First — 任何新的 Domain，必须先完成 Skeleton，再开始业务开发。** 第一阶段：建立目录、Module、Controller、Service、Repository、DTO、Entity 骨架。第二阶段：通过编译、Lint、Swagger 检查。第三阶段：冻结 Skeleton。第四阶段：再开始编写业务逻辑。
+25. **One Domain At A Time — 任一时刻只能开发一个业务 Domain。** 当前 Domain 未完成 Gate、Release、Freeze 前，不允许进入下一个 Domain。如需修改已冻结 Domain，必须通过 Change Request（CR）流程，而不是直接修改代码。此规则适用于所有开发人员（包括 AI），是确保多 Domain 边界清晰的核心约束。
 
 ---
 

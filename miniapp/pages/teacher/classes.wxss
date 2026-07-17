@@ -5,25 +5,30 @@
   min-height: 100vh;
 }
 
+/* 筛选栏 */
 .filter-bar {
   display: flex;
   gap: 16rpx;
   padding: 20rpx 0;
+  margin-bottom: 16rpx;
 }
 
 .filter-item {
-  padding: 12rpx 32rpx;
+  padding: 16rpx 32rpx;
   font-size: 28rpx;
   color: #666666;
   background: #ffffff;
-  border-radius: 8rpx;
+  border-radius: 40rpx;
+  transition: all 0.2s ease;
 }
 
 .filter-item.active {
   color: #ffffff;
-  background: #1890ff;
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  box-shadow: 0 4rpx 12rpx rgba(24, 144, 255, 0.3);
 }
 
+/* 班级列表 */
 .class-list {
   margin-top: 20rpx;
 }
@@ -31,27 +36,48 @@
 .class-card {
   background: #ffffff;
   padding: 24rpx;
-  margin-bottom: 16rpx;
-  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
 }
 
+.class-card:active {
+  transform: scale(0.98);
+  box-shadow: none;
+}
+
+/* 班级头部 */
 .class-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12rpx;
+  align-items: flex-start;
+  margin-bottom: 16rpx;
+}
+
+.class-title {
+  flex: 1;
 }
 
 .class-name {
-  font-size: 32rpx;
+  font-size: 34rpx;
   font-weight: bold;
   color: #333333;
+  display: block;
+}
+
+.class-schedule {
+  font-size: 24rpx;
+  color: #1890ff;
+  margin-top: 8rpx;
+  display: block;
 }
 
 .class-status {
   font-size: 24rpx;
-  padding: 4rpx 16rpx;
+  padding: 6rpx 20rpx;
   border-radius: 8rpx;
+  flex-shrink: 0;
 }
 
 .status-ACTIVE {
@@ -59,71 +85,231 @@
   color: #52c41a;
 }
 
-.status-COMPLETED {
-  background: #f5f5f5;
-  color: #999999;
-}
-
 .status-DRAFT {
   background: #fff7e6;
   color: #fa8c16;
 }
 
+.status-COMPLETED {
+  background: #f5f5f5;
+  color: #8c8c8c;
+}
+
+.status-CANCELLED {
+  background: #fff1f0;
+  color: #f5222d;
+}
+
+/* 课程信息 */
 .class-info {
-  display: flex;
-  flex-direction: column;
   margin-bottom: 16rpx;
 }
 
-.course-name {
-  font-size: 28rpx;
-  color: #666666;
+.info-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
 }
 
-.start-date {
+.info-label {
   font-size: 24rpx;
-  color: #999999;
-  margin-top: 8rpx;
+  color: #999;
+  width: 80rpx;
 }
 
+.info-value {
+  font-size: 26rpx;
+  color: #666;
+}
+
+/* 进度条 */
+.progress-section {
+  padding: 16rpx 0;
+  margin-bottom: 16rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.progress-label {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.progress-text {
+  font-size: 24rpx;
+  color: #1890ff;
+}
+
+.progress-bar {
+  height: 12rpx;
+  background: #f0f0f0;
+  border-radius: 6rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 6rpx;
+  transition: width 0.3s ease;
+}
+
+.progress-fill.progress-ACTIVE {
+  background: linear-gradient(90deg, #52c41a 0%, #73d13d 100%);
+}
+
+.progress-fill.progress-DRAFT {
+  background: linear-gradient(90deg, #fa8c16 0%, #ffc53d 100%);
+}
+
+.progress-fill.progress-COMPLETED {
+  background: linear-gradient(90deg, #8c8c8c 0%, #bfbfbf 100%);
+}
+
+.progress-percent {
+  font-size: 24rpx;
+  color: #52c41a;
+  margin-top: 8rpx;
+  display: block;
+  text-align: right;
+}
+
+/* 底部 */
 .class-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f0f0f0;
 }
 
+/* 学生数 */
 .student-count {
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.count-visual {
+  width: 200rpx;
+  height: 8rpx;
+  background: #e8e8e8;
+  border-radius: 4rpx;
+  overflow: hidden;
+}
+
+.count-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #1890ff 0%, #40a9ff 100%);
+  border-radius: 4rpx;
+  transition: width 0.3s ease;
+}
+
+.count-text {
+  font-size: 24rpx;
 }
 
 .count-current {
-  font-size: 36rpx;
+  font-size: 32rpx;
   font-weight: bold;
   color: #1890ff;
 }
 
 .count-sep, .count-max {
-  font-size: 28rpx;
-  color: #999999;
+  font-size: 24rpx;
+  color: #999;
   margin: 0 4rpx;
 }
 
-.count-label {
-  font-size: 24rpx;
-  color: #999999;
+.count-unit {
+  font-size: 22rpx;
+  color: #999;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  display: flex;
+  gap: 16rpx;
 }
 
 .action-btn {
   font-size: 24rpx;
-  padding: 8rpx 24rpx;
-  background: #1890ff;
-  color: #ffffff;
+  padding: 12rpx 24rpx;
   border-radius: 8rpx;
+  border: none;
+  line-height: 1.4;
 }
 
-.empty {
-  text-align: center;
+.action-btn::after {
+  border: none;
+}
+
+.btn-students {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.btn-record {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  color: #ffffff;
+}
+
+.btn-record.disabled {
+  background: #f5f5f5;
+  color: #bfbfbf;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 60rpx;
-  color: #999999;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #e6f7ff;
+  border-top-color: #1890ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 26rpx;
+  color: #999;
+  margin-top: 16rpx;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 40rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 12rpx;
+}
+
+.empty-hint {
+  font-size: 24rpx;
+  color: #1890ff;
 }

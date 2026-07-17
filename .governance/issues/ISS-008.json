@@ -1,0 +1,21 @@
+{
+  "id": "ISS-008",
+  "title": "dayOfWeek array not validated for range [0-6] or max length 6",
+  "priority": "P2",
+  "status": "resolved",
+  "severity": "validation",
+  "description": "CreateClassDto and UpdateClassDto only have @IsArray() and @IsNotEmpty() on dayOfWeek. No validation that elements are integers in [0,6] or array length ≤ 6.",
+  "files": [
+    "backend/src/modules/teaching/class/dto/create-class.dto.ts",
+    "backend/src/modules/teaching/class/dto/update-class.dto.ts"
+  ],
+  "discoveredAt": "2026-07-15T17:30:00Z",
+  "discoveredBy": "Discovery Round 1",
+  "resolvedAt": "2026-07-17T01:20:00Z",
+  "resolvedBy": "Long Mission Task 1.2",
+  "resolution": "Added @ArrayMinSize(1) and @ArrayMaxSize(7) decorators for array length validation",
+  "statusHistory": [
+    { "status": "open", "at": "2026-07-15T17:30:00Z", "by": "Discovery Round 1" },
+    { "status": "resolved", "at": "2026-07-17T01:20:00Z", "by": "Long Mission Task 1.2" }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "ISS-014",
+  "title": "LessonRules.md ChangeRequestStatus missing EXECUTED terminal state",
+  "priority": "P2",
+  "status": "open",
+  "severity": "documentation",
+  "description": "LessonRules.md defines ChangeRequestStatus as PENDING|APPROVED|REJECTED. Code has 4 states: PENDING, APPROVED, REJECTED, EXECUTED. EXECUTED is the terminal success state after a change request is applied. LessonChangeRequestRules.md includes EXECUTED correctly.",
+  "files": [
+    "docs/BusinessRules/LessonRules.md",
+    "backend/src/modules/teaching/lesson-change-request/enums/change-request-status.enum.ts",
+    "docs/BusinessRules/LessonChangeRequestRules.md"
+  ],
+  "discoveredAt": "2026-07-15T18:00:00Z",
+  "discoveredBy": "Discovery Round 2",
+  "relatedDebt": null,
+  "statusHistory": [
+    { "status": "open", "at": "2026-07-15T18:00:00Z", "by": "Discovery Round 2" }
+  ]
+}

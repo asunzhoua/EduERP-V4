@@ -107,3 +107,102 @@
   color: #999999;
   margin-top: 8rpx;
 }
+
+/* 数据状态 */
+.overview-value.has-data {
+  color: #52c41a;
+}
+
+.overview-value.warning {
+  color: #fa8c16;
+}
+
+/* 骨架屏 */
+.skeleton-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.skeleton-value {
+  width: 80rpx;
+  height: 48rpx;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 8rpx;
+}
+
+.skeleton-label {
+  width: 60rpx;
+  height: 24rpx;
+  background: #f0f0f0;
+  border-radius: 4rpx;
+  margin-top: 8rpx;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 错误状态 */
+.error-card {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 120rpx;
+}
+
+.error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.error-icon {
+  font-size: 48rpx;
+}
+
+.error-text {
+  font-size: 28rpx;
+  color: #999999;
+  margin-top: 12rpx;
+}
+
+.error-hint {
+  font-size: 24rpx;
+  color: #1890ff;
+  margin-top: 8rpx;
+}
+
+/* 提示卡片 */
+.tips-card {
+  margin-top: 20rpx;
+  padding: 20rpx 24rpx;
+  background: #fff7e6;
+  border-radius: 12rpx;
+  border-left: 6rpx solid #fa8c16;
+}
+
+.tips-content {
+  display: flex;
+  align-items: center;
+}
+
+.tips-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+}
+
+.tips-text {
+  font-size: 26rpx;
+  color: #595959;
+}
+
+.section-refresh {
+  font-size: 24rpx;
+  color: #1890ff;
+  margin-left: 20rpx;
+}

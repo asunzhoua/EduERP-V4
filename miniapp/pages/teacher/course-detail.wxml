@@ -1,0 +1,56 @@
+<!--pages/teacher/course-detail.wxml-->
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error-state" wx:elif="{{error}}">
+    <text class="error-icon">⚠️</text>
+    <text class="error-text">{{error}}</text>
+    <button class="retry-btn" bindtap="onBack">返回列表</button>
+  </view>
+
+  <!-- 课程详情 -->
+  <view class="detail-content" wx:else>
+    <!-- 头部信息 -->
+    <view class="detail-header">
+      <text class="course-name">{{course.name}}</text>
+      <text class="course-code">{{course.courseCode}}</text>
+      <view class="course-tags">
+        <text class="tag tag-subject">{{course.subject}}</text>
+        <text class="tag tag-status-{{course.status}}">
+          {{course.status === 'PUBLISHED' ? '已发布' : course.status === 'DRAFT' ? '草稿' : '已归档'}}
+        </text>
+      </view>
+    </view>
+
+    <!-- 基本信息 -->
+    <view class="info-section">
+      <view class="section-title">基本信息</view>
+      <view class="info-list">
+        <view class="info-item">
+          <text class="info-label">课时总数</text>
+          <text class="info-value">{{course.lessonCount || 0}} 节</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">开班数量</text>
+          <text class="info-value">{{course.enrolledClasses || 0}} 个</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 课程描述 -->
+    <view class="info-section" wx:if="{{course.description}}">
+      <view class="section-title">课程描述</view>
+      <text class="description-text">{{course.description}}</text>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-section">
+      <button class="action-btn primary" bindtap="goToClasses">查看班级</button>
+    </view>
+  </view>
+</view>

@@ -24,7 +24,17 @@ Page({
     attendanceRecords: [],
 
     // 提交状态
-    submitting: false
+    submitting: false,
+
+    // 表单错误
+    formErrors: {},
+
+    // 加载状态
+    loadingClasses: false,
+    loadingStudents: false,
+
+    // 提交结果
+    submitResult: null
   },
 
   onLoad(options) {
@@ -32,8 +42,15 @@ Page({
     const today = new Date();
     const dateStr = this.formatDate(today);
 
+    // 设置默认时间为当前时间
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const defaultStartTime = `${hh}:${mm}`;
+
     this.setData({
-      lessonDate: dateStr
+      lessonDate: dateStr,
+      startTime: defaultStartTime
     });
 
     // 如果有传入 classCode，直接进入步骤 2
@@ -59,37 +76,57 @@ Page({
 
   // 加载班级列表
   async loadClasses() {
+    this.setData({ loadingClasses: true });
     try {
       const data = await get('/classes', { status: 'ACTIVE' });
-      this.setData({ classes: data.items || [] });
+      if (data && data.items) {
+        this.setData({ classes: data.items });
+      } else if (Array.isArray(data)) {
+        this.setData({ classes: data });
+      } else {
+        this.setData({ classes: [] });
+      }
     } catch (err) {
-      // 模拟数据
+      console.warn('[lesson-record] 加载班级列表失败，使用降级数据:', err);
+      // 模拟数据（降级方案）
       this.setData({
         classes: [
           { classCode: 'CL2026070001', name: '周六上午班', courseName: '数学思维训练' },
           { classCode: 'CL2026070002', name: '周日下午班', courseName: '英语口语提升' }
         ]
       });
+    } finally {
+      this.setData({ loadingClasses: false });
     }
   },
 
   // 加载学生列表
   async loadStudents(classCode) {
+    this.setData({ loadingStudents: true });
     try {
       const data = await get(`/classes/${classCode}/students`);
       const students = (data || []).map(s => ({
         ...s,
         status: 'PRESENT' // 默认到课
       }));
-      this.setData({ students, selectedStudents: students.map(s => s.studentCode) });
+      this.setData({
+        students,
+        selectedStudents: students.map(s => s.studentCode)
+      });
     } catch (err) {
-      // 模拟数据
+      console.warn('[lesson-record] 加载学生列表失败，使用降级数据:', err);
+      // 模拟数据（降级方案）
       const mockStudents = [
         { studentCode: 'STU001', name: '张三', status: 'PRESENT' },
         { studentCode: 'STU002', name: '李四', status: 'PRESENT' },
         { studentCode: 'STU003', name: '王五', status: 'PRESENT' }
       ];
-      this.setData({ students: mockStudents, selectedStudents: mockStudents.map(s => s.studentCode) });
+      this.setData({
+        students: mockStudents,
+        selectedStudents: mockStudents.map(s => s.studentCode)
+      });
+    } finally {
+      this.setData({ loadingStudents: false });
     }
   },
 
@@ -97,7 +134,13 @@ Page({
   onSelectClass(e) {
     const { code } = e.currentTarget.dataset;
     const selectedClass = this.data.classes.find(c => c.classCode === code);
-    this.setData({ selectedClass, step: 2 });
+    // 清除上一轮的提交结果和表单错误
+    this.setData({
+      selectedClass,
+      step: 2,
+      submitResult: null,
+      formErrors: {}
+    });
     this.loadStudents(code);
   },
 
@@ -120,16 +163,25 @@ Page({
 
   // 日期选择
   onDateChange(e) {
-    this.setData({ lessonDate: e.detail.value });
+    this.setData({
+      lessonDate: e.detail.value,
+      'formErrors.date': undefined
+    });
   },
 
   // 时间选择
   onStartTimeChange(e) {
-    this.setData({ startTime: e.detail.value });
+    this.setData({
+      startTime: e.detail.value,
+      'formErrors.timeRange': undefined
+    });
   },
 
   onEndTimeChange(e) {
-    this.setData({ endTime: e.detail.value });
+    this.setData({
+      endTime: e.detail.value,
+      'formErrors.timeRange': undefined
+    });
   },
 
   // 课题输入
@@ -137,22 +189,65 @@ Page({
     this.setData({ topic: e.detail.value });
   },
 
+  // 表单验证 - 步骤3
+  validateLessonForm() {
+    const errors = {};
+    const { lessonDate, startTime, endTime } = this.data;
+
+    // 日期验证
+    if (!lessonDate) {
+      errors.date = '请选择日期';
+    }
+
+    // 时间验证
+    if (!startTime) {
+      errors.startTime = '请选择开始时间';
+    }
+
+    if (!endTime) {
+      errors.endTime = '请选择结束时间';
+    }
+
+    // 结束时间必须晚于开始时间
+    if (startTime && endTime) {
+      if (endTime <= startTime) {
+        errors.timeRange = '结束时间必须晚于开始时间';
+      }
+    }
+
+    this.setData({ formErrors: errors });
+    return Object.keys(errors).length === 0;
+  },
+
   // 下一步
   nextStep() {
     const { step } = this.data;
 
     if (step === 2) {
-      // 验证是否有到课学生
+      // 验证是否有选择班级
+      if (!this.data.selectedClass) {
+        wx.showToast({ title: '请先选择一个班级', icon: 'none' });
+        return;
+      }
+      // 验证是否有到课学生 — 放宽为允许全部缺课的特殊情况
       const hasPresent = this.data.students.some(s => s.status === 'PRESENT');
       if (!hasPresent) {
-        wx.showToast({ title: '请至少选择一名到课学生', icon: 'none' });
+        wx.showModal({
+          title: '提示',
+          content: '当前没有到课学生，是否继续？您可以在提交后补充说明。',
+          success: (res) => {
+            if (res.confirm) {
+              this.setData({ step: 3 });
+            }
+          }
+        });
         return;
       }
       this.setData({ step: 3 });
     } else if (step === 3) {
-      // 验证课时信息
-      if (!this.data.lessonDate || !this.data.startTime || !this.data.endTime) {
-        wx.showToast({ title: '请填写完整的课时信息', icon: 'none' });
+      // 严格的表单验证
+      if (!this.validateLessonForm()) {
+        wx.showToast({ title: '请检查表单中的错误', icon: 'none' });
         return;
       }
       this.setData({ step: 4 });
@@ -163,21 +258,41 @@ Page({
   prevStep() {
     const { step } = this.data;
     if (step > 1) {
-      this.setData({ step: step - 1 });
+      this.setData({ step: step - 1, formErrors: {} });
     }
+  },
+
+  // 重新提交（失败后重试）
+  retrySubmit() {
+    this.setData({ submitResult: null, submitting: false });
+    this.submitAttendance();
   },
 
   // 提交考勤
   async submitAttendance() {
-    this.setData({ submitting: true });
+    // 防重复提交
+    if (this.data.submitting) {
+      console.warn('[lesson-record] 请勿重复提交');
+      return;
+    }
+
+    // 最终验证
+    if (!this.data.selectedClass) {
+      wx.showToast({ title: '请选择班级', icon: 'none' });
+      return;
+    }
+    if (!this.validateLessonForm()) {
+      wx.showToast({ title: '请检查表单中的错误', icon: 'none' });
+      return;
+    }
+
+    this.setData({ submitting: true, submitResult: null });
 
     try {
-      const records = this.data.students
-        .filter(s => s.status !== 'ABSENT')
-        .map(s => ({
-          studentCode: s.studentCode,
-          status: s.status
-        }));
+      const attendanceRecords = this.data.students.map(s => ({
+        studentCode: s.studentCode,
+        status: s.status
+      }));
 
       const payload = {
         classCode: this.data.selectedClass.classCode,
@@ -185,27 +300,80 @@ Page({
         startTime: this.data.startTime,
         endTime: this.data.endTime,
         topic: this.data.topic,
-        attendanceRecords: records
+        attendanceRecords: attendanceRecords
       };
 
-      // 实际 API 调用
-      // await post('/lessons', payload);
+      await post('/lessons', payload);
 
-      // 模拟成功
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 成功反馈
+      const presentCount = attendanceRecords.filter(r => r.status === 'PRESENT').length;
+      const lateCount = attendanceRecords.filter(r => r.status === 'LATE').length;
+      const absentCount = attendanceRecords.filter(r => r.status === 'ABSENT').length;
+
+      this.setData({
+        submitting: false,
+        submitResult: { type: 'success' }
+      });
 
       wx.showModal({
-        title: '提交成功',
-        content: `已记录 ${records.length} 名学生的课时`,
+        title: '✅ 提交成功',
+        content: [
+          `班级：${this.data.selectedClass.name}`,
+          `时间：${this.data.lessonDate} ${this.data.startTime}-${this.data.endTime}`,
+          '',
+          `📊 考勤汇总：到课 ${presentCount} 人，迟到 ${lateCount} 人，缺课 ${absentCount} 人`,
+          `共记录 ${attendanceRecords.length} 名学生`
+        ].join('\n'),
         showCancel: false,
         success: () => {
           wx.navigateBack();
         }
       });
     } catch (err) {
-      wx.showToast({ title: err.message || '提交失败', icon: 'none' });
-    } finally {
-      this.setData({ submitting: false });
+      console.error('[lesson-record] 提交失败:', err);
+
+      // 错误分类处理
+      let errorTitle = '提交失败';
+      let errorContent = err.message || '未知错误，请稍后重试';
+
+      if (err.code === 2002) {
+        // Token 过期 — request.js 已处理跳转，此处只提示
+        errorContent = '登录已过期，请重新登录';
+      } else if (err.code === 400 || err.statusCode === 400) {
+        errorContent = `请求数据有误：${err.message || '请检查输入'}`;
+      } else if (err.code === 409 || err.statusCode === 409) {
+        errorTitle = '⏰ 课时冲突';
+        errorContent = '该时间段已有课时记录，请检查后重新提交';
+      } else if (err.code === 404 || err.statusCode === 404) {
+        errorContent = '班级或学生信息不存在，请刷新后重试';
+      } else if (err.errMsg && err.errMsg.includes('timeout')) {
+        errorContent = '网络连接超时，请检查网络后重试';
+      } else if (err.errMsg && err.errMsg.includes('fail')) {
+        errorContent = '网络请求失败，请检查网络连接';
+      }
+
+      this.setData({
+        submitting: false,
+        submitResult: {
+          type: 'error',
+          title: errorTitle,
+          content: errorContent
+        }
+      });
+
+      wx.showModal({
+        title: `❌ ${errorTitle}`,
+        content: errorContent + '\n\n点击「确定」返回修改，或「重试」重新提交',
+        success: (res) => {
+          if (res.confirm) {
+            // 回到步骤3修改
+            this.setData({ step: 3 });
+          } else if (res.cancel) {
+            // 重试
+            this.retrySubmit();
+          }
+        }
+      });
     }
   }
 });

@@ -1,0 +1,12 @@
+{
+  "id": "ISS-024",
+  "title": "Duplicate route GET lessons/:id/attendance causes routing conflict",
+  "priority": "P1",
+  "status": "open",
+  "severity": "runtime",
+  "description": "Both LessonController and LessonAttendanceController define @Get('lessons/:id/attendance') with no controller prefix. First registered wins; second becomes unreachable.",
+  "files": ["backend/src/modules/teaching/lesson/lesson.controller.ts", "backend/src/modules/teaching/lesson-attendance/lesson-attendance.controller.ts"],
+  "discoveredAt": "2026-07-15T19:30:00Z",
+  "discoveredBy": "Discovery Round 5",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T19:30:00Z", "by": "Discovery Round 5"}]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "DEBT-001",
+  "title": "Hardcoded operatedBy in controllers",
+  "severity": "high",
+  "category": "code",
+  "status": "identified",
+  "description": "ClassController and CourseController hardcode operatedBy = 1. StudentController shows correct pattern.",
+  "location": "backend/src/modules/teaching/class/class.controller.ts, course/course.controller.ts",
+  "owner": "Teaching Domain",
+  "reason": "Scaffolded controllers were never wired to JWT authentication",
+  "impact": "All audit trails show userId=1 regardless of actual operator",
+  "estimatedCost": "2 hours — add @Req() param, extract req.user.sub",
+  "suggestedSprint": "Sprint 5 (with JWT Guards integration)",
+  "discoveredAt": "2026-07-15T10:00:00Z",
+  "history": [
+    { "timestamp": "2026-07-15T10:00:00Z", "action": "identified" }
+  ]
+}

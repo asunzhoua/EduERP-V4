@@ -1,0 +1,12 @@
+{
+  "id": "ISS-022",
+  "title": "LessonService.create() and createBatch() hardcodes createdBy = 0",
+  "priority": "P2",
+  "status": "open",
+  "severity": "audit",
+  "description": "Both create() and createBatch() hardcode createdBy = 0. Same pattern as ISS-015, ISS-016 but in Lesson module.",
+  "files": ["backend/src/modules/teaching/lesson/lesson.service.ts"],
+  "discoveredAt": "2026-07-15T19:30:00Z",
+  "discoveredBy": "Discovery Round 5",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T19:30:00Z", "by": "Discovery Round 5"}]
+}

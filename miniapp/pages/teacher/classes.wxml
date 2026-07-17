@@ -29,25 +29,69 @@
   <view class="class-list">
     <block wx:for="{{classes}}" wx:key="id">
       <view class="class-card" bindtap="goToClassDetail" data-code="{{item.classCode}}">
+        <!-- 头部：班级名 + 状态 -->
         <view class="class-header">
-          <text class="class-name">{{item.name}}</text>
-          <text class="class-status status-{{item.status}}">
-            {{item.status === 'ACTIVE' ? '进行中' : item.status === 'COMPLETED' ? '已结束' : '草稿'}}
-          </text>
+          <view class="class-title">
+            <text class="class-name">{{item.name}}</text>
+            <text class="class-schedule" wx:if="{{item.schedule}}">{{item.schedule}}</text>
+          </view>
+          <view class="class-status status-{{item.status}}">
+            {{item.status === 'ACTIVE' ? '进行中' : item.status === 'COMPLETED' ? '已结束' : item.status === 'DRAFT' ? '草稿' : '已取消'}}
+          </view>
         </view>
+
+        <!-- 课程信息 -->
         <view class="class-info">
-          <text class="course-name">{{item.courseName}}</text>
-          <text class="start-date">开班：{{item.startDate}}</text>
+          <view class="info-row">
+            <text class="info-label">课程:</text>
+            <text class="info-value">{{item.courseName}}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">时间:</text>
+            <text class="info-value">{{item.startDate}} ~ {{item.endDate}}</text>
+          </view>
         </view>
+
+        <!-- 进度条 -->
+        <view class="progress-section" wx:if="{{item.totalLessons > 0}}">
+          <view class="progress-header">
+            <text class="progress-label">课程进度</text>
+            <text class="progress-text">{{item.completedLessons || 0}}/{{item.totalLessons}} 课时</text>
+          </view>
+          <view class="progress-bar">
+            <view class="progress-fill progress-{{item.status}}" style="width: {{progressMap[item.classCode]}}%"></view>
+          </view>
+          <text class="progress-percent">{{progressMap[item.classCode]}}%</text>
+        </view>
+
+        <!-- 底部：学生数 + 操作按钮 -->
         <view class="class-footer">
           <view class="student-count">
-            <text class="count-current">{{item.currentStudents}}</text>
-            <text class="count-sep">/</text>
-            <text class="count-max">{{item.maxStudents}}</text>
-            <text class="count-label">人</text>
+            <view class="count-visual">
+              <view class="count-bar" style="width: {{(item.currentStudents / item.maxStudents) * 100}}%"></view>
+            </view>
+            <text class="count-text">
+              <text class="count-current">{{item.currentStudents}}</text>
+              <text class="count-sep">/</text>
+              <text class="count-max">{{item.maxStudents}}</text>
+              <text class="count-unit">人</text>
+            </text>
           </view>
-          <view class="actions">
-            <button class="action-btn" catchtap="goToRecordLesson" data-code="{{item.classCode}}">
+          
+          <view class="action-buttons">
+            <button 
+              class="action-btn btn-students" 
+              catchtap="goToStudents" 
+              data-code="{{item.classCode}}"
+            >
+              学生
+            </button>
+            <button 
+              class="action-btn btn-record {{item.status !== 'ACTIVE' ? 'disabled' : ''}}" 
+              catchtap="goToRecordLesson" 
+              data-code="{{item.classCode}}"
+              disabled="{{item.status !== 'ACTIVE'}}"
+            >
               记课时
             </button>
           </view>
@@ -55,9 +99,17 @@
       </view>
     </block>
 
+    <!-- 加载状态 -->
+    <view class="loading-state" wx:if="{{loading}}">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
     <!-- 空状态 -->
-    <view class="empty" wx:if="{{!loading && classes.length === 0}}">
-      <text>暂无班级</text>
+    <view class="empty-state" wx:if="{{!loading && classes.length === 0}}">
+      <text class="empty-icon">📭</text>
+      <text class="empty-text">暂无班级</text>
+      <text class="empty-hint">请先创建班级</text>
     </view>
   </view>
 </view>

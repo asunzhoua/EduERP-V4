@@ -1,0 +1,19 @@
+{
+  "id": "ISS-005",
+  "title": "TODO: hardcoded userId in course.controller.ts",
+  "priority": "P3",
+  "status": "resolved",
+  "category": "quality",
+  "description": "Line 37 has TODO: replace hardcoded 1 with JWT-decoded userId from Guards.",
+  "location": "backend/src/modules/teaching/course/course.controller.ts:37",
+  "discoveredAt": "2026-07-15T10:00:00Z",
+  "discoveredBy": "Discovery Round 1 scan",
+  "relatedIssues": ["ISS-002"],
+  "resolvedAt": "2026-07-17T00:45:00Z",
+  "resolvedBy": "Night Mission Phase 2 Task 2 (ISS-002 fix)",
+  "resolution": "Fixed as part of ISS-002 resolution - added JWT auth and extracted operatorId from req.user.sub",
+  "history": [
+    { "timestamp": "2026-07-15T10:00:00Z", "action": "created", "to": "open" },
+    { "timestamp": "2026-07-17T00:45:00Z", "action": "resolved", "to": "resolved" }
+  ]
+}

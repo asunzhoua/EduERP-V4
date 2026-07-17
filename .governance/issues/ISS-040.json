@@ -1,0 +1,12 @@
+{
+  "id": "ISS-040",
+  "title": "CORS origin: '*' + credentials: true spec violation breaks authenticated requests",
+  "priority": "P2",
+  "status": "open",
+  "severity": "configuration",
+  "description": "W3C Fetch spec requires Access-Control-Allow-Origin cannot be '*' when credentials: 'include'. All browsers reject authenticated cross-origin requests.",
+  "files": ["backend/src/main.ts"],
+  "discoveredAt": "2026-07-15T21:30:00Z",
+  "discoveredBy": "Discovery Round 9",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T21:30:00Z", "by": "Discovery Round 9"}]
+}

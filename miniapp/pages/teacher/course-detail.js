@@ -1,0 +1,55 @@
+// pages/teacher/course-detail.js
+const { get } = require('../../utils/request');
+
+Page({
+  data: {
+    courseCode: '',
+    course: null,
+    loading: true,
+    error: null
+  },
+
+  onLoad(options) {
+    const { code } = options;
+    if (code) {
+      this.setData({ courseCode: code });
+      this.loadCourseDetail(code);
+    } else {
+      this.setData({ 
+        error: '缺少课程编码',
+        loading: false 
+      });
+    }
+  },
+
+  // 加载课程详情
+  async loadCourseDetail(code) {
+    this.setData({ loading: true, error: null });
+
+    try {
+      const data = await get(`/courses/${code}`);
+      this.setData({
+        course: data,
+        loading: false
+      });
+    } catch (err) {
+      console.error('[Course Detail] 加载失败:', err);
+      this.setData({
+        error: err.message || '加载失败',
+        loading: false
+      });
+    }
+  },
+
+  // 返回上一页
+  onBack() {
+    wx.navigateBack();
+  },
+
+  // 跳转班级列表
+  goToClasses() {
+    wx.navigateTo({
+      url: `/pages/teacher/classes?courseCode=${this.data.courseCode}`
+    });
+  }
+});

@@ -1,0 +1,12 @@
+{
+  "id": "ISS-026",
+  "title": "lesson.completed and lesson.finished event payloads missing required EventSchema fields",
+  "priority": "P2",
+  "status": "open",
+  "severity": "architecture",
+  "description": "Event payloads omit 4 required EventSchema fields: eventId, timestamp, version, attendance. Finance module will expect attendance data that is not present.",
+  "files": ["backend/src/modules/teaching/lesson/lesson.service.ts"],
+  "discoveredAt": "2026-07-15T19:30:00Z",
+  "discoveredBy": "Discovery Round 5",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T19:30:00Z", "by": "Discovery Round 5"}]
+}

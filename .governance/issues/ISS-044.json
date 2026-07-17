@@ -1,0 +1,12 @@
+{
+  "id": "ISS-044",
+  "title": "TeacherAssignmentService.unassign() has no existence or active-status check",
+  "priority": "P2",
+  "status": "open",
+  "severity": "logic",
+  "description": "unassign() has no guard to verify assignment exists or is active. Can silently corrupt historical records by setting effectiveTo on non-existent or already-ended assignments.",
+  "files": ["backend/src/modules/teaching/teacher-assignment/teacher-assignment.service.ts"],
+  "discoveredAt": "2026-07-15T22:00:00Z",
+  "discoveredBy": "Discovery Round 10",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T22:00:00Z", "by": "Discovery Round 10"}]
+}

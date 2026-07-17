@@ -23,6 +23,11 @@
     </view>
   </view>
 
+  <!-- 全局加载提示 -->
+  <view class="loading-bar" wx:if="{{loadingClasses || loadingStudents}}">
+    <text>加载中...</text>
+  </view>
+
   <!-- 步骤 1: 选择班级 -->
   <view class="step-content" wx:if="{{step === 1}}">
     <view class="section-title">选择班级</view>
@@ -37,6 +42,9 @@
           <text class="course-name">{{item.courseName}}</text>
         </view>
       </block>
+    </view>
+    <view class="empty-hint" wx:if="{{!loadingClasses && classes.length === 0}}">
+      <text>暂无可用班级</text>
     </view>
   </view>
 
@@ -60,6 +68,9 @@
         </view>
       </block>
     </view>
+    <view class="empty-hint" wx:if="{{!loadingStudents && students.length === 0}}">
+      <text>该班级暂无学生</text>
+    </view>
     <view class="action-bar">
       <button class="btn-secondary" bindtap="prevStep">上一步</button>
       <button class="btn-primary" bindtap="nextStep">下一步</button>
@@ -70,25 +81,31 @@
   <view class="step-content" wx:if="{{step === 3}}">
     <view class="section-title">课时信息</view>
     <view class="form">
-      <view class="form-item">
-        <text class="label">日期</text>
+      <view class="form-item {{formErrors.date ? 'has-error' : ''}}">
+        <text class="label">日期 <text class="required">*</text></text>
         <picker mode="date" value="{{lessonDate}}" bindchange="onDateChange">
-          <view class="picker">{{lessonDate || '请选择'}}</view>
+          <view class="picker {{formErrors.date ? 'picker-error' : ''}}">{{lessonDate || '请选择'}}</view>
         </picker>
+        <text class="error-text" wx:if="{{formErrors.date}}">{{formErrors.date}}</text>
       </view>
       <view class="form-row">
-        <view class="form-item half">
-          <text class="label">开始时间</text>
+        <view class="form-item half {{formErrors.startTime ? 'has-error' : ''}}">
+          <text class="label">开始时间 <text class="required">*</text></text>
           <picker mode="time" value="{{startTime}}" bindchange="onStartTimeChange">
-            <view class="picker">{{startTime || '请选择'}}</view>
+            <view class="picker {{formErrors.startTime ? 'picker-error' : ''}}">{{startTime || '请选择'}}</view>
           </picker>
+          <text class="error-text" wx:if="{{formErrors.startTime}}">{{formErrors.startTime}}</text>
         </view>
-        <view class="form-item half">
-          <text class="label">结束时间</text>
+        <view class="form-item half {{formErrors.endTime ? 'has-error' : ''}}">
+          <text class="label">结束时间 <text class="required">*</text></text>
           <picker mode="time" value="{{endTime}}" bindchange="onEndTimeChange">
-            <view class="picker">{{endTime || '请选择'}}</view>
+            <view class="picker {{formErrors.endTime ? 'picker-error' : ''}}">{{endTime || '请选择'}}</view>
           </picker>
+          <text class="error-text" wx:if="{{formErrors.endTime}}">{{formErrors.endTime}}</text>
         </view>
+      </view>
+      <view class="form-item" wx:if="{{formErrors.timeRange}}">
+        <text class="error-text time-range-error">{{formErrors.timeRange}}</text>
       </view>
       <view class="form-item">
         <text class="label">课题</text>
@@ -128,13 +145,31 @@
       </view>
       <view class="confirm-item">
         <text class="confirm-label">到课学生</text>
-        <text class="confirm-value">{{students.filter(s => s.status === 'PRESENT').length}} 人</text>
+        <text class="confirm-value">{{students.filter(s => s.status === 'PRESENT').length}} 人到课 / {{students.filter(s => s.status === 'LATE').length}} 人迟到</text>
       </view>
     </view>
+
+    <!-- 提交状态指示 -->
+    <view class="submit-status" wx:if="{{submitting}}">
+      <view class="submit-loading">
+        <text>正在提交考勤数据...</text>
+      </view>
+    </view>
+
+    <!-- 提交失败后显示错误详情 -->
+    <view class="submit-error" wx:if="{{submitResult && submitResult.type === 'error'}}">
+      <text class="error-title">{{submitResult.title}}</text>
+      <text class="error-detail">{{submitResult.content}}</text>
+    </view>
+
     <view class="action-bar">
-      <button class="btn-secondary" bindtap="prevStep">上一步</button>
-      <button class="btn-primary" bindtap="submitAttendance" loading="{{submitting}}">
-        提交
+      <button class="btn-secondary" bindtap="prevStep" disabled="{{submitting}}">上一步</button>
+      <button
+        class="btn-primary {{submitting ? 'btn-disabled' : ''}}"
+        bindtap="submitAttendance"
+        disabled="{{submitting}}"
+      >
+        {{submitting ? '提交中...' : '提交'}}
       </button>
     </view>
   </view>

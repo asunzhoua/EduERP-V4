@@ -85,6 +85,22 @@
   color: #999999;
 }
 
+/* 全局加载 */
+.loading-bar {
+  text-align: center;
+  padding: 20rpx;
+  color: #1890ff;
+  font-size: 26rpx;
+}
+
+/* 空状态 */
+.empty-hint {
+  text-align: center;
+  padding: 60rpx 20rpx;
+  color: #999999;
+  font-size: 28rpx;
+}
+
 /* 班级列表 */
 .class-list {
   margin-top: 20rpx;
@@ -180,6 +196,10 @@
   margin-bottom: 12rpx;
 }
 
+.required {
+  color: #ff4d4f;
+}
+
 .picker {
   height: 80rpx;
   padding: 0 20rpx;
@@ -189,6 +209,33 @@
   align-items: center;
   font-size: 28rpx;
   color: #333333;
+}
+
+/* 表单验证错误样式 */
+.has-error .picker {
+  border: 2rpx solid #ff4d4f;
+}
+
+.picker-error {
+  color: #ff4d4f !important;
+}
+
+.error-text {
+  display: block;
+  font-size: 24rpx;
+  color: #ff4d4f;
+  margin-top: 8rpx;
+  padding-left: 4rpx;
+}
+
+.time-range-error {
+  display: block;
+  font-size: 24rpx;
+  color: #ff4d4f;
+  background: #fff2f0;
+  padding: 12rpx 16rpx;
+  border-radius: 8rpx;
+  margin-top: -12rpx;
 }
 
 .input {
@@ -226,6 +273,44 @@
 .confirm-value {
   font-size: 28rpx;
   color: #333333;
+  text-align: right;
+  max-width: 60%;
+}
+
+/* 提交状态 */
+.submit-status {
+  margin-top: 24rpx;
+  padding: 20rpx;
+  background: #e6f7ff;
+  border-radius: 8rpx;
+  text-align: center;
+}
+
+.submit-loading text {
+  font-size: 26rpx;
+  color: #1890ff;
+}
+
+.submit-error {
+  margin-top: 24rpx;
+  padding: 20rpx;
+  background: #fff2f0;
+  border: 2rpx solid #ffccc7;
+  border-radius: 8rpx;
+}
+
+.submit-error .error-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #ff4d4f;
+  margin-bottom: 8rpx;
+}
+
+.submit-error .error-detail {
+  display: block;
+  font-size: 24rpx;
+  color: #666666;
 }
 
 /* 操作栏 */
@@ -243,6 +328,16 @@
   color: #ffffff;
   border-radius: 12rpx;
   font-size: 32rpx;
+  text-align: center;
+}
+
+.btn-primary:active {
+  background: #096dd9;
+}
+
+.btn-disabled {
+  background: #a0d1ff !important;
+  color: #ffffff !important;
 }
 
 .btn-secondary {
@@ -254,4 +349,14 @@
   border: 2rpx solid #e8e8e8;
   border-radius: 12rpx;
   font-size: 32rpx;
+  text-align: center;
+}
+
+.btn-secondary:active {
+  background: #f5f5f5;
+}
+
+/* 按钮禁用态 */
+button[disabled] {
+  opacity: 0.6;
 }

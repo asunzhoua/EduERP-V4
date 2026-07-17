@@ -1,0 +1,12 @@
+{
+  "id": "ISS-032",
+  "title": "StudentRules.md mandates StudentCode-based API but code uses numeric IDs",
+  "priority": "P2",
+  "status": "open",
+  "severity": "documentation",
+  "description": "StudentRules.md Section 1.1 mandates all external references use StudentCode. Student controller uses numeric :id with ParseIntPipe. Documented API will 404.",
+  "files": ["docs/BusinessRules/StudentRules.md", "backend/src/modules/student/student.controller.ts"],
+  "discoveredAt": "2026-07-15T20:30:00Z",
+  "discoveredBy": "Discovery Round 7",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T20:30:00Z", "by": "Discovery Round 7"}]
+}

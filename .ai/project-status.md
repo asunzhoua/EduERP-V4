@@ -89,3 +89,33 @@
 
 ## Sprint 4+ (Pending)
 - Waiting Architect assignment
+
+## Sprint 3.5 → 4.0 — Teaching Domain Design Freeze + Skeleton (DONE ✅ — Gate #004 Approved 🟢)
+
+### Design Phase (Sprint 3.5)
+- [x] Teaching Rules v1.1 rewrite (Contract added, two-phase events)
+- [x] Lesson lifecycle v1.1: DRAFT→SCHEDULED→TEACHING→FINISHED→ARCHIVED+CANCELLED
+- [x] Contract Rules (NEW): ACTIVE/EXHAUSTED/EXPIRED/FROZEN/REFUNDED
+- [x] Course Rules update: Price removed from Course, moved to Contract
+- [x] Class Rules update: TeacherAssignment effectiveFrom/effectiveTo, Enrollment contractCode
+- [x] LessonRules v1.1: 7 attendance statuses, LessonChangeRequest, audit with reason
+- [x] Constitution Rules 19-24 added
+- [x] DomainCatalog: 9 domains with dependencies
+- [x] EventCatalog: 2 current + 5 planned events
+- [x] StateMachineCatalog: 5 entity state machines
+- [x] CoreBusinessFlow: 7-phase end-to-end narrative
+
+### Skeleton Phase (Sprint 4.0)
+- [x] Course sub-module: 6 endpoints, 13 files
+- [x] Class sub-module: 12 endpoints, 13 files
+- [x] Contract sub-module: 6 endpoints, 11 files
+- [x] Lesson sub-module: 12 endpoints, 13 files
+- [x] TeacherAssignment sub-module: 4 endpoints, 10 files
+- [x] TeachingModule registered in AppModule
+- [x] Swagger setup in main.ts
+- [x] ESLint config fix: argsIgnorePattern for unused params
+- [x] Build: tsc 0 errors
+- [x] ESLint: 0 errors/warnings on teaching module
+- [x] All ~40 endpoints return HTTP 501 NotImplementedException
+
+### Next: Sprint 4.1 — Course Domain (business logic)

@@ -1,0 +1,12 @@
+{
+  "id": "ISS-041",
+  "title": "Dead endpoint GET parents/:parentId/students unreachable due to route ordering",
+  "priority": "P2",
+  "status": "open",
+  "severity": "logic",
+  "description": "@Get(':id') at line 50 matches before @Get('parents/:parentId/students') at line 120. ParseIntPipe throws 400 on 'parents' string.",
+  "files": ["backend/src/modules/student/student.controller.ts"],
+  "discoveredAt": "2026-07-15T21:30:00Z",
+  "discoveredBy": "Discovery Round 9",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T21:30:00Z", "by": "Discovery Round 9"}]
+}

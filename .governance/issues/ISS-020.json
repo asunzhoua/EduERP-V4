@@ -1,0 +1,12 @@
+{
+  "id": "ISS-020",
+  "title": "EOS CLI controller template hardcodes operatedBy = 1",
+  "priority": "P2",
+  "status": "open",
+  "severity": "architecture",
+  "description": "Controller generator template hardcodes operatedBy: 1 in all mutating operations. Systemic root cause of ISS-002 — every new module scaffolded via eos generate inherits wrong audit trail.",
+  "files": ["tools/eos-cli/generators/templates/controller.ts"],
+  "discoveredAt": "2026-07-15T19:00:00Z",
+  "discoveredBy": "Discovery Round 4",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T19:00:00Z", "by": "Discovery Round 4"}]
+}

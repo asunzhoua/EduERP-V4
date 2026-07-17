@@ -1,0 +1,12 @@
+{
+  "id": "ISS-039",
+  "title": "TeacherAssignmentService.spec.ts mocks non-existent updateTime field",
+  "priority": "P2",
+  "status": "open",
+  "severity": "test",
+  "description": "Test mock includes updateTime field that does not exist on TeacherAssignmentEntity. as TeacherAssignmentEntity cast masks type mismatch.",
+  "files": ["backend/src/modules/teaching/teacher-assignment/teacher-assignment.service.spec.ts"],
+  "discoveredAt": "2026-07-15T21:00:00Z",
+  "discoveredBy": "Discovery Round 8",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T21:00:00Z", "by": "Discovery Round 8"}]
+}

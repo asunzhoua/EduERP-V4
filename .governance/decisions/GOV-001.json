@@ -1,0 +1,10 @@
+{
+  "id": "GOV-001",
+  "title": "ADR-007: Shared Domain Enums — Partially Implemented",
+  "status": "needs-review",
+  "verdict": "needs-review",
+  "reviewedAt": "2026-07-15T13:45:00Z",
+  "reason": "Subject migrated correctly. Gender not migrated. EnrollmentStatus moved to common despite ADR listing it as single-consumer. ADR still PROPOSED.",
+  "evidence": "common/enums/subject.enum.ts exists. No gender.enum.ts in common. enrollment-status.enum.ts in common/enums/.",
+  "supersededBy": null
+}

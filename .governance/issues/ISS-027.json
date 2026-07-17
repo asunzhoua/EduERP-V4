@@ -1,0 +1,12 @@
+{
+  "id": "ISS-027",
+  "title": "LessonService missing startTime < endTime validation, allowing negative duration",
+  "priority": "P2",
+  "status": "open",
+  "severity": "logic",
+  "description": "Neither create() nor createBatch() validates endTime > startTime. computeDurationMinutes() returns negative values. Pattern matches ISS-007 but in Lesson module.",
+  "files": ["backend/src/modules/teaching/lesson/lesson.service.ts"],
+  "discoveredAt": "2026-07-15T19:30:00Z",
+  "discoveredBy": "Discovery Round 5",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T19:30:00Z", "by": "Discovery Round 5"}]
+}

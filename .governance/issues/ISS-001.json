@@ -1,0 +1,19 @@
+{
+  "id": "ISS-001",
+  "title": "StudentService keyword search overwrites name filter",
+  "priority": "P2",
+  "status": "resolved",
+  "category": "quality",
+  "description": "In StudentService.findAll(), when both query.name and query.keyword are provided, keyword silently overwrites the name filter on line 106. Should use TypeORM Brackets for OR logic.",
+  "location": "backend/src/modules/student/services/student.service.ts:106",
+  "discoveredAt": "2026-07-15T11:30:00Z",
+  "discoveredBy": "Discovery Round 3 scan",
+  "rule": "Code quality — logic correctness",
+  "resolvedAt": "2026-07-17T00:30:00Z",
+  "resolvedBy": "Night Mission Phase 2 Task 1",
+  "resolution": "Implemented OR logic using TypeORM Brackets for keyword search across name, studentCode, phone, school fields",
+  "history": [
+    { "timestamp": "2026-07-15T11:30:00Z", "action": "created", "to": "open" },
+    { "timestamp": "2026-07-17T00:30:00Z", "action": "resolved", "to": "resolved" }
+  ]
+}

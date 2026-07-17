@@ -1,0 +1,12 @@
+{
+  "id": "ISS-034",
+  "title": "ArchitectureHandbook.md uses non-existent field startDate in teacher_assignment unique constraint",
+  "priority": "P2",
+  "status": "open",
+  "severity": "documentation",
+  "description": "ArchitectureHandbook.md:193 claims unique constraint (classCode, teacherId, startDate). Field startDate does not exist on TeacherAssignmentEntity (has effectiveFrom). Actual constraint is @Unique(['classCode', 'teacherId', 'role']).",
+  "files": ["docs/architecture/ArchitectureHandbook.md", "backend/src/modules/teaching/teacher-assignment/teacher-assignment.entity.ts"],
+  "discoveredAt": "2026-07-15T21:00:00Z",
+  "discoveredBy": "Discovery Round 8",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T21:00:00Z", "by": "Discovery Round 8"}]
+}

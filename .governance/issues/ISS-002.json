@@ -1,0 +1,20 @@
+{
+  "id": "ISS-002",
+  "title": "ClassController/CourseController hardcode operatedBy = 1",
+  "priority": "P2",
+  "status": "resolved",
+  "category": "quality",
+  "description": "Every method in both controllers hardcodes operatedBy = 1 instead of extracting from JWT. StudentController shows correct pattern with req.user.sub.",
+  "location": "backend/src/modules/teaching/class/class.controller.ts, course.controller.ts",
+  "discoveredAt": "2026-07-15T11:30:00Z",
+  "discoveredBy": "Discovery Round 3 scan",
+  "rule": "Code quality — audit trail correctness",
+  "relatedIssues": ["DEBT-001"],
+  "resolvedAt": "2026-07-17T00:45:00Z",
+  "resolvedBy": "Night Mission Phase 2 Task 2",
+  "resolution": "Added JwtAuthGuard, RolesGuard, @Roles decorators, and extracted operatorId from req.user.sub",
+  "history": [
+    { "timestamp": "2026-07-15T11:30:00Z", "action": "created", "to": "open" },
+    { "timestamp": "2026-07-17T00:45:00Z", "action": "resolved", "to": "resolved" }
+  ]
+}

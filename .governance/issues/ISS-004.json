@@ -1,0 +1,14 @@
+{
+  "id": "ISS-004",
+  "title": "EventBusService missing test spec",
+  "priority": "P3",
+  "status": "open",
+  "category": "test",
+  "description": "EventBusService is the only core service without a test spec. Infrastructure component, medium risk.",
+  "location": "backend/src/events/event-bus.service.ts",
+  "discoveredAt": "2026-07-15T10:00:00Z",
+  "discoveredBy": "Discovery Round 1 scan",
+  "history": [
+    { "timestamp": "2026-07-15T10:00:00Z", "action": "created", "to": "open" }
+  ]
+}

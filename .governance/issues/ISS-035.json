@@ -1,0 +1,12 @@
+{
+  "id": "ISS-035",
+  "title": "Three docs reference LessonAttendance.recordedBy but entity uses operator",
+  "priority": "P2",
+  "status": "open",
+  "severity": "documentation",
+  "description": "TeachingConstitution, TeachingDomainModel, LessonRules reference 'recordedBy'. Entity uses 'operator'. AttendanceDomainModel and AttendanceRules correctly use 'operator'.",
+  "files": ["docs/architecture/TeachingConstitution_v1.1.md", "backend/src/modules/teaching/lesson-attendance/lesson-attendance.entity.ts"],
+  "discoveredAt": "2026-07-15T21:00:00Z",
+  "discoveredBy": "Discovery Round 8",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T21:00:00Z", "by": "Discovery Round 8"}]
+}

@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../entities/user.entity';
 import { LoginLog } from '../entities/login-log.entity';
+import { UserRepository } from '../user.repository';
 import { AppLogger } from '@utils/logger';
 import { appConfig } from '@config/configuration';
 
@@ -18,27 +19,14 @@ export class AuthService {
   private readonly config = appConfig();
 
   constructor(
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private userRepository: UserRepository,
     @InjectRepository(LoginLog)
     private loginLogRepository: Repository<LoginLog>,
     private jwtService: JwtService,
   ) {}
 
   async validateUser(username: string, password: string): Promise<User> {
-    const user = await this.userRepository.findOne({
-      where: { username, deleted: false },
-      select: {
-        id: true,
-        username: true,
-        password: true,
-        name: true,
-        role: true,
-        status: true,
-        campusId: true,
-        avatar: true,
-      },
-    });
+    const user = await this.userRepository.findByUsernameWithPassword(username);
 
     if (!user) {
       throw new UnauthorizedException('用户不存在');
@@ -83,7 +71,7 @@ export class AuthService {
       refreshToken,
       refreshTokenExpiresAt,
       lastLoginAt: new Date(),
-    });
+    } as Partial<User>);
 
     await this.createLoginLog(user.id, user.username, user.role, 'LOGIN', true, ip, device);
 
@@ -96,9 +84,7 @@ export class AuthService {
     ip?: string,
     device?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const user = await this.userRepository.findOne({
-      where: { refreshToken, deleted: false },
-    });
+    const user = await this.userRepository.findByRefreshToken(refreshToken);
 
     if (!user) {
       throw new UnauthorizedException('Refresh Token 无效');
@@ -126,7 +112,7 @@ export class AuthService {
     await this.userRepository.update(user.id, {
       refreshToken: newRefreshToken,
       refreshTokenExpiresAt,
-    });
+    } as Partial<User>);
 
     await this.createLoginLog(user.id, user.username, user.role, 'REFRESH', true, ip, device);
 
@@ -134,23 +120,19 @@ export class AuthService {
   }
 
   async logout(userId: number, ip?: string, device?: string): Promise<void> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-    });
+    const user = await this.userRepository.findById(userId);
 
     if (user) {
       await this.userRepository.update(userId, {
         refreshToken: null as any,
         refreshTokenExpiresAt: null as any,
-      });
+      } as Partial<User>);
       await this.createLoginLog(user.id, user.username, user.role, 'LOGOUT', true, ip, device);
     }
   }
 
   async getCurrentUser(userId: number): Promise<Partial<User>> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId, deleted: false },
-    });
+    const user = await this.userRepository.findById(userId);
 
     if (!user) {
       throw new UnauthorizedException('用户不存在');

@@ -1,0 +1,18 @@
+{
+  "id": "DEBT-003",
+  "title": "EventBusService missing test spec",
+  "severity": "medium",
+  "category": "test",
+  "status": "identified",
+  "description": "Only core service without a test spec. Infrastructure component.",
+  "location": "backend/src/events/event-bus.service.ts",
+  "owner": "Platform",
+  "reason": "EventBusService was added early and never got a spec",
+  "impact": "Event publishing failures not caught by tests",
+  "estimatedCost": "2 hours — basic publish/subscribe tests",
+  "suggestedSprint": "Sprint 5",
+  "discoveredAt": "2026-07-15T10:00:00Z",
+  "history": [
+    { "timestamp": "2026-07-15T10:00:00Z", "action": "identified" }
+  ]
+}

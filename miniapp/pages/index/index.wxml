@@ -35,20 +35,56 @@
   <view class="section">
     <view class="section-header">
       <text class="section-title">今日概览</text>
+      <text class="section-refresh" bindtap="retryLoad" wx:if="{{error}}">点击重试</text>
     </view>
-    <view class="overview-card">
+    
+    <!-- 加载中状态 -->
+    <view class="overview-card" wx:if="{{loading}}">
+      <view class="skeleton-item">
+        <view class="skeleton-value"></view>
+        <view class="skeleton-label"></view>
+      </view>
+      <view class="skeleton-item">
+        <view class="skeleton-value"></view>
+        <view class="skeleton-label"></view>
+      </view>
+      <view class="skeleton-item">
+        <view class="skeleton-value"></view>
+        <view class="skeleton-label"></view>
+      </view>
+    </view>
+
+    <!-- 错误状态 -->
+    <view class="overview-card error-card" wx:elif="{{error}}">
+      <view class="error-content">
+        <text class="error-icon">⚠️</text>
+        <text class="error-text">{{error}}</text>
+        <text class="error-hint" bindtap="retryLoad">点击重试</text>
+      </view>
+    </view>
+
+    <!-- 正常数据 -->
+    <view class="overview-card" wx:else>
       <view class="overview-item">
-        <text class="overview-value">{{todayLessons}}</text>
+        <text class="overview-value {{todayLessons > 0 ? 'has-data' : ''}}">{{todayLessons}}</text>
         <text class="overview-label">今日课次</text>
       </view>
       <view class="overview-item">
-        <text class="overview-value">{{pendingAttendance}}</text>
+        <text class="overview-value {{pendingAttendance > 0 ? 'warning' : ''}}">{{pendingAttendance}}</text>
         <text class="overview-label">待考勤</text>
       </view>
       <view class="overview-item">
         <text class="overview-value">{{totalStudents}}</text>
         <text class="overview-label">在籍学生</text>
       </view>
+    </view>
+  </view>
+
+  <!-- 快捷操作提示 -->
+  <view class="tips-card" wx:if="{{pendingAttendance > 0}}">
+    <view class="tips-content">
+      <text class="tips-icon">💡</text>
+      <text class="tips-text">您有 {{pendingAttendance}} 条待考勤记录，点击「课时记录」完成打卡</text>
     </view>
   </view>
 </view>

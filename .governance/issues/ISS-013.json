@@ -1,0 +1,19 @@
+{
+  "id": "ISS-013",
+  "title": "LessonRules.md contradicts code on ABSENT financial implication",
+  "priority": "P2",
+  "status": "open",
+  "severity": "documentation",
+  "description": "LessonRules.md states ABSENT triggers 'Charge Lesson? Yes'. Code DEDUCTIBLE_STATUSES excludes ABSENT. AttendanceRules.md agrees with code: ABSENT does not deduct. LessonRules.md is the outlier.",
+  "files": [
+    "docs/BusinessRules/LessonRules.md",
+    "backend/src/modules/teaching/lesson-attendance/enums/attendance-status.enum.ts",
+    "docs/BusinessRules/AttendanceRules.md"
+  ],
+  "discoveredAt": "2026-07-15T18:00:00Z",
+  "discoveredBy": "Discovery Round 2",
+  "relatedDebt": null,
+  "statusHistory": [
+    { "status": "open", "at": "2026-07-15T18:00:00Z", "by": "Discovery Round 2" }
+  ]
+}

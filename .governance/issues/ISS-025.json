@@ -1,0 +1,12 @@
+{
+  "id": "ISS-025",
+  "title": "LessonService.updateStatus() accepts operatedBy but never persists it",
+  "priority": "P2",
+  "status": "open",
+  "severity": "audit",
+  "description": "updateStatus() accepts operatedBy parameter but never writes it to entity. Audit trail missing for all status transitions.",
+  "files": ["backend/src/modules/teaching/lesson/lesson.service.ts"],
+  "discoveredAt": "2026-07-15T19:30:00Z",
+  "discoveredBy": "Discovery Round 5",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T19:30:00Z", "by": "Discovery Round 5"}]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "ISS-037",
+  "title": "TeacherAssignmentController.create() missing @Body() decorator",
+  "priority": "P2",
+  "status": "open",
+  "severity": "logic",
+  "description": "POST endpoint has no @Body() parameter. CreateTeacherAssignmentDto exists but is dead code. Endpoint cannot receive input data.",
+  "files": ["backend/src/modules/teaching/teacher-assignment/teacher-assignment.controller.ts"],
+  "discoveredAt": "2026-07-15T21:00:00Z",
+  "discoveredBy": "Discovery Round 8",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T21:00:00Z", "by": "Discovery Round 8"}]
+}

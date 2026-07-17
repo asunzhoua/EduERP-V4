@@ -1,0 +1,22 @@
+{
+  "id": "ISS-006",
+  "title": "CourseController/ClassController missing role-based authorization",
+  "priority": "P2",
+  "status": "resolved",
+  "severity": "security",
+  "description": "JwtAuthGuard applied globally but no @Roles() decorators on Course/Class endpoints. Any authenticated user can create/update/delete courses and classes.",
+  "files": [
+    "backend/src/modules/teaching/course/course.controller.ts",
+    "backend/src/modules/teaching/class/class.controller.ts"
+  ],
+  "discoveredAt": "2026-07-15T17:30:00Z",
+  "discoveredBy": "Discovery Round 1",
+  "relatedDebt": null,
+  "resolvedAt": "2026-07-17T01:00:00Z",
+  "resolvedBy": "ISS-002 fix (Night Mission Phase 2 Task 2)",
+  "resolution": "Added @Roles decorators to all endpoints in CourseController and ClassController",
+  "statusHistory": [
+    { "status": "open", "at": "2026-07-15T17:30:00Z", "by": "Discovery Round 1" },
+    { "status": "resolved", "at": "2026-07-17T01:00:00Z", "by": "ISS-002 fix" }
+  ]
+}

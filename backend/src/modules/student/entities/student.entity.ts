@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { StudentStatus } from '../enums/student-status.enum';
 import { Gender } from '../enums/gender.enum';
-import { CreatedSource } from '../enums/created-source.enum';
+import { CreatedSource } from '@common/enums/created-source.enum';
 
 @Entity('student')
 export class Student {

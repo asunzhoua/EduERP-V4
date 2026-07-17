@@ -1,0 +1,19 @@
+{
+  "id": "ISS-012",
+  "title": "LessonRules.md attendance enum values contradict code and AttendanceRules.md",
+  "priority": "P2",
+  "status": "open",
+  "severity": "documentation",
+  "description": "LessonRules.md defines NOT_STARTED, PRESENT, LATE, LEAVE_APPROVED, LEAVE_REJECTED, ABSENT, MAKEUP. Code has PRESENT, ABSENT, LATE, LEAVE, MAKEUP, ONLINE, OFFLINE. LessonRules.md is the outlier — AttendanceRules.md matches code.",
+  "files": [
+    "docs/BusinessRules/LessonRules.md",
+    "backend/src/modules/teaching/lesson-attendance/enums/attendance-status.enum.ts",
+    "docs/BusinessRules/AttendanceRules.md"
+  ],
+  "discoveredAt": "2026-07-15T18:00:00Z",
+  "discoveredBy": "Discovery Round 2",
+  "relatedDebt": null,
+  "statusHistory": [
+    { "status": "open", "at": "2026-07-15T18:00:00Z", "by": "Discovery Round 2" }
+  ]
+}

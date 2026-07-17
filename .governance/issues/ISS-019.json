@@ -1,0 +1,12 @@
+{
+  "id": "ISS-019",
+  "title": "AuthService.refresh() missing user.status check",
+  "priority": "P2",
+  "status": "open",
+  "severity": "security",
+  "description": "refresh() does not verify user.status === 1 (ACTIVE). Disabled users can refresh tokens for up to 7 days. validateUser() correctly checks status but refresh() does not.",
+  "files": ["backend/src/modules/identity/auth/auth.service.ts"],
+  "discoveredAt": "2026-07-15T19:00:00Z",
+  "discoveredBy": "Discovery Round 4",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T19:00:00Z", "by": "Discovery Round 4"}]
+}

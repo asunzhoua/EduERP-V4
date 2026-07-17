@@ -1,0 +1,12 @@
+{
+  "id": "ISS-030",
+  "title": "LessonFinishedEvent field set contradicts between TeachingRules.md and LessonRules.md",
+  "priority": "P2",
+  "status": "open",
+  "severity": "documentation",
+  "description": "TeachingRules.md defines LessonFinishedEvent WITHOUT confirmedBy/confirmedAt. LessonRules.md defines it WITH those fields. Code matches LessonRules.md.",
+  "files": ["docs/BusinessRules/TeachingRules.md", "docs/BusinessRules/LessonRules.md"],
+  "discoveredAt": "2026-07-15T20:00:00Z",
+  "discoveredBy": "Discovery Round 6",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T20:00:00Z", "by": "Discovery Round 6"}]
+}

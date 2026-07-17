@@ -4,7 +4,7 @@ import {
   Column,
   CreateDateColumn,
 } from 'typeorm';
-import { CreatedSource } from '../enums/created-source.enum';
+import { CreatedSource } from '@common/enums/created-source.enum';
 
 /**
  * Import history —预留表。

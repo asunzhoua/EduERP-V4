@@ -1,0 +1,20 @@
+{
+  "id": "ISS-007",
+  "title": "ClassService.guardActivation missing endTime > startTime validation",
+  "priority": "P2",
+  "status": "resolved",
+  "severity": "logic",
+  "description": "guardActivation checks startTime and endTime are defined but not that endTime is after startTime. ClassRules.md Section 3.4 requires this.",
+  "files": [
+    "backend/src/modules/teaching/class/class.service.ts"
+  ],
+  "discoveredAt": "2026-07-15T17:30:00Z",
+  "discoveredBy": "Discovery Round 1",
+  "resolvedAt": "2026-07-17T01:15:00Z",
+  "resolvedBy": "Long Mission Task 1.2",
+  "resolution": "Added validation: endTime must be after startTime in guardActivation method",
+  "statusHistory": [
+    { "status": "open", "at": "2026-07-15T17:30:00Z", "by": "Discovery Round 1" },
+    { "status": "resolved", "at": "2026-07-17T01:15:00Z", "by": "Long Mission Task 1.2" }
+  ]
+}

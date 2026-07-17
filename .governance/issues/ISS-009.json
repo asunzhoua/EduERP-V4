@@ -1,0 +1,18 @@
+{
+  "id": "ISS-009",
+  "title": "ClassRules.md contradicts EnrollmentRules.md on withdrawn re-enrollment",
+  "priority": "P2",
+  "status": "open",
+  "severity": "documentation",
+  "description": "ClassRules.md Section 5.3 says withdrawn students cannot be re-enrolled. EnrollmentRules.md (authoritative, v1.1) defines WITHDRAWN→ACTIVE reactivation via UPDATE. UNIQUE constraint confirms ClassRules.md is wrong.",
+  "files": [
+    "docs/BusinessRules/ClassRules.md",
+    "docs/BusinessRules/EnrollmentRules.md"
+  ],
+  "discoveredAt": "2026-07-15T17:30:00Z",
+  "discoveredBy": "Discovery Round 1",
+  "relatedDebt": null,
+  "statusHistory": [
+    { "status": "open", "at": "2026-07-15T17:30:00Z", "by": "Discovery Round 1" }
+  ]
+}

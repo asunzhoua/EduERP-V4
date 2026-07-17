@@ -1,25 +1,25 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, Like, Brackets } from 'typeorm';
 import { Student } from '../entities/student.entity';
 import { StudentParent } from '../entities/student-parent.entity';
 import { StudentAuditLog } from '../entities/student-audit-log.entity';
+import { StudentRepository } from '../student.repository';
 import { StudentCodeGeneratorService } from './student-code-generator.service';
 import { CreateStudentDto } from '../dto/create-student.dto';
 import { UpdateStudentDto } from '../dto/update-student.dto';
 import { UpdateStudentStatusDto } from '../dto/update-student-status.dto';
 import { QueryStudentDto } from '../dto/query-student.dto';
 import { StudentStatus } from '../enums/student-status.enum';
-import { CreatedSource } from '../enums/created-source.enum';
-import { AuditAction } from '../enums/audit-action.enum';
+import { CreatedSource } from '@common/enums/created-source.enum';
+import { AuditAction } from '@common/enums/audit-action.enum';
 import { ImportService, ImportReport } from '@utils/services/import.service';
 import { Gender } from '../enums/gender.enum';
 
 @Injectable()
 export class StudentService {
   constructor(
-    @InjectRepository(Student)
-    private studentRepository: Repository<Student>,
+    private studentRepository: StudentRepository,
     @InjectRepository(StudentParent)
     private studentParentRepository: Repository<StudentParent>,
     @InjectRepository(StudentAuditLog)
@@ -102,12 +102,24 @@ export class StudentService {
     if (query.grade) {
       where.grade = Like(`%${query.grade}%`);
     }
-    if (query.keyword) {
-      where.name = Like(`%${query.keyword}%`);
-    }
+    // keyword search: OR logic across multiple fields
+    // If both name and keyword are provided, they work together
+    const keyword = query.keyword;
 
     const [items, total] = await this.studentRepository.findAndCount({
-      where,
+      where: (qb) => {
+        qb.where(where);
+        if (keyword) {
+          qb.andWhere(
+            new Brackets((subQb) => {
+              subQb.where('student.name LIKE :kw', { kw: `%${keyword}%` })
+                .orWhere('student.studentCode LIKE :kw', { kw: `%${keyword}%` })
+                .orWhere('student.phone LIKE :kw', { kw: `%${keyword}%` })
+                .orWhere('student.school LIKE :kw', { kw: `%${keyword}%` });
+            })
+          );
+        }
+      },
       skip,
       take: pageSize,
       order: { createTime: 'DESC' } as any,
@@ -117,7 +129,7 @@ export class StudentService {
   }
 
   async findById(id: number): Promise<Student> {
-    const student = await this.studentRepository.findOne({ where: { id, deleted: false } as any });
+    const student = await this.studentRepository.findById(id);
     if (!student) {
       throw new NotFoundException(`学生不存在 (ID: ${id})`);
     }

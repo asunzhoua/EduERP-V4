@@ -1,0 +1,12 @@
+{
+  "id": "ISS-029",
+  "title": "Governance validation scripts crash on missing documents",
+  "priority": "P2",
+  "status": "open",
+  "severity": "robustness",
+  "description": "freeze-audit.ts, validate-events.ts, validate-state-machine.ts, build-handbook.ts call fs.readFileSync() without fs.existsSync() check. Missing documents cause unhandled ENOENT crash.",
+  "files": ["scripts/governance/freeze-audit.ts", "scripts/governance/validate-events.ts", "scripts/governance/validate-state-machine.ts", "scripts/governance/build-handbook.ts"],
+  "discoveredAt": "2026-07-15T20:00:00Z",
+  "discoveredBy": "Discovery Round 6",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T20:00:00Z", "by": "Discovery Round 6"}]
+}

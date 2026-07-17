@@ -2,36 +2,81 @@
 <view class="container">
   <!-- 搜索栏 -->
   <view class="search-bar">
-    <input
-      class="search-input"
-      placeholder="搜索课程名称"
-      bindinput="onSearch"
-    />
+    <view class="search-wrapper">
+      <text class="search-icon">🔍</text>
+      <input
+        class="search-input"
+        placeholder="搜索课程名称/编码/科目"
+        value="{{searchKeyword}}"
+        bindinput="onSearch"
+      />
+      <text class="clear-btn" wx:if="{{searchKeyword}}" bindtap="clearSearch">✕</text>
+    </view>
+  </view>
+
+  <!-- 统计信息 -->
+  <view class="stats-bar" wx:if="{{!loading && filteredCourses.length > 0}}">
+    <text class="stats-text">共 {{filteredCourses.length}} 门课程</text>
+    <text class="stats-text" wx:if="{{searchKeyword}}">（搜索: {{searchKeyword}}）</text>
   </view>
 
   <!-- 课程列表 -->
   <view class="course-list">
-    <block wx:for="{{courses}}" wx:key="id">
+    <block wx:for="{{filteredCourses}}" wx:key="id">
       <view class="course-card" bindtap="goToCourseDetail" data-code="{{item.courseCode}}">
         <view class="course-header">
           <text class="course-name">{{item.name}}</text>
-          <text class="course-status status-{{item.status}}">{{item.status === 'PUBLISHED' ? '已发布' : item.status === 'DRAFT' ? '草稿' : '已归档'}}</text>
+          <text class="course-status status-{{item.status}}">
+            {{item.status === 'PUBLISHED' ? '已发布' : item.status === 'DRAFT' ? '草稿' : '已归档'}}
+          </text>
         </view>
+        
         <view class="course-info">
-          <text class="course-code">{{item.courseCode}}</text>
-          <text class="course-subject">{{item.subject}}</text>
+          <view class="info-row">
+            <text class="info-label">编码:</text>
+            <text class="info-value">{{item.courseCode}}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">科目:</text>
+            <text class="info-value">{{item.subject}}</text>
+          </view>
+        </view>
+
+        <view class="course-meta" wx:if="{{item.lessonCount || item.enrolledClasses}}">
+          <view class="meta-item">
+            <text class="meta-value">{{item.lessonCount || 0}}</text>
+            <text class="meta-label">课时</text>
+          </view>
+          <view class="meta-item">
+            <text class="meta-value">{{item.enrolledClasses || 0}}</text>
+            <text class="meta-label">班级</text>
+          </view>
         </view>
       </view>
     </block>
 
-    <!-- 加载状态 -->
-    <view class="loading" wx:if="{{loading}}">
-      <text>加载中...</text>
+    <!-- 加载中状态 -->
+    <view class="loading-state" wx:if="{{loading}}">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="load-more" wx:if="{{loadingMore}}">
+      <text>加载更多...</text>
+    </view>
+
+    <!-- 没有更多 -->
+    <view class="no-more" wx:if="{{!loading && !hasMore && filteredCourses.length > 0}}">
+      <text>已加载全部</text>
     </view>
 
     <!-- 空状态 -->
-    <view class="empty" wx:if="{{!loading && courses.length === 0}}">
-      <text>暂无课程</text>
+    <view class="empty-state" wx:if="{{!loading && filteredCourses.length === 0}}">
+      <text class="empty-icon">📭</text>
+      <text class="empty-text" wx:if="{{searchKeyword}}">未找到匹配的课程</text>
+      <text class="empty-text" wx:else>暂无课程</text>
+      <text class="empty-hint" wx:if="{{!searchKeyword}}">点击右下角按钮创建课程</text>
     </view>
   </view>
 

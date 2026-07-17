@@ -1,0 +1,12 @@
+{
+  "id": "ISS-036",
+  "title": "TeacherAssignmentController missing @Roles on all 4 endpoints",
+  "priority": "P2",
+  "status": "open",
+  "severity": "security",
+  "description": "TeacherAssignmentController has zero @Roles decorators. All endpoints accessible to any authenticated user.",
+  "files": ["backend/src/modules/teaching/teacher-assignment/teacher-assignment.controller.ts"],
+  "discoveredAt": "2026-07-15T21:00:00Z",
+  "discoveredBy": "Discovery Round 8",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T21:00:00Z", "by": "Discovery Round 8"}]
+}

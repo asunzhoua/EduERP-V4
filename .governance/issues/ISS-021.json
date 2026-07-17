@@ -1,0 +1,12 @@
+{
+  "id": "ISS-021",
+  "title": "ClassService.guardActivation not invoked for CANCELLED -> ACTIVE",
+  "priority": "P2",
+  "status": "open",
+  "severity": "logic",
+  "description": "guardActivation() only called when status === DRAFT && targetStatus === ACTIVE. State machine permits CANCELLED -> ACTIVE but skips all activation guards (teacher, schedule, totalLessons).",
+  "files": ["backend/src/modules/teaching/class/class.service.ts"],
+  "discoveredAt": "2026-07-15T19:00:00Z",
+  "discoveredBy": "Discovery Round 4",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T19:00:00Z", "by": "Discovery Round 4"}]
+}

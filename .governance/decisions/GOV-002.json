@@ -1,0 +1,10 @@
+{
+  "id": "GOV-002",
+  "title": "ADR-009: Enrollment Reactivation — Implementation Bug",
+  "status": "needs-review",
+  "verdict": "needs-review",
+  "reviewedAt": "2026-07-15T13:45:00Z",
+  "reason": "Decision is correct (UPDATE existing record) but code still INSERTs. UNIQUE constraint will fail at runtime. Latent bug.",
+  "evidence": "enrollment.service.ts:59 creates new EnrollmentEntity(). No reactivate() method. Guard logic at line 46-56 is correct but action is wrong.",
+  "supersededBy": null
+}

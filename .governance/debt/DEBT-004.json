@@ -1,0 +1,18 @@
+{
+  "id": "DEBT-004",
+  "title": "Empty common/ and utils/ directories",
+  "severity": "low",
+  "category": "architecture",
+  "status": "identified",
+  "description": "6 directories contain only .gitkeep: common/constants, common/exceptions, common/interfaces, utils/helper, utils/validator, events/notification.",
+  "location": "backend/src/common/*, backend/src/utils/*, backend/src/events/notification/",
+  "owner": "Platform",
+  "reason": "Placeholder directories created for future shared logic",
+  "impact": "Dead directories create confusion about project structure",
+  "estimatedCost": "1 hour — remove empty dirs or populate with actual code",
+  "suggestedSprint": "Sprint 5 (remove if not needed)",
+  "discoveredAt": "2026-07-15T10:00:00Z",
+  "history": [
+    { "timestamp": "2026-07-15T10:00:00Z", "action": "identified" }
+  ]
+}

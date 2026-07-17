@@ -1,0 +1,16 @@
+{
+  "id": "ISS-003",
+  "title": "6 Teaching entities missing audit fields",
+  "priority": "P2",
+  "status": "open",
+  "category": "architecture",
+  "description": "Contract, Enrollment, Lesson, LessonAttendance, LessonChangeRequest, TeacherAssignment missing createdAt/updatedAt/createdBy/updatedBy. Requires database migration.",
+  "location": "backend/src/modules/teaching/*/entities/",
+  "discoveredAt": "2026-07-15T10:00:00Z",
+  "discoveredBy": "Discovery Round 1 scan",
+  "rule": "Architecture consistency — audit trail",
+  "relatedIssues": ["DEBT-002"],
+  "history": [
+    { "timestamp": "2026-07-15T10:00:00Z", "action": "created", "to": "open" }
+  ]
+}

@@ -5,8 +5,8 @@ import {
   CreateDateColumn,
   Index,
 } from 'typeorm';
-import { AuditAction } from '../enums/audit-action.enum';
-import { CreatedSource } from '../enums/created-source.enum';
+import { AuditAction } from '@common/enums/audit-action.enum';
+import { CreatedSource } from '@common/enums/created-source.enum';
 
 @Entity('student_audit_log')
 export class StudentAuditLog {

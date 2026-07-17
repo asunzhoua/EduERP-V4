@@ -1,0 +1,12 @@
+{
+  "id": "ISS-016",
+  "title": "EnrollmentService.enroll() hardcodes enrolledBy = 0",
+  "priority": "P2",
+  "status": "open",
+  "severity": "audit",
+  "description": "Enrollment creation sets enrolledBy = 0 instead of actual user ID. Same pattern as ISS-015 but in Enrollment module. Breaks traceability required by Constitution Rule 20.",
+  "files": ["backend/src/modules/teaching/enrollment/enrollment.service.ts"],
+  "discoveredAt": "2026-07-15T18:30:00Z",
+  "discoveredBy": "Discovery Round 3",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T18:30:00Z", "by": "Discovery Round 3"}]
+}

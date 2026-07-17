@@ -1,0 +1,12 @@
+{
+  "id": "ISS-038",
+  "title": "TeacherAssignmentService bypasses repository abstraction via bracket notation",
+  "priority": "P2",
+  "status": "open",
+  "severity": "architecture",
+  "description": "Service accesses this.repo['repo'].create() using bracket notation instead of this.repo.raw.create(). Fragile coupling to internal field name.",
+  "files": ["backend/src/modules/teaching/teacher-assignment/teacher-assignment.service.ts"],
+  "discoveredAt": "2026-07-15T21:00:00Z",
+  "discoveredBy": "Discovery Round 8",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T21:00:00Z", "by": "Discovery Round 8"}]
+}

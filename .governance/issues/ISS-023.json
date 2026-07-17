@@ -1,0 +1,12 @@
+{
+  "id": "ISS-023",
+  "title": "Three lesson controllers missing role-based authorization",
+  "priority": "P2",
+  "status": "open",
+  "severity": "security",
+  "description": "LessonController, LessonAttendanceController, LessonChangeRequestController missing @Roles() on admin endpoints. Pattern matches ISS-006.",
+  "files": ["backend/src/modules/teaching/lesson/lesson.controller.ts", "backend/src/modules/teaching/lesson-attendance/lesson-attendance.controller.ts", "backend/src/modules/teaching/lesson-change-request/lesson-change-request.controller.ts"],
+  "discoveredAt": "2026-07-15T19:30:00Z",
+  "discoveredBy": "Discovery Round 5",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T19:30:00Z", "by": "Discovery Round 5"}]
+}

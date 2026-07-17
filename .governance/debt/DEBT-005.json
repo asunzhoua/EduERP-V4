@@ -1,0 +1,18 @@
+{
+  "id": "DEBT-005",
+  "title": "StudentService keyword search overwrites name filter",
+  "severity": "medium",
+  "category": "code",
+  "status": "identified",
+  "description": "In findAll(), keyword search on line 106 overwrites name filter on line 85. Should use TypeORM Brackets for OR logic.",
+  "location": "backend/src/modules/student/services/student.service.ts:106",
+  "owner": "Student Domain",
+  "reason": "Quick implementation without considering filter composition",
+  "impact": "Combined name+keyword search silently ignores the name parameter",
+  "estimatedCost": "1 hour — refactor to use TypeORM Brackets",
+  "suggestedSprint": "Sprint 5",
+  "discoveredAt": "2026-07-15T11:30:00Z",
+  "history": [
+    { "timestamp": "2026-07-15T11:30:00Z", "action": "identified" }
+  ]
+}

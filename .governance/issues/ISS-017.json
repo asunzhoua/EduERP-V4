@@ -1,0 +1,12 @@
+{
+  "id": "ISS-017",
+  "title": "Three-way contradiction on TeacherAssignment unique constraint",
+  "priority": "P2",
+  "status": "open",
+  "severity": "documentation",
+  "description": "ArchitectureHandbook says (classCode, teacherId, startDate). Constitution says (classCode, teacherId). Code says (classCode, teacherId, role). Three-way contradiction.",
+  "files": ["docs/architecture/ArchitectureHandbook.md", "docs/architecture/TeachingConstitution_v1.1.md", "backend/src/modules/teaching/teacher-assignment/teacher-assignment.entity.ts"],
+  "discoveredAt": "2026-07-15T18:30:00Z",
+  "discoveredBy": "Discovery Round 3",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T18:30:00Z", "by": "Discovery Round 3"}]
+}

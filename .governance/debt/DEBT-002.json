@@ -1,0 +1,18 @@
+{
+  "id": "DEBT-002",
+  "title": "6 entities missing audit fields",
+  "severity": "high",
+  "category": "architecture",
+  "status": "identified",
+  "description": "Contract, Enrollment, Lesson, LessonAttendance, LessonChangeRequest, TeacherAssignment missing createdAt/updatedAt/createdBy/updatedBy columns.",
+  "location": "backend/src/modules/teaching/*/entities/",
+  "owner": "Teaching Domain",
+  "reason": "Entities were created before the audit field standard was established",
+  "impact": "No audit trail for 6 of 8 Teaching entities. Cannot track who changed what.",
+  "estimatedCost": "1 day — TypeORM migration + entity updates + test updates",
+  "suggestedSprint": "Sprint 5 (database migration required)",
+  "discoveredAt": "2026-07-15T10:00:00Z",
+  "history": [
+    { "timestamp": "2026-07-15T10:00:00Z", "action": "identified" }
+  ]
+}

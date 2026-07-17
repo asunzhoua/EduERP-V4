@@ -1,0 +1,21 @@
+{
+  "id": "ISS-010",
+  "title": "EnrollmentService crashes on re-enrollment after withdrawal",
+  "priority": "P1",
+  "status": "resolved",
+  "severity": "critical",
+  "description": "When a student withdraws from a class and tries to re-enroll, the system crashes due to unique constraint violation on (classCode, studentCode).",
+  "files": [
+    "backend/src/modules/teaching/enrollment/enrollment.service.ts"
+  ],
+  "discoveredAt": "2026-07-15T18:00:00Z",
+  "discoveredBy": "Discovery Round 1",
+  "resolvedAt": "2026-07-17T02:00:00Z",
+  "resolvedBy": "Long Mission v2.0",
+  "resolution": "UPDATE existing enrollment record instead of INSERT new record when student has WITHDRAWN status",
+  "evidence": ".governance/evidence/ISS-010-Evidence.md",
+  "statusHistory": [
+    { "status": "open", "at": "2026-07-15T18:00:00Z", "by": "Discovery Round 1" },
+    { "status": "resolved", "at": "2026-07-17T02:00:00Z", "by": "Long Mission v2.0" }
+  ]
+}

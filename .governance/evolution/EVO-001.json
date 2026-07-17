@@ -1,0 +1,10 @@
+{
+  "id": "EVO-001",
+  "type": "evolution",
+  "title": "Self Governance Engine established",
+  "description": "Created .governance/ directory with issues, decisions, debt, evolution tracking. Added eos governance CLI command with init, issue, debt, snapshot, summary subcommands.",
+  "impact": "Repository now has structured self-governance capability. Issues, debt, and decisions tracked in machine-readable JSON.",
+  "filesChanged": 8,
+  "linesChanged": 650,
+  "timestamp": "2026-07-15T13:45:00Z"
+}

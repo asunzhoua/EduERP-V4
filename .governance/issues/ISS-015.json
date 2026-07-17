@@ -1,0 +1,12 @@
+{
+  "id": "ISS-015",
+  "title": "ContractService.create() hardcodes createdBy = 0",
+  "priority": "P2",
+  "status": "open",
+  "severity": "audit",
+  "description": "Contract creation sets createdBy = 0 instead of actual user ID. Financial entity audit trail corrupted. Same pattern as ISS-002 but in Contract module.",
+  "files": ["backend/src/modules/teaching/contract/contract.service.ts"],
+  "discoveredAt": "2026-07-15T18:30:00Z",
+  "discoveredBy": "Discovery Round 3",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T18:30:00Z", "by": "Discovery Round 3"}]
+}

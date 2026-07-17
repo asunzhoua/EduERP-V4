@@ -1,0 +1,10 @@
+{
+  "id": "GOV-003",
+  "title": "ADR-010: Attendance Event — Premature Event Class",
+  "status": "needs-review",
+  "verdict": "needs-review",
+  "reviewedAt": "2026-07-15T13:45:00Z",
+  "reason": "Event class created before ADR approved. No emitter, guard, or subscriber. Decision sound but implementation incomplete.",
+  "evidence": "attendance-confirmed.event.ts exists but is never emitted. No confirmAll() method in lesson-attendance.service.ts.",
+  "supersededBy": null
+}

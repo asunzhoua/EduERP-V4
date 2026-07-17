@@ -9,7 +9,10 @@ Page({
     roleText: '',
     todayLessons: 0,
     pendingAttendance: 0,
-    totalStudents: 0
+    totalStudents: 0,
+    loading: false,  // 加载状态
+    error: null,     // 错误信息
+    refreshing: false // 下拉刷新状态
   },
 
   onLoad() {
@@ -18,6 +21,15 @@ Page({
 
   onShow() {
     this.loadDashboard();
+  },
+
+  // 下拉刷新
+  onPullDownRefresh() {
+    this.setData({ refreshing: true });
+    this.loadDashboard().finally(() => {
+      this.setData({ refreshing: false });
+      wx.stopPullDownRefresh();
+    });
   },
 
   loadUserInfo() {
@@ -41,17 +53,54 @@ Page({
     return roleMap[role] || '用户';
   },
 
+  // 加载仪表盘数据
   async loadDashboard() {
+    // 避免重复加载
+    if (this.data.loading) return;
+
+    this.setData({ loading: true, error: null });
+
     try {
-      // 模拟数据（后续对接真实 API）
+      // 调用真实 API
+      const data = await get('/teacher/dashboard');
+      
       this.setData({
-        todayLessons: 3,
-        pendingAttendance: 2,
-        totalStudents: 45
+        todayLessons: data.todayLessons || 0,
+        pendingAttendance: data.pendingAttendance || 0,
+        totalStudents: data.totalStudents || 0,
+        loading: false
       });
+
+      console.log('[Dashboard] 加载成功:', data);
+
     } catch (err) {
-      console.error('Load dashboard error:', err);
+      console.error('[Dashboard] 加载失败:', err);
+      
+      // 错误处理：显示错误信息并使用默认值
+      this.setData({
+        error: err.message || '加载失败',
+        loading: false,
+        // 使用默认值保证界面可用
+        todayLessons: 0,
+        pendingAttendance: 0,
+        totalStudents: 0
+      });
+
+      // 如果是 Token 过期，request.js 已经处理了跳转
+      // 这里只显示提示
+      if (err.code !== 2002) {
+        wx.showToast({
+          title: '数据加载失败，请稍后重试',
+          icon: 'none',
+          duration: 2000
+        });
+      }
     }
+  },
+
+  // 重新加载
+  retryLoad() {
+    this.loadDashboard();
   },
 
   goToCourses() {

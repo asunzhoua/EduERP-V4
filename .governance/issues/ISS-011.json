@@ -1,0 +1,17 @@
+{
+  "id": "ISS-011",
+  "title": "governance.ts closeIssue() corrupts audit trail history",
+  "priority": "P2",
+  "status": "open",
+  "severity": "logic",
+  "description": "closeIssue() sets issue.status = 'closed' before reading issue.status into 'from' field. History entry shows from: 'closed', to: 'closed' instead of from: 'open', to: 'closed'.",
+  "files": [
+    "tools/eos-cli/commands/governance.ts"
+  ],
+  "discoveredAt": "2026-07-15T18:00:00Z",
+  "discoveredBy": "Discovery Round 2",
+  "relatedDebt": null,
+  "statusHistory": [
+    { "status": "open", "at": "2026-07-15T18:00:00Z", "by": "Discovery Round 2" }
+  ]
+}

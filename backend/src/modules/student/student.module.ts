@@ -4,6 +4,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import { StudentController } from './student.controller';
 import { StudentService } from './services/student.service';
 import { StudentCodeGeneratorService } from './services/student-code-generator.service';
+import { StudentRepository } from './student.repository';
 import { Student } from './entities/student.entity';
 import { StudentParent } from './entities/student-parent.entity';
 import { StudentAuditLog } from './entities/student-audit-log.entity';
@@ -23,8 +24,9 @@ import { ImportService } from '@utils/services/import.service';
   providers: [
     StudentService,
     StudentCodeGeneratorService,
+    StudentRepository,
     ImportService,
   ],
-  exports: [StudentService],
+  exports: [StudentService, StudentRepository],
 })
 export class StudentModule {}

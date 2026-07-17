@@ -1,0 +1,12 @@
+{
+  "id": "ISS-028",
+  "title": "Knowledge graph hardcodes health score to 92/100",
+  "priority": "P2",
+  "status": "open",
+  "severity": "logic",
+  "description": "generateKnowledgeGraph() writes hardcoded 'Repository Health Score | 92/100' instead of using actual calculated score.",
+  "files": ["tools/eos-cli/commands/knowledge.ts"],
+  "discoveredAt": "2026-07-15T20:00:00Z",
+  "discoveredBy": "Discovery Round 6",
+  "statusHistory": [{"status": "open", "at": "2026-07-15T20:00:00Z", "by": "Discovery Round 6"}]
+}
