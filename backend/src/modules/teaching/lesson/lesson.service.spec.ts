@@ -3,6 +3,10 @@ import { LessonService, CreateLessonInput } from './lesson.service';
 import { LessonRepository } from './lesson.repository';
 import { LessonEntity } from './lesson.entity';
 import { LessonStatus } from './enums/lesson-status.enum';
+import { ClassRepository } from '../class/class.repository';
+import { ClassStatus } from '../class/enums/class-status.enum';
+import { EnrollmentRepository } from '../enrollment/enrollment.repository';
+import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventBusService } from '@events/event-bus.service';
 
@@ -14,6 +18,8 @@ jest.mock('@events/event-bus.service');
 describe('LessonService', () => {
   let service: LessonService;
   let lessonRepo: jest.Mocked<LessonRepository>;
+  let classRepo: jest.Mocked<ClassRepository>;
+  let enrollmentRepo: jest.Mocked<EnrollmentRepository>;
   let mockPublish: jest.Mock;
 
   const mockLessonInput: CreateLessonInput = {
@@ -49,13 +55,54 @@ describe('LessonService', () => {
     createdAt: new Date(),
   };
 
+  const mockActiveClass = {
+    id: 1,
+    classCode: 'CL2026070001',
+    courseCode: 'CS2026070001',
+    name: '周六上午班',
+    status: ClassStatus.ACTIVE,
+    startDate: '2026-07-01',
+    totalLessons: 20,
+    defaultDuration: 90,
+    dayOfWeek: [6],
+    startTime: '10:00',
+    endTime: '11:30',
+    maxStudents: 20,
+    room: null,
+    tags: null,
+    note: null,
+    cancelledReason: null,
+    createdBy: 0,
+    createTime: new Date(),
+    updatedBy: null,
+    updateTime: new Date(),
+    version: 1,
+    deleted: false,
+  };
+
   beforeEach(async () => {
-    const mockRepo = {
+    const mockLessonRepo = {
       save: jest.fn(),
       saveAll: jest.fn(),
       findOneById: jest.fn(),
       findByClassCode: jest.fn(),
       countByClassCode: jest.fn(),
+    };
+
+    const mockClassRepo = {
+      findOneByCode: jest.fn(),
+      save: jest.fn(),
+      raw: { create: jest.fn() },
+      findMany: jest.fn(),
+    };
+
+    const mockEnrollmentRepo = {
+      findByClassAndStudent: jest.fn(),
+      findByClassCode: jest.fn(),
+      findByStudentCode: jest.fn(),
+      save: jest.fn(),
+      countActiveByClassCode: jest.fn(),
+      findOneById: jest.fn(),
     };
 
     mockPublish = jest.fn();
@@ -67,25 +114,127 @@ describe('LessonService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LessonService,
-        { provide: LessonRepository, useValue: mockRepo },
+        { provide: LessonRepository, useValue: mockLessonRepo },
+        { provide: ClassRepository, useValue: mockClassRepo },
+        { provide: EnrollmentRepository, useValue: mockEnrollmentRepo },
         { provide: EventBusService, useValue: mockEventBus },
       ],
     }).compile();
 
     service = module.get<LessonService>(LessonService);
     lessonRepo = module.get(LessonRepository);
+    classRepo = module.get(ClassRepository);
+    enrollmentRepo = module.get(EnrollmentRepository);
   });
 
   // ─── Create ───
 
   describe('create', () => {
-    it('should create a lesson with DRAFT status', async () => {
+    it('should create a lesson with DRAFT status when all validations pass', async () => {
+      classRepo.findOneByCode.mockResolvedValue({ ...mockActiveClass });
+      lessonRepo.findByClassCode.mockResolvedValue([]);
       lessonRepo.save.mockResolvedValue({ ...mockLesson });
 
       const result = await service.create(mockLessonInput);
 
       expect(result.status).toBe(LessonStatus.DRAFT);
       expect(result.classCode).toBe('CL2026070001');
+      expect(result.lessonNumber).toBe(1);
+    });
+
+    it('should throw BadRequestException when endTime <= startTime', async () => {
+      const input = { ...mockLessonInput, endTime: '09:00' };
+
+      await expect(service.create(input)).rejects.toThrow(BadRequestException);
+      await expect(service.create(input)).rejects.toThrow(
+        'endTime must be greater than startTime',
+      );
+    });
+
+    it('should throw BadRequestException when startTime format is invalid', async () => {
+      const input = { ...mockLessonInput, startTime: '25:00' };
+
+      await expect(service.create(input)).rejects.toThrow(BadRequestException);
+      await expect(service.create(input)).rejects.toThrow(
+        'must be in HH:MM format',
+      );
+    });
+
+    it('should throw BadRequestException when endTime format is invalid', async () => {
+      const input = { ...mockLessonInput, endTime: '9:00' };
+
+      await expect(service.create(input)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException when lessonNumber < 1', async () => {
+      const input = { ...mockLessonInput, lessonNumber: 0 };
+
+      await expect(service.create(input)).rejects.toThrow(BadRequestException);
+      await expect(service.create(input)).rejects.toThrow(
+        'positive integer',
+      );
+    });
+
+    it('should throw BadRequestException when lessonNumber > 999', async () => {
+      const input = { ...mockLessonInput, lessonNumber: 1000 };
+
+      await expect(service.create(input)).rejects.toThrow(BadRequestException);
+      await expect(service.create(input)).rejects.toThrow('<= 999');
+    });
+
+    it('should throw NotFoundException when class does not exist', async () => {
+      classRepo.findOneByCode.mockResolvedValue(null);
+
+      await expect(service.create(mockLessonInput)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.create(mockLessonInput)).rejects.toThrow(
+        'Class not found',
+      );
+    });
+
+    it('should throw BadRequestException when class is not ACTIVE', async () => {
+      const draftClass = { ...mockActiveClass, status: ClassStatus.DRAFT };
+      classRepo.findOneByCode.mockResolvedValue(draftClass);
+
+      await expect(service.create(mockLessonInput)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.create(mockLessonInput)).rejects.toThrow(
+        'not ACTIVE',
+      );
+    });
+
+    it('should throw BadRequestException when courseCode mismatches class', async () => {
+      classRepo.findOneByCode.mockResolvedValue({ ...mockActiveClass });
+      const input = { ...mockLessonInput, courseCode: 'WRONG_COURSE' };
+
+      await expect(service.create(input)).rejects.toThrow(BadRequestException);
+      await expect(service.create(input)).rejects.toThrow('courseCode mismatch');
+    });
+
+    it('should throw BadRequestException when lessonNumber already exists', async () => {
+      classRepo.findOneByCode.mockResolvedValue({ ...mockActiveClass });
+      lessonRepo.findByClassCode.mockResolvedValue([
+        { ...mockLesson, lessonNumber: 1 },
+      ]);
+
+      await expect(service.create(mockLessonInput)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.create(mockLessonInput)).rejects.toThrow(
+        'already exists',
+      );
+    });
+
+    it('should pass when lessonNumber exists but is CANCELLED (can reuse)', async () => {
+      classRepo.findOneByCode.mockResolvedValue({ ...mockActiveClass });
+      lessonRepo.findByClassCode.mockResolvedValue([
+        { ...mockLesson, id: 5, lessonNumber: 1, status: LessonStatus.CANCELLED },
+      ]);
+      lessonRepo.save.mockResolvedValue({ ...mockLesson });
+
+      const result = await service.create(mockLessonInput);
       expect(result.lessonNumber).toBe(1);
     });
   });
@@ -116,6 +265,30 @@ describe('LessonService', () => {
       expect(result[1].status).toBe(LessonStatus.SCHEDULED);
       expect(result[2].lessonNumber).toBe(3);
     });
+
+    it('should throw BadRequestException for empty inputs', async () => {
+      await expect(service.createBatch([])).rejects.toThrow(BadRequestException);
+    });
+
+    it('should validate time format in batch', async () => {
+      const inputs = [
+        { ...mockLessonInput, lessonNumber: 1, endTime: '25:00' },
+      ];
+
+      await expect(service.createBatch(inputs)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should validate endTime > startTime in batch', async () => {
+      const inputs = [
+        { ...mockLessonInput, lessonNumber: 1, endTime: '09:00' },
+      ];
+
+      await expect(service.createBatch(inputs)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
   });
 
   // ─── Read ───
@@ -141,6 +314,67 @@ describe('LessonService', () => {
       ]);
       const result = await service.findByClassCode('CL2026070001');
       expect(result).toHaveLength(2);
+    });
+  });
+
+  // ─── Data Consistency: Enrollment Checks ───
+
+  describe('ensureStudentEnrolled', () => {
+    it('should pass when student is actively enrolled', async () => {
+      enrollmentRepo.findByClassAndStudent.mockResolvedValue({
+        classCode: 'CL2026070001',
+        studentCode: 'STU001',
+        status: EnrollmentStatus.ACTIVE,
+      } as any);
+
+      await expect(
+        service.ensureStudentEnrolled('CL2026070001', 'STU001'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('should throw when student is not enrolled', async () => {
+      enrollmentRepo.findByClassAndStudent.mockResolvedValue(null);
+
+      await expect(
+        service.ensureStudentEnrolled('CL2026070001', 'STU001'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw when enrollment is not ACTIVE', async () => {
+      enrollmentRepo.findByClassAndStudent.mockResolvedValue({
+        classCode: 'CL2026070001',
+        studentCode: 'STU001',
+        status: EnrollmentStatus.WITHDRAWN,
+      } as any);
+
+      await expect(
+        service.ensureStudentEnrolled('CL2026070001', 'STU001'),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('ensureAllStudentsEnrolled', () => {
+    it('should pass when all students are enrolled', async () => {
+      enrollmentRepo.findByClassAndStudent
+        .mockResolvedValueOnce({ status: EnrollmentStatus.ACTIVE } as any)
+        .mockResolvedValueOnce({ status: EnrollmentStatus.ACTIVE } as any);
+
+      await expect(
+        service.ensureAllStudentsEnrolled('CL2026070001', ['STU001', 'STU002']),
+      ).resolves.toBeUndefined();
+    });
+
+    it('should throw when some students are not enrolled', async () => {
+      enrollmentRepo.findByClassAndStudent
+        .mockResolvedValueOnce({ status: EnrollmentStatus.ACTIVE } as any)
+        .mockResolvedValueOnce(null);
+
+      await expect(
+        service.ensureAllStudentsEnrolled('CL2026070001', ['STU001', 'STU002']),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.ensureAllStudentsEnrolled('CL2026070001', ['STU001', 'STU002']),
+      ).rejects.toThrow(/STU002/);
     });
   });
 

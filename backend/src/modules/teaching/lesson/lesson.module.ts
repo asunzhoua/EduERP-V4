@@ -6,9 +6,16 @@ import { LessonRepository } from './lesson.repository';
 import { LessonEntity } from './lesson.entity';
 import { LessonEventSubscriber } from './lesson-event.subscriber';
 import { EventBusModule } from '@events/event-bus.module';
+import { ClassModule } from '../class/class.module';
+import { EnrollmentModule } from '../enrollment/enrollment.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([LessonEntity]), EventBusModule],
+  imports: [
+    TypeOrmModule.forFeature([LessonEntity]),
+    EventBusModule,
+    ClassModule,
+    EnrollmentModule,
+  ],
   controllers: [LessonController],
   providers: [LessonService, LessonRepository, LessonEventSubscriber],
   exports: [LessonService, LessonRepository],

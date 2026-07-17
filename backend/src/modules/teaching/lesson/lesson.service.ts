@@ -8,6 +8,10 @@ import { LessonRepository } from './lesson.repository';
 import { LessonEntity } from './lesson.entity';
 import { LessonStatus } from './enums/lesson-status.enum';
 import { EventBusService } from '@events/event-bus.service';
+import { ClassRepository } from '../class/class.repository';
+import { ClassStatus } from '../class/enums/class-status.enum';
+import { EnrollmentRepository } from '../enrollment/enrollment.repository';
+import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 
 /** Allowed status transitions per LessonStateMachine */
 const VALID_TRANSITIONS: Record<LessonStatus, LessonStatus[]> = {
@@ -30,6 +34,7 @@ export interface CreateLessonInput {
   teacherId: number;
   isMakeup?: boolean;
   originLessonId?: number;
+  createdBy?: number;
 }
 
 @Injectable()
@@ -39,11 +44,90 @@ export class LessonService {
   constructor(
     private readonly lessonRepo: LessonRepository,
     private readonly eventBus: EventBusService,
+    private readonly classRepo: ClassRepository,
+    private readonly enrollmentRepo: EnrollmentRepository,
   ) {}
 
   // ─── Create ───
 
+  /**
+   * Create a single lesson with full validation:
+   * - Time format and ordering (endTime > startTime)
+   * - Class existence and ACTIVE status
+   * - Lesson number range and uniqueness within class
+   * - Student enrollment verification
+   */
   async create(input: CreateLessonInput): Promise<LessonEntity> {
+    // ─── 1. Time format & ordering validation ───
+    this.validateTimeFormat(input.startTime, 'startTime');
+    this.validateTimeFormat(input.endTime, 'endTime');
+
+    if (input.endTime <= input.startTime) {
+      throw new BadRequestException(
+        'endTime must be greater than startTime',
+      );
+    }
+
+    // ─── 2. Lesson number validation ───
+    if (!Number.isInteger(input.lessonNumber) || input.lessonNumber < 1) {
+      throw new BadRequestException(
+        'lessonNumber must be a positive integer (>= 1)',
+      );
+    }
+    if (input.lessonNumber > 999) {
+      throw new BadRequestException(
+        'lessonNumber must be <= 999',
+      );
+    }
+
+    // ─── 3. Check class exists & is ACTIVE ───
+    const cls = await this.classRepo.findOneByCode(input.classCode);
+    if (!cls) {
+      throw new NotFoundException(`Class not found: ${input.classCode}`);
+    }
+    if (cls.status !== ClassStatus.ACTIVE) {
+      throw new BadRequestException(
+        `Class ${input.classCode} is not ACTIVE (current: ${cls.status}). Lessons can only be created for ACTIVE classes.`,
+      );
+    }
+
+    // ─── 4. Check courseCode matches class ───
+    if (cls.courseCode !== input.courseCode) {
+      throw new BadRequestException(
+        `courseCode mismatch: class ${input.classCode} is for course ${cls.courseCode}, but provided ${input.courseCode}`,
+      );
+    }
+
+    // ─── 5. Check lessonNumber uniqueness within class ───
+    const existingLessons = await this.lessonRepo.findByClassCode(input.classCode);
+    const duplicateNumber = existingLessons.find(
+      (l) => l.lessonNumber === input.lessonNumber && l.status !== LessonStatus.CANCELLED,
+    );
+    if (duplicateNumber) {
+      throw new BadRequestException(
+        `Lesson number ${input.lessonNumber} already exists for class ${input.classCode} (lesson id=${duplicateNumber.id}, status=${duplicateNumber.status})`,
+      );
+    }
+
+    // ─── 6. Validate scheduledDate is not in the distant past ───
+    if (input.scheduledDate) {
+      const date = new Date(input.scheduledDate);
+      if (isNaN(date.getTime())) {
+        throw new BadRequestException(
+          `Invalid scheduledDate: ${input.scheduledDate}`,
+        );
+      }
+      // Warn if date is more than 1 year ago (but don't block)
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      if (date < oneYearAgo) {
+        this.logger.warn(
+          `Lesson scheduledDate ${input.scheduledDate} is more than 1 year in the past`,
+        );
+      }
+    }
+
+    // ─── 7. Build entity & save ───
     const lesson = new LessonEntity();
     lesson.classCode = input.classCode;
     lesson.courseCode = input.courseCode;
@@ -62,18 +146,38 @@ export class LessonService {
     lesson.actualEndTime = null;
     lesson.confirmedBy = null;
     lesson.confirmedAt = null;
-    // createdBy: system userId — will be passed in from the caller
-    lesson.createdBy = 0;
+    lesson.createdBy = input.createdBy ?? 0;
 
     const saved = await this.lessonRepo.save(lesson);
     this.logger.log(
-      `Lesson created: id=${saved.id}, class=${saved.classCode}, #${saved.lessonNumber}`,
+      `Lesson created: id=${saved.id}, class=${saved.classCode}, #${saved.lessonNumber}, date=${saved.scheduledDate}`,
     );
     return saved;
   }
 
   /** Batch create lessons in one transaction. For Class activation (Plan A placeholder). */
   async createBatch(inputs: CreateLessonInput[]): Promise<LessonEntity[]> {
+    if (!inputs || inputs.length === 0) {
+      throw new BadRequestException('inputs must not be empty');
+    }
+
+    // Validate all inputs first
+    for (const input of inputs) {
+      this.validateTimeFormat(input.startTime, 'startTime');
+      this.validateTimeFormat(input.endTime, 'endTime');
+
+      if (input.endTime <= input.startTime) {
+        throw new BadRequestException(
+          `endTime must be greater than startTime for lesson #${input.lessonNumber}`,
+        );
+      }
+      if (!Number.isInteger(input.lessonNumber) || input.lessonNumber < 1) {
+        throw new BadRequestException(
+          `lessonNumber must be a positive integer, got ${input.lessonNumber}`,
+        );
+      }
+    }
+
     const lessons = inputs.map((input) => {
       const lesson = new LessonEntity();
       lesson.classCode = input.classCode;
@@ -116,6 +220,22 @@ export class LessonService {
 
   async findByClassCode(classCode: string): Promise<LessonEntity[]> {
     return this.lessonRepo.findByClassCode(classCode);
+  }
+
+  async findByClassCodeAndLessonNumber(
+    classCode: string,
+    lessonNumber: number,
+  ): Promise<LessonEntity> {
+    const lesson = await this.lessonRepo.findOneByClassCodeAndLessonNumber(
+      classCode,
+      lessonNumber,
+    );
+    if (!lesson) {
+      throw new NotFoundException(
+        `Lesson not found: classCode=${classCode}, lessonNumber=${lessonNumber}`,
+      );
+    }
+    return lesson;
   }
 
   // ─── Status Change ───
@@ -243,7 +363,69 @@ export class LessonService {
     return saved;
   }
 
+  // ─── Consistency Check: student enrollment in class ───
+
+  /**
+   * Check that a student is actively enrolled in the given class.
+   * Throws BadRequestException if not enrolled.
+   */
+  async ensureStudentEnrolled(classCode: string, studentCode: string): Promise<void> {
+    const enrollment = await this.enrollmentRepo.findByClassAndStudent(
+      classCode,
+      studentCode,
+    );
+    if (!enrollment) {
+      throw new BadRequestException(
+        `Student ${studentCode} is not enrolled in class ${classCode}`,
+      );
+    }
+    if (enrollment.status !== EnrollmentStatus.ACTIVE) {
+      throw new BadRequestException(
+        `Student ${studentCode} enrollment in class ${classCode} is not ACTIVE (current: ${enrollment.status})`,
+      );
+    }
+  }
+
+  /**
+   * Check that all students are enrolled in the class.
+   * Returns list of unenrolled students, or throws if any missing.
+   */
+  async ensureAllStudentsEnrolled(
+    classCode: string,
+    studentCodes: string[],
+  ): Promise<void> {
+    const unenrolled: string[] = [];
+
+    for (const sc of studentCodes) {
+      const enrollment = await this.enrollmentRepo.findByClassAndStudent(
+        classCode,
+        sc,
+      );
+      if (!enrollment || enrollment.status !== EnrollmentStatus.ACTIVE) {
+        unenrolled.push(sc);
+      }
+    }
+
+    if (unenrolled.length > 0) {
+      throw new BadRequestException(
+        `Students not actively enrolled in class ${classCode}: ${unenrolled.join(', ')}`,
+      );
+    }
+  }
+
   // ─── Helpers ───
+
+  /** Validate HH:MM time format. */
+  private validateTimeFormat(time: string, fieldName: string): void {
+    if (!time) {
+      throw new BadRequestException(`${fieldName} is required`);
+    }
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+      throw new BadRequestException(
+        `${fieldName} must be in HH:MM format (00:00–23:59), got "${time}"`,
+      );
+    }
+  }
 
   /** Compute duration in minutes from "HH:MM" time strings. */
   private computeDurationMinutes(startTime: string, endTime: string): number {

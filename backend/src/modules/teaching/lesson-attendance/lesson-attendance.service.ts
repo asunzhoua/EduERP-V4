@@ -93,10 +93,28 @@ export class LessonAttendanceService {
    * Record attendance for a single student. PENDING → CHECKED_IN.
    * ATTEND-001: Validates workflow transition.
    * ATTEND-002: LATE/LEAVE/ABSENT require reason.
+   * Validates that the status is a known AttendanceStatus value.
    */
   async recordAttendance(
     input: RecordAttendanceInput,
   ): Promise<LessonAttendanceEntity> {
+    // ─── Input validation ───
+    if (!input.studentCode?.trim()) {
+      throw new BadRequestException('studentCode is required');
+    }
+    if (!input.status) {
+      throw new BadRequestException('status is required');
+    }
+
+    // Validate status is a valid AttendanceStatus enum value
+    const validStatuses = Object.values(AttendanceStatus);
+    if (!validStatuses.includes(input.status)) {
+      throw new BadRequestException(
+        `Invalid attendance status: "${input.status}". Valid values: ${validStatuses.join(', ')}`,
+      );
+    }
+
+    // ─── Find existing record ───
     const entity = await this.attendanceRepo.findByLessonAndStudent(
       input.lessonId,
       input.studentCode,
@@ -104,21 +122,25 @@ export class LessonAttendanceService {
 
     if (!entity) {
       throw new NotFoundException(
-        `Attendance record not found for lesson ${input.lessonId}, student ${input.studentCode}`,
+        `Attendance record not found for lesson ${input.lessonId}, student ${input.studentCode}. ` +
+        `Records must be auto-created (via autoCreateForLesson) before roll call.`,
       );
     }
 
+    // ─── Workflow state check ───
     this.validateWorkflowTransition(
       entity.workflowState,
       AttendanceWorkflowState.CHECKED_IN,
     );
 
+    // ─── Reason required for specific statuses ───
     if (REASON_REQUIRED_STATUSES.has(input.status) && !input.reason?.trim()) {
       throw new BadRequestException(
         `Status ${input.status} requires a reason`,
       );
     }
 
+    // ─── Apply changes ───
     entity.workflowState = AttendanceWorkflowState.CHECKED_IN;
     entity.status = input.status;
     entity.checkInTime = new Date();
@@ -126,6 +148,10 @@ export class LessonAttendanceService {
     entity.source = input.source ?? AttendanceSource.MANUAL;
     entity.reason = input.reason ?? null;
     entity.note = input.note ?? null;
+
+    this.logger.log(
+      `Attendance recorded: lesson=${input.lessonId}, student=${input.studentCode}, status=${input.status}`,
+    );
 
     return this.attendanceRepo.save(entity);
   }

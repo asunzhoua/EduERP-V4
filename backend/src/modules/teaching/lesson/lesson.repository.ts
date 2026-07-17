@@ -32,4 +32,11 @@ export class LessonRepository {
   async countByClassCode(classCode: string): Promise<number> {
     return this.repo.count({ where: { classCode } });
   }
+
+  async findOneByClassCodeAndLessonNumber(
+    classCode: string,
+    lessonNumber: number,
+  ): Promise<LessonEntity | null> {
+    return this.repo.findOne({ where: { classCode, lessonNumber } });
+  }
 }

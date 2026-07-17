@@ -1,4 +1,4 @@
-export class LessonFinishedEvent {
+export class LessonCompletedEvent {
   constructor(
     public readonly eventId: string,
     public readonly lessonId: number,
@@ -9,8 +9,6 @@ export class LessonFinishedEvent {
     public readonly actualStartTime: string | null,
     public readonly actualEndTime: string | null,
     public readonly durationMinutes: number,
-    public readonly confirmedBy: number,
-    public readonly confirmedAt: string,
     public readonly time: string,
   ) {}
 }
