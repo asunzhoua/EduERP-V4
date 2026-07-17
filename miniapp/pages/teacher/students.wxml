@@ -1,0 +1,40 @@
+<!--pages/teacher/students.wxml-->
+<view class="container">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <input
+      class="search-input"
+      placeholder="搜索学生姓名"
+      value="{{keyword}}"
+      bindinput="onSearch"
+    />
+  </view>
+
+  <!-- 学生列表 -->
+  <view class="student-list">
+    <block wx:for="{{students}}" wx:key="id">
+      <view class="student-card" bindtap="goToStudentDetail" data-code="{{item.studentCode}}">
+        <view class="student-avatar">
+          <text>{{item.name[0]}}</text>
+        </view>
+        <view class="student-info">
+          <view class="student-header">
+            <text class="student-name">{{item.name}}</text>
+            <text class="student-gender">{{item.gender === 'MALE' ? '男' : '女'}}</text>
+          </view>
+          <view class="student-detail">
+            <text class="school-grade">{{item.school}} · {{item.grade}}</text>
+          </view>
+        </view>
+        <view class="student-code">
+          <text>{{item.studentCode}}</text>
+        </view>
+      </view>
+    </block>
+
+    <!-- 空状态 -->
+    <view class="empty" wx:if="{{!loading && students.length === 0}}">
+      <text>暂无学生</text>
+    </view>
+  </view>
+</view>

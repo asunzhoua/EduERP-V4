@@ -1,0 +1,15 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { EnrollmentController } from './enrollment.controller';
+import { EnrollmentService } from './enrollment.service';
+import { EnrollmentRepository } from './enrollment.repository';
+import { EnrollmentEntity } from './enrollment.entity';
+import { ContractModule } from '../contract/contract.module';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([EnrollmentEntity]), ContractModule],
+  controllers: [EnrollmentController],
+  providers: [EnrollmentService, EnrollmentRepository],
+  exports: [EnrollmentService, EnrollmentRepository],
+})
+export class EnrollmentModule {}

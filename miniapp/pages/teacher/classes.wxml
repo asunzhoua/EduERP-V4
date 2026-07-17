@@ -1,0 +1,63 @@
+<!--pages/teacher/classes.wxml-->
+<view class="container">
+  <!-- 筛选栏 -->
+  <view class="filter-bar">
+    <view
+      class="filter-item {{filter === 'ALL' ? 'active' : ''}}"
+      bindtap="onFilterChange"
+      data-value="ALL"
+    >
+      全部
+    </view>
+    <view
+      class="filter-item {{filter === 'ACTIVE' ? 'active' : ''}}"
+      bindtap="onFilterChange"
+      data-value="ACTIVE"
+    >
+      进行中
+    </view>
+    <view
+      class="filter-item {{filter === 'COMPLETED' ? 'active' : ''}}"
+      bindtap="onFilterChange"
+      data-value="COMPLETED"
+    >
+      已结束
+    </view>
+  </view>
+
+  <!-- 班级列表 -->
+  <view class="class-list">
+    <block wx:for="{{classes}}" wx:key="id">
+      <view class="class-card" bindtap="goToClassDetail" data-code="{{item.classCode}}">
+        <view class="class-header">
+          <text class="class-name">{{item.name}}</text>
+          <text class="class-status status-{{item.status}}">
+            {{item.status === 'ACTIVE' ? '进行中' : item.status === 'COMPLETED' ? '已结束' : '草稿'}}
+          </text>
+        </view>
+        <view class="class-info">
+          <text class="course-name">{{item.courseName}}</text>
+          <text class="start-date">开班：{{item.startDate}}</text>
+        </view>
+        <view class="class-footer">
+          <view class="student-count">
+            <text class="count-current">{{item.currentStudents}}</text>
+            <text class="count-sep">/</text>
+            <text class="count-max">{{item.maxStudents}}</text>
+            <text class="count-label">人</text>
+          </view>
+          <view class="actions">
+            <button class="action-btn" catchtap="goToRecordLesson" data-code="{{item.classCode}}">
+              记课时
+            </button>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 空状态 -->
+    <view class="empty" wx:if="{{!loading && classes.length === 0}}">
+      <text>暂无班级</text>
+    </view>
+  </view>
+</view>

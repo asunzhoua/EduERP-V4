@@ -1,0 +1,43 @@
+<!--pages/login/login.wxml-->
+<view class="login-container">
+  <view class="login-header">
+    <image class="logo" src="/images/logo.png" mode="aspectFit"></image>
+    <text class="title">EduERP</text>
+    <text class="subtitle">教育培训管理系统</text>
+  </view>
+
+  <view class="login-form">
+    <view class="form-item">
+      <input
+        class="input"
+        type="text"
+        placeholder="请输入用户名"
+        value="{{username}}"
+        bindinput="onInputUsername"
+      />
+    </view>
+
+    <view class="form-item">
+      <input
+        class="input"
+        type="password"
+        placeholder="请输入密码"
+        value="{{password}}"
+        bindinput="onInputPassword"
+      />
+    </view>
+
+    <button
+      class="login-btn"
+      loading="{{loading}}"
+      bindtap="onLogin"
+    >
+      登录
+    </button>
+
+    <button class="wechat-btn" bindtap="onWechatLogin">
+      <text class="iconfont icon-wechat"></text>
+      微信授权登录
+    </button>
+  </view>
+</view>

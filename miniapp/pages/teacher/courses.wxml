@@ -1,0 +1,42 @@
+<!--pages/teacher/courses.wxml-->
+<view class="container">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <input
+      class="search-input"
+      placeholder="搜索课程名称"
+      bindinput="onSearch"
+    />
+  </view>
+
+  <!-- 课程列表 -->
+  <view class="course-list">
+    <block wx:for="{{courses}}" wx:key="id">
+      <view class="course-card" bindtap="goToCourseDetail" data-code="{{item.courseCode}}">
+        <view class="course-header">
+          <text class="course-name">{{item.name}}</text>
+          <text class="course-status status-{{item.status}}">{{item.status === 'PUBLISHED' ? '已发布' : item.status === 'DRAFT' ? '草稿' : '已归档'}}</text>
+        </view>
+        <view class="course-info">
+          <text class="course-code">{{item.courseCode}}</text>
+          <text class="course-subject">{{item.subject}}</text>
+        </view>
+      </view>
+    </block>
+
+    <!-- 加载状态 -->
+    <view class="loading" wx:if="{{loading}}">
+      <text>加载中...</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty" wx:if="{{!loading && courses.length === 0}}">
+      <text>暂无课程</text>
+    </view>
+  </view>
+
+  <!-- 新增按钮 -->
+  <view class="fab" bindtap="createCourse">
+    <text class="fab-icon">+</text>
+  </view>
+</view>

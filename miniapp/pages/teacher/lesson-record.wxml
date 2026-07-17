@@ -1,0 +1,141 @@
+<!--pages/teacher/lesson-record.wxml-->
+<view class="container">
+  <!-- 步骤指示器 -->
+  <view class="steps">
+    <view class="step {{step >= 1 ? 'active' : ''}}">
+      <view class="step-circle">1</view>
+      <text class="step-text">选班级</text>
+    </view>
+    <view class="step-line {{step >= 2 ? 'active' : ''}}"></view>
+    <view class="step {{step >= 2 ? 'active' : ''}}">
+      <view class="step-circle">2</view>
+      <text class="step-text">选学生</text>
+    </view>
+    <view class="step-line {{step >= 3 ? 'active' : ''}}"></view>
+    <view class="step {{step >= 3 ? 'active' : ''}}">
+      <view class="step-circle">3</view>
+      <text class="step-text">填课时</text>
+    </view>
+    <view class="step-line {{step >= 4 ? 'active' : ''}}"></view>
+    <view class="step {{step >= 4 ? 'active' : ''}}">
+      <view class="step-circle">4</view>
+      <text class="step-text">确认</text>
+    </view>
+  </view>
+
+  <!-- 步骤 1: 选择班级 -->
+  <view class="step-content" wx:if="{{step === 1}}">
+    <view class="section-title">选择班级</view>
+    <view class="class-list">
+      <block wx:for="{{classes}}" wx:key="classCode">
+        <view
+          class="class-item {{selectedClass && selectedClass.classCode === item.classCode ? 'selected' : ''}}"
+          bindtap="onSelectClass"
+          data-code="{{item.classCode}}"
+        >
+          <text class="class-name">{{item.name}}</text>
+          <text class="course-name">{{item.courseName}}</text>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 步骤 2: 选择学生 -->
+  <view class="step-content" wx:if="{{step === 2}}">
+    <view class="section-header">
+      <text class="section-title">学生考勤</text>
+      <text class="hint">点击切换状态</text>
+    </view>
+    <view class="student-list">
+      <block wx:for="{{students}}" wx:key="studentCode">
+        <view
+          class="student-item status-{{item.status}}"
+          bindtap="toggleStudentStatus"
+          data-code="{{item.studentCode}}"
+        >
+          <text class="student-name">{{item.name}}</text>
+          <view class="status-badge">
+            <text>{{item.status === 'PRESENT' ? '到课' : item.status === 'ABSENT' ? '缺课' : '迟到'}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
+    <view class="action-bar">
+      <button class="btn-secondary" bindtap="prevStep">上一步</button>
+      <button class="btn-primary" bindtap="nextStep">下一步</button>
+    </view>
+  </view>
+
+  <!-- 步骤 3: 输入课时信息 -->
+  <view class="step-content" wx:if="{{step === 3}}">
+    <view class="section-title">课时信息</view>
+    <view class="form">
+      <view class="form-item">
+        <text class="label">日期</text>
+        <picker mode="date" value="{{lessonDate}}" bindchange="onDateChange">
+          <view class="picker">{{lessonDate || '请选择'}}</view>
+        </picker>
+      </view>
+      <view class="form-row">
+        <view class="form-item half">
+          <text class="label">开始时间</text>
+          <picker mode="time" value="{{startTime}}" bindchange="onStartTimeChange">
+            <view class="picker">{{startTime || '请选择'}}</view>
+          </picker>
+        </view>
+        <view class="form-item half">
+          <text class="label">结束时间</text>
+          <picker mode="time" value="{{endTime}}" bindchange="onEndTimeChange">
+            <view class="picker">{{endTime || '请选择'}}</view>
+          </picker>
+        </view>
+      </view>
+      <view class="form-item">
+        <text class="label">课题</text>
+        <input
+          class="input"
+          placeholder="请输入课题（选填）"
+          value="{{topic}}"
+          bindinput="onTopicInput"
+        />
+      </view>
+    </view>
+    <view class="action-bar">
+      <button class="btn-secondary" bindtap="prevStep">上一步</button>
+      <button class="btn-primary" bindtap="nextStep">下一步</button>
+    </view>
+  </view>
+
+  <!-- 步骤 4: 确认提交 -->
+  <view class="step-content" wx:if="{{step === 4}}">
+    <view class="section-title">确认信息</view>
+    <view class="confirm-card">
+      <view class="confirm-item">
+        <text class="confirm-label">班级</text>
+        <text class="confirm-value">{{selectedClass.name}}</text>
+      </view>
+      <view class="confirm-item">
+        <text class="confirm-label">日期</text>
+        <text class="confirm-value">{{lessonDate}}</text>
+      </view>
+      <view class="confirm-item">
+        <text class="confirm-label">时间</text>
+        <text class="confirm-value">{{startTime}} - {{endTime}}</text>
+      </view>
+      <view class="confirm-item">
+        <text class="confirm-label">课题</text>
+        <text class="confirm-value">{{topic || '无'}}</text>
+      </view>
+      <view class="confirm-item">
+        <text class="confirm-label">到课学生</text>
+        <text class="confirm-value">{{students.filter(s => s.status === 'PRESENT').length}} 人</text>
+      </view>
+    </view>
+    <view class="action-bar">
+      <button class="btn-secondary" bindtap="prevStep">上一步</button>
+      <button class="btn-primary" bindtap="submitAttendance" loading="{{submitting}}">
+        提交
+      </button>
+    </view>
+  </view>
+</view>

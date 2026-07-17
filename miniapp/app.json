@@ -1,0 +1,45 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/index/index",
+    "pages/teacher/courses",
+    "pages/teacher/classes",
+    "pages/teacher/students",
+    "pages/teacher/lesson-record",
+    "pages/student/index",
+    "pages/student/classes"
+  ],
+  "window": {
+    "navigationBarTitleText": "EduERP",
+    "navigationBarBackgroundColor": "#1890ff",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f5f5f5"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#1890ff",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/home.png",
+        "selectedIconPath": "images/home-active.png"
+      },
+      {
+        "pagePath": "pages/teacher/courses",
+        "text": "课程",
+        "iconPath": "images/course.png",
+        "selectedIconPath": "images/course-active.png"
+      },
+      {
+        "pagePath": "pages/teacher/classes",
+        "text": "班级",
+        "iconPath": "images/class.png",
+        "selectedIconPath": "images/class-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

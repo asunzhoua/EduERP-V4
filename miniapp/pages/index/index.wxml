@@ -1,0 +1,54 @@
+<!--pages/index/index.wxml-->
+<view class="container">
+  <!-- 用户信息 -->
+  <view class="user-card">
+    <image class="avatar" src="{{userInfo.avatar || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+    <view class="user-info">
+      <text class="user-name">{{userInfo.name || '未登录'}}</text>
+      <text class="user-role">{{roleText}}</text>
+    </view>
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="quick-actions">
+    <view class="action-grid">
+      <view class="action-item" bindtap="goToCourses">
+        <text class="action-icon">📚</text>
+        <text class="action-text">我的课程</text>
+      </view>
+      <view class="action-item" bindtap="goToClasses">
+        <text class="action-icon">🏫</text>
+        <text class="action-text">我的班级</text>
+      </view>
+      <view class="action-item" bindtap="goToStudents">
+        <text class="action-icon">👥</text>
+        <text class="action-text">学生管理</text>
+      </view>
+      <view class="action-item" bindtap="goToLessons">
+        <text class="action-icon">📝</text>
+        <text class="action-text">课时记录</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 今日概览 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">今日概览</text>
+    </view>
+    <view class="overview-card">
+      <view class="overview-item">
+        <text class="overview-value">{{todayLessons}}</text>
+        <text class="overview-label">今日课次</text>
+      </view>
+      <view class="overview-item">
+        <text class="overview-value">{{pendingAttendance}}</text>
+        <text class="overview-label">待考勤</text>
+      </view>
+      <view class="overview-item">
+        <text class="overview-value">{{totalStudents}}</text>
+        <text class="overview-label">在籍学生</text>
+      </view>
+    </view>
+  </view>
+</view>

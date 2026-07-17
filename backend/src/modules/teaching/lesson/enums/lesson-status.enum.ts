@@ -1,0 +1,8 @@
+export enum LessonStatus {
+  DRAFT = 'DRAFT',
+  SCHEDULED = 'SCHEDULED',
+  TEACHING = 'TEACHING',
+  FINISHED = 'FINISHED',
+  ARCHIVED = 'ARCHIVED',
+  CANCELLED = 'CANCELLED',
+}
