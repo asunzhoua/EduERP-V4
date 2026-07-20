@@ -3,7 +3,7 @@ App({
   globalData: {
     userInfo: null,
     token: null,
-    baseUrl: 'https://your-domain.com/api'
+    baseUrl: 'http://localhost:3000/api/v1'
   },
 
   onLaunch() {

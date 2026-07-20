@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 import {
   LessonAttendanceService,
   VALID_WORKFLOW_TRANSITIONS,
@@ -23,6 +24,7 @@ describe('LessonAttendanceService', () => {
       findByLessonId: jest.fn(),
       findByLessonAndStudent: jest.fn(),
       findByStudentCode: jest.fn(),
+      findByLessonIdAndStudentCodes: jest.fn(),
       countPendingByLessonId: jest.fn(),
       countUnconfirmedByLessonId: jest.fn(),
     };
@@ -417,7 +419,9 @@ describe('LessonAttendanceService', () => {
     beforeEach(async () => {
       mockRepo = {
         save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        saveAll: jest.fn().mockImplementation((es: any[]) => Promise.resolve(es)),
         findByLessonAndStudent: jest.fn(),
+        findByLessonIdAndStudentCodes: jest.fn(),
       };
 
       const module: TestingModule = await Test.createTestingModule({
@@ -432,12 +436,12 @@ describe('LessonAttendanceService', () => {
 
     it('should process multiple records', async () => {
       const e1 = new LessonAttendanceEntity();
+      e1.studentCode = 'STU001';
       e1.workflowState = AttendanceWorkflowState.PENDING;
       const e2 = new LessonAttendanceEntity();
+      e2.studentCode = 'STU002';
       e2.workflowState = AttendanceWorkflowState.PENDING;
-      mockRepo.findByLessonAndStudent
-        .mockResolvedValueOnce(e1)
-        .mockResolvedValueOnce(e2);
+      mockRepo.findByLessonIdAndStudentCodes.mockResolvedValue([e1, e2]);
 
       const result = await service.batchRollCall({
         lessonId: 1,
@@ -448,6 +452,7 @@ describe('LessonAttendanceService', () => {
       });
 
       expect(result).toHaveLength(2);
+      expect(mockRepo.saveAll).toHaveBeenCalled();
     });
   });
 
@@ -457,6 +462,7 @@ describe('LessonAttendanceService', () => {
     beforeEach(async () => {
       mockRepo = {
         save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        saveAll: jest.fn().mockImplementation((es: any[]) => Promise.resolve(es)),
         findByLessonId: jest.fn(),
       };
 
@@ -481,6 +487,7 @@ describe('LessonAttendanceService', () => {
 
       expect(result).toHaveLength(2);
       expect(result[0].workflowState).toBe(AttendanceWorkflowState.CONFIRMED);
+      expect(mockRepo.saveAll).toHaveBeenCalled();
     });
 
     it('should skip PENDING records', async () => {
@@ -500,6 +507,7 @@ describe('LessonAttendanceService', () => {
     beforeEach(async () => {
       mockRepo = {
         save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        saveAll: jest.fn().mockImplementation((es: any[]) => Promise.resolve(es)),
         findByLessonId: jest.fn(),
       };
 
@@ -521,7 +529,7 @@ describe('LessonAttendanceService', () => {
       await service.lockByLessonId(1);
 
       expect(r1.workflowState).toBe(AttendanceWorkflowState.LOCKED);
-      expect(mockRepo.save).toHaveBeenCalled();
+      expect(mockRepo.saveAll).toHaveBeenCalled();
     });
 
     it('should skip non-CONFIRMED records', async () => {
@@ -541,6 +549,7 @@ describe('LessonAttendanceService', () => {
     beforeEach(async () => {
       mockRepo = {
         save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        saveAll: jest.fn().mockImplementation((es: any[]) => Promise.resolve(es)),
         findByLessonId: jest.fn(),
       };
 
@@ -562,12 +571,181 @@ describe('LessonAttendanceService', () => {
       await service.reverseToCheckedIn(1, 'Correction', 10);
 
       expect(r1.workflowState).toBe(AttendanceWorkflowState.CHECKED_IN);
+      expect(mockRepo.saveAll).toHaveBeenCalled();
     });
 
     it('should reject without reason', async () => {
       await expect(
         service.reverseToCheckedIn(1, '', 10),
       ).rejects.toThrow('Reason is required');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // Read Method Tests
+  // ═══════════════════════════════════════════════════════════════
+
+  describe('findOne()', () => {
+    let mockRepo: any;
+
+    beforeEach(async () => {
+      mockRepo = {
+        findOneById: jest.fn(),
+      };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          LessonAttendanceService,
+          { provide: LessonAttendanceRepository, useValue: mockRepo },
+        ],
+      }).compile();
+
+      service = module.get<LessonAttendanceService>(LessonAttendanceService);
+    });
+
+    it('should return the attendance record when found', async () => {
+      const entity = new LessonAttendanceEntity();
+      entity.lessonId = 1;
+      entity.studentCode = 'STU001';
+      mockRepo.findOneById.mockResolvedValue(entity);
+
+      const result = await service.findOne(1);
+
+      expect(result).toBe(entity);
+      expect(result.lessonId).toBe(1);
+      expect(result.studentCode).toBe('STU001');
+      expect(mockRepo.findOneById).toHaveBeenCalledWith(1);
+    });
+
+    it('should throw NotFoundException when record not found', async () => {
+      mockRepo.findOneById.mockResolvedValue(null);
+
+      await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(999)).rejects.toThrow(
+        'Attendance record 999 not found',
+      );
+    });
+  });
+
+  describe('findByLessonId()', () => {
+    let mockRepo: any;
+
+    beforeEach(async () => {
+      mockRepo = {
+        findByLessonId: jest.fn(),
+      };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          LessonAttendanceService,
+          { provide: LessonAttendanceRepository, useValue: mockRepo },
+        ],
+      }).compile();
+
+      service = module.get<LessonAttendanceService>(LessonAttendanceService);
+    });
+
+    it('should return attendance records for a lesson', async () => {
+      const r1 = new LessonAttendanceEntity();
+      r1.studentCode = 'STU001';
+      const r2 = new LessonAttendanceEntity();
+      r2.studentCode = 'STU002';
+      mockRepo.findByLessonId.mockResolvedValue([r1, r2]);
+
+      const result = await service.findByLessonId(1);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].studentCode).toBe('STU001');
+      expect(result[1].studentCode).toBe('STU002');
+      expect(mockRepo.findByLessonId).toHaveBeenCalledWith(1);
+    });
+
+    it('should return empty array when no records exist', async () => {
+      mockRepo.findByLessonId.mockResolvedValue([]);
+
+      const result = await service.findByLessonId(999);
+
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('findByStudentCode()', () => {
+    let mockRepo: any;
+
+    beforeEach(async () => {
+      mockRepo = {
+        findByStudentCode: jest.fn(),
+      };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          LessonAttendanceService,
+          { provide: LessonAttendanceRepository, useValue: mockRepo },
+        ],
+      }).compile();
+
+      service = module.get<LessonAttendanceService>(LessonAttendanceService);
+    });
+
+    it('should return attendance records for a student', async () => {
+      const r1 = new LessonAttendanceEntity();
+      r1.lessonId = 1;
+      r1.studentCode = 'STU001';
+      const r2 = new LessonAttendanceEntity();
+      r2.lessonId = 2;
+      r2.studentCode = 'STU001';
+      mockRepo.findByStudentCode.mockResolvedValue([r1, r2]);
+
+      const result = await service.findByStudentCode('STU001');
+
+      expect(result).toHaveLength(2);
+      expect(result[0].lessonId).toBe(1);
+      expect(result[1].lessonId).toBe(2);
+      expect(mockRepo.findByStudentCode).toHaveBeenCalledWith('STU001');
+    });
+
+    it('should return empty array when student has no records', async () => {
+      mockRepo.findByStudentCode.mockResolvedValue([]);
+
+      const result = await service.findByStudentCode('STU_NONE');
+
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('countUnconfirmed()', () => {
+    let mockRepo: any;
+
+    beforeEach(async () => {
+      mockRepo = {
+        countUnconfirmedByLessonId: jest.fn(),
+      };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          LessonAttendanceService,
+          { provide: LessonAttendanceRepository, useValue: mockRepo },
+        ],
+      }).compile();
+
+      service = module.get<LessonAttendanceService>(LessonAttendanceService);
+    });
+
+    it('should return the unconfirmed count for a lesson', async () => {
+      mockRepo.countUnconfirmedByLessonId.mockResolvedValue(3);
+
+      const result = await service.countUnconfirmed(1);
+
+      expect(result).toBe(3);
+      expect(mockRepo.countUnconfirmedByLessonId).toHaveBeenCalledWith(1);
+    });
+
+    it('should return 0 when all records are confirmed', async () => {
+      mockRepo.countUnconfirmedByLessonId.mockResolvedValue(0);
+
+      const result = await service.countUnconfirmed(1);
+
+      expect(result).toBe(0);
     });
   });
 });

@@ -39,4 +39,13 @@ export class LessonRepository {
   ): Promise<LessonEntity | null> {
     return this.repo.findOne({ where: { classCode, lessonNumber } });
   }
+
+  async findMaxLessonNumber(classCode: string): Promise<number | null> {
+    const result = await this.repo
+      .createQueryBuilder('l')
+      .select('MAX(l.lessonNumber)', 'maxLessonNumber')
+      .where('l.classCode = :classCode', { classCode })
+      .getRawOne();
+    return result?.maxLessonNumber ?? null;
+  }
 }

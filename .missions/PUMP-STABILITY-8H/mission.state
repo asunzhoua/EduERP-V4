@@ -1,0 +1,229 @@
+{
+  "id": "PUMP-STABILITY-8H",
+  "name": "8小时稳定性长跑测试 - 20个混合任务",
+  "status": "COMPLETED",
+  "started_at": "2026-07-18T00:24:32.873143+00:00",
+  "updated_at": "2026-07-18T01:13:29.220787+00:00",
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "label": "读取 package.json",
+      "prompt": "Read the file backend/package.json. Extract and output the 'name', 'version' fields, and list all keys under 'scripts'. Format: 'Project: <name>, Version: <version>, Scripts: <comma-separated list of script names>'",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:24:32.876001+00:00",
+      "finished_at": "2026-07-18T00:24:48.623573+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-002",
+      "label": "读取 tsconfig.json 配置",
+      "prompt": "Read the file backend/tsconfig.json. Output the full content of the 'compilerOptions' section in JSON format. If compilerOptions contains nested objects like 'outDir', 'rootDir', 'paths', include them all.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:24:48.630430+00:00",
+      "finished_at": "2026-07-18T00:25:03.218848+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-003",
+      "label": "提取 main.ts 模块导入列表",
+      "prompt": "Read the file backend/src/main.ts. Find the @Module() decorator (or any NestJS module decorator with an imports array). Extract and output the list of module names inside the 'imports' array. If there are multiple @Module decorators, combine all imports. Output format: one module name per line.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:25:03.221793+00:00",
+      "finished_at": "2026-07-18T00:25:19.229412+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-004",
+      "label": "执行 api-response 测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/common/dto/api-response.spec.ts --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:25:19.232828+00:00",
+      "finished_at": "2026-07-18T00:27:34.558540+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-005",
+      "label": "执行 logger 测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/utils/logger.spec.ts --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:27:34.563847+00:00",
+      "finished_at": "2026-07-18T00:29:23.593005+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-006",
+      "label": "执行 interceptors 测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/common/interceptors/ --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:29:23.593005+00:00",
+      "finished_at": "2026-07-18T00:33:31.545998+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-007",
+      "label": "提取 app.module 导入模块",
+      "prompt": "Read the file backend/src/app.module.ts. Find the @Module() decorator. Extract and output all module names listed in the 'imports' array. Output them as a numbered list. If any import is an inline configuration object (like TypeOrmModule.forRoot(...)), include its name as well.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:33:31.639609+00:00",
+      "finished_at": "2026-07-18T00:33:51.902274+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-008",
+      "label": "扫描 filters 目录",
+      "prompt": "List all .ts files under the directory backend/src/common/filters/. For each file, read its content and identify the class name(s) it exports and a brief description of the class purpose (e.g., exception filter, error handler). Output as a table: File | Class Name | Purpose",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:33:51.908727+00:00",
+      "finished_at": "2026-07-18T00:34:37.621029+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-009",
+      "label": "扫描 interceptors 目录",
+      "prompt": "List all .ts files under the directory backend/src/common/interceptors/. For each file, read its content and identify the class name(s) it exports and a brief description of the class purpose (e.g., logging interceptor, transform interceptor). Output as a table: File | Class Name | Purpose",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:34:37.626448+00:00",
+      "finished_at": "2026-07-18T00:35:06.137135+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-010",
+      "label": "列出 guards 导出",
+      "prompt": "List all .ts files under the directory backend/src/common/guards/. For each file, read its content and list every exported name (class, function, or constant). Output as: 'File: <filename> -> Exports: <exported names>'. If a file is a barrel (index.ts), list what it re-exports.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:35:06.142590+00:00",
+      "finished_at": "2026-07-18T00:36:10.822003+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-011",
+      "label": "列出 pipes 导出",
+      "prompt": "List all .ts files under the directory backend/src/common/pipes/. For each file, read its content and list every exported name (class, function, or constant). Output as: 'File: <filename> -> Exports: <exported names>'. If a file is a barrel (index.ts), list what it re-exports.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:36:10.826404+00:00",
+      "finished_at": "2026-07-18T00:37:01.229445+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-012",
+      "label": "执行 student 模块测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/modules/student/ --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:37:01.232378+00:00",
+      "finished_at": "2026-07-18T00:40:43.168859+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-013",
+      "label": "执行 lesson 模块测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/modules/lesson/ --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:40:43.173352+00:00",
+      "finished_at": "2026-07-18T00:44:54.720702+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-014",
+      "label": "扫描 enrollment 端点",
+      "prompt": "List the controller and service files under backend/src/modules/enrollment/. Read each controller file (.controller.ts) and extract all HTTP endpoint decorators (@Post, @Get, @Put, @Delete). For each endpoint, output: 'HTTP_METHOD <path> (handler: methodName)'. Also note the @Controller() prefix if present.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:44:54.724648+00:00",
+      "finished_at": "2026-07-18T00:45:53.698270+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-015",
+      "label": "扫描 attendance 端点",
+      "prompt": "List the controller and service files under backend/src/modules/attendance/. Read each controller file (.controller.ts) and extract all HTTP endpoint decorators (@Post, @Get, @Put, @Delete). For each endpoint, output: 'HTTP_METHOD <path> (handler: methodName)'. Also note the @Controller() prefix if present.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:45:53.703176+00:00",
+      "finished_at": "2026-07-18T00:46:45.046536+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-016",
+      "label": "执行 attendance 模块测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/modules/attendance/ --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:46:45.052644+00:00",
+      "finished_at": "2026-07-18T00:47:05.925700+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-017",
+      "label": "执行 contract 模块测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/modules/contract/ --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:47:05.925856+00:00",
+      "finished_at": "2026-07-18T00:52:50.623672+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-018",
+      "label": "统计 modules 各子模块文件数",
+      "prompt": "List all subdirectories under backend/src/modules/. For each subdirectory (module), count the number of .ts files within it (including nested subdirectories). Output as a table: 'Module Name | File Count'. Then output the total count of .ts files across all modules.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:52:50.626488+00:00",
+      "finished_at": "2026-07-18T00:53:45.580559+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-019",
+      "label": "扫描 shared 目录结构",
+      "prompt": "Recursively list all .ts files under backend/src/shared/. For each file, read the first 20 lines (the imports/exports section) and output: 'File: <relative path> -> Exports: <list of exported names or brief description of the file content>'. If a file re-exports things from other modules via barrel exports, list what it re-exports.",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T00:53:45.588341+00:00",
+      "finished_at": "2026-07-18T00:55:10.346447+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "TASK-020",
+      "label": "全量测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest --passWithNoTests --no-coverage --silent. Report: (1) total test suites, (2) total tests run, (3) overall pass/fail status, (4) any failure details. Also print the final summary line from the jest output. Use the exact command with npx from the backend directory.",
+      "status": "COMPLETED",
+      "retries": 2,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T01:08:01.030600+00:00",
+      "finished_at": "2026-07-18T01:13:29.216640+00:00",
+      "exit_code": 0
+    }
+  ]
+}

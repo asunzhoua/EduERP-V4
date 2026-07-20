@@ -1,0 +1,19 @@
+{
+  "id": "M-2026-07-18-TEST-001",
+  "name": "飞书控制面验证测试",
+  "description": "创建 backend/tools/test-control-plane.txt 文件，写入当前时间戳和'Control Plane Validation PASS'。读取 backend/package.json 中的 name 和 version 字段。输出执行报告。",
+  "source": "feishu",
+  "feishu_board_token": "UTWZs3CKYhmkpotK3DDczrwDnId",
+  "feishu_sheet_id": "40e76d",
+  "feishu_row": 2,
+  "priority": "P2",
+  "tags": [],
+  "created_at": "2026-07-18T03:57:16Z",
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "label": "执行任务",
+      "prompt": "创建 backend/tools/test-control-plane.txt 文件，写入当前时间戳和'Control Plane Validation PASS'。读取 backend/package.json 中的 name 和 version 字段。输出执行报告。"
+    }
+  ]
+}

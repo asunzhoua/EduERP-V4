@@ -1,0 +1,77 @@
+<!-- pages/student/index.wxml -->
+<view class="container">
+  <!-- 欢迎卡片 -->
+  <view class="welcome-card">
+    <view class="welcome-info">
+      <text class="welcome-text">你好，{{studentInfo.name || '同学'}}</text>
+      <text class="student-code">学号：{{studentInfo.studentCode || ''}}</text>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 错误提示 -->
+  <view class="error-card" wx:elif="{{error}}">
+    <text class="error-text">{{error}}</text>
+    <text class="retry-btn" bindtap="loadData">点击重试</text>
+  </view>
+
+  <!-- 内容区域 -->
+  <block wx:else>
+    <!-- 合同列表 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">我的合同</text>
+      </view>
+      <view class="contract-card" wx:for="{{contracts}}" wx:key="contractCode">
+        <view class="contract-header">
+          <text class="contract-subject">{{item.subject}}</text>
+          <text class="contract-status {{item.status === 'ACTIVE' ? 'status-active' : 'status-inactive'}}">
+            {{item.status === 'ACTIVE' ? '有效' : '已失效'}}
+          </text>
+        </view>
+        <view class="contract-body">
+          <view class="contract-info">
+            <text class="info-label">总课时</text>
+            <text class="info-value">{{item.totalLessons}}</text>
+          </view>
+          <view class="contract-info">
+            <text class="info-label">剩余课时</text>
+            <text class="info-value highlight">{{item.remainingLessons}}</text>
+          </view>
+          <view class="contract-info">
+            <text class="info-label">有效期</text>
+            <text class="info-value date">{{item.validFrom}} ~ {{item.validTo || '长期'}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="empty" wx:if="{{contracts.length === 0}}">
+        <text>暂无合同信息</text>
+      </view>
+    </view>
+
+    <!-- 最近课时 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">最近课时</text>
+      </view>
+      <view class="lesson-item" wx:for="{{recentLessons}}" wx:key="lessonDate">
+        <view class="lesson-date">
+          <text class="date-text">{{item.lessonDate}}</text>
+        </view>
+        <view class="lesson-info">
+          <text class="lesson-time">{{item.startTime}} - {{item.endTime}}</text>
+          <text class="lesson-status-tag {{item.status === 'PRESENT' ? 'tag-present' : item.status === 'ABSENT' ? 'tag-absent' : 'tag-other'}}">
+            {{item.status === 'PRESENT' ? '已到' : item.status === 'ABSENT' ? '缺课' : item.status === 'LATE' ? '迟到' : item.status === 'LEAVE' ? '请假' : '待确认'}}
+          </text>
+        </view>
+      </view>
+      <view class="empty" wx:if="{{recentLessons.length === 0}}">
+        <text>暂无课时记录</text>
+      </view>
+    </view>
+  </block>
+</view>

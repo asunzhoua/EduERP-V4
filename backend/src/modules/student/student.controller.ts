@@ -18,6 +18,11 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { StudentService } from './services/student.service';
+import { ContractRepository } from '../teaching/contract/contract.repository';
+import { LessonAttendanceRepository } from '../teaching/lesson-attendance/lesson-attendance.repository';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, In } from 'typeorm';
+import { LessonEntity } from '../teaching/lesson/lesson.entity';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { UpdateStudentStatusDto } from './dto/update-student-status.dto';
@@ -30,7 +35,13 @@ import { ApiResponse } from '@common/dto/api-response';
 @Controller('students')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class StudentController {
-  constructor(private studentService: StudentService) {}
+  constructor(
+    private studentService: StudentService,
+    private contractRepository: ContractRepository,
+    private lessonAttendanceRepository: LessonAttendanceRepository,
+    @InjectRepository(LessonEntity)
+    private lessonRepository: Repository<LessonEntity>,
+  ) {}
 
   @Post()
   @Roles('SuperAdmin', 'Admin')
@@ -38,6 +49,80 @@ export class StudentController {
     const operatorId = req.user.sub;
     const student = await this.studentService.create(dto, operatorId);
     return ApiResponse.success(student);
+  }
+
+  // --- Self-service endpoints (student/parent facing) ---
+
+  @Get('self')
+  @Roles('Student', 'Parent')
+  async getSelf(@Req() req: any) {
+    const userId = req.user.sub;
+    const student = await this.studentService.findByUserId(userId);
+    if (!student) {
+      return ApiResponse.error(404, '未找到关联的学生信息');
+    }
+    return ApiResponse.success({
+      studentCode: student.studentCode,
+      name: student.name,
+      gender: student.gender,
+      phone: student.phone,
+    });
+  }
+
+  @Get('self/contracts')
+  @Roles('Student', 'Parent')
+  async getSelfContracts(@Req() req: any) {
+    const userId = req.user.sub;
+    const student = await this.studentService.findByUserId(userId);
+    if (!student) {
+      return ApiResponse.error(404, '未找到关联的学生信息');
+    }
+    const contracts = await this.contractRepository.findByStudentCode(student.studentCode);
+    return ApiResponse.success(
+      contracts.map((c) => ({
+        contractCode: c.contractCode,
+        subject: c.subject,
+        totalLessons: c.totalLessons,
+        remainingLessons: c.remainingLessons,
+        status: c.status,
+        validFrom: c.validFrom,
+        validTo: c.validTo,
+      })),
+    );
+  }
+
+  @Get('self/lessons')
+  @Roles('Student', 'Parent')
+  async getSelfLessons(@Req() req: any) {
+    const userId = req.user.sub;
+    const student = await this.studentService.findByUserId(userId);
+    if (!student) {
+      return ApiResponse.error(404, '未找到关联的学生信息');
+    }
+
+    const attendanceRecords =
+      await this.lessonAttendanceRepository.findByStudentCode(student.studentCode);
+
+    // Fetch lesson details
+    const lessonIds = [...new Set(attendanceRecords.map((r) => r.lessonId))];
+    const lessons =
+      lessonIds.length > 0
+        ? await this.lessonRepository.find({ where: { id: In(lessonIds) } })
+        : [];
+    const lessonMap = new Map(lessons.map((l) => [l.id, l]));
+
+    return ApiResponse.success(
+      attendanceRecords.slice(0, 20).map((a) => {
+        const lesson = lessonMap.get(a.lessonId);
+        return {
+          lessonDate: lesson?.scheduledDate || null,
+          startTime: lesson?.startTime || null,
+          endTime: lesson?.endTime || null,
+          status: a.status,
+          lessonStatus: lesson?.status || null,
+        };
+      }),
+    );
   }
 
   @Get()

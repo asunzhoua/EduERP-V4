@@ -1,0 +1,26 @@
+{
+  "template_name": "mimo-visual-review",
+  "version": "1.0",
+  "created_at": "2026-07-19",
+  "description": "Mimo 2.5 视觉审核任务 prompt 模板 — 供 Lobster 在 spawn_subagent 时使用",
+  "usage": "Lobster 调用 spawn_subagent 时，将 prompt 中的 {image_path} 替换为实际图片路径",
+  "prompt_template": "你是一个视觉审核专家（Mimo 2.5）。请对以下图片进行视觉审核，严格按 JSON 格式输出。\n\n图片路径：{image_path}\n\n审核维度：\n1. 视觉质量（0-10）：清晰度、布局、配色、字体、整体美观度\n2. 内容正确性（0-10）：显示的文字/数据/状态是否准确，有无错别字/乱码\n3. 功能正确性（0-10）：界面元素状态是否正确（按钮可点击/禁用/选中状态等）\n\n请输出以下 JSON 格式（不要包含其他文字）：\n{\n  \"review\": {\n    \"visual_quality\": {\"score\": 0, \"issues\": []},\n    \"content_correctness\": {\"score\": 0, \"issues\": []},\n    \"function_correctness\": {\"score\": 0, \"issues\": []}\n  },\n  \"annotations\": [\n    {\"type\": \"error|warning|info\", \"description\": \"\", \"severity\": \"high|medium|low\"}\n  ],\n  \"summary\": \"\",\n  \"overall_score\": 0.0\n}\n\n约束：\n- 只做视觉层面对比审核\n- 不分析代码逻辑\n- 不分析架构设计\n- 不分析治理合规\n- 如果图片路径无效或无法识别，返回 {\"error\": \"无法访问图片\", \"image_path\": \"{image_path}\"}",
+  "example_call": {
+    "image_path": "/path/to/screenshot.png",
+    "expected_output": {
+      "review": {
+        "visual_quality": {"score": 8, "issues": ["对比度偏低"]},
+        "content_correctness": {"score": 9, "issues": []},
+        "function_correctness": {"score": 7, "issues": ["按钮状态与预期不符"]}
+      },
+      "annotations": [
+        {"type": "warning", "description": "文字较小，建议放大", "severity": "medium"}
+      ],
+      "summary": "整体质量良好",
+      "overall_score": 8.0
+    }
+  },
+  "version_history": [
+    {"version": "1.0", "date": "2026-07-19", "changes": "初始创建"}
+  ]
+}

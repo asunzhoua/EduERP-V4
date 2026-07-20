@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { EnrollmentEntity } from './enrollment.entity';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 
@@ -43,6 +43,19 @@ export class EnrollmentRepository {
   async countActiveByClassCode(classCode: string): Promise<number> {
     return this.repo.count({
       where: { classCode, status: EnrollmentStatus.ACTIVE },
+    });
+  }
+
+  async findActiveByClassAndStudentCodes(
+    classCode: string,
+    studentCodes: string[],
+  ): Promise<EnrollmentEntity[]> {
+    return this.repo.find({
+      where: {
+        classCode,
+        studentCode: In(studentCodes),
+        status: EnrollmentStatus.ACTIVE,
+      },
     });
   }
 }

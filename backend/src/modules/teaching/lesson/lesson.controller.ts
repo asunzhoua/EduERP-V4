@@ -7,18 +7,38 @@ import {
   Param,
   Body,
   ParseIntPipe,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { LessonService } from './lesson.service';
+import { LessonRepository } from './lesson.repository';
 import { CancelLessonDto } from './dto/cancel-lesson.dto';
 import { CreateMakeupDto } from './dto/create-makeup.dto';
+import {
+  CreateLessonWithAttendanceDto,
+  AttendanceRecordDto,
+} from './dto/create-lesson-with-attendance.dto';
 import { LessonStatus } from './enums/lesson-status.enum';
+import { ClassService } from '../class/class.service';
+import {
+  LessonAttendanceService,
+  RecordAttendanceInput,
+} from '../lesson-attendance/lesson-attendance.service';
+import { AttendanceSource } from '../lesson-attendance/enums/attendance-source.enum';
+import { TeacherRole } from '@common/enums/teacher-role.enum';
+import { ApiResponse } from '@common/dto/api-response';
+import { BadRequestException } from '@nestjs/common';
 
 @ApiTags('Lesson')
 @ApiBearerAuth()
 @Controller()
 export class LessonController {
-  constructor(private readonly lessonService: LessonService) {}
+  constructor(
+    private readonly lessonService: LessonService,
+    private readonly lessonRepo: LessonRepository,
+    private readonly classService: ClassService,
+    private readonly lessonAttendanceService: LessonAttendanceService,
+  ) {}
 
   @Get('classes/:code/lessons')
   @ApiOperation({ summary: 'List lessons for a class (paginated)' })
@@ -32,17 +52,7 @@ export class LessonController {
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
   ) {
-    // Find all lessons for this class
-    const lessons = await this.lessonService.findByClassCode(code);
-    
-    // Find the specific lesson by lessonNumber
-    const lesson = lessons.find((l) => l.lessonNumber === lessonNumber);
-    
-    if (!lesson) {
-      throw new Error(`Lesson not found: class=${code}, lessonNumber=${lessonNumber}`);
-    }
-    
-    return lesson;
+    return this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
   }
 
   @Patch('classes/:code/lessons/:lessonNumber/start')
@@ -51,14 +61,8 @@ export class LessonController {
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
   ) {
-    // Find the lesson first
-    const lessons = await this.lessonService.findByClassCode(code);
-    const lesson = lessons.find((l) => l.lessonNumber === lessonNumber);
-    
-    if (!lesson) {
-      throw new Error(`Lesson not found: class=${code}, lessonNumber=${lessonNumber}`);
-    }
-    
+    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
+
     // Update status to TEACHING
     const operatedBy = 0; // TODO: Get from JWT when auth is implemented
     return this.lessonService.updateStatus(lesson.id, LessonStatus.TEACHING, operatedBy);
@@ -72,14 +76,8 @@ export class LessonController {
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
   ) {
-    // Find the lesson first
-    const lessons = await this.lessonService.findByClassCode(code);
-    const lesson = lessons.find((l) => l.lessonNumber === lessonNumber);
-    
-    if (!lesson) {
-      throw new Error(`Lesson not found: class=${code}, lessonNumber=${lessonNumber}`);
-    }
-    
+    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
+
     // Update status to FINISHED
     const operatedBy = 0; // TODO: Get from JWT when auth is implemented
     return this.lessonService.updateStatus(lesson.id, LessonStatus.FINISHED, operatedBy);
@@ -93,14 +91,8 @@ export class LessonController {
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
   ) {
-    // Find the lesson first
-    const lessons = await this.lessonService.findByClassCode(code);
-    const lesson = lessons.find((l) => l.lessonNumber === lessonNumber);
-    
-    if (!lesson) {
-      throw new Error(`Lesson not found: class=${code}, lessonNumber=${lessonNumber}`);
-    }
-    
+    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
+
     // Update status to ARCHIVED
     const operatedBy = 0; // TODO: Get from JWT when auth is implemented
     return this.lessonService.updateStatus(lesson.id, LessonStatus.ARCHIVED, operatedBy);
@@ -113,14 +105,8 @@ export class LessonController {
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
     @Body() body: CancelLessonDto,
   ) {
-    // Find the lesson first
-    const lessons = await this.lessonService.findByClassCode(code);
-    const lesson = lessons.find((l) => l.lessonNumber === lessonNumber);
-    
-    if (!lesson) {
-      throw new Error(`Lesson not found: class=${code}, lessonNumber=${lessonNumber}`);
-    }
-    
+    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
+
     // Update status to CANCELLED with reason
     const operatedBy = 0; // TODO: Get from JWT when auth is implemented
     return this.lessonService.updateStatus(
@@ -138,7 +124,7 @@ export class LessonController {
     @Body() body: CreateMakeupDto,
   ) {
     const operatedBy = 0; // TODO: Get from JWT when auth is implemented
-    
+
     return this.lessonService.create({
       classCode: code,
       courseCode: body.courseCode,
@@ -153,45 +139,82 @@ export class LessonController {
     });
   }
 
-  @Get('lessons/:id/attendance')
-  @ApiOperation({ summary: 'Get attendance records for a lesson' })
-  getAttendance(@Param('id') _id: string) {
-    // TODO: Implement when attendance module is ready
-    throw new Error('Not implemented: attendance module not ready');
+  // ─── Create Lesson With Attendance ───
+
+  @Post('lessons')
+  @ApiOperation({ summary: 'Create lesson with attendance records (auto lessonNumber)' })
+  async createWithAttendance(
+    @Body() dto: CreateLessonWithAttendanceDto,
+  ): Promise<ApiResponse> {
+    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
+
+    // 1. Look up class for courseCode
+    const cls = await this.classService.findByCode(dto.classCode);
+
+    // 2. Get primary teacher from class assignments
+    const teachers = await this.classService.getTeachers(dto.classCode);
+    const primaryTeacher = teachers.find(t => t.role === TeacherRole.PRIMARY);
+    if (!primaryTeacher) {
+      throw new BadRequestException(
+        `No primary teacher assigned to class ${dto.classCode}`,
+      );
+    }
+
+    // 3. Auto-calculate next lesson number
+    const maxLessonNumber = await this.lessonRepo.findMaxLessonNumber(
+      dto.classCode,
+    );
+    const lessonNumber = (maxLessonNumber ?? 0) + 1;
+
+    // 4. Create the lesson entity
+    const lesson = await this.lessonService.create({
+      classCode: dto.classCode,
+      courseCode: cls.courseCode,
+      lessonNumber,
+      scheduledDate: dto.lessonDate,
+      startTime: dto.startTime,
+      endTime: dto.endTime,
+      teacherId: primaryTeacher.teacherId,
+      isMakeup: false,
+      createdBy: operatedBy,
+    });
+
+    // 5. Auto-create PENDING attendance records for enrolled students
+    const studentCodes = dto.attendanceRecords.map(r => r.studentCode);
+    await this.lessonAttendanceService.autoCreateForLesson(
+      lesson.id,
+      studentCodes,
+      dto.classCode,
+      primaryTeacher.teacherId,
+    );
+
+    // 6. Batch roll call — set actual attendance statuses
+    const records: RecordAttendanceInput[] = dto.attendanceRecords.map(r => ({
+      lessonId: lesson.id,
+      studentCode: r.studentCode,
+      status: r.status,
+      reason: r.reason,
+      operator: operatedBy,
+      source: AttendanceSource.API,
+    }));
+
+    await this.lessonAttendanceService.batchRollCall({
+      lessonId: lesson.id,
+      records,
+    });
+
+    return ApiResponse.success(
+      {
+        lesson,
+        lessonNumber,
+        attendanceCount: dto.attendanceRecords.length,
+      },
+      'Lesson created with attendance',
+    );
   }
 
-  @Put('lessons/:id/attendance')
-  @ApiOperation({ summary: 'Set attendance records (bulk update)' })
-  setAttendance(@Param('id') _id: string) {
-    // TODO: Implement when attendance module is ready
-    throw new Error('Not implemented: attendance module not ready');
-  }
-
-  @Post('lessons/:id/change-request')
-  @ApiOperation({ summary: 'Create a lesson change request' })
-  createChangeRequest(@Param('id') _id: string) {
-    // TODO: Implement when change request module is ready
-    throw new Error('Not implemented: change request module not ready');
-  }
-
-  @Get('lessons/pending-confirmation')
-  @ApiOperation({ summary: 'List all FINISHED lessons awaiting confirmation' })
-  getPendingConfirmation() {
-    // TODO: Implement when needed
-    throw new Error('Not implemented: pending confirmation feature not ready');
-  }
-
-  @Post('lessons/:id/confirm')
-  @ApiOperation({ summary: 'Confirm a single lesson' })
-  confirmLesson(@Param('id') _id: string) {
-    // TODO: Implement when needed
-    throw new Error('Not implemented: confirm lesson by ID not ready');
-  }
-
-  @Post('lessons/batch-confirm')
-  @ApiOperation({ summary: 'Batch confirm multiple lessons' })
-  batchConfirm() {
-    // TODO: Implement when needed
-    throw new Error('Not implemented: batch confirm feature not ready');
-  }
+  // NOTE: Change request and batch confirmation endpoints are temporarily
+  // removed until their implementations are ready. This prevents misleading
+  // Swagger documentation that suggests features that don't actually work.
+  // When implementing, add these endpoints back with proper business logic.
 }

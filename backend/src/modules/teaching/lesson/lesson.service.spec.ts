@@ -103,6 +103,7 @@ describe('LessonService', () => {
       save: jest.fn(),
       countActiveByClassCode: jest.fn(),
       findOneById: jest.fn(),
+      findActiveByClassAndStudentCodes: jest.fn(),
     };
 
     mockPublish = jest.fn();
@@ -355,9 +356,10 @@ describe('LessonService', () => {
 
   describe('ensureAllStudentsEnrolled', () => {
     it('should pass when all students are enrolled', async () => {
-      enrollmentRepo.findByClassAndStudent
-        .mockResolvedValueOnce({ status: EnrollmentStatus.ACTIVE } as any)
-        .mockResolvedValueOnce({ status: EnrollmentStatus.ACTIVE } as any);
+      enrollmentRepo.findActiveByClassAndStudentCodes.mockResolvedValue([
+        { studentCode: 'STU001', status: EnrollmentStatus.ACTIVE } as any,
+        { studentCode: 'STU002', status: EnrollmentStatus.ACTIVE } as any,
+      ]);
 
       await expect(
         service.ensureAllStudentsEnrolled('CL2026070001', ['STU001', 'STU002']),
@@ -365,9 +367,9 @@ describe('LessonService', () => {
     });
 
     it('should throw when some students are not enrolled', async () => {
-      enrollmentRepo.findByClassAndStudent
-        .mockResolvedValueOnce({ status: EnrollmentStatus.ACTIVE } as any)
-        .mockResolvedValueOnce(null);
+      enrollmentRepo.findActiveByClassAndStudentCodes.mockResolvedValue([
+        { studentCode: 'STU001', status: EnrollmentStatus.ACTIVE } as any,
+      ]);
 
       await expect(
         service.ensureAllStudentsEnrolled('CL2026070001', ['STU001', 'STU002']),

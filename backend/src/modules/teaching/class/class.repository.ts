@@ -37,7 +37,7 @@ export class ClassRepository {
       qb.andWhere('c.name LIKE :name', { name: `%${options.name}%` });
     }
     if (options.courseCode) {
-      qb.andWhere('c.course_code = :courseCode', {
+      qb.andWhere('c.courseCode = :courseCode', {
         courseCode: options.courseCode,
       });
     }
@@ -45,7 +45,7 @@ export class ClassRepository {
       qb.andWhere('c.status = :status', { status: options.status });
     }
 
-    qb.orderBy('c.create_time', 'DESC');
+    qb.orderBy('c.createTime', 'DESC');
 
     const total = await qb.getCount();
     const items = await qb

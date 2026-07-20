@@ -107,7 +107,8 @@ Page({
       const data = await get(`/classes/${classCode}/students`);
       const students = (data || []).map(s => ({
         ...s,
-        status: 'PRESENT' // 默认到课
+        status: 'PRESENT', // 默认到课
+        reason: ''
       }));
       this.setData({
         students,
@@ -154,7 +155,30 @@ Page({
           'ABSENT': 'LATE',
           'LATE': 'PRESENT'
         };
-        return { ...s, status: statusMap[s.status] || 'PRESENT' };
+        const newStatus = statusMap[s.status] || 'PRESENT';
+        let reason = s.reason || '';
+        // 标记缺课或迟到时提示输入原因
+        if (newStatus === 'ABSENT' || newStatus === 'LATE') {
+          wx.showModal({
+            title: newStatus === 'ABSENT' ? '缺课原因' : '迟到原因',
+            editable: true,
+            content: reason,
+            placeholderText: '请填写原因（可选）',
+            success: (res) => {
+              if (res.confirm) {
+                const updatedStudents = this.data.students.map(st => {
+                  if (st.studentCode === code) {
+                    return { ...st, status: newStatus, reason: res.content || '' };
+                  }
+                  return st;
+                });
+                this.setData({ students: updatedStudents });
+              }
+            }
+          });
+          return { ...s };
+        }
+        return { ...s, status: newStatus, reason: '' };
       }
       return s;
     });
@@ -291,7 +315,8 @@ Page({
     try {
       const attendanceRecords = this.data.students.map(s => ({
         studentCode: s.studentCode,
-        status: s.status
+        status: s.status,
+        ...(s.reason ? { reason: s.reason } : {})
       }));
 
       const payload = {

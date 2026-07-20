@@ -50,16 +50,17 @@ export class StudentService {
 
     const saved = await this.studentRepository.save(student);
 
-    // Link parents if provided
+    // Link parents if provided (batch save, eliminates N+1)
     if (dto.parentIds && dto.parentIds.length > 0) {
-      for (const parentId of dto.parentIds) {
+      const links = dto.parentIds.map(parentId => {
         const link = new StudentParent();
         link.studentId = saved.id;
         link.parentId = parentId;
         link.relation = null;
         link.isPrimary = false;
-        await this.studentParentRepository.save(link);
-      }
+        return link;
+      });
+      await this.studentParentRepository.save(links);
     }
 
     // Audit log
@@ -107,7 +108,7 @@ export class StudentService {
     const keyword = query.keyword;
 
     const [items, total] = await this.studentRepository.findAndCount({
-      where: (qb) => {
+      where: (qb: any) => {
         qb.where(where);
         if (keyword) {
           qb.andWhere(
@@ -126,6 +127,12 @@ export class StudentService {
     });
 
     return { items, total, page, pageSize };
+  }
+
+  async findByUserId(userId: number): Promise<Student | null> {
+    return this.studentRepository.raw.findOne({
+      where: { userId, deleted: false },
+    });
   }
 
   async findById(id: number): Promise<Student> {

@@ -26,6 +26,7 @@ describe('Teaching E2E: Happy Path', () => {
       saveAll: jest.fn().mockImplementation((es: any[]) => Promise.resolve(es)),
       findByLessonId: jest.fn().mockResolvedValue([]),
       findByLessonAndStudent: jest.fn(),
+      findByLessonIdAndStudentCodes: jest.fn(),
       countUnconfirmedByLessonId: jest.fn().mockResolvedValue(0),
     };
 
@@ -66,10 +67,7 @@ describe('Teaching E2E: Happy Path', () => {
     const e1 = { workflowState: AttendanceWorkflowState.PENDING, lessonId: 1, studentCode: 'STU001' };
     const e2 = { workflowState: AttendanceWorkflowState.PENDING, lessonId: 1, studentCode: 'STU002' };
     const e3 = { workflowState: AttendanceWorkflowState.PENDING, lessonId: 1, studentCode: 'STU003' };
-    mockAttendanceRepo.findByLessonAndStudent
-      .mockResolvedValueOnce(e1)
-      .mockResolvedValueOnce(e2)
-      .mockResolvedValueOnce(e3);
+    mockAttendanceRepo.findByLessonIdAndStudentCodes.mockResolvedValue([e1, e2, e3]);
 
     const rollResults = await attendanceService.batchRollCall({
       lessonId: 1,
@@ -213,6 +211,7 @@ describe('Teaching E2E: Attendance Reverse', () => {
     const mockRepo = {
       findByLessonId: jest.fn().mockResolvedValue(records),
       save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+      saveAll: jest.fn().mockImplementation((es: any[]) => Promise.resolve(es)),
     };
     const service = new LessonAttendanceService(mockRepo as any);
 

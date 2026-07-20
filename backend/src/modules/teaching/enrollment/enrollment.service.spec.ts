@@ -6,6 +6,7 @@ import { EnrollmentEntity } from './enrollment.entity';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { ContractEntity } from '../contract/contract.entity';
 import { ContractStatus } from '../contract/enums/contract-status.enum';
+import { StudentRepository } from '../../student/student.repository';
 import { Subject } from '@common/enums/subject.enum';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
@@ -13,6 +14,7 @@ describe('EnrollmentService', () => {
   let service: EnrollmentService;
   let enrollmentRepo: jest.Mocked<EnrollmentRepository>;
   let contractRepo: jest.Mocked<ContractRepository>;
+  let studentRepo: jest.Mocked<StudentRepository>;
 
   const mockEnrollInput: EnrollInput = {
     classCode: 'CL2026070001',
@@ -67,17 +69,31 @@ describe('EnrollmentService', () => {
       countByStudentCode: jest.fn(),
     };
 
+    const mockStudentRepo = {
+      raw: {
+        find: jest.fn(),
+      },
+      save: jest.fn(),
+      findById: jest.fn(),
+      findByStudentCode: jest.fn(),
+      findAndCount: jest.fn(),
+      findMany: jest.fn(),
+      update: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EnrollmentService,
         { provide: EnrollmentRepository, useValue: mockEnrollmentRepo },
         { provide: ContractRepository, useValue: mockContractRepo },
+        { provide: StudentRepository, useValue: mockStudentRepo },
       ],
     }).compile();
 
     service = module.get<EnrollmentService>(EnrollmentService);
     enrollmentRepo = module.get(EnrollmentRepository);
     contractRepo = module.get(ContractRepository);
+    studentRepo = module.get(StudentRepository);
   });
 
   // ─── Enroll ───

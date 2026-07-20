@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { LessonAttendanceEntity } from './lesson-attendance.entity';
 import { AttendanceWorkflowState } from './enums/attendance-workflow-state.enum';
 
@@ -45,6 +45,18 @@ export class LessonAttendanceRepository {
     return this.repo.find({
       where: { studentCode },
       order: { id: 'DESC' },
+    });
+  }
+
+  async findByLessonIdAndStudentCodes(
+    lessonId: number,
+    studentCodes: string[],
+  ): Promise<LessonAttendanceEntity[]> {
+    return this.repo.find({
+      where: {
+        lessonId,
+        studentCode: In(studentCodes),
+      },
     });
   }
 

@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/15</span>
+                <span class='fraction'>15/15</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">75% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>6/8</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/13</span>
+                <span class='fraction'>13/13</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -108,13 +108,13 @@
 <a name='L43'></a><a href='#L43'>43</a>
 <a name='L44'></a><a href='#L44'>44</a>
 <a name='L45'></a><a href='#L45'>45</a>
-<a name='L46'></a><a href='#L46'>46</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L46'></a><a href='#L46'>46</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -122,44 +122,44 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import {</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
 } from 'typeorm';
-<span class="cstat-no" title="statement not covered" >import { CreatedSource } from '@common/enums/created-source.enum';</span>
+import { CreatedSource } from '@common/enums/created-source.enum';
 &nbsp;
 /**
  * Import history —预留表。
@@ -167,36 +167,36 @@
  * 当前 Sprint 仅建表，不开发查询功能。
  */
 @Entity('import_history')
-export <span class="cstat-no" title="statement not covered" >class <span class="cstat-no" title="statement not covered" ><span class="cstat-no" title="statement not covered" >ImportHistory </span>{</span></span>
+export class ImportHistory {
   @PrimaryGeneratedColumn({ type: 'bigint' })
-<span class="cstat-no" title="statement not covered" >  id: number;</span>
+  id: number;
 &nbsp;
   @Column({ type: 'varchar', length: 50 })
-<span class="cstat-no" title="statement not covered" >  entityType: string;</span>
+  entityType: string;
 &nbsp;
   @Column({ type: 'varchar', length: 255 })
-<span class="cstat-no" title="statement not covered" >  fileName: string;</span>
+  fileName: string;
 &nbsp;
   @Column({ type: 'int' })
-<span class="cstat-no" title="statement not covered" >  totalRows: number;</span>
+  totalRows: number;
 &nbsp;
   @Column({ type: 'int' })
-<span class="cstat-no" title="statement not covered" >  successCount: number;</span>
+  successCount: number;
 &nbsp;
   @Column({ type: 'int' })
-<span class="cstat-no" title="statement not covered" >  failureCount: number;</span>
+  failureCount: number;
 &nbsp;
   @Column({ type: 'text', nullable: true })
-<span class="cstat-no" title="statement not covered" >  errorDetails: string;</span>
+  errorDetails: string;
 &nbsp;
   @Column({ type: 'bigint' })
-<span class="cstat-no" title="statement not covered" >  importedBy: number;</span>
+  importedBy: number;
 &nbsp;
   @Column({ type: 'enum', enum: CreatedSource, default: CreatedSource.IMPORT })
-<span class="cstat-no" title="statement not covered" >  source: CreatedSource;</span>
+  source: CreatedSource<span class="branch-0 cbranch-no" title="branch not covered" >;</span>
 &nbsp;
   @CreateDateColumn()
-<span class="cstat-no" title="statement not covered" >  importTime: Date;</span>
+  importTime: Date<span class="branch-1 cbranch-no" title="branch not covered" >;</span>
 }
 &nbsp;</pre></td></tr></table></pre>
 
@@ -205,7 +205,7 @@ export <span class="cstat-no" title="statement not covered" >class <span class="
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-17T02:19:56.346Z
+                at 2026-07-17T22:13:13.361Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

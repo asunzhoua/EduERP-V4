@@ -19,16 +19,17 @@ export class CourseEntity {
   // ─── Business Identity ───
 
   @Column({ type: 'varchar', length: 20, unique: true })
-  @Index()
   courseCode: string;
 
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
   @Column({ type: 'enum', enum: Subject })
+  @Index()
   subject: Subject;
 
   @Column({ type: 'enum', enum: CourseType })
+  @Index()
   type: CourseType;
 
   @Column({ type: 'text', nullable: true })
@@ -78,5 +79,6 @@ export class CourseEntity {
   version: number;
 
   @Column({ type: 'boolean', default: false })
+  @Index()
   deleted: boolean;
 }

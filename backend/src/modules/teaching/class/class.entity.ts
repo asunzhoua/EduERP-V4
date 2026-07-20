@@ -17,7 +17,6 @@ export class ClassEntity {
   // ─── Business Identity ───
 
   @Column({ type: 'varchar', length: 20, unique: true })
-  @Index()
   classCode: string;
 
   @Column({ type: 'varchar', length: 20 })
@@ -90,5 +89,6 @@ export class ClassEntity {
   version: number;
 
   @Column({ type: 'boolean', default: false })
+  @Index()
   deleted: boolean;
 }

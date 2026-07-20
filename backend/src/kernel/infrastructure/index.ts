@@ -1,6 +1,6 @@
-export { IMapper } from './mapper-base';
-export { IPersistenceAdapter } from './persistence-adapter';
+export type { IMapper } from './mapper-base';
+export type { IPersistenceAdapter } from './persistence-adapter';
 export { RepositoryBase } from './repository-base';
 export { ClockAdapter } from './clock-adapter';
 export { UuidAdapter } from './uuid-adapter';
-export { IEventDispatcher } from './event-dispatcher';
+export type { IEventDispatcher } from './event-dispatcher';

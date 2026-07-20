@@ -1,0 +1,38 @@
+<!-- pages/student/classes.wxml -->
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">我的课程</text>
+  </view>
+
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <view class="error-card" wx:elif="{{error}}">
+    <text class="error-text">{{error}}</text>
+    <text class="retry-btn" bindtap="loadData">点击重试</text>
+  </view>
+
+  <view class="class-list" wx:else>
+    <view class="class-card" wx:for="{{classes}}" wx:key="index" bindtap="goToDetail" data-class="{{item}}">
+      <view class="class-header">
+        <text class="class-name">{{item.subject}}课程</text>
+        <text class="class-code">{{item.classCode || ''}}</text>
+      </view>
+      <view class="class-progress">
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{item.progress}}%"></view>
+        </view>
+        <text class="progress-text">{{item.progress}}%</text>
+      </view>
+      <view class="class-meta">
+        <text>老师：{{item.teacherName || '待分配'}}</text>
+        <text>剩余课时：{{item.remainingLessons || 0}} / {{item.totalLessons || 0}}</text>
+      </view>
+    </view>
+
+    <view class="empty" wx:if="{{classes.length === 0}}">
+      <text>暂无课程信息</text>
+    </view>
+  </view>
+</view>

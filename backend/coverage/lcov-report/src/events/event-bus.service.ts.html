@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">35% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>7/20</span>
+                <span class='fraction'>20/20</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">30% </span>
+                <span class="strong">80% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>3/10</span>
+                <span class='fraction'>8/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">27.77% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/18</span>
+                <span class='fraction'>18/18</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -99,38 +99,38 @@
 <a name='L34'></a><a href='#L34'>34</a>
 <a name='L35'></a><a href='#L35'>35</a>
 <a name='L36'></a><a href='#L36'>36</a>
-<a name='L37'></a><a href='#L37'>37</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<a name='L37'></a><a href='#L37'>37</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">21x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">21x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -142,31 +142,31 @@ import { v4 as uuidv4 } from 'uuid';
 &nbsp;
 @Injectable()
 export class EventBusService {
-  private logger = <span class="cstat-no" title="statement not covered" >new AppLogger();</span>
+  private logger = new AppLogger();
 &nbsp;
-<span class="fstat-no" title="function not covered" >  constructor(private <span class="cstat-no" title="statement not covered" >e</span>ventEmitter: E</span>ventEmitter2<span class="branch-1 cbranch-no" title="branch not covered" >) {}</span>
+  constructor(private eventEmitter: EventEmitter2<span class="branch-1 cbranch-no" title="branch not covered" >) {}</span>
 &nbsp;
-<span class="fstat-no" title="function not covered" >  publish(</span>eventName: string, payload: any): void {
-    const eventId = <span class="cstat-no" title="statement not covered" >uuidv4();</span>
-    const enrichedPayload = <span class="cstat-no" title="statement not covered" >{</span>
+  publish(eventName: string, payload: any): void {
+    const eventId = uuidv4();
+    const enrichedPayload = {
       ...payload,
       eventId,
       timestamp: new Date().toISOString(),
     };
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    this.logger.logEvent(eventName, eventId, 'PUBLISHED');</span>
-<span class="cstat-no" title="statement not covered" >    this.eventEmitter.emit(eventName, enrichedPayload);</span>
+    this.logger.logEvent(eventName, eventId, 'PUBLISHED');
+    this.eventEmitter.emit(eventName, enrichedPayload);
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  subscribe(</span>eventName: string, handler: (payload: any) =&gt; void): void {
-<span class="cstat-no" title="statement not covered" >    this.eventEmitter.on(eventName, <span class="fstat-no" title="function not covered" >(p</span>ayload: any) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >      this.logger.logEvent(eventName, payload.eventId || 'unknown', 'RECEIVED');</span>
-<span class="cstat-no" title="statement not covered" >      try {</span>
-<span class="cstat-no" title="statement not covered" >        handler(payload);</span>
-<span class="cstat-no" title="statement not covered" >        this.logger.logEvent(eventName, payload.eventId || 'unknown', 'SUCCESS');</span>
+  subscribe(eventName: string, handler: (payload: any) =&gt; void): void {
+    this.eventEmitter.on(eventName, (payload: any) =&gt; {
+      this.logger.logEvent(eventName, payload.eventId || 'unknown', 'RECEIVED');
+      try {
+        handler(payload);
+        this.logger.logEvent(eventName, payload.eventId || 'unknown', 'SUCCESS');
       } catch (error) {
-<span class="cstat-no" title="statement not covered" >        this.logger.logEvent(eventName, payload.eventId || 'unknown', 'FAILED');</span>
-<span class="cstat-no" title="statement not covered" >        this.logger.error(`Event handler failed for ${eventName}: ${error.message}`);</span>
+        this.logger.logEvent(eventName, payload.eventId || <span class="branch-1 cbranch-no" title="branch not covered" >'unknown',</span> 'FAILED');
+        this.logger.error(`Event handler failed for ${eventName}: ${error.message}`);
       }
     });
   }
@@ -178,7 +178,7 @@ export class EventBusService {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-17T02:19:56.346Z
+                at 2026-07-17T22:13:13.361Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

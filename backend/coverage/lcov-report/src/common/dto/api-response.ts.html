@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>8/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/7</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -98,74 +98,74 @@
 <a name='L33'></a><a href='#L33'>33</a>
 <a name='L34'></a><a href='#L34'>34</a>
 <a name='L35'></a><a href='#L35'>35</a>
-<a name='L36'></a><a href='#L36'>36</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L36'></a><a href='#L36'>36</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">48x</span>
+<span class="cline-any cline-yes">48x</span>
+<span class="cline-any cline-yes">48x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">39x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >export class A</span>piResponse&lt;T = any&gt; {
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">export class ApiResponse&lt;T = any&gt; {
   code: number;
   message: string;
   data: T | null;
 &nbsp;
-<span class="fstat-no" title="function not covered" >  constructor(c</span>ode: number, message: string, data: T | null = <span class="branch-0 cbranch-no" title="branch not covered" >null)</span> {
-<span class="cstat-no" title="statement not covered" >    this.code = code;</span>
-<span class="cstat-no" title="statement not covered" >    this.message = message;</span>
-<span class="cstat-no" title="statement not covered" >    this.data = data;</span>
+  constructor(code: number, message: string, data: T | null = null) {
+    this.code = code;
+    this.message = message;
+    this.data = data;
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  static </span>success&lt;T&gt;(data?: T, message: string = <span class="branch-0 cbranch-no" title="branch not covered" >'success')</span>: ApiResponse&lt;T&gt; {
-<span class="cstat-no" title="statement not covered" >    return new ApiResponse&lt;T&gt;(0, message, data ?? null);</span>
+  static success&lt;T&gt;(data?: T, message: string = 'success'): ApiResponse&lt;T&gt; {
+    return new ApiResponse&lt;T&gt;(0, message, data ?? null);
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  static </span>error(code: number, message: string): ApiResponse&lt;null&gt; {
-<span class="cstat-no" title="statement not covered" >    return new ApiResponse&lt;null&gt;(code, message, null);</span>
+  static error(code: number, message: string): ApiResponse&lt;null&gt; {
+    return new ApiResponse&lt;null&gt;(code, message, null);
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  static </span>unauthorized(message: string = <span class="branch-0 cbranch-no" title="branch not covered" >'未授权')</span>: ApiResponse&lt;null&gt; {
-<span class="cstat-no" title="statement not covered" >    return new ApiResponse&lt;null&gt;(401, message, null);</span>
+  static unauthorized(message: string = '未授权'): ApiResponse&lt;null&gt; {
+    return new ApiResponse&lt;null&gt;(401, message, null);
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  static </span>forbidden(message: string = <span class="branch-0 cbranch-no" title="branch not covered" >'无权限')</span>: ApiResponse&lt;null&gt; {
-<span class="cstat-no" title="statement not covered" >    return new ApiResponse&lt;null&gt;(403, message, null);</span>
+  static forbidden(message: string = '无权限'): ApiResponse&lt;null&gt; {
+    return new ApiResponse&lt;null&gt;(403, message, null);
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  static </span>notFound(message: string = <span class="branch-0 cbranch-no" title="branch not covered" >'未找到')</span>: ApiResponse&lt;null&gt; {
-<span class="cstat-no" title="statement not covered" >    return new ApiResponse&lt;null&gt;(404, message, null);</span>
+  static notFound(message: string = '未找到'): ApiResponse&lt;null&gt; {
+    return new ApiResponse&lt;null&gt;(404, message, null);
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  static </span>serverError(message: string = <span class="branch-0 cbranch-no" title="branch not covered" >'服务器内部错误')</span>: ApiResponse&lt;null&gt; {
-<span class="cstat-no" title="statement not covered" >    return new ApiResponse&lt;null&gt;(500, message, null);</span>
+  static serverError(message: string = '服务器内部错误'): ApiResponse&lt;null&gt; {
+    return new ApiResponse&lt;null&gt;(500, message, null);
   }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -175,7 +175,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-17T02:19:56.346Z
+                at 2026-07-17T22:13:13.361Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

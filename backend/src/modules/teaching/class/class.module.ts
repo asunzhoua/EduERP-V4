@@ -7,12 +7,14 @@ import { ClassRepository } from './class.repository';
 import { ClassCodeGeneratorService } from './class-code-generator.service';
 import { ClassEntity } from './class.entity';
 import { TeacherAssignmentModule } from '../teacher-assignment/teacher-assignment.module';
+import { EnrollmentModule } from '../enrollment/enrollment.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ClassEntity]),
     EventEmitterModule,
     TeacherAssignmentModule,
+    EnrollmentModule,
   ],
   controllers: [ClassController],
   providers: [ClassService, ClassRepository, ClassCodeGeneratorService],

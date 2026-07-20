@@ -1,0 +1,24 @@
+{
+  "id": "pump-test-002",
+  "name": "Pump Runner Recovery 验证",
+  "tasks": [
+    {
+      "id": "t1",
+      "label": "项目名称查询",
+      "prompt": "运行命令 cd /d C:\\Users\\sunz\\Desktop\\AI\\EduERP-V4\\EduERP-V4\\backend && type package.json | findstr name  输出结果"
+    },
+    {
+      "id": "t2",
+      "label": "测试状态查询",
+      "prompt": "读取 C:\\Users\\sunz\\Desktop\\AI\\EduERP-V4\\EduERP-V4\\.missions\\pump-test-001\\mission.state 文件内容，输出 state 字段的值"
+    },
+    {
+      "id": "t3",
+      "label": "目录列表",
+      "prompt": "列出 C:\\Users\\sunz\\Desktop\\AI\\EduERP-V4\\EduERP-V4\\backend\\src\\modules\\teaching 下的子目录名，每行一个"
+    }
+  ],
+  "max_retries": 2,
+  "max_consecutive_failures": 2,
+  "timeout": 120
+}

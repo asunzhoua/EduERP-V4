@@ -4,11 +4,13 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
+import { In } from 'typeorm';
 import { EnrollmentRepository } from './enrollment.repository';
 import { ContractRepository } from '../contract/contract.repository';
 import { EnrollmentEntity } from './enrollment.entity';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { ContractStatus } from '../contract/enums/contract-status.enum';
+import { StudentRepository } from '../../student/student.repository';
 
 /**
  * Formal state transition table.
@@ -38,6 +40,7 @@ export class EnrollmentService {
   constructor(
     private readonly enrollmentRepo: EnrollmentRepository,
     private readonly contractRepo: ContractRepository,
+    private readonly studentRepo: StudentRepository,
   ) {}
 
   // ─── Enroll ───
@@ -119,6 +122,42 @@ export class EnrollmentService {
 
   async findByStudentCode(studentCode: string): Promise<EnrollmentEntity[]> {
     return this.enrollmentRepo.findByStudentCode(studentCode);
+  }
+
+  /**
+   * Find actively enrolled students with personal info for a class.
+   * Reads ACTIVE enrollments → resolves student names via StudentRepository.
+   */
+  async findStudentsByClassCode(classCode: string) {
+    const enrollments = await this.enrollmentRepo.findByClassCode(classCode);
+    const activeEnrollments = enrollments.filter(
+      e => e.status === EnrollmentStatus.ACTIVE,
+    );
+    const studentCodes = activeEnrollments.map(e => e.studentCode);
+
+    if (studentCodes.length === 0) {
+      return [];
+    }
+
+    const students = await this.studentRepo.raw.find({
+      where: { studentCode: In(studentCodes), deleted: false },
+    });
+    const studentMap = new Map(students.map(s => [s.studentCode, s]));
+
+    return activeEnrollments.map(e => {
+      const student = studentMap.get(e.studentCode);
+      return {
+        enrollmentId: e.id,
+        studentCode: e.studentCode,
+        name: student?.name ?? null,
+        gender: student?.gender ?? null,
+        phone: student?.phone ?? null,
+        school: student?.school ?? null,
+        grade: student?.grade ?? null,
+        status: e.status,
+        enrolledAt: e.enrolledAt,
+      };
+    });
   }
 
   // ─── Withdraw ───

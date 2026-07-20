@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">38.88% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>7/18</span>
+                <span class='fraction'>18/18</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">83.33% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>3/6</span>
+                <span class='fraction'>5/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>2/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">31.25% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/16</span>
+                <span class='fraction'>16/16</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -96,37 +96,37 @@
 <a name='L31'></a><a href='#L31'>31</a>
 <a name='L32'></a><a href='#L32'>32</a>
 <a name='L33'></a><a href='#L33'>33</a>
-<a name='L34'></a><a href='#L34'>34</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<a name='L34'></a><a href='#L34'>34</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Injectable } from '@nestjs/common';
@@ -136,30 +136,30 @@ import { ContractEntity } from './contract.entity';
 &nbsp;
 @Injectable()
 export class ContractCodeGeneratorService {
-<span class="fstat-no" title="function not covered" >  constructor(</span>
+  constructor(
     @InjectRepository(ContractEntity)
-    private readonly <span class="cstat-no" title="statement not covered" >contractRepository: R</span>epository<span class="branch-1 cbranch-no" title="branch not covered" >&lt;ContractEntity&gt;,</span>
+    private readonly contractRepository: Repository<span class="branch-1 cbranch-no" title="branch not covered" >&lt;ContractEntity&gt;,</span>
   ) {}
 &nbsp;
-<span class="fstat-no" title="function not covered" >  async </span>generateContractCode(): Promise&lt;string&gt; {
-    const now = <span class="cstat-no" title="statement not covered" >new Date();</span>
-    const year = <span class="cstat-no" title="statement not covered" >now.getFullYear().toString();</span>
-    const month = <span class="cstat-no" title="statement not covered" >(now.getMonth() + 1).toString().padStart(2, '0');</span>
-    const prefix = <span class="cstat-no" title="statement not covered" >`CT${year}${month}`;</span>
+  async generateContractCode(): Promise&lt;string&gt; {
+    const now = new Date();
+    const year = now.getFullYear().toString();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const prefix = `CT${year}${month}`;
 &nbsp;
-    const latest = <span class="cstat-no" title="statement not covered" >await this.contractRepository</span>
+    const latest = await this.contractRepository
       .createQueryBuilder('c')
       .where('c.contract_code LIKE :prefix', { prefix: `${prefix}%` })
       .orderBy('c.contract_code', 'DESC')
       .getOne();
 &nbsp;
-    let sequence = <span class="cstat-no" title="statement not covered" >1;</span>
-<span class="cstat-no" title="statement not covered" >    if (latest) {</span>
-      const lastSeq = <span class="cstat-no" title="statement not covered" >parseInt(latest.contractCode.slice(-4), 10);</span>
-<span class="cstat-no" title="statement not covered" >      sequence = lastSeq + 1;</span>
+    let sequence = 1;
+    if (latest) {
+      const lastSeq = parseInt(latest.contractCode.slice(-4), 10);
+      sequence = lastSeq + 1;
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    return `${prefix}${sequence.toString().padStart(4, '0')}`;</span>
+    return `${prefix}${sequence.toString().padStart(4, '0')}`;
   }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -169,7 +169,7 @@ export class ContractCodeGeneratorService {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-17T02:19:56.346Z
+                at 2026-07-17T22:13:13.361Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

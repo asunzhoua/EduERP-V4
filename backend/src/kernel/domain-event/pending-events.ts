@@ -5,7 +5,7 @@
  * Events are collected during aggregate mutations, then committed or rolled back.
  */
 
-import { DomainEvent } from '../../../shared/domain-event/domain-event';
+import { DomainEvent } from '../../shared/domain-event/domain-event';
 
 export class PendingEvents {
   private _events: DomainEvent[] = [];

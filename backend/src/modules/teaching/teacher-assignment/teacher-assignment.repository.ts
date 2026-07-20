@@ -29,9 +29,9 @@ export class TeacherAssignmentRepository {
   ): Promise<TeacherAssignmentEntity[]> {
     return this.repo
       .createQueryBuilder('ta')
-      .where('ta.class_code = :classCode', { classCode })
-      .andWhere('ta.effective_to IS NULL')
-      .orderBy('ta.create_time', 'ASC')
+      .where('ta.classCode = :classCode', { classCode })
+      .andWhere('ta.effectiveTo IS NULL')
+      .orderBy('ta.createTime', 'ASC')
       .getMany();
   }
 

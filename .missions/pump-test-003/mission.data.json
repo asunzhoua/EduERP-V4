@@ -1,0 +1,24 @@
+{
+  "id": "pump-test-003",
+  "name": "Recovery 验证任务",
+  "tasks": [
+    {
+      "id": "r1",
+      "label": "任务1-查询项目名",
+      "prompt": "读取 C:\\Users\\sunz\\Desktop\\AI\\EduERP-V4\\EduERP-V4\\backend\\package.json 文件，输出 name 字段的值"
+    },
+    {
+      "id": "r2",
+      "label": "任务2-查询版本",
+      "prompt": "读取 C:\\Users\\sunz\\Desktop\\AI\\EduERP-V4\\EduERP-V4\\backend\\package.json 文件，输出 version 字段的值"
+    },
+    {
+      "id": "r3",
+      "label": "任务3-计数测试",
+      "prompt": "运行 cd /d C:\\Users\\sunz\\Desktop\\AI\\EduERP-V4\\EduERP-V4\\backend && dir /s /b *.spec.ts 2>&1 | find /c /v \"\" 输出 spec 文件数量"
+    }
+  ],
+  "max_retries": 2,
+  "max_consecutive_failures": 2,
+  "timeout": 120
+}

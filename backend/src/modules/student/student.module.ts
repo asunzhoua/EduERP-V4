@@ -10,15 +10,20 @@ import { StudentParent } from './entities/student-parent.entity';
 import { StudentAuditLog } from './entities/student-audit-log.entity';
 import { ImportHistory } from './entities/import-history.entity';
 import { ImportService } from '@utils/services/import.service';
+import { ContractModule } from '../teaching/contract/contract.module';
+import { LessonAttendanceModule } from '../teaching/lesson-attendance/lesson-attendance.module';
+import { LessonEntity } from '../teaching/lesson/lesson.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Student, StudentParent, StudentAuditLog, ImportHistory]),
+    TypeOrmModule.forFeature([Student, StudentParent, StudentAuditLog, ImportHistory, LessonEntity]),
     MulterModule.register({
       limits: {
         fileSize: 10 * 1024 * 1024, // 10MB
       },
     }),
+    ContractModule,
+    LessonAttendanceModule,
   ],
   controllers: [StudentController],
   providers: [

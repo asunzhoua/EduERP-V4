@@ -5,7 +5,7 @@
  * Used by AggregateRuntime to dispatch events after save.
  */
 
-import { DomainEvent } from '../../../shared/domain-event/domain-event';
+import { DomainEvent } from '../../shared/domain-event/domain-event';
 import { IDomainEventPublisher } from './domain-event-publisher';
 
 export class CommitEvents {

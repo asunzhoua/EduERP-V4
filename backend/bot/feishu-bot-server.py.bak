@@ -1,0 +1,397 @@
+#!/usr/bin/env python3
+"""
+feishu-bot-server.py — EOS Feishu Bot Server (Phase 4.1)
+
+Standard-library only HTTP server for Feishu event subscription.
+Receives Feishu messages, processes commands, replies via Feishu API.
+
+Architecture constraints:
+  [OK] Receive messages -> parse -> process -> reply
+  [OK] send_message async (non-blocking webhook response)
+  [NO] No AI/LLM calls
+  [NO] No Claude Code
+  [NO] No Runtime modification
+  [NO] No mission.state modification
+  [NO] No Pump Runner
+"""
+
+import argparse
+import datetime
+import glob
+import json
+import logging
+import os
+import re
+import subprocess
+import sys
+import threading
+import time
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from logging.handlers import TimedRotatingFileHandler
+from socketserver import ThreadingMixIn
+
+# Fix stdout encoding for emoji on Windows GBK terminals
+if sys.stdout and hasattr(sys.stdout, "buffer"):
+    sys.stdout = open(sys.stdout.fileno(), mode="w", encoding="utf-8",
+                       buffering=1, closefd=False)
+
+# ── Paths ──────────────────────────────────────────────────
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # backend/
+LOG_DIR = os.path.join(BASE_DIR, "logs", "bot")
+HEARTBEAT_LOG_DIR = os.path.join(BASE_DIR, "logs", "heartbeat")
+MISSIONS_DIR = os.path.join(
+    os.environ.get("USERPROFILE", "C:\\Users\\sunz"),
+    ".qwenpaw", "workspaces", "default", ".missions",
+)
+
+# ── Feishu credentials (from environment) ──────────────────
+FEISHU_APP_ID = os.environ.get("FEISHU_APP_ID", "").strip()
+FEISHU_APP_SECRET = os.environ.get("FEISHU_APP_SECRET", "").strip()
+
+# ── Global token cache ─────────────────────────────────────
+_token_cache: dict = {"token": None, "expires_at": 0.0}
+_token_lock = threading.Lock()
+
+# ── Logging EVent type constants ───────────────────────────
+CHALLENGE       = "CHALLENGE"
+MESSAGE_RECEIVED = "MESSAGE_RECEIVED"
+STATUS_REPLY    = "STATUS_REPLY"
+TOKEN_REFRESH   = "TOKEN_REFRESH"
+TOKEN_FAILED    = "TOKEN_FAILED"
+ERROR           = "ERROR"
+SERVER_START    = "SERVER_START"
+
+
+# =========================================================================
+# Logger Setup
+# =========================================================================
+
+def setup_logger():
+    """Configure rotating file logger + console output."""
+    logger = logging.getLogger("EOSBot")
+    logger.setLevel(logging.INFO)
+
+    # File handler — midnight rotation, 7-day retention
+    os.makedirs(LOG_DIR, exist_ok=True)
+    fh = TimedRotatingFileHandler(
+        os.path.join(LOG_DIR, "EOSBot.log"),
+        when="midnight",
+        interval=1,
+        backupCount=7,
+        encoding="utf-8",
+    )
+    fh.setFormatter(logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(message)s",
+    ))
+    logger.addHandler(fh)
+
+    # Console handler
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(message)s",
+    ))
+    logger.addHandler(ch)
+
+    return logger
+
+
+logger = setup_logger()
+
+
+# =========================================================================
+# Token Management
+# =========================================================================
+
+def get_tenant_token():
+    """Return a valid tenant_access_token (cached / auto-refreshed)."""
+    if not FEISHU_APP_ID or not FEISHU_APP_SECRET:
+        return None
+
+    now = time.time()
+    with _token_lock:
+        if _token_cache["token"] and _token_cache["expires_at"] > now + 60:
+            return _token_cache["token"]
+
+    # ── Refresh token ──
+    logger.info(f"{TOKEN_REFRESH} Refreshing tenant_access_token...")
+    try:
+        import urllib.request
+        import urllib.error
+        body = json.dumps({
+            "app_id": FEISHU_APP_ID,
+            "app_secret": FEISHU_APP_SECRET,
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
+            data=body,
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception as exc:
+        logger.error(f"{TOKEN_FAILED} HTTP request failed: {exc}")
+        return None
+
+    token = data.get("tenant_access_token")
+    if token:
+        expires_in = data.get("expire", 7200)
+        with _token_lock:
+            _token_cache["token"] = token
+            _token_cache["expires_at"] = now + expires_in - 60
+        logger.info(f"{TOKEN_REFRESH} Token refreshed, expires in {expires_in}s")
+        return token
+
+    logger.error(f"{TOKEN_FAILED} API response: {data}")
+    return None
+
+
+# =========================================================================
+# Feishu Messaging
+# =========================================================================
+
+def send_message(chat_id, text):
+    """Send a plain-text message to a Feishu chat. Retries once on 99991663."""
+    token = get_tenant_token()
+    if not token:
+        logger.warning(f"send_message: token unavailable, cannot reply to {chat_id}")
+        return False
+
+    import urllib.request
+    import urllib.error
+
+    url = "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id"
+    payload = {
+        "receive_id": chat_id,
+        "msg_type": "text",
+        "content": json.dumps({"text": text}, ensure_ascii=False),
+    }
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        req = urllib.request.Request(url, data=body, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        code = data.get("code", -1)
+    except Exception as exc:
+        logger.error(f"{ERROR} send_message HTTP failed: {exc}")
+        return False
+
+    if code == 0:
+        logger.info(f"{STATUS_REPLY} Message sent to chat={chat_id}")
+        return True
+
+    # Token expired -> clear cache & retry once
+    if code == 99991663:
+        logger.warning(f"{TOKEN_FAILED} Token expired (99991663), clearing cache & retrying...")
+        with _token_lock:
+            _token_cache["token"] = None
+            _token_cache["expires_at"] = 0.0
+        return send_message(chat_id, text)  # one retry
+
+    logger.error(f"{ERROR} send_message failed: code={code} body={data}")
+    return False
+
+
+# =========================================================================
+# System Status
+# =========================================================================
+
+def get_system_status():
+    """Build a formatted system-status report string.
+
+    All I/O is wrapped in try/except. A single failure never crashes.
+    """
+    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    lines = [
+        f"EOS System Status",
+        "=" * 20,
+    ]
+
+    # 1. Heartbeat
+    try:
+        hb_files = sorted(glob.glob(os.path.join(HEARTBEAT_LOG_DIR, "*.log")), reverse=True)
+        if hb_files:
+            with open(hb_files[0], "r", encoding="utf-8", errors="replace") as f:
+                content = f.read()
+            last_lines = [l for l in content.strip().split("\n") if l.strip()]
+            summary = last_lines[-1] if last_lines else "(empty)"
+            if len(summary) > 120:
+                summary = summary[:120] + "..."
+            lines.append(f"Heartbeat: {summary}")
+        else:
+            lines.append("Heartbeat: No log files")
+    except Exception as exc:
+        lines.append(f"Heartbeat: Error - {exc}")
+
+    # 2. Missions
+    try:
+        if os.path.isdir(MISSIONS_DIR):
+            statuses = []
+            for sf in glob.glob(os.path.join(MISSIONS_DIR, "*", "mission.state")):
+                try:
+                    with open(sf, "r", encoding="utf-8") as f:
+                        st = json.load(f)
+                    statuses.append(st.get("status", "UNKNOWN"))
+                except Exception:
+                    pass
+            c = statuses.count("CREATED")
+            r = statuses.count("RUNNING")
+            f = statuses.count("FAILED")
+            p = statuses.count("PAUSED")
+            co = statuses.count("COMPLETED")
+            lines.append(f"Missions: CREATED={c} RUNNING={r} FAILED={f} PAUSED={p} COMPLETED={co}")
+        else:
+            lines.append("Missions: None (.missions not found)")
+    except Exception as exc:
+        lines.append(f"Missions: Error - {exc}")
+
+    # 3. Claude Code process
+    try:
+        proc = subprocess.run(
+            ["tasklist", "/FI", "IMAGENAME eq claude.exe", "/NH"],
+            capture_output=True, text=True, timeout=10,
+            creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0,
+        )
+        if "claude.exe" in proc.stdout:
+            lines.append("Claude Code: Online")
+        else:
+            lines.append("Claude Code: Offline")
+    except Exception as exc:
+        lines.append(f"Claude Code: Error - {exc}")
+
+    # 4. Timestamp
+    lines.append(f"Check time: {now_str}")
+
+    return "\n".join(lines)
+
+
+# =========================================================================
+# Webhook Event Router
+# =========================================================================
+
+def handle_webhook_event(body_bytes):
+    """Dispatch an incoming Feishu webhook payload. Returns (response_dict, http_status)."""
+    try:
+        data = json.loads(body_bytes)
+    except json.JSONDecodeError:
+        return {"error": "invalid json"}, 400
+
+    # Challenge handshake
+    if "challenge" in data:
+        chal = data["challenge"]
+        logger.info(f"{CHALLENGE} challenge={chal}")
+        return {"challenge": chal}, 200
+
+    # im.message.receive_v1
+    event = data.get("event", {})
+    msg_type = event.get("message", {}).get("msg_type", "")
+
+    if msg_type == "text":
+        chat_id = event.get("message", {}).get("chat_id", "")
+        sender_id = event.get("sender", {}).get("sender_id", {}).get("user_id", "")
+        content_raw = event.get("message", {}).get("content", "{}")
+
+        try:
+            content = json.loads(content_raw)
+            text = content.get("text", "").strip().lower()
+        except json.JSONDecodeError:
+            text = ""
+
+        logger.info(f"{MESSAGE_RECEIVED} from={sender_id} chat={chat_id} text={text!r}")
+
+        # Known commands
+        if text in ("status", "状态"):
+            status_text = get_system_status()
+            send_message(chat_id, status_text)
+            return {"ok": True}, 200
+
+        # Everything else -> silent ignore
+        return {"ok": True, "ignored": True}, 200
+
+    return {"ok": True, "ignored": True}, 200
+
+
+# =========================================================================
+# HTTP Server
+# =========================================================================
+
+class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+    """HTTP server that handles each request in a separate thread."""
+    daemon_threads = True
+    allow_reuse_address = True
+
+
+class BotHandler(BaseHTTPRequestHandler):
+    """Request handler for the EOS Bot HTTP server."""
+
+    # Suppress default per-request logging
+    def log_message(self, fmt, *args):
+        pass
+
+    # -- helpers --
+
+    def _send_json(self, data, status=200):
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    # -- GET --
+
+    def do_GET(self):
+        if self.path == "/health":
+            self._send_json({
+                "status": "ok",
+                "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "pid": os.getpid(),
+            })
+        else:
+            self._send_json({"error": "not found"}, 404)
+
+    # -- POST --
+
+    def do_POST(self):
+        if self.path == "/webhook/event":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            resp_data, status = handle_webhook_event(body)
+            self._send_json(resp_data, status)
+        else:
+            self._send_json({"error": "not found"}, 404)
+
+
+# =========================================================================
+# Entry Point
+# =========================================================================
+
+def main():
+    parser = argparse.ArgumentParser(description="EOS Feishu Bot Server")
+    parser.add_argument("--port", type=int, default=None,
+                        help="Listen port (default: 8888 or PORT env)")
+    args = parser.parse_args()
+
+    port = args.port or int(os.environ.get("PORT", "8888"))
+    token_status = "configured" if FEISHU_APP_ID and FEISHU_APP_SECRET else "not configured"
+
+    server = ThreadingHTTPServer(("0.0.0.0", port), BotHandler)
+
+    start_msg = f"EOS Bot Server running on port {port} | Token: {token_status}"
+    logger.info(f"{SERVER_START} {start_msg}")
+    print(start_msg, flush=True)
+
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        logger.info(f"{SERVER_START} Server shutting down (SIGINT)")
+        server.server_close()
+        print("\nServer stopped.", flush=True)
+
+
+if __name__ == "__main__":
+    main()

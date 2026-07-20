@@ -1,0 +1,19 @@
+{
+  "id": "pump-test-001",
+  "name": "Pump Runner 验证任务",
+  "tasks": [
+    {
+      "id": "t1",
+      "label": "项目名称查询",
+      "prompt": "cd /d C:\\Users\\sunz\\Desktop\\AI\\EduERP-V4\\EduERP-V4\\backend && type package.json | findstr \"name\""
+    },
+    {
+      "id": "t2",
+      "label": "测试状态快照",
+      "prompt": "cd /d C:\\Users\\sunz\\Desktop\\AI\\EduERP-V4\\EduERP-V4\\backend && npx jest --passWithNoTests --silent 2>&1 | findstr /R \"^(Test Suites|Tests:|Time:\""
+    }
+  ],
+  "max_retries": 2,
+  "max_consecutive_failures": 2,
+  "timeout": 120
+}

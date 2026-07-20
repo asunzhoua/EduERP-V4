@@ -48,3 +48,7 @@ logs/
 ## Temp
 tmp/
 temp/
+
+## Sensitive file types
+*.bak
+*.log

@@ -1,2 +1,3 @@
-export { ICommand, CommandBase } from './command';
-export { ICommandHandler } from './command-handler';
+export type { ICommand } from './command';
+export { CommandBase } from './command';
+export type { ICommandHandler } from './command-handler';

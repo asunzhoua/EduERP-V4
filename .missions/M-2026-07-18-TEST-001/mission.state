@@ -1,0 +1,20 @@
+{
+  "id": "M-2026-07-18-TEST-001",
+  "name": "飞书控制面验证测试",
+  "status": "COMPLETED",
+  "started_at": "2026-07-18T03:57:41.437339+00:00",
+  "updated_at": "2026-07-18T03:58:50.268880+00:00",
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "label": "执行任务",
+      "prompt": "创建 backend/tools/test-control-plane.txt 文件，写入当前时间戳和'Control Plane Validation PASS'。读取 backend/package.json 中的 name 和 version 字段。输出执行报告。",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-18T03:57:41.441717+00:00",
+      "finished_at": "2026-07-18T03:58:50.267885+00:00",
+      "exit_code": 0
+    }
+  ]
+}

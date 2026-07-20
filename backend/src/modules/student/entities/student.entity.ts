@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   VersionColumn,
+  Index,
 } from 'typeorm';
 import { StudentStatus } from '../enums/student-status.enum';
 import { Gender } from '../enums/gender.enum';
@@ -30,6 +31,10 @@ export class Student {
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone: string | null;
 
+  @Column({ type: 'bigint', nullable: true })
+  @Index()
+  userId: number | null;
+
   @Column({ type: 'varchar', length: 100, nullable: true })
   email: string | null;
 
@@ -43,6 +48,7 @@ export class Student {
   tags: string[] | null;
 
   @Column({ type: 'enum', enum: StudentStatus, default: StudentStatus.ACTIVE })
+  @Index()
   status: StudentStatus;
 
   @Column({ type: 'text', nullable: true })
@@ -71,5 +77,6 @@ export class Student {
   version: number;
 
   @Column({ type: 'boolean', default: false })
+  @Index()
   deleted: boolean;
 }

@@ -1,0 +1,42 @@
+{
+  "id": "pump-test-002",
+  "name": "Pump Runner Recovery 验证",
+  "status": "COMPLETED",
+  "started_at": "2026-07-17T23:43:43.821100+00:00",
+  "updated_at": "2026-07-17T23:44:30.341112+00:00",
+  "tasks": [
+    {
+      "id": "t1",
+      "label": "项目名称查询",
+      "prompt": "运行命令 cd /d C:\\Users\\sunz\\Desktop\\AI\\EduERP-V4\\EduERP-V4\\backend && type package.json | findstr name  输出结果",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-17T23:43:43.825999+00:00",
+      "finished_at": "2026-07-17T23:44:01.642967+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "t2",
+      "label": "测试状态查询",
+      "prompt": "读取 C:\\Users\\sunz\\Desktop\\AI\\EduERP-V4\\EduERP-V4\\.missions\\pump-test-001\\mission.state 文件内容，输出 state 字段的值",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-17T23:44:01.642967+00:00",
+      "finished_at": "2026-07-17T23:44:14.977899+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "t3",
+      "label": "目录列表",
+      "prompt": "列出 C:\\Users\\sunz\\Desktop\\AI\\EduERP-V4\\EduERP-V4\\backend\\src\\modules\\teaching 下的子目录名，每行一个",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-17T23:44:14.980283+00:00",
+      "finished_at": "2026-07-17T23:44:30.339144+00:00",
+      "exit_code": 0
+    }
+  ]
+}

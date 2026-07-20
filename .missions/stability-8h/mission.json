@@ -1,0 +1,108 @@
+{
+  "id": "PUMP-STABILITY-8H",
+  "name": "8小时稳定性长跑测试 - 20个混合任务",
+  "description": "20个真实开发任务混合：文件读取、配置分析、测试执行、代码扫描。全部在 backend/ 目录下操作，验证项目各模块可独立运行。",
+  "created_at": "2026-07-18T14:00:00Z",
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "label": "读取 package.json",
+      "prompt": "Read the file backend/package.json. Extract and output the 'name', 'version' fields, and list all keys under 'scripts'. Format: 'Project: <name>, Version: <version>, Scripts: <comma-separated list of script names>'"
+    },
+    {
+      "id": "TASK-002",
+      "label": "读取 tsconfig.json 配置",
+      "prompt": "Read the file backend/tsconfig.json. Output the full content of the 'compilerOptions' section in JSON format. If compilerOptions contains nested objects like 'outDir', 'rootDir', 'paths', include them all."
+    },
+    {
+      "id": "TASK-003",
+      "label": "提取 main.ts 模块导入列表",
+      "prompt": "Read the file backend/src/main.ts. Find the @Module() decorator (or any NestJS module decorator with an imports array). Extract and output the list of module names inside the 'imports' array. If there are multiple @Module decorators, combine all imports. Output format: one module name per line."
+    },
+    {
+      "id": "TASK-004",
+      "label": "执行 api-response 测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/common/dto/api-response.spec.ts --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory."
+    },
+    {
+      "id": "TASK-005",
+      "label": "执行 logger 测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/utils/logger.spec.ts --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory."
+    },
+    {
+      "id": "TASK-006",
+      "label": "执行 interceptors 测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/common/interceptors/ --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory."
+    },
+    {
+      "id": "TASK-007",
+      "label": "提取 app.module 导入模块",
+      "prompt": "Read the file backend/src/app.module.ts. Find the @Module() decorator. Extract and output all module names listed in the 'imports' array. Output them as a numbered list. If any import is an inline configuration object (like TypeOrmModule.forRoot(...)), include its name as well."
+    },
+    {
+      "id": "TASK-008",
+      "label": "扫描 filters 目录",
+      "prompt": "List all .ts files under the directory backend/src/common/filters/. For each file, read its content and identify the class name(s) it exports and a brief description of the class purpose (e.g., exception filter, error handler). Output as a table: File | Class Name | Purpose"
+    },
+    {
+      "id": "TASK-009",
+      "label": "扫描 interceptors 目录",
+      "prompt": "List all .ts files under the directory backend/src/common/interceptors/. For each file, read its content and identify the class name(s) it exports and a brief description of the class purpose (e.g., logging interceptor, transform interceptor). Output as a table: File | Class Name | Purpose"
+    },
+    {
+      "id": "TASK-010",
+      "label": "列出 guards 导出",
+      "prompt": "List all .ts files under the directory backend/src/common/guards/. For each file, read its content and list every exported name (class, function, or constant). Output as: 'File: <filename> -> Exports: <exported names>'. If a file is a barrel (index.ts), list what it re-exports."
+    },
+    {
+      "id": "TASK-011",
+      "label": "列出 pipes 导出",
+      "prompt": "List all .ts files under the directory backend/src/common/pipes/. For each file, read its content and list every exported name (class, function, or constant). Output as: 'File: <filename> -> Exports: <exported names>'. If a file is a barrel (index.ts), list what it re-exports."
+    },
+    {
+      "id": "TASK-012",
+      "label": "执行 student 模块测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/modules/student/ --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory."
+    },
+    {
+      "id": "TASK-013",
+      "label": "执行 lesson 模块测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/modules/lesson/ --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory."
+    },
+    {
+      "id": "TASK-014",
+      "label": "扫描 enrollment 端点",
+      "prompt": "List the controller and service files under backend/src/modules/enrollment/. Read each controller file (.controller.ts) and extract all HTTP endpoint decorators (@Post, @Get, @Put, @Delete). For each endpoint, output: 'HTTP_METHOD <path> (handler: methodName)'. Also note the @Controller() prefix if present."
+    },
+    {
+      "id": "TASK-015",
+      "label": "扫描 attendance 端点",
+      "prompt": "List the controller and service files under backend/src/modules/attendance/. Read each controller file (.controller.ts) and extract all HTTP endpoint decorators (@Post, @Get, @Put, @Delete). For each endpoint, output: 'HTTP_METHOD <path> (handler: methodName)'. Also note the @Controller() prefix if present."
+    },
+    {
+      "id": "TASK-016",
+      "label": "执行 attendance 模块测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/modules/attendance/ --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory."
+    },
+    {
+      "id": "TASK-017",
+      "label": "执行 contract 模块测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest src/modules/contract/ --no-coverage --silent. Report: (1) whether all tests passed or any failed, (2) total number of tests run, (3) any failure messages if present. Use the exact command with npx from the backend directory."
+    },
+    {
+      "id": "TASK-018",
+      "label": "统计 modules 各子模块文件数",
+      "prompt": "List all subdirectories under backend/src/modules/. For each subdirectory (module), count the number of .ts files within it (including nested subdirectories). Output as a table: 'Module Name | File Count'. Then output the total count of .ts files across all modules."
+    },
+    {
+      "id": "TASK-019",
+      "label": "扫描 shared 目录结构",
+      "prompt": "Recursively list all .ts files under backend/src/shared/. For each file, read the first 20 lines (the imports/exports section) and output: 'File: <relative path> -> Exports: <list of exported names or brief description of the file content>'. If a file re-exports things from other modules via barrel exports, list what it re-exports."
+    },
+    {
+      "id": "TASK-020",
+      "label": "全量测试",
+      "prompt": "Change to the backend/ directory, then run the command: npx jest --passWithNoTests --no-coverage --silent. Report: (1) total test suites, (2) total tests run, (3) overall pass/fail status, (4) any failure details. Also print the final summary line from the jest output. Use the exact command with npx from the backend directory."
+    }
+  ]
+}

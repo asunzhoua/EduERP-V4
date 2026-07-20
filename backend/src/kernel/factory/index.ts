@@ -1,2 +1,2 @@
-export { IAggregateFactory } from './aggregate-factory';
-export { IValueObjectFactory } from './value-object-factory';
+export type { IAggregateFactory } from './aggregate-factory';
+export type { IValueObjectFactory } from './value-object-factory';

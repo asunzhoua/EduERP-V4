@@ -8,6 +8,7 @@ import { LessonEventSubscriber } from './lesson-event.subscriber';
 import { EventBusModule } from '@events/event-bus.module';
 import { ClassModule } from '../class/class.module';
 import { EnrollmentModule } from '../enrollment/enrollment.module';
+import { LessonAttendanceModule } from '../lesson-attendance/lesson-attendance.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { EnrollmentModule } from '../enrollment/enrollment.module';
     EventBusModule,
     ClassModule,
     EnrollmentModule,
+    LessonAttendanceModule,
   ],
   controllers: [LessonController],
   providers: [LessonService, LessonRepository, LessonEventSubscriber],

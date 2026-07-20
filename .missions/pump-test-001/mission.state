@@ -1,0 +1,31 @@
+{
+  "id": "pump-test-001",
+  "name": "Pump Runner 验证任务",
+  "status": "PAUSED",
+  "started_at": "2026-07-17T23:42:30.520384+00:00",
+  "updated_at": "2026-07-17T23:45:04.453285+00:00",
+  "tasks": [
+    {
+      "id": "t1",
+      "label": "项目名称查询",
+      "prompt": "cd /d C:\\Users\\sunz\\Desktop\\AI\\EduERP-V4\\EduERP-V4\\backend && type package.json | findstr \"name\"",
+      "status": "COMPLETED",
+      "retries": 0,
+      "consecutive_failures": 0,
+      "started_at": "2026-07-17T23:42:30.531156+00:00",
+      "finished_at": "2026-07-17T23:42:50.865114+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "t2",
+      "label": "测试状态快照",
+      "prompt": "cd /d C:\\Users\\sunz\\Desktop\\AI\\EduERP-V4\\EduERP-V4\\backend && npx jest --passWithNoTests --silent 2>&1 | findstr /R \"^(Test Suites|Tests:|Time:\"",
+      "status": "PAUSED",
+      "retries": 4,
+      "consecutive_failures": 2,
+      "started_at": "2026-07-17T23:45:04.407327+00:00",
+      "finished_at": "2026-07-17T23:45:04.451004+00:00",
+      "exit_code": 255
+    }
+  ]
+}

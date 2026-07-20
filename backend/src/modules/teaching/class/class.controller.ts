@@ -29,13 +29,17 @@ import { ApiResponse } from '@common/dto/api-response';
 import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { EnrollmentService } from '../enrollment/enrollment.service';
 
 @ApiTags('Class')
 @ApiBearerAuth()
 @Controller('classes')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ClassController {
-  constructor(private readonly classService: ClassService) {}
+  constructor(
+    private readonly classService: ClassService,
+    private readonly enrollmentService: EnrollmentService,
+  ) {}
 
   // ─── Class CRUD ───
 
@@ -138,7 +142,7 @@ export class ClassController {
     @Req() req: any,
   ): Promise<ApiResponse> {
     const operatorId = req.user.sub;
-    await this.classService.removeTeacher(Number(assignmentId), operatorId);
+    await this.classService.removeTeacher(Number(assignmentId));
     return ApiResponse.success(null, 'Teacher assignment ended');
   }
 
@@ -148,5 +152,15 @@ export class ClassController {
   async getTeachers(@Param('code') code: string): Promise<ApiResponse> {
     const teachers = await this.classService.getTeachers(code);
     return ApiResponse.success(teachers);
+  }
+
+  // ─── Students ───
+
+  @Get(':code/students')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
+  @ApiOperation({ summary: 'Get active students enrolled in a class' })
+  async getStudents(@Param('code') code: string): Promise<ApiResponse> {
+    const students = await this.enrollmentService.findStudentsByClassCode(code);
+    return ApiResponse.success(students);
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, NotImplementedException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { LessonChangeRequestRepository } from './lesson-change-request.repository';
 import { LessonChangeRequestEntity } from './lesson-change-request.entity';
 import { ChangeRequestType } from '@common/enums/change-request-type.enum';
@@ -56,55 +56,175 @@ export class LessonChangeRequestService {
 
   constructor(private readonly requestRepo: LessonChangeRequestRepository) {}
 
-  // ─── Create Request (Skeleton) ───
+  // ─── Create Request ───
 
   /** Submit a new change request. Status = PENDING. */
-  createRequest(
-    _input: CreateChangeRequestInput,
+  async createRequest(
+    input: CreateChangeRequestInput,
   ): Promise<LessonChangeRequestEntity> {
-    throw new NotImplementedException();
+    if (!input.reason) {
+      throw new BadRequestException('Reason is required');
+    }
+
+    if (!input.requestType) {
+      throw new BadRequestException('Request type is required');
+    }
+
+    // Check reschedule limit
+    if (input.requestType === ChangeRequestType.RESCHEDULE) {
+      const total = await this.requestRepo.countRescheduleByLessonId(
+        input.lessonId,
+      );
+      if (total >= MAX_RESCHEDULE_PER_LESSON) {
+        throw new BadRequestException(
+          'Lesson has exceeded maximum reschedule limit',
+        );
+      }
+    }
+
+    const entity = new LessonChangeRequestEntity();
+    entity.lessonId = input.lessonId;
+    entity.requestType = input.requestType;
+    entity.requestedBy = input.requestedBy;
+    entity.reason = input.reason;
+    entity.status = ChangeRequestStatus.PENDING;
+    entity.previousDate = input.previousDate ?? null;
+    entity.newDate = input.newDate ?? null;
+    entity.previousStartTime = input.previousStartTime ?? null;
+    entity.newStartTime = input.newStartTime ?? null;
+    entity.previousEndTime = input.previousEndTime ?? null;
+    entity.newEndTime = input.newEndTime ?? null;
+    entity.previousTeacherId = input.previousTeacherId ?? null;
+    entity.newTeacherId = input.newTeacherId ?? null;
+
+    const saved = await this.requestRepo.save(entity);
+    this.logger.log(
+      `Change request created: id=${saved.id}, lessonId=${saved.lessonId}, type=${saved.requestType}`,
+    );
+    return saved;
   }
 
-  // ─── Approve (Skeleton) ───
+  // ─── Approve ───
 
   /** Admin approves a PENDING request. PENDING → APPROVED. */
-  approve(
-    _requestId: number,
-    _approvedBy: number,
+  async approve(
+    requestId: number,
+    approvedBy: number,
   ): Promise<LessonChangeRequestEntity> {
-    throw new NotImplementedException();
+    const entity = await this.requestRepo.findOneById(requestId);
+    if (!entity) {
+      throw new NotFoundException(
+        `Change request not found: id=${requestId}`,
+      );
+    }
+
+    const allowed = VALID_REQUEST_TRANSITIONS[entity.status];
+    if (!allowed.includes(ChangeRequestStatus.APPROVED)) {
+      throw new BadRequestException(
+        `Cannot approve change request in status ${entity.status}`,
+      );
+    }
+
+    entity.status = ChangeRequestStatus.APPROVED;
+    entity.approvedBy = approvedBy;
+    entity.approvedAt = new Date();
+
+    const saved = await this.requestRepo.save(entity);
+    this.logger.log(
+      `Change request approved: id=${saved.id}, approvedBy=${approvedBy}`,
+    );
+    return saved;
   }
 
-  // ─── Reject (Skeleton) ───
+  // ─── Reject ───
 
   /** Admin rejects a PENDING or APPROVED request. → REJECTED (terminal). */
-  reject(
-    _requestId: number,
+  async reject(
+    requestId: number,
     _rejectedBy: number,
-    _reason: string,
+    reason: string,
   ): Promise<LessonChangeRequestEntity> {
-    throw new NotImplementedException();
+    if (!reason) {
+      throw new BadRequestException('Rejection reason is required');
+    }
+
+    const entity = await this.requestRepo.findOneById(requestId);
+    if (!entity) {
+      throw new NotFoundException(
+        `Change request not found: id=${requestId}`,
+      );
+    }
+
+    const allowed = VALID_REQUEST_TRANSITIONS[entity.status];
+    if (!allowed.includes(ChangeRequestStatus.REJECTED)) {
+      throw new BadRequestException(
+        `Cannot reject change request in status ${entity.status}`,
+      );
+    }
+
+    entity.status = ChangeRequestStatus.REJECTED;
+    entity.rejectionReason = reason;
+
+    const saved = await this.requestRepo.save(entity);
+    this.logger.log(
+      `Change request rejected: id=${saved.id}, reason=${reason}`,
+    );
+    return saved;
   }
 
-  // ─── Execute (Skeleton) ───
+  // ─── Execute ───
 
   /** System executes an APPROVED request. APPROVED → EXECUTED (terminal). */
-  execute(_requestId: number): Promise<LessonChangeRequestEntity> {
-    throw new NotImplementedException();
+  async execute(
+    requestId: number,
+    executedBy: number,
+  ): Promise<LessonChangeRequestEntity> {
+    const entity = await this.requestRepo.findOneById(requestId);
+    if (!entity) {
+      throw new NotFoundException(
+        `Change request not found: id=${requestId}`,
+      );
+    }
+
+    const allowed = VALID_REQUEST_TRANSITIONS[entity.status];
+    if (!allowed.includes(ChangeRequestStatus.EXECUTED)) {
+      throw new BadRequestException(
+        `Cannot execute change request in status ${entity.status}`,
+      );
+    }
+
+    entity.status = ChangeRequestStatus.EXECUTED;
+    entity.executedAt = new Date();
+    entity.executedBy = executedBy;
+
+    const saved = await this.requestRepo.save(entity);
+    this.logger.log(
+      `Change request executed: id=${saved.id}, executedBy=${executedBy}`,
+    );
+    return saved;
   }
 
-  // ─── Read (Skeleton) ───
+  // ─── Read ───
 
-  findOne(_id: number): Promise<LessonChangeRequestEntity> {
-    throw new NotImplementedException();
+  /** Find a change request by id. */
+  async findOne(id: number): Promise<LessonChangeRequestEntity> {
+    const entity = await this.requestRepo.findOneById(id);
+    if (!entity) {
+      throw new NotFoundException(`Change request not found: id=${id}`);
+    }
+    return entity;
   }
 
-  findByLessonId(_lessonId: number): Promise<LessonChangeRequestEntity[]> {
-    throw new NotImplementedException();
+  /** Find all change requests for a lesson. */
+  async findByLessonId(
+    lessonId: number,
+  ): Promise<LessonChangeRequestEntity[]> {
+    return this.requestRepo.findByLessonId(lessonId);
   }
 
-  /** Check if a lesson has exceeded the max reschedule limit (3). */
-  hasExceededRescheduleLimit(_lessonId: number): Promise<boolean> {
-    throw new NotImplementedException();
+  /** Check if a lesson has exceeded the maximum reschedule limit. */
+  async hasExceededRescheduleLimit(lessonId: number): Promise<boolean> {
+    const count = await this.requestRepo.countRescheduleByLessonId(lessonId);
+    return count >= MAX_RESCHEDULE_PER_LESSON;
   }
 }

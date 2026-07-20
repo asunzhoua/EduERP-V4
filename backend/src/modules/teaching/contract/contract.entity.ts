@@ -18,7 +18,6 @@ export class ContractEntity {
   // ─── Business Identity ───
 
   @Column({ type: 'varchar', length: 20 })
-  @Index()
   contractCode: string;
 
   @Column({ type: 'varchar', length: 20 })

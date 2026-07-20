@@ -5,7 +5,7 @@
  * Implementations can use NestJS EventBus, RabbitMQ, Kafka, etc.
  */
 
-import { DomainEvent } from '../../../shared/domain-event/domain-event';
+import { DomainEvent } from '../../shared/domain-event/domain-event';
 
 export interface IEventDispatcher {
   /**

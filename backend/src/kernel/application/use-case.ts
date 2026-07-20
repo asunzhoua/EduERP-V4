@@ -5,7 +5,7 @@
  * A use case encapsulates a single business operation.
  */
 
-import { Result } from '../../../shared/result/result';
+import { Result } from '../../shared/result/result';
 
 export interface IUseCase<TCommand, TResult> {
   /**

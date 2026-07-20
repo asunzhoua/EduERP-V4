@@ -1,0 +1,48 @@
+{
+  "id": "PUMP-STABILITY-001",
+  "name": "稳定性测试任务集 - 多类型任务混合执行",
+  "description": "模拟真实开发流程：文件读取、代码修改、测试执行、文档生成、重构分析",
+  "created_at": "2026-07-18T00:00:00Z",
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "label": "文件读取 - 提取 package.json 信息",
+      "prompt": "Read the file backend/package.json and extract the 'name' and 'version' fields. Output them in the format: 'Project: <name>, Version: <version>'"
+    },
+    {
+      "id": "TASK-002",
+      "label": "代码修改 - 创建 HealthCheckResponse DTO",
+      "prompt": "Create the file backend/src/common/dto/health-check.dto.ts with the following content:\n\nexport class HealthCheckResponse {\n  status: string;\n  timestamp: Date;\n}\n\nThis is a simple DTO class for health check responses. Just create the file with that exact content."
+    },
+    {
+      "id": "TASK-003",
+      "label": "代码修改 - 创建 HealthController",
+      "prompt": "Create the file backend/src/health.controller.ts with a NestJS GET /health endpoint. The file should:\n1. Import Controller and Get from @nestjs/common\n2. Create a HealthController class with a @Get('health') method\n3. The method returns { status: 'ok', timestamp: new Date() }\n4. Use @Controller() decorator with no prefix (root path)\n\nExample content:\nimport { Controller, Get } from '@nestjs/common';\n\n@Controller()\nexport class HealthController {\n  @Get('health')\n  check() {\n    return { status: 'ok', timestamp: new Date() };\n  }\n}"
+    },
+    {
+      "id": "TASK-004",
+      "label": "测试执行 - api-response 单元测试",
+      "prompt": "In the backend/ directory, run the following command and report the result:\nnpx jest src/common/dto/api-response.spec.ts --no-coverage --silent\n\nReport whether the tests passed or failed, and how many tests were run."
+    },
+    {
+      "id": "TASK-005",
+      "label": "测试执行 - logger 单元测试",
+      "prompt": "In the backend/ directory, run the following command and report the result:\nnpx jest src/utils/logger.spec.ts --no-coverage --silent\n\nReport whether the tests passed or failed, and how many tests were run."
+    },
+    {
+      "id": "TASK-006",
+      "label": "文档生成 - 项目概要",
+      "prompt": "Read backend/package.json and backend/README.md (if it exists). Generate a project summary in Markdown format that includes:\n1. Project name and version (from package.json)\n2. Description (from package.json or README)\n3. Key dependencies (list the top 5 most important ones from dependencies and devDependencies)\n4. Available scripts (list all npm scripts)\n\nOutput the Markdown content. If README.md doesn't exist, note that and use only package.json data."
+    },
+    {
+      "id": "TASK-007",
+      "label": "代码修改 - 创建 PaginationDto",
+      "prompt": "Create the file backend/src/common/dto/pagination.dto.ts with a class decorated using class-validator. The file should contain:\n\nimport { IsNumber, IsOptional, Min } from 'class-validator';\n\nexport class PaginationDto {\n  @IsNumber()\n  @Min(1)\n  page: number = 1;\n\n  @IsNumber()\n  @Min(1)\n  @IsOptional()\n  limit: number = 10;\n}\n\nCreate this file with the exact content above."
+    },
+    {
+      "id": "TASK-008",
+      "label": "重构任务 - DTO 模块分析",
+      "prompt": "Read all .ts files (excluding .spec.ts test files) in backend/src/common/dto/. For each file, list:\n1. The file name\n2. All exported classes/interfaces/types\n3. A brief description of what the file provides (its purpose)\n\nFormat the output as a Markdown table with columns: File | Exports | Purpose"
+    }
+  ]
+}

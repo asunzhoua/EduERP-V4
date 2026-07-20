@@ -158,16 +158,63 @@ export class LessonAttendanceService {
 
   /**
    * Batch roll call — record attendance for all students at once.
+   * Uses a single query + batch save to eliminate N+1 pattern.
    */
   async batchRollCall(input: BatchRollCallInput): Promise<LessonAttendanceEntity[]> {
+    // 1. Batch query existing records
+    const studentCodes = input.records.map(r => r.studentCode);
+    const existingRecords = await this.attendanceRepo.findByLessonIdAndStudentCodes(
+      input.lessonId,
+      studentCodes,
+    );
+    const existingMap = new Map(existingRecords.map(r => [r.studentCode, r]));
+
     const results: LessonAttendanceEntity[] = [];
 
-    for (const record of input.records) {
-      const entity = await this.recordAttendance(record);
+    for (const recordInput of input.records) {
+      const entity = existingMap.get(recordInput.studentCode);
+      if (!entity) {
+        throw new NotFoundException(
+          `Attendance record not found for lesson=${input.lessonId}, student=${recordInput.studentCode}`,
+        );
+      }
+
+      // Validate status enum
+      if (!Object.values(AttendanceStatus).includes(recordInput.status)) {
+        throw new BadRequestException(`Invalid attendance status: ${recordInput.status}`);
+      }
+
+      // Validate workflow state — must be PENDING
+      if (entity.workflowState !== AttendanceWorkflowState.PENDING) {
+        throw new BadRequestException(
+          `Cannot record attendance for student ${recordInput.studentCode}: current state is ${entity.workflowState}, expected PENDING`,
+        );
+      }
+
+      // Validate reason requirement
+      if (REASON_REQUIRED_STATUSES.has(recordInput.status) && !recordInput.reason?.trim()) {
+        throw new BadRequestException(
+          `Reason is required for status ${recordInput.status} (student: ${recordInput.studentCode})`,
+        );
+      }
+
+      // Apply changes
+      entity.workflowState = AttendanceWorkflowState.CHECKED_IN;
+      entity.status = recordInput.status;
+      entity.checkInTime = new Date();
+      entity.operator = recordInput.operator;
+      entity.source = recordInput.source ?? AttendanceSource.MANUAL;
+      entity.reason = recordInput.reason ?? null;
+      entity.note = recordInput.note ?? null;
+
       results.push(entity);
     }
 
-    return results;
+    this.logger.log(
+      `Batch roll call completed: lesson=${input.lessonId}, count=${results.length}`,
+    );
+
+    return this.attendanceRepo.saveAll(results);
   }
 
   // ─── Confirmation ───
@@ -191,12 +238,11 @@ export class LessonAttendanceService {
         );
         record.workflowState = AttendanceWorkflowState.CONFIRMED;
         record.operator = confirmedBy;
-        const saved = await this.attendanceRepo.save(record);
-        confirmed.push(saved);
+        confirmed.push(record);
       }
     }
 
-    return confirmed;
+    return this.attendanceRepo.saveAll(confirmed);
   }
 
   // ─── Lock ───
@@ -207,6 +253,7 @@ export class LessonAttendanceService {
    */
   async lockByLessonId(lessonId: number): Promise<void> {
     const records = await this.attendanceRepo.findByLessonId(lessonId);
+    const toLock: LessonAttendanceEntity[] = [];
 
     for (const record of records) {
       if (record.workflowState === AttendanceWorkflowState.CONFIRMED) {
@@ -215,9 +262,11 @@ export class LessonAttendanceService {
           AttendanceWorkflowState.LOCKED,
         );
         record.workflowState = AttendanceWorkflowState.LOCKED;
-        await this.attendanceRepo.save(record);
+        toLock.push(record);
       }
     }
+
+    await this.attendanceRepo.saveAll(toLock);
   }
 
   // ─── Read ───
@@ -261,6 +310,7 @@ export class LessonAttendanceService {
     }
 
     const records = await this.attendanceRepo.findByLessonId(lessonId);
+    const toReverse: LessonAttendanceEntity[] = [];
 
     for (const record of records) {
       if (record.workflowState === AttendanceWorkflowState.CONFIRMED) {
@@ -270,9 +320,11 @@ export class LessonAttendanceService {
         );
         record.workflowState = AttendanceWorkflowState.CHECKED_IN;
         record.operator = operatedBy;
-        await this.attendanceRepo.save(record);
+        toReverse.push(record);
       }
     }
+
+    await this.attendanceRepo.saveAll(toReverse);
   }
 
   // ─── Internal Helpers ───

@@ -5,7 +5,7 @@
  * Provides a typed context bag for policy evaluation.
  */
 
-export class PolicyContext<TData = Record<string, unknown>> {
+export class PolicyContext<TData extends object = Record<string, unknown>> {
   private readonly _data: TData;
 
   constructor(data: TData) {

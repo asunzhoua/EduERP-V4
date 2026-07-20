@@ -388,24 +388,15 @@ export class LessonService {
 
   /**
    * Check that all students are enrolled in the class.
-   * Returns list of unenrolled students, or throws if any missing.
+   * Uses a single batch query to eliminate N+1 pattern.
    */
   async ensureAllStudentsEnrolled(
     classCode: string,
     studentCodes: string[],
   ): Promise<void> {
-    const unenrolled: string[] = [];
-
-    for (const sc of studentCodes) {
-      const enrollment = await this.enrollmentRepo.findByClassAndStudent(
-        classCode,
-        sc,
-      );
-      if (!enrollment || enrollment.status !== EnrollmentStatus.ACTIVE) {
-        unenrolled.push(sc);
-      }
-    }
-
+    const enrollments = await this.enrollmentRepo.findActiveByClassAndStudentCodes(classCode, studentCodes);
+    const enrolledSet = new Set(enrollments.map(e => e.studentCode));
+    const unenrolled = studentCodes.filter(sc => !enrolledSet.has(sc));
     if (unenrolled.length > 0) {
       throw new BadRequestException(
         `Students not actively enrolled in class ${classCode}: ${unenrolled.join(', ')}`,

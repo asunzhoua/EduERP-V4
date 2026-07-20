@@ -1,0 +1,22 @@
+{
+  "evidence_M-TEST-RUNNING-001": {
+    "timestamp": 1784442706.1067245,
+    "detail": "Evidence 新增: M-TEST-RUNNING-001"
+  },
+  "running_M-2026-07-18-002": {
+    "timestamp": 1784457754.8540645,
+    "detail": "Mission M-2026-07-18-002: 执行中"
+  },
+  "completed_M-2026-07-18-001": {
+    "timestamp": 1784457755.5400634,
+    "detail": "Mission M-2026-07-18-001: COMPLETED"
+  },
+  "runtime_anomalies": {
+    "timestamp": 1784458052.83761,
+    "detail": "M-2026-07-18-002: STALE（252分无更新）"
+  },
+  "system_idle": {
+    "timestamp": 1784457756.9366233,
+    "detail": "系统空闲 4.2 小时（无活动）"
+  }
+}
