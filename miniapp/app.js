@@ -3,7 +3,7 @@ App({
   globalData: {
     userInfo: null,
     token: null,
-    baseUrl: 'http://localhost:3000/api/v1'
+    baseUrl: 'http://localhost:3000/api/v1', // TODO: 部署时替换为生产环境 API 域名
   },
 
   onLaunch() {
@@ -17,21 +17,11 @@ App({
 
   checkLoginStatus() {
     // 验证 token 是否有效
-    wx.request({
-      url: `${this.globalData.baseUrl}/auth/me`,
-      header: {
-        'Authorization': `Bearer ${this.globalData.token}`
-      },
-      success: (res) => {
-        if (res.data && res.data.code === 0) {
-          this.globalData.userInfo = res.data.data;
-        } else {
-          this.logout();
-        }
-      },
-      fail: () => {
-        this.logout();
-      }
+    const { get } = require('./utils/request');
+    get('/auth/me').then(data => {
+      this.globalData.userInfo = data;
+    }).catch(() => {
+      this.logout();
     });
   },
 

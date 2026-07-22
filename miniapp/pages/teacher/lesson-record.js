@@ -2,7 +2,7 @@
 const { get, post } = require('../../utils/request');
 
 // Mock data switch - set to false for production
-const ENABLE_MOCK = true;
+const ENABLE_MOCK = false;
 
 Page({
   data: {

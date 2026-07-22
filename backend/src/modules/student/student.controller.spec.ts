@@ -4,6 +4,9 @@ import { StudentService } from './services/student.service';
 import { ContractRepository } from '../teaching/contract/contract.repository';
 import { LessonAttendanceRepository } from '../teaching/lesson-attendance/lesson-attendance.repository';
 import { LessonEntity } from '../teaching/lesson/lesson.entity';
+import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
+import { TeacherAssignmentEntity } from '../teaching/teacher-assignment/teacher-assignment.entity';
+import { User } from '../identity/entities/user.entity';
 import { ApiResponse } from '@common/dto/api-response';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -22,6 +25,15 @@ describe('StudentController', () => {
     findByStudentCode: jest.fn().mockResolvedValue([]),
   };
   const mockLessonRepository = {
+    find: jest.fn().mockResolvedValue([]),
+  };
+  const mockEnrollmentRepository = {
+    find: jest.fn().mockResolvedValue([]),
+  };
+  const mockTeacherAssignmentRepository = {
+    find: jest.fn().mockResolvedValue([]),
+  };
+  const mockUserRepository = {
     find: jest.fn().mockResolvedValue([]),
   };
 
@@ -48,6 +60,9 @@ describe('StudentController', () => {
         { provide: ContractRepository, useValue: mockContractRepository },
         { provide: LessonAttendanceRepository, useValue: mockAttendanceRepository },
         { provide: getRepositoryToken(LessonEntity), useValue: mockLessonRepository },
+        { provide: getRepositoryToken(EnrollmentEntity), useValue: mockEnrollmentRepository },
+        { provide: getRepositoryToken(TeacherAssignmentEntity), useValue: mockTeacherAssignmentRepository },
+        { provide: getRepositoryToken(User), useValue: mockUserRepository },
       ],
     }).compile();
 

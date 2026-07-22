@@ -13,10 +13,13 @@ import { ImportService } from '@utils/services/import.service';
 import { ContractModule } from '../teaching/contract/contract.module';
 import { LessonAttendanceModule } from '../teaching/lesson-attendance/lesson-attendance.module';
 import { LessonEntity } from '../teaching/lesson/lesson.entity';
+import { User } from '../identity/entities/user.entity';
+import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
+import { TeacherAssignmentEntity } from '../teaching/teacher-assignment/teacher-assignment.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Student, StudentParent, StudentAuditLog, ImportHistory, LessonEntity]),
+    TypeOrmModule.forFeature([Student, StudentParent, StudentAuditLog, ImportHistory, LessonEntity, User, EnrollmentEntity, TeacherAssignmentEntity]),
     MulterModule.register({
       limits: {
         fileSize: 10 * 1024 * 1024, // 10MB

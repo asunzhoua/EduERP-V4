@@ -1,66 +1,80 @@
 // pages/teacher/student-detail.js
+const { get } = require('../utils/request');
+
 Page({
-
-  /**
-   * 页面的初始数据
-   */
   data: {
-
+    studentCode: '',
+    student: null,
+    classes: [],
+    loading: true,
+    error: null
   },
 
-  /**
-   * 生命周期函数--监听页面加载
-   */
   onLoad(options) {
-
+    const { code } = options;
+    if (code) {
+      this.setData({ studentCode: code });
+      this.loadData(code);
+    } else {
+      this.setData({
+        error: '缺少学生编码',
+        loading: false
+      });
+    }
   },
 
-  /**
-   * 生命周期函数--监听页面初次渲染完成
-   */
-  onReady() {
+  async loadData(code) {
+    this.setData({ loading: true, error: null });
 
+    try {
+      const [studentResult, enrollments] = await Promise.all([
+        get('/students', { studentCode: code }),
+        get(`/enrollments/students/${code}/enrollments`)
+      ]);
+
+      const student = studentResult && studentResult.items && studentResult.items[0] ? studentResult.items[0] : null;
+
+      // Transform enrollments to class format
+      const classes = (enrollments || []).map(e => ({
+        classCode: e.classCode || '',
+        name: e.className || '',
+        courseName: e.courseName || '',
+        completedLessons: e.completedLessons || 0,
+        totalLessons: e.totalLessons || 0
+      }));
+
+      this.setData({
+        student,
+        classes,
+        loading: false
+      });
+    } catch (err) {
+      console.error('[Student Detail] 加载失败:', err);
+      this.setData({
+        student: null,
+        classes: [],
+        loading: false
+      });
+    }
   },
 
-  /**
-   * 生命周期函数--监听页面显示
-   */
-  onShow() {
-
+  // 跳转班级详情
+  goToClassDetail(e) {
+    const { code } = e.currentTarget.dataset;
+    wx.navigateTo({
+      url: `/pages/teacher/class-detail?code=${code}`
+    });
   },
 
-  /**
-   * 生命周期函数--监听页面隐藏
-   */
-  onHide() {
-
+  // 跳转出勤记录
+  goToLessonRecord() {
+    wx.navigateTo({
+      url: `/pages/teacher/lesson-record`
+    });
   },
 
-  /**
-   * 生命周期函数--监听页面卸载
-   */
-  onUnload() {
-
-  },
-
-  /**
-   * 页面相关事件处理函数--监听用户下拉动作
-   */
-  onPullDownRefresh() {
-
-  },
-
-  /**
-   * 页面上拉触底事件的处理函数
-   */
-  onReachBottom() {
-
-  },
-
-  /**
-   * 用户点击右上角分享
-   */
-  onShareAppMessage() {
-
+  // 返回
+  onBack() {
+    wx.navigateBack();
   }
-})
+});

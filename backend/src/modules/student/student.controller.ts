@@ -21,8 +21,12 @@ import { StudentService } from './services/student.service';
 import { ContractRepository } from '../teaching/contract/contract.repository';
 import { LessonAttendanceRepository } from '../teaching/lesson-attendance/lesson-attendance.repository';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, IsNull } from 'typeorm';
 import { LessonEntity } from '../teaching/lesson/lesson.entity';
+import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
+import { TeacherAssignmentEntity } from '../teaching/teacher-assignment/teacher-assignment.entity';
+import { User } from '../identity/entities/user.entity';
+import { TeacherRole } from '@common/enums/teacher-role.enum';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { UpdateStudentStatusDto } from './dto/update-student-status.dto';
@@ -41,6 +45,12 @@ export class StudentController {
     private lessonAttendanceRepository: LessonAttendanceRepository,
     @InjectRepository(LessonEntity)
     private lessonRepository: Repository<LessonEntity>,
+    @InjectRepository(EnrollmentEntity)
+    private enrollmentRepository: Repository<EnrollmentEntity>,
+    @InjectRepository(TeacherAssignmentEntity)
+    private teacherAssignmentRepository: Repository<TeacherAssignmentEntity>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {}
 
   @Post()
@@ -78,16 +88,68 @@ export class StudentController {
       return ApiResponse.error(404, '未找到关联的学生信息');
     }
     const contracts = await this.contractRepository.findByStudentCode(student.studentCode);
+
+    if (contracts.length === 0) {
+      return ApiResponse.success([]);
+    }
+
+    // ── Step 1: Get classCode via enrollment (contractCode → enrollment → classCode) ──
+    const contractCodes = contracts.map((c) => c.contractCode);
+    const enrollments = await this.enrollmentRepository.find({
+      where: { contractCode: In(contractCodes) },
+    });
+    const enrollmentMap = new Map(enrollments.map((e) => [e.contractCode, e]));
+
+    // ── Step 2: Get teacher assignments for all classes ──
+    const classCodes = [...new Set(enrollments.map((e) => e.classCode))];
+    let teacherAssignmentMap = new Map<string, TeacherAssignmentEntity>();
+    let teacherMap = new Map<number, string>();
+
+    if (classCodes.length > 0) {
+      const teacherAssignments = await this.teacherAssignmentRepository.find({
+        where: { classCode: In(classCodes), effectiveTo: IsNull() },
+      });
+
+      // Prefer PRIMARY teacher, fallback to any active assignment
+      for (const ta of teacherAssignments) {
+        const existing = teacherAssignmentMap.get(ta.classCode);
+        if (!existing) {
+          teacherAssignmentMap.set(ta.classCode, ta);
+        } else if (ta.role === TeacherRole.PRIMARY && existing.role !== TeacherRole.PRIMARY) {
+          teacherAssignmentMap.set(ta.classCode, ta);
+        }
+      }
+
+      // ── Step 3: Get teacher names from User table ──
+      const teacherIds = [...new Set(teacherAssignments.map((ta) => ta.teacherId))];
+      if (teacherIds.length > 0) {
+        const teachers = await this.userRepository.find({
+          where: { id: In(teacherIds) },
+        });
+        teacherMap = new Map(teachers.map((t) => [t.id, t.name]));
+      }
+    }
+
+    // ── Step 4: Assemble response ──
     return ApiResponse.success(
-      contracts.map((c) => ({
-        contractCode: c.contractCode,
-        subject: c.subject,
-        totalLessons: c.totalLessons,
-        remainingLessons: c.remainingLessons,
-        status: c.status,
-        validFrom: c.validFrom,
-        validTo: c.validTo,
-      })),
+      contracts.map((c) => {
+        const enrollment = enrollmentMap.get(c.contractCode);
+        const classCode = enrollment?.classCode || null;
+        const ta = classCode ? teacherAssignmentMap.get(classCode) : undefined;
+        const teacherName = ta ? teacherMap.get(ta.teacherId) || null : null;
+
+        return {
+          contractCode: c.contractCode,
+          classCode,
+          teacherName,
+          subject: c.subject,
+          totalLessons: c.totalLessons,
+          remainingLessons: c.remainingLessons,
+          status: c.status,
+          validFrom: c.validFrom,
+          validTo: c.validTo,
+        };
+      }),
     );
   }
 
