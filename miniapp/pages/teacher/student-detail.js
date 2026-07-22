@@ -1,5 +1,5 @@
 // pages/teacher/student-detail.js
-const { get } = require('../utils/request');
+const { get } = require('../../utils/request');
 
 Page({
   data: {
