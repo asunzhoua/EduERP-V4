@@ -126,9 +126,10 @@ export class SeedService {
       return;
     }
 
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-    if (!process.env.ADMIN_PASSWORD) {
-      this.logger.warn('ADMIN_PASSWORD 环境变量未设置，使用默认密码 admin123，请在首次登录后修改！', 'Seed');
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      this.logger.error('ADMIN_PASSWORD environment variable is required for seeding');
+      throw new Error('ADMIN_PASSWORD must be set in environment variables');
     }
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
     const admin = this.userRepository.create({
