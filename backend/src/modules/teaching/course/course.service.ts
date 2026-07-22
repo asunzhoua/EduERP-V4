@@ -17,6 +17,7 @@ import { UpdateCourseDto } from './dto/update-course.dto';
 import { QueryCourseDto } from './dto/query-course.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ClassRepository } from '../class/class.repository';
 
 /** Allowed status transitions per CourseStateMachine */
 const VALID_TRANSITIONS: Record<CourseStatus, CourseStatus[]> = {
@@ -35,6 +36,7 @@ export class CourseService {
     @InjectRepository(CourseAuditLog)
     private readonly auditLogRepo: Repository<CourseAuditLog>,
     private readonly eventEmitter: EventEmitter2,
+    private readonly classRepo: ClassRepository,
   ) {}
 
   // ─── Create ───
@@ -97,6 +99,28 @@ export class CourseService {
       page: query.page ?? 1,
       pageSize: query.pageSize ?? 20,
     });
+  }
+
+  // ─── Enrichment ───
+
+  async enrichCourses(courses: CourseEntity[]): Promise<any[]> {
+    if (!courses.length) return [];
+    const courseCodes = courses.map(c => c.courseCode);
+    const enrolledClassCounts = await this.classRepo.countActiveByCourseCodes(courseCodes);
+    return courses.map(course => ({
+      ...course,
+      lessonCount: course.totalLessons,
+      enrolledClasses: enrolledClassCounts.get(course.courseCode) ?? 0,
+    }));
+  }
+
+  async enrichCourse(course: CourseEntity): Promise<any> {
+    const enrolledClasses = await this.classRepo.countActiveByCourseCode(course.courseCode);
+    return {
+      ...course,
+      lessonCount: course.totalLessons,
+      enrolledClasses,
+    };
   }
 
   // ─── Update ───

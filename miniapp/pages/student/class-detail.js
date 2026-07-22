@@ -26,42 +26,31 @@ Page({
     this.setData({ loading: true, error: null });
 
     try {
-      // 先从 contracts 获取列表，再过滤出当前班级
-      const contracts = await get('/students/self/contracts');
+      // 直接用 classCode 调班级详情 API
+      const classDetail = await get('/classes/' + code);
+      const info = classDetail.data || classDetail;
 
-      // 找到匹配的班级（classCode 从 contractCode 派生）
-      const classInfo = contracts.find(c =>
-        ('CT' + c.contractCode) === code || c.contractCode === code
-      );
+      const completedLessons = info.completedLessons || 0;
+      const totalLessons = info.totalLessons || 0;
+      const progress = totalLessons > 0 ? Math.round(completedLessons / totalLessons * 100) : 0;
 
-      if (classInfo) {
-        const completedLessons = (classInfo.totalLessons || 0) - (classInfo.remainingLessons || 0);
-        const totalLessons = classInfo.totalLessons || 0;
-        const progress = totalLessons > 0 ? Math.round(completedLessons / totalLessons * 100) : 0;
-
-        this.setData({
-          classInfo: {
-            classCode: code,
-            subject: classInfo.subject,
-            teacherName: classInfo.teacherName || '',
-            completedLessons,
-            totalLessons,
-            progress,
-            status: classInfo.status,
-            contractCode: classInfo.contractCode
-          },
-          loading: false
-        });
-      } else {
-        this.setData({
-          error: '未找到该班级信息',
-          loading: false
-        });
-      }
+      this.setData({
+        classInfo: {
+          classCode: code,
+          subject: info.courseName || '',
+          teacherName: info.teacherName || '',
+          completedLessons,
+          totalLessons,
+          progress,
+          status: info.status,
+          contractCode: info.contractCode || ''
+        },
+        loading: false
+      });
     } catch (err) {
       console.error('[Class Detail Student] 加载失败:', err);
       this.setData({
-        classInfo: null,
+        error: '班级信息加载失败',
         loading: false
       });
     }

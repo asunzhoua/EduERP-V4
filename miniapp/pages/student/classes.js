@@ -24,9 +24,9 @@ Page({
       const contracts = await get('/students/self/contracts');
       
       const classes = contracts.map(c => ({
-        classCode: 'CT' + c.contractCode,  // mock class code from contract
+        classCode: c.classCode,
         subject: c.subject,
-        teacherName: '',
+        teacherName: c.teacherName || '',
         totalLessons: c.totalLessons,
         remainingLessons: c.remainingLessons,
         progress: c.totalLessons > 0 

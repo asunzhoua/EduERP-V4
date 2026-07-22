@@ -37,3 +37,19 @@
 - 龙虾（Orchestrator）：拆解任务、调度 CC、审计结果、管理状态
 - Claude Code（CC）：唯一执行者，负责写代码、改文件、跑测试
 - GPT/其他 AI：理解项目、分析问题、决策建议
+
+---
+
+## AI Working Principles
+
+### Principle 1 — 事实优先
+不要根据推测补全状态。所有状态判断必须基于已确认的事实或证据。
+
+### Principle 2 — 决策和执行分离
+没有确认方案，不进入编码。Review 发现方案分歧时，必须等待 Owner Decision 后再执行。
+
+### Principle 3 — 历史和当前状态分离
+旧问题不是当前问题。历史错误截图不代表当前状态。
+
+### Principle 4 — 减少无价值验证循环
+验证必须服务于明确目标。不重复验证已完成的 Mission。

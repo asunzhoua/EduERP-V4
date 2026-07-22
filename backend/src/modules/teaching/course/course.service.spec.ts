@@ -12,12 +12,14 @@ import { Subject } from '@common/enums/subject.enum';
 import { CourseType } from './enums/course-type.enum';
 import { AuditAction } from '@common/enums/audit-action.enum';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ClassRepository } from '../class/class.repository';
 
 describe('CourseService', () => {
   let service: CourseService;
   let courseRepo: jest.Mocked<CourseRepository>;
   let codeGenerator: jest.Mocked<CourseCodeGeneratorService>;
   let auditLogRepo: jest.Mocked<Repository<CourseAuditLog>>;
+  let classRepo: jest.Mocked<ClassRepository>;
 
   const mockCourse: CourseEntity = {
     id: 1,
@@ -61,12 +63,18 @@ describe('CourseService', () => {
       save: jest.fn(),
     };
 
+    const mockClassRepo = {
+      countActiveByCourseCode: jest.fn(),
+      countActiveByCourseCodes: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CourseService,
         { provide: CourseRepository, useValue: mockCourseRepo },
         { provide: CourseCodeGeneratorService, useValue: mockCodeGenerator },
         { provide: getRepositoryToken(CourseAuditLog), useValue: mockAuditLogRepo },
+        { provide: ClassRepository, useValue: mockClassRepo },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
       ],
     }).compile();
@@ -75,6 +83,7 @@ describe('CourseService', () => {
     courseRepo = module.get(CourseRepository);
     codeGenerator = module.get(CourseCodeGeneratorService);
     auditLogRepo = module.get(getRepositoryToken(CourseAuditLog));
+    classRepo = module.get(ClassRepository);
   });
 
   // ─── Create ───

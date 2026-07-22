@@ -6,9 +6,12 @@ import { EnrollmentRepository } from './enrollment.repository';
 import { EnrollmentEntity } from './enrollment.entity';
 import { ContractModule } from '../contract/contract.module';
 import { StudentModule } from '../../student/student.module';
+import { ClassEntity } from '../class/class.entity';
+import { CourseEntity } from '../course/course.entity';
+import { LessonEntity } from '../lesson/lesson.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([EnrollmentEntity]), ContractModule, StudentModule],
+  imports: [TypeOrmModule.forFeature([EnrollmentEntity, ClassEntity, CourseEntity, LessonEntity]), ContractModule, StudentModule],
   controllers: [EnrollmentController],
   providers: [EnrollmentService, EnrollmentRepository],
   exports: [EnrollmentService, EnrollmentRepository],

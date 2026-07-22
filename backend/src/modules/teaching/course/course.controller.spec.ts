@@ -31,6 +31,8 @@ describe('CourseController', () => {
     update: jest.fn().mockResolvedValue({ ...mockCourse, name: 'Updated' }),
     updateStatus: jest.fn().mockResolvedValue({ ...mockCourse, status: CourseStatus.PUBLISHED }),
     remove: jest.fn().mockResolvedValue(undefined),
+    enrichCourses: jest.fn().mockImplementation(items => items.map(c => ({ ...c, lessonCount: c.totalLessons, enrolledClasses: 0 }))),
+    enrichCourse: jest.fn().mockImplementation(c => ({ ...c, lessonCount: c.totalLessons, enrolledClasses: 0 })),
   };
 
   beforeAll(async () => {
@@ -62,6 +64,8 @@ describe('CourseController', () => {
     mockCourseService.update.mockResolvedValue({ ...mockCourse, name: 'Updated' });
     mockCourseService.updateStatus.mockResolvedValue({ ...mockCourse, status: CourseStatus.PUBLISHED });
     mockCourseService.remove.mockResolvedValue(undefined);
+    mockCourseService.enrichCourses.mockImplementation(items => items.map(c => ({ ...c, lessonCount: c.totalLessons, enrolledClasses: 0 })));
+    mockCourseService.enrichCourse.mockImplementation(c => ({ ...c, lessonCount: c.totalLessons, enrolledClasses: 0 }));
   });
 
   const fakeReq = { user: { sub: 'admin-1' } };
@@ -93,7 +97,10 @@ describe('CourseController', () => {
       const result = await controller.findAll(query);
 
       expect(result.code).toBe(0);
-      expect(result.data).toEqual({ items: [mockCourse], total: 1 });
+      expect(result.data.items).toHaveLength(1);
+      expect(result.data.items[0].lessonCount).toBe(mockCourse.totalLessons);
+      expect(result.data.items[0].enrolledClasses).toBe(0);
+      expect(result.data.total).toBe(1);
       expect(service.findAll).toHaveBeenCalledWith(query);
     });
   });
@@ -103,7 +110,8 @@ describe('CourseController', () => {
       const result = await controller.findOne('ENG101');
 
       expect(result.code).toBe(0);
-      expect(result.data).toEqual(mockCourse);
+      expect(result.data.lessonCount).toBe(mockCourse.totalLessons);
+      expect(result.data.enrolledClasses).toBe(0);
       expect(service.findByCode).toHaveBeenCalledWith('ENG101');
     });
   });

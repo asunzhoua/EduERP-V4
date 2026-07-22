@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { ClassService } from './class.service';
 import { ClassRepository } from './class.repository';
 import { ClassCodeGeneratorService } from './class-code-generator.service';
@@ -11,6 +12,7 @@ import { ClassEntity } from './class.entity';
 import { ClassStatus } from './enums/class-status.enum';
 import { TeacherRole } from '@common/enums/teacher-role.enum';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { User } from '../../identity/entities/user.entity';
 
 describe('ClassService', () => {
   let service: ClassService;
@@ -20,6 +22,7 @@ describe('ClassService', () => {
   let courseRepo: jest.Mocked<CourseRepository>;
   let enrollmentRepo: jest.Mocked<EnrollmentRepository>;
   let lessonRepo: jest.Mocked<LessonRepository>;
+  let userRepo: jest.Mocked<any>;
   let mockRawCreate: jest.Mock;
 
   const mockClass: ClassEntity = {
@@ -85,6 +88,10 @@ describe('ClassService', () => {
       findMaxScheduledDateByClassCode: jest.fn(),
     };
 
+    const mockUserRepo = {
+      findOne: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ClassService,
@@ -94,6 +101,7 @@ describe('ClassService', () => {
         { provide: CourseRepository, useValue: mockCourseRepo },
         { provide: EnrollmentRepository, useValue: mockEnrollmentRepo },
         { provide: LessonRepository, useValue: mockLessonRepo },
+        { provide: getRepositoryToken(User), useValue: mockUserRepo },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
       ],
     }).compile();
@@ -105,6 +113,7 @@ describe('ClassService', () => {
     courseRepo = module.get(CourseRepository);
     enrollmentRepo = module.get(EnrollmentRepository);
     lessonRepo = module.get(LessonRepository);
+    userRepo = module.get(getRepositoryToken(User));
   });
 
   // ─── Create ───

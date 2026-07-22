@@ -48,18 +48,20 @@ export class CourseController {
 
   @Get()
   @Roles('SuperAdmin', 'Admin', 'Teacher')
-  @ApiOperation({ summary: 'List all courses (paginated, filterable)' })
+  @ApiOperation({ summary: 'List all courses (paginated, filterable, enriched)' })
   async findAll(@Query() query: QueryCourseDto): Promise<ApiResponse> {
     const result = await this.courseService.findAll(query);
-    return ApiResponse.success(result);
+    const enrichedItems = await this.courseService.enrichCourses(result.items);
+    return ApiResponse.success({ items: enrichedItems, total: result.total });
   }
 
   @Get(':code')
   @Roles('SuperAdmin', 'Admin', 'Teacher')
-  @ApiOperation({ summary: 'Get course by courseCode' })
+  @ApiOperation({ summary: 'Get course by courseCode (enriched)' })
   async findOne(@Param('code') code: string): Promise<ApiResponse> {
     const course = await this.courseService.findByCode(code);
-    return ApiResponse.success(course);
+    const enriched = await this.courseService.enrichCourse(course);
+    return ApiResponse.success(enriched);
   }
 
   @Put(':code')

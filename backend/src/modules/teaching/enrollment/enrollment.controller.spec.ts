@@ -115,7 +115,7 @@ describe('EnrollmentController', () => {
     it('should return enrollments for a student', async () => {
       const result = await controller.findByStudent('STU001');
 
-      expect(result).toEqual([mockEnrollment]);
+      expect(result).toEqual({ code: 0, message: 'success', data: [mockEnrollment] });
       expect(service.findByStudentCode).toHaveBeenCalledWith('STU001');
     });
   });

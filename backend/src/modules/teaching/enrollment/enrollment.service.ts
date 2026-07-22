@@ -4,13 +4,18 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
-import { In } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, Repository } from 'typeorm';
 import { EnrollmentRepository } from './enrollment.repository';
 import { ContractRepository } from '../contract/contract.repository';
 import { EnrollmentEntity } from './enrollment.entity';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { ContractStatus } from '../contract/enums/contract-status.enum';
 import { StudentRepository } from '../../student/student.repository';
+import { ClassEntity } from '../class/class.entity';
+import { CourseEntity } from '../course/course.entity';
+import { LessonEntity } from '../lesson/lesson.entity';
+import { LessonStatus } from '../lesson/enums/lesson-status.enum';
 
 /**
  * Formal state transition table.
@@ -41,6 +46,12 @@ export class EnrollmentService {
     private readonly enrollmentRepo: EnrollmentRepository,
     private readonly contractRepo: ContractRepository,
     private readonly studentRepo: StudentRepository,
+    @InjectRepository(ClassEntity)
+    private readonly classRepo: Repository<ClassEntity>,
+    @InjectRepository(CourseEntity)
+    private readonly courseRepo: Repository<CourseEntity>,
+    @InjectRepository(LessonEntity)
+    private readonly lessonRepo: Repository<LessonEntity>,
   ) {}
 
   // ─── Enroll ───
@@ -120,8 +131,47 @@ export class EnrollmentService {
     return this.enrollmentRepo.findByClassCode(classCode);
   }
 
-  async findByStudentCode(studentCode: string): Promise<EnrollmentEntity[]> {
-    return this.enrollmentRepo.findByStudentCode(studentCode);
+  async findByStudentCode(studentCode: string): Promise<any[]> {
+    const enrollments = await this.enrollmentRepo.findByStudentCode(studentCode);
+    if (!enrollments.length) return [];
+
+    // Collect class codes
+    const classCodes = enrollments.map(e => e.classCode);
+
+    // Batch get classes
+    const classes = await this.classRepo.find({ where: { classCode: In(classCodes) } });
+    const classMap = new Map(classes.map(c => [c.classCode, c]));
+
+    // Batch get courses (via courseCode from classes)
+    const courseCodes = [...new Set(classes.map(c => c.courseCode))];
+    const courses = await this.courseRepo.find({ where: { courseCode: In(courseCodes) } });
+    const courseNameMap = new Map(courses.map(c => [c.courseCode, c.name]));
+
+    // Batch get completed lessons count per class
+    const completedLessonCounts = await this.lessonRepo
+      .createQueryBuilder('l')
+      .select('l.classCode', 'classCode')
+      .addSelect('COUNT(*)', 'count')
+      .where('l.classCode IN (:...classCodes)', { classCodes })
+      .andWhere('l.status = :status', { status: LessonStatus.FINISHED })
+      .groupBy('l.classCode')
+      .getRawMany();
+    const completedMap = new Map<string, number>();
+    completedLessonCounts.forEach(r => completedMap.set(r.classCode, parseInt(r.count, 10)));
+
+    // Assemble enriched response
+    return enrollments.map(enrollment => {
+      const cls = classMap.get(enrollment.classCode);
+      return {
+        classCode: enrollment.classCode,
+        className: cls?.name ?? '',
+        courseName: cls ? (courseNameMap.get(cls.courseCode) ?? '') : '',
+        completedLessons: completedMap.get(enrollment.classCode) ?? 0,
+        totalLessons: cls?.totalLessons ?? 0,
+        contractCode: enrollment.contractCode,
+        status: enrollment.status,
+      };
+    });
   }
 
   /**

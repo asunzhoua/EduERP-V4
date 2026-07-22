@@ -4,6 +4,8 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ClassRepository } from './class.repository';
 import { ClassCodeGeneratorService } from './class-code-generator.service';
 import { ClassEntity } from './class.entity';
@@ -17,6 +19,7 @@ import { CourseRepository } from '../course/course.repository';
 import { EnrollmentRepository } from '../enrollment/enrollment.repository';
 import { LessonRepository } from '../lesson/lesson.repository';
 import { LessonStatus } from '../lesson/enums/lesson-status.enum';
+import { User } from '../../identity/entities/user.entity';
 
 /** Allowed status transitions per ClassStateMachine */
 const VALID_TRANSITIONS: Record<ClassStatus, ClassStatus[]> = {
@@ -37,6 +40,8 @@ export class ClassService {
     private readonly courseRepo: CourseRepository,
     private readonly enrollmentRepo: EnrollmentRepository,
     private readonly lessonRepo: LessonRepository,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) {}
 
   // ─── Create ───
@@ -249,9 +254,20 @@ export class ClassService {
     const courseNameMap = new Map<string, string>();
     courses.forEach(c => courseNameMap.set(c.courseCode, c.name));
 
+    // Batch resolve teacher names
+    const teacherPromises = classCodes.map(async (code) => {
+      const primary = await this.teacherAssignmentService.findActivePrimary(code);
+      if (!primary) return { classCode: code, teacherName: '' };
+      const teacher = await this.userRepo.findOne({ where: { id: primary.teacherId } });
+      return { classCode: code, teacherName: teacher?.name ?? '' };
+    });
+    const teacherResults = await Promise.all(teacherPromises);
+    const teacherNameMap = new Map(teacherResults.map(r => [r.classCode, r.teacherName]));
+
     return classes.map(cls => ({
       ...cls,
       courseName: courseNameMap.get(cls.courseCode) ?? '',
+      teacherName: teacherNameMap.get(cls.classCode) ?? '',
       currentStudents: enrollmentCounts.get(cls.classCode) ?? 0,
       completedLessons: lessonCounts.get(cls.classCode) ?? 0,
       schedule: this.formatSchedule(cls.dayOfWeek, cls.startTime, cls.endTime),
@@ -260,16 +276,24 @@ export class ClassService {
   }
 
   async enrichClass(cls: ClassEntity): Promise<any> {
-    const [course, currentStudents, completedLessons, endDate] = await Promise.all([
+    const [course, currentStudents, completedLessons, endDate, primaryTeacher] = await Promise.all([
       this.courseRepo.findOne({ where: { courseCode: cls.courseCode } }),
       this.enrollmentRepo.countActiveByClassCode(cls.classCode),
       this.lessonRepo.countByClassCodeAndStatus(cls.classCode, LessonStatus.FINISHED),
       this.lessonRepo.findMaxScheduledDateByClassCode(cls.classCode),
+      this.teacherAssignmentService.findActivePrimary(cls.classCode),
     ]);
+
+    let teacherName = '';
+    if (primaryTeacher) {
+      const teacher = await this.userRepo.findOne({ where: { id: primaryTeacher.teacherId } });
+      teacherName = teacher?.name ?? '';
+    }
 
     return {
       ...cls,
       courseName: course?.name ?? '',
+      teacherName,
       currentStudents,
       completedLessons,
       schedule: this.formatSchedule(cls.dayOfWeek, cls.startTime, cls.endTime),

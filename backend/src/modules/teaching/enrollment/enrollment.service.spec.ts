@@ -9,12 +9,19 @@ import { ContractStatus } from '../contract/enums/contract-status.enum';
 import { StudentRepository } from '../../student/student.repository';
 import { Subject } from '@common/enums/subject.enum';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { ClassEntity } from '../class/class.entity';
+import { CourseEntity } from '../course/course.entity';
+import { LessonEntity } from '../lesson/lesson.entity';
 
 describe('EnrollmentService', () => {
   let service: EnrollmentService;
   let enrollmentRepo: jest.Mocked<EnrollmentRepository>;
   let contractRepo: jest.Mocked<ContractRepository>;
   let studentRepo: jest.Mocked<StudentRepository>;
+  let classRepo: jest.Mocked<any>;
+  let courseRepo: jest.Mocked<any>;
+  let lessonRepo: jest.Mocked<any>;
 
   const mockEnrollInput: EnrollInput = {
     classCode: 'CL2026070001',
@@ -81,12 +88,27 @@ describe('EnrollmentService', () => {
       update: jest.fn(),
     };
 
+    const mockClassRepo = {
+      find: jest.fn(),
+    };
+
+    const mockCourseRepo = {
+      find: jest.fn(),
+    };
+
+    const mockLessonRepo = {
+      createQueryBuilder: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EnrollmentService,
         { provide: EnrollmentRepository, useValue: mockEnrollmentRepo },
         { provide: ContractRepository, useValue: mockContractRepo },
         { provide: StudentRepository, useValue: mockStudentRepo },
+        { provide: getRepositoryToken(ClassEntity), useValue: mockClassRepo },
+        { provide: getRepositoryToken(CourseEntity), useValue: mockCourseRepo },
+        { provide: getRepositoryToken(LessonEntity), useValue: mockLessonRepo },
       ],
     }).compile();
 
@@ -94,6 +116,9 @@ describe('EnrollmentService', () => {
     enrollmentRepo = module.get(EnrollmentRepository);
     contractRepo = module.get(ContractRepository);
     studentRepo = module.get(StudentRepository);
+    classRepo = module.get(getRepositoryToken(ClassEntity));
+    courseRepo = module.get(getRepositoryToken(CourseEntity));
+    lessonRepo = module.get(getRepositoryToken(LessonEntity));
   });
 
   // ─── Enroll ───
@@ -191,8 +216,41 @@ describe('EnrollmentService', () => {
       enrollmentRepo.findByStudentCode.mockResolvedValue([
         { ...mockEnrollment },
       ]);
+
+      // Mock classRepo.find to return a class with courseCode
+      classRepo.find.mockResolvedValue([{
+        classCode: 'CL2026070001',
+        courseCode: 'CS2026070001',
+        name: '数学思维训练班',
+        totalLessons: 24,
+      }]);
+
+      // Mock courseRepo.find to return a course
+      courseRepo.find.mockResolvedValue([{
+        courseCode: 'CS2026070001',
+        name: '数学思维训练',
+      }]);
+
+      // Mock lessonRepo.createQueryBuilder chain
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([{
+          classCode: 'CL2026070001',
+          count: '10',
+        }]),
+      };
+      lessonRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
       const result = await service.findByStudentCode('ST2026010001');
       expect(result).toHaveLength(1);
+      expect(result[0].className).toBe('数学思维训练班');
+      expect(result[0].courseName).toBe('数学思维训练');
+      expect(result[0].completedLessons).toBe(10);
+      expect(result[0].totalLessons).toBe(24);
     });
   });
 

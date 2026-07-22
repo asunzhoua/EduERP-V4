@@ -10,6 +10,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { EnrollmentService } from './enrollment.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { WithdrawEnrollmentDto } from './dto/withdraw-enrollment.dto';
+import { ApiResponse } from '@common/dto/api-response';
 
 @ApiTags('Enrollment')
 @ApiBearerAuth()
@@ -58,8 +59,9 @@ export class EnrollmentController {
   }
 
   @Get('students/:studentCode/enrollments')
-  @ApiOperation({ summary: 'List enrollments for a student' })
-  findByStudent(@Param('studentCode') studentCode: string) {
-    return this.enrollmentService.findByStudentCode(studentCode);
+  @ApiOperation({ summary: 'List enrollments for a student (enriched)' })
+  async findByStudent(@Param('studentCode') studentCode: string) {
+    const result = await this.enrollmentService.findByStudentCode(studentCode);
+    return ApiResponse.success(result);
   }
 }

@@ -10,10 +10,11 @@ import { TeacherAssignmentModule } from '../teacher-assignment/teacher-assignmen
 import { EnrollmentModule } from '../enrollment/enrollment.module';
 import { CourseModule } from '../course/course.module';
 import { LessonModule } from '../lesson/lesson.module';
+import { User } from '../../identity/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ClassEntity]),
+    TypeOrmModule.forFeature([ClassEntity, User]),
     EventEmitterModule,
     TeacherAssignmentModule,
     EnrollmentModule,

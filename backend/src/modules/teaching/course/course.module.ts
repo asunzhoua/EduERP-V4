@@ -7,10 +7,11 @@ import { CourseRepository } from './course.repository';
 import { CourseCodeGeneratorService } from './course-code-generator.service';
 import { CourseEntity } from './course.entity';
 import { CourseAuditLog } from './course-audit-log.entity';
+import { ClassEntity } from '../class/class.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CourseEntity, CourseAuditLog]),
+    TypeOrmModule.forFeature([CourseEntity, CourseAuditLog, ClassEntity]),
     EventEmitterModule,
   ],
   controllers: [CourseController],

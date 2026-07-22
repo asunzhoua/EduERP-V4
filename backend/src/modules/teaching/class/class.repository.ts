@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { ClassEntity } from './class.entity';
+import { ClassStatus } from './enums/class-status.enum';
 
 @Injectable()
 export class ClassRepository {
@@ -16,6 +17,27 @@ export class ClassRepository {
 
   async save(entity: ClassEntity): Promise<ClassEntity> {
     return this.repo.save(entity);
+  }
+
+  async countActiveByCourseCode(courseCode: string): Promise<number> {
+    return this.repo.count({ where: { courseCode, status: ClassStatus.ACTIVE } });
+  }
+
+  async countActiveByCourseCodes(courseCodes: string[]): Promise<Map<string, number>> {
+    if (!courseCodes.length) return new Map();
+
+    const results = await this.repo
+      .createQueryBuilder('c')
+      .select('c.courseCode', 'courseCode')
+      .addSelect('COUNT(*)', 'count')
+      .where('c.courseCode IN (:...courseCodes)', { courseCodes })
+      .andWhere('c.status = :status', { status: ClassStatus.ACTIVE })
+      .groupBy('c.courseCode')
+      .getRawMany();
+
+    const map = new Map<string, number>();
+    results.forEach(r => map.set(r.courseCode, parseInt(r.count, 10)));
+    return map;
   }
 
   async findOneByCode(classCode: string): Promise<ClassEntity | null> {
