@@ -174,12 +174,13 @@ describe('ContractController', () => {
 
   describe('freeze', () => {
     it('should freeze a contract', async () => {
-      const result = await controller.freeze('CTR2026070001');
+      const mockReq = { user: { sub: 42 } };
+      const result = await controller.freeze('CTR2026070001', mockReq);
 
       expect(result.status).toBe('FROZEN');
       expect(mockService.freeze).toHaveBeenCalledWith(
         'CTR2026070001',
-        0,
+        42,
       );
     });
   });
@@ -188,12 +189,13 @@ describe('ContractController', () => {
 
   describe('unfreeze', () => {
     it('should unfreeze a contract', async () => {
-      const result = await controller.unfreeze('CTR2026070001');
+      const mockReq = { user: { sub: 42 } };
+      const result = await controller.unfreeze('CTR2026070001', mockReq);
 
       expect(result.status).toBe('ACTIVE');
       expect(mockService.unfreeze).toHaveBeenCalledWith(
         'CTR2026070001',
-        0,
+        42,
       );
     });
   });

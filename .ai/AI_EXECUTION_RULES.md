@@ -53,3 +53,20 @@
 
 ### Principle 4 — 减少无价值验证循环
 验证必须服务于明确目标。不重复验证已完成的 Mission。
+
+---
+
+## Heartbeat Governance
+
+参见过 `governance/HEARTBEAT-GOVERNANCE-v1.md`。
+
+Heartbeat 是周期性状态巡检机制，不是调度器。
+
+### Heartbeat 职责
+只检查：Mission 状态、Executor 状态、Evidence 状态、Blocking 状态。
+
+### Heartbeat 禁止
+修改代码、创建任务、改变方案、绕过 Decision Gate、自动派遣 CC。
+
+### 长任务防睡死
+超过数小时的 Mission，Heartbeat 每 30 分钟检查一次，发现停滞（无 commit/test/evidence）报告 HEARTBEAT_WARNING 或 HEARTBEAT_BLOCKED，不自动干预。

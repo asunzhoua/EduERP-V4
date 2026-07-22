@@ -6,15 +6,20 @@ import {
   Param,
   Body,
   Logger,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { ContractService } from './contract.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { CreateContractInput } from './contract.service';
+import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
 
 @ApiTags('Contract')
 @ApiBearerAuth()
 @Controller('contracts')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ContractController {
   private readonly logger = new Logger(ContractController.name);
 
@@ -61,15 +66,15 @@ export class ContractController {
 
   @Patch(':code/freeze')
   @ApiOperation({ summary: 'Freeze contract (stop deductions)' })
-  freeze(@Param('code') code: string) {
-    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
-    return this.contractService.freeze(code, operatedBy);
+  freeze(@Param('code') code: string, @Req() req: any) {
+    const operatorId = req.user.sub;
+    return this.contractService.freeze(code, operatorId);
   }
 
   @Patch(':code/unfreeze')
   @ApiOperation({ summary: 'Unfreeze contract (resume deductions)' })
-  unfreeze(@Param('code') code: string) {
-    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
-    return this.contractService.unfreeze(code, operatedBy);
+  unfreeze(@Param('code') code: string, @Req() req: any) {
+    const operatorId = req.user.sub;
+    return this.contractService.unfreeze(code, operatorId);
   }
 }

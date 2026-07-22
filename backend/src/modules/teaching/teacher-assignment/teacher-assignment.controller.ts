@@ -7,6 +7,7 @@ import {
   Body,
   ParseIntPipe,
   NotFoundException,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -27,12 +28,12 @@ export class TeacherAssignmentController {
 
   @Post()
   @ApiOperation({ summary: 'Create teacher assignment' })
-  create(@Body() body: CreateTeacherAssignmentDto) {
+  create(@Body() body: CreateTeacherAssignmentDto, @Req() req: any) {
     return this.service.assign({
       classCode: body.classCode,
       teacherId: body.teacherId,
       role: body.role,
-      assignedBy: 0, // TODO: Get from JWT when auth is implemented
+      assignedBy: req.user.sub,
       reason: body.reason,
     });
   }

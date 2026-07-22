@@ -92,11 +92,12 @@ describe('EnrollmentController', () => {
   describe('withdraw', () => {
     it('should withdraw an enrollment', async () => {
       const dto = { reason: '个人原因' };
+      const mockReq = { user: { sub: 42 } };
 
-      const result = await controller.withdraw(1, dto);
+      const result = await controller.withdraw(1, dto, mockReq);
 
       expect(result.status).toBe('WITHDRAWN');
-      expect(service.withdraw).toHaveBeenCalledWith(1, '个人原因', 0);
+      expect(service.withdraw).toHaveBeenCalledWith(1, '个人原因', 42);
     });
   });
 

@@ -21,6 +21,16 @@ import { EnrollmentEntity } from '../../modules/teaching/enrollment/enrollment.e
 import { EnrollmentStatus } from '../../common/enums/enrollment-status.enum';
 import { TeacherAssignmentEntity } from '../../modules/teaching/teacher-assignment/teacher-assignment.entity';
 import { TeacherRole } from '../../common/enums/teacher-role.enum';
+import { CourseEntity } from '../../modules/teaching/course/course.entity';
+import { CourseStatus } from '../../modules/teaching/course/enums/course-status.enum';
+import { CourseType } from '../../modules/teaching/course/enums/course-type.enum';
+import { LessonEntity } from '../../modules/teaching/lesson/lesson.entity';
+import { LessonStatus } from '../../modules/teaching/lesson/enums/lesson-status.enum';
+import { LessonAttendanceEntity } from '../../modules/teaching/lesson-attendance/lesson-attendance.entity';
+import { AttendanceStatus } from '../../modules/teaching/lesson-attendance/enums/attendance-status.enum';
+import { AttendanceWorkflowState } from '../../modules/teaching/lesson-attendance/enums/attendance-workflow-state.enum';
+import { AttendanceSource } from '../../modules/teaching/lesson-attendance/enums/attendance-source.enum';
+
 
 @Injectable()
 export class SeedService {
@@ -47,6 +57,13 @@ export class SeedService {
     private enrollmentEntityRepository: Repository<EnrollmentEntity>,
     @InjectRepository(TeacherAssignmentEntity)
     private teacherAssignmentEntityRepository: Repository<TeacherAssignmentEntity>,
+    @InjectRepository(CourseEntity)
+    private courseEntityRepository: Repository<CourseEntity>,
+    @InjectRepository(LessonEntity)
+    private lessonEntityRepository: Repository<LessonEntity>,
+    @InjectRepository(LessonAttendanceEntity)
+    private lessonAttendanceEntityRepository: Repository<LessonAttendanceEntity>,
+
   ) {}
 
   async seed() {
@@ -57,7 +74,10 @@ export class SeedService {
     await this.seedTestClasses();
     await this.seedTestStudents();
     await this.seedTestContracts();
+    await this.seedTestCourses();
     await this.seedTestEnrollments();
+    await this.seedTestLessons();
+    await this.seedTestAttendance();
     await this.seedTestTeacherAssignments();
     this.logger.log('Seed data initialization complete', 'Seed');
   }
@@ -134,58 +154,83 @@ export class SeedService {
   }
 
   private async seedTestUsers() {
+    let savedTeacher: User | null = null;
+    let savedStudent: User | null = null;
+    let savedParent: User | null = null;
+
     // 1. Teacher 用户 — 用于测试课时录入流程
-    const teacherPassword = await bcrypt.hash('teacher123', 10);
-    const teacher = this.userRepository.create({
-      username: 'teacher1',
-      password: teacherPassword,
-      name: '张老师',
-      mobile: '13900000001',
-      role: 'Teacher',
-      status: 1,
-      campusId: 1,
-    });
-    const savedTeacher = await this.userRepository.save(teacher);
-    const teacherRole = await this.roleRepository.findOne({ where: { name: 'Teacher' } });
-    if (teacherRole) {
-      await this.userRoleRepository.save({ userId: savedTeacher.id, roleId: teacherRole.id });
+    const existingTeacher = await this.userRepository.findOne({ where: { username: 'teacher1' } });
+    if (existingTeacher) {
+      this.logger.log('Teacher user already exists, skipping', 'Seed');
+      savedTeacher = existingTeacher;
+    } else {
+      const teacherPassword = await bcrypt.hash('teacher123', 10);
+      const teacher = this.userRepository.create({
+        username: 'teacher1',
+        password: teacherPassword,
+        name: '张老师',
+        mobile: '13900000001',
+        role: 'Teacher',
+        status: 1,
+        campusId: 1,
+      });
+      savedTeacher = await this.userRepository.save(teacher);
+      const teacherRole = await this.roleRepository.findOne({ where: { name: 'Teacher' } });
+      if (teacherRole) {
+        await this.userRoleRepository.save({ userId: savedTeacher.id, roleId: teacherRole.id });
+      }
+      this.logger.log('Teacher user created: teacher1', 'Seed');
     }
 
     // 2. Student 用户 — 用于测试课时查询
-    const studentPassword = await bcrypt.hash('student123', 10);
-    const student = this.userRepository.create({
-      username: 'student1',
-      password: studentPassword,
-      name: '李小华',
-      mobile: '13900000002',
-      role: 'Student',
-      status: 1,
-      campusId: 1,
-    });
-    const savedStudent = await this.userRepository.save(student);
-    const studentRole = await this.roleRepository.findOne({ where: { name: 'Student' } });
-    if (studentRole) {
-      await this.userRoleRepository.save({ userId: savedStudent.id, roleId: studentRole.id });
+    const existingStudent = await this.userRepository.findOne({ where: { username: 'student1' } });
+    if (existingStudent) {
+      this.logger.log('Student user already exists, skipping', 'Seed');
+      savedStudent = existingStudent;
+    } else {
+      const studentPassword = await bcrypt.hash('student123', 10);
+      const student = this.userRepository.create({
+        username: 'student1',
+        password: studentPassword,
+        name: '李小华',
+        mobile: '13900000002',
+        role: 'Student',
+        status: 1,
+        campusId: 1,
+      });
+      savedStudent = await this.userRepository.save(student);
+      const studentRole = await this.roleRepository.findOne({ where: { name: 'Student' } });
+      if (studentRole) {
+        await this.userRoleRepository.save({ userId: savedStudent.id, roleId: studentRole.id });
+      }
+      this.logger.log('Student user created: student1', 'Seed');
     }
 
     // 3. Parent 用户 — 用于测试家长查询
-    const parentPassword = await bcrypt.hash('parent123', 10);
-    const parent = this.userRepository.create({
-      username: 'parent1',
-      password: parentPassword,
-      name: '李建国',
-      mobile: '13900000003',
-      role: 'Parent',
-      status: 1,
-      campusId: 1,
-    });
-    const savedParent = await this.userRepository.save(parent);
-    const parentRole = await this.roleRepository.findOne({ where: { name: 'Parent' } });
-    if (parentRole) {
-      await this.userRoleRepository.save({ userId: savedParent.id, roleId: parentRole.id });
+    const existingParent = await this.userRepository.findOne({ where: { username: 'parent1' } });
+    if (existingParent) {
+      this.logger.log('Parent user already exists, skipping', 'Seed');
+      savedParent = existingParent;
+    } else {
+      const parentPassword = await bcrypt.hash('parent123', 10);
+      const parent = this.userRepository.create({
+        username: 'parent1',
+        password: parentPassword,
+        name: '李建国',
+        mobile: '13900000003',
+        role: 'Parent',
+        status: 1,
+        campusId: 1,
+      });
+      savedParent = await this.userRepository.save(parent);
+      const parentRole = await this.roleRepository.findOne({ where: { name: 'Parent' } });
+      if (parentRole) {
+        await this.userRoleRepository.save({ userId: savedParent.id, roleId: parentRole.id });
+      }
+      this.logger.log('Parent user created: parent1', 'Seed');
     }
 
-    this.logger.log('Test users created (teacher1/teacher123, student1/student123, parent1/parent123)', 'Seed');
+    this.logger.log('Test users ready (teacher1/teacher123, student1/student123, parent1/parent123)', 'Seed');
   }
 
   /** 创建测试班级 — 2 个 ACTIVE 班级 */
@@ -337,6 +382,229 @@ export class SeedService {
         });
         await this.contractEntityRepository.save(contract);
         this.logger.log(`Test contract created: ${data.contractCode} (${data.studentCode})`, 'Seed');
+      }
+    }
+  }
+
+  /** 创建测试课程 — 2 个 PUBLISHED 课程 */
+  private async seedTestCourses() {
+    const admin = await this.userRepository.findOne({ where: { username: 'admin' } });
+    const adminId = admin ? Number(admin.id) : 0;
+
+    const courses = [
+      {
+        courseCode: 'MATH001',
+        name: '数学基础班',
+        subject: Subject.MATH,
+        type: CourseType.GROUP,
+        totalHours: 40.0,
+        totalLessons: 20,
+        defaultDuration: 45,
+        status: CourseStatus.PUBLISHED,
+        createdBy: adminId,
+        description: '小学数学基础课程',
+        tags: null,
+        coverImage: null,
+        note: null,
+      },
+      {
+        courseCode: 'ENG001',
+        name: '英语启蒙班',
+        subject: Subject.ENGLISH,
+        type: CourseType.GROUP,
+        totalHours: 40.0,
+        totalLessons: 20,
+        defaultDuration: 45,
+        status: CourseStatus.PUBLISHED,
+        createdBy: adminId,
+        description: '少儿英语启蒙课程',
+        tags: null,
+        coverImage: null,
+        note: null,
+      },
+    ];
+
+    for (const data of courses) {
+      const exists = await this.courseEntityRepository.findOne({
+        where: { courseCode: data.courseCode },
+      });
+      if (!exists) {
+        const course = this.courseEntityRepository.create(data);
+        await this.courseEntityRepository.save(course);
+        this.logger.log('Test course created: ' + data.name + ' (' + data.courseCode + ')', 'Seed');
+      }
+    }
+  }
+
+  /** 创建测试课时 — 周六班 4 课时, 周日班 4 课时 */
+  private async seedTestLessons() {
+    const admin = await this.userRepository.findOne({ where: { username: 'admin' } });
+    const adminId = admin ? Number(admin.id) : 0;
+
+    // CL2026070001 — 周六上午班 (dayOfWeek=6, startTime=09:00, endTime=10:30)
+    const class1Lessons = [
+      { scheduledDate: '2026-07-04', status: LessonStatus.FINISHED },
+      { scheduledDate: '2026-07-11', status: LessonStatus.FINISHED },
+      { scheduledDate: '2026-07-18', status: LessonStatus.FINISHED },
+      { scheduledDate: '2026-07-25', status: LessonStatus.SCHEDULED },
+    ];
+
+    for (const [index, lesson] of class1Lessons.entries()) {
+      const lessonNumber = index + 1;
+      const exists = await this.lessonEntityRepository.findOne({
+        where: { classCode: 'CL2026070001', lessonNumber },
+      });
+      if (!exists) {
+        const entity = this.lessonEntityRepository.create({
+          classCode: 'CL2026070001',
+          courseCode: 'MATH001',
+          name: '周六上午班 - ' + lesson.scheduledDate,
+          lessonNumber,
+          scheduledDate: lesson.scheduledDate,
+          startTime: '09:00',
+          endTime: '10:30',
+          duration: 90,
+          status: lesson.status,
+          teacherId: 2,
+          createdBy: adminId,
+        });
+        await this.lessonEntityRepository.save(entity);
+        this.logger.log('Test lesson created: CL2026070001 ' + lesson.scheduledDate, 'Seed');
+      }
+    }
+
+    // CL2026070002 — 周日下午班 (dayOfWeek=0, startTime=14:00, endTime=15:30)
+    const class2Lessons = [
+      { scheduledDate: '2026-07-05', status: LessonStatus.FINISHED },
+      { scheduledDate: '2026-07-12', status: LessonStatus.FINISHED },
+      { scheduledDate: '2026-07-19', status: LessonStatus.FINISHED },
+      { scheduledDate: '2026-07-26', status: LessonStatus.SCHEDULED },
+    ];
+
+    for (const [index, lesson] of class2Lessons.entries()) {
+      const lessonNumber = index + 1;
+      const exists = await this.lessonEntityRepository.findOne({
+        where: { classCode: 'CL2026070002', lessonNumber },
+      });
+      if (!exists) {
+        const entity = this.lessonEntityRepository.create({
+          classCode: 'CL2026070002',
+          courseCode: 'ENG001',
+          name: '周日下午班 - ' + lesson.scheduledDate,
+          lessonNumber,
+          scheduledDate: lesson.scheduledDate,
+          startTime: '14:00',
+          endTime: '15:30',
+          duration: 90,
+          status: lesson.status,
+          teacherId: 2,
+          createdBy: adminId,
+        });
+        await this.lessonEntityRepository.save(entity);
+        this.logger.log('Test lesson created: CL2026070002 ' + lesson.scheduledDate, 'Seed');
+      }
+    }
+  }
+
+  /** 创建测试出勤记录 — 为已结束课时创建出勤 */
+  private async seedTestAttendance() {
+    const admin = await this.userRepository.findOne({ where: { username: 'admin' } });
+    const adminId = admin ? Number(admin.id) : 0;
+
+    // date → lessonNumber mapping (based on seedTestLessons)
+    const dateToLesson: Record<string, number> = {
+      '2026-07-04': 1, '2026-07-11': 2, '2026-07-18': 3,
+      '2026-07-05': 1, '2026-07-12': 2, '2026-07-19': 3,
+    };
+
+    // CL2026070001 班级: STU001 + STU002
+    // Lesson 1 (Sat Jul 4): STU001=PRESENT, STU002=PRESENT
+    // Lesson 2 (Sat Jul 11): STU001=PRESENT, STU002=LATE
+    // Lesson 3 (Sat Jul 18): STU001=ABSENT, STU002=PRESENT
+    const class1Attendance = [
+      { scheduledDate: '2026-07-04', studentCode: 'STU001', status: AttendanceStatus.PRESENT },
+      { scheduledDate: '2026-07-04', studentCode: 'STU002', status: AttendanceStatus.PRESENT },
+      { scheduledDate: '2026-07-11', studentCode: 'STU001', status: AttendanceStatus.PRESENT },
+      { scheduledDate: '2026-07-11', studentCode: 'STU002', status: AttendanceStatus.LATE },
+      { scheduledDate: '2026-07-18', studentCode: 'STU001', status: AttendanceStatus.ABSENT },
+      { scheduledDate: '2026-07-18', studentCode: 'STU002', status: AttendanceStatus.PRESENT },
+    ];
+
+    for (const data of class1Attendance) {
+      const lessonNumber = dateToLesson[data.scheduledDate];
+      if (!lessonNumber) {
+        this.logger.warn(`No lessonNumber mapping for date ${data.scheduledDate}, skipping attendance`, 'Seed');
+        continue;
+      }
+      const lesson = await this.lessonEntityRepository.findOne({
+        where: { classCode: 'CL2026070001', lessonNumber },
+      });
+      if (!lesson) {
+        this.logger.warn(`Lesson not found for CL2026070001 lessonNumber=${lessonNumber}, skipping attendance`, 'Seed');
+        continue;
+      }
+      const lessonId = Number(lesson.id);
+      const exists = await this.lessonAttendanceEntityRepository.findOne({
+        where: { lessonId, studentCode: data.studentCode },
+      });
+      if (!exists) {
+        const entity = this.lessonAttendanceEntityRepository.create({
+          lessonId,
+          classCode: 'CL2026070001',
+          studentCode: data.studentCode,
+          status: data.status,
+          teacherId: 2,
+          operator: adminId,
+          createdBy: adminId,
+          source: AttendanceSource.API,
+          workflowState: AttendanceWorkflowState.CONFIRMED,
+        });
+        await this.lessonAttendanceEntityRepository.save(entity);
+        this.logger.log('Test attendance created: CL2026070001 lesson=' + lessonNumber + ' ' + data.studentCode + '=' + data.status, 'Seed');
+      }
+    }
+
+    // CL2026070002 班级: STU003
+    // Lesson 1 (Sun Jul 5): STU003=PRESENT
+    // Lesson 2 (Sun Jul 12): STU003=PRESENT
+    // Lesson 3 (Sun Jul 19): STU003=LEAVE
+    const class2Attendance = [
+      { scheduledDate: '2026-07-05', studentCode: 'STU003', status: AttendanceStatus.PRESENT },
+      { scheduledDate: '2026-07-12', studentCode: 'STU003', status: AttendanceStatus.PRESENT },
+      { scheduledDate: '2026-07-19', studentCode: 'STU003', status: AttendanceStatus.LEAVE },
+    ];
+
+    for (const data of class2Attendance) {
+      const lessonNumber = dateToLesson[data.scheduledDate];
+      if (!lessonNumber) {
+        this.logger.warn(`No lessonNumber mapping for date ${data.scheduledDate}, skipping attendance`, 'Seed');
+        continue;
+      }
+      const lesson = await this.lessonEntityRepository.findOne({
+        where: { classCode: 'CL2026070002', lessonNumber },
+      });
+      if (!lesson) {
+        this.logger.warn(`Lesson not found for CL2026070002 lessonNumber=${lessonNumber}, skipping attendance`, 'Seed');
+        continue;
+      }
+      const lessonId = Number(lesson.id);
+      const exists = await this.lessonAttendanceEntityRepository.findOne({
+        where: { lessonId, studentCode: data.studentCode },
+      });
+      if (!exists) {
+        const entity = this.lessonAttendanceEntityRepository.create({
+          lessonId,
+          classCode: 'CL2026070002',
+          studentCode: data.studentCode,
+          status: data.status,
+          teacherId: 2,
+          operator: adminId,
+          createdBy: adminId,
+          source: AttendanceSource.API,
+          workflowState: AttendanceWorkflowState.CONFIRMED,
+        });
+        await this.lessonAttendanceEntityRepository.save(entity);
+        this.logger.log('Test attendance created: CL2026070002 lesson=' + lessonNumber + ' ' + data.studentCode + '=' + data.status, 'Seed');
       }
     }
   }

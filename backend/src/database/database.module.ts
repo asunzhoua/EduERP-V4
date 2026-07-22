@@ -12,12 +12,16 @@ import { Student } from '../modules/student/entities/student.entity';
 import { ContractEntity } from '../modules/teaching/contract/contract.entity';
 import { EnrollmentEntity } from '../modules/teaching/enrollment/enrollment.entity';
 import { TeacherAssignmentEntity } from '../modules/teaching/teacher-assignment/teacher-assignment.entity';
+import { CourseEntity } from '../modules/teaching/course/course.entity';
+import { LessonEntity } from '../modules/teaching/lesson/lesson.entity';
+import { LessonAttendanceEntity } from '../modules/teaching/lesson-attendance/lesson-attendance.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       User, Role, Permission, UserRole, RolePermission, LoginLog,
       ClassEntity, Student, ContractEntity, EnrollmentEntity, TeacherAssignmentEntity,
+      CourseEntity, LessonEntity, LessonAttendanceEntity,
     ]),
   ],
   providers: [SeedService],

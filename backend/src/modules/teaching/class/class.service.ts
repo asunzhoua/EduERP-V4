@@ -277,7 +277,7 @@ export class ClassService {
 
   async enrichClass(cls: ClassEntity): Promise<any> {
     const [course, currentStudents, completedLessons, endDate, primaryTeacher] = await Promise.all([
-      this.courseRepo.findOne({ where: { courseCode: cls.courseCode } }),
+      this.courseRepo.findOneByCode(cls.courseCode),
       this.enrollmentRepo.countActiveByClassCode(cls.classCode),
       this.lessonRepo.countByClassCodeAndStatus(cls.classCode, LessonStatus.FINISHED),
       this.lessonRepo.findMaxScheduledDateByClassCode(cls.classCode),

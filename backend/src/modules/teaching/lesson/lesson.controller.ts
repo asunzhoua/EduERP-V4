@@ -60,12 +60,13 @@ export class LessonController {
   async start(
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
+    @Req() req: any,
   ) {
     const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
 
     // Update status to TEACHING
-    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
-    return this.lessonService.updateStatus(lesson.id, LessonStatus.TEACHING, operatedBy);
+    const operatorId = req.user.sub;
+    return this.lessonService.updateStatus(lesson.id, LessonStatus.TEACHING, operatorId);
   }
 
   @Patch('classes/:code/lessons/:lessonNumber/complete')
@@ -75,12 +76,13 @@ export class LessonController {
   async complete(
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
+    @Req() req: any,
   ) {
     const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
 
     // Update status to FINISHED
-    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
-    return this.lessonService.updateStatus(lesson.id, LessonStatus.FINISHED, operatedBy);
+    const operatorId = req.user.sub;
+    return this.lessonService.updateStatus(lesson.id, LessonStatus.FINISHED, operatorId);
   }
 
   @Patch('classes/:code/lessons/:lessonNumber/confirm')
@@ -90,12 +92,13 @@ export class LessonController {
   async confirm(
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
+    @Req() req: any,
   ) {
     const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
 
     // Update status to ARCHIVED
-    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
-    return this.lessonService.updateStatus(lesson.id, LessonStatus.ARCHIVED, operatedBy);
+    const operatorId = req.user.sub;
+    return this.lessonService.updateStatus(lesson.id, LessonStatus.ARCHIVED, operatorId);
   }
 
   @Patch('classes/:code/lessons/:lessonNumber/cancel')
@@ -104,15 +107,16 @@ export class LessonController {
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
     @Body() body: CancelLessonDto,
+    @Req() req: any,
   ) {
     const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
 
     // Update status to CANCELLED with reason
-    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
+    const operatorId = req.user.sub;
     return this.lessonService.updateStatus(
       lesson.id,
       LessonStatus.CANCELLED,
-      operatedBy,
+      operatorId,
       body.reason,
     );
   }
@@ -122,8 +126,9 @@ export class LessonController {
   createMakeup(
     @Param('code') code: string,
     @Body() body: CreateMakeupDto,
+    @Req() req: any,
   ) {
-    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
+    const operatorId = req.user.sub;
 
     return this.lessonService.create({
       classCode: code,
@@ -135,7 +140,7 @@ export class LessonController {
       teacherId: body.teacherId,
       isMakeup: true,
       originLessonId: body.originLessonId,
-      createdBy: operatedBy,
+      createdBy: operatorId,
     });
   }
 
@@ -145,8 +150,9 @@ export class LessonController {
   @ApiOperation({ summary: 'Create lesson with attendance records (auto lessonNumber)' })
   async createWithAttendance(
     @Body() dto: CreateLessonWithAttendanceDto,
+    @Req() req: any,
   ): Promise<ApiResponse> {
-    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
+    const operatorId = req.user.sub;
 
     // 1. Look up class for courseCode
     const cls = await this.classService.findByCode(dto.classCode);
@@ -176,7 +182,7 @@ export class LessonController {
       endTime: dto.endTime,
       teacherId: primaryTeacher.teacherId,
       isMakeup: false,
-      createdBy: operatedBy,
+      createdBy: operatorId,
     });
 
     // 5. Auto-create PENDING attendance records for enrolled students
@@ -194,7 +200,7 @@ export class LessonController {
       studentCode: r.studentCode,
       status: r.status,
       reason: r.reason,
-      operator: operatedBy,
+      operator: operatorId,
       source: AttendanceSource.API,
     }));
 

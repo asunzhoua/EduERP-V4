@@ -5,6 +5,7 @@ import {
   Param,
   Body,
   ParseIntPipe,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { EnrollmentService } from './enrollment.service';
@@ -47,9 +48,10 @@ export class EnrollmentController {
   withdraw(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: WithdrawEnrollmentDto,
+    @Req() req: any,
   ) {
-    const operatedBy = 0; // TODO: Get from JWT when auth is implemented
-    return this.enrollmentService.withdraw(id, body.reason, operatedBy);
+    const operatorId = req.user.sub;
+    return this.enrollmentService.withdraw(id, body.reason, operatorId);
   }
 
   @Get('classes/:code/enrollments')

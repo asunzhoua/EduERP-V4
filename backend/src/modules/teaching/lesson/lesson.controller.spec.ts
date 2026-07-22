@@ -113,11 +113,12 @@ describe('LessonController', () => {
       service.findByClassCodeAndLessonNumber.mockResolvedValue(mockLesson as any);
       const updated = { ...mockLesson, status: LessonStatus.TEACHING };
       service.updateStatus.mockResolvedValue(updated as any);
+      const mockReq = { user: { sub: 42 } };
 
-      const result = await controller.start('TEST01', 3);
+      const result = await controller.start('TEST01', 3, mockReq);
 
       expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 3);
-      expect(service.updateStatus).toHaveBeenCalledWith(42, LessonStatus.TEACHING, 0);
+      expect(service.updateStatus).toHaveBeenCalledWith(42, LessonStatus.TEACHING, 42);
       expect(result).toBe(updated);
     });
 
@@ -125,8 +126,9 @@ describe('LessonController', () => {
       service.findByClassCodeAndLessonNumber.mockRejectedValue(
         new Error('Lesson not found'),
       );
+      const mockReq = { user: { sub: 42 } };
 
-      await expect(controller.start('TEST01', 99)).rejects.toThrow('Lesson not found');
+      await expect(controller.start('TEST01', 99, mockReq)).rejects.toThrow('Lesson not found');
       expect(service.updateStatus).not.toHaveBeenCalled();
     });
   });
@@ -138,11 +140,12 @@ describe('LessonController', () => {
       service.findByClassCodeAndLessonNumber.mockResolvedValue(mockLesson as any);
       const updated = { ...mockLesson, status: LessonStatus.FINISHED };
       service.updateStatus.mockResolvedValue(updated as any);
+      const mockReq = { user: { sub: 42 } };
 
-      const result = await controller.complete('TEST01', 3);
+      const result = await controller.complete('TEST01', 3, mockReq);
 
       expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 3);
-      expect(service.updateStatus).toHaveBeenCalledWith(42, LessonStatus.FINISHED, 0);
+      expect(service.updateStatus).toHaveBeenCalledWith(42, LessonStatus.FINISHED, 42);
       expect(result).toBe(updated);
     });
 
@@ -150,8 +153,9 @@ describe('LessonController', () => {
       service.findByClassCodeAndLessonNumber.mockRejectedValue(
         new Error('Lesson not found'),
       );
+      const mockReq = { user: { sub: 42 } };
 
-      await expect(controller.complete('TEST01', 99)).rejects.toThrow('Lesson not found');
+      await expect(controller.complete('TEST01', 99, mockReq)).rejects.toThrow('Lesson not found');
       expect(service.updateStatus).not.toHaveBeenCalled();
     });
   });
@@ -163,11 +167,12 @@ describe('LessonController', () => {
       service.findByClassCodeAndLessonNumber.mockResolvedValue(mockLesson as any);
       const updated = { ...mockLesson, status: LessonStatus.ARCHIVED };
       service.updateStatus.mockResolvedValue(updated as any);
+      const mockReq = { user: { sub: 42 } };
 
-      const result = await controller.confirm('TEST01', 3);
+      const result = await controller.confirm('TEST01', 3, mockReq);
 
       expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 3);
-      expect(service.updateStatus).toHaveBeenCalledWith(42, LessonStatus.ARCHIVED, 0);
+      expect(service.updateStatus).toHaveBeenCalledWith(42, LessonStatus.ARCHIVED, 42);
       expect(result).toBe(updated);
     });
 
@@ -175,8 +180,9 @@ describe('LessonController', () => {
       service.findByClassCodeAndLessonNumber.mockRejectedValue(
         new Error('Lesson not found'),
       );
+      const mockReq = { user: { sub: 42 } };
 
-      await expect(controller.confirm('TEST01', 99)).rejects.toThrow('Lesson not found');
+      await expect(controller.confirm('TEST01', 99, mockReq)).rejects.toThrow('Lesson not found');
       expect(service.updateStatus).not.toHaveBeenCalled();
     });
   });
@@ -188,15 +194,16 @@ describe('LessonController', () => {
       service.findByClassCodeAndLessonNumber.mockResolvedValue(mockLesson as any);
       const updated = { ...mockLesson, status: LessonStatus.CANCELLED };
       service.updateStatus.mockResolvedValue(updated as any);
+      const mockReq = { user: { sub: 42 } };
 
       const body = { reason: '教师请假' };
-      const result = await controller.cancel('TEST01', 3, body as any);
+      const result = await controller.cancel('TEST01', 3, body as any, mockReq);
 
       expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 3);
       expect(service.updateStatus).toHaveBeenCalledWith(
         42,
         LessonStatus.CANCELLED,
-        0,
+        42,
         '教师请假',
       );
       expect(result).toBe(updated);
@@ -206,9 +213,10 @@ describe('LessonController', () => {
       service.findByClassCodeAndLessonNumber.mockRejectedValue(
         new Error('Lesson not found'),
       );
+      const mockReq = { user: { sub: 42 } };
 
       await expect(
-        controller.cancel('TEST01', 99, { reason: '教师请假' } as any),
+        controller.cancel('TEST01', 99, { reason: '教师请假' } as any, mockReq),
       ).rejects.toThrow('Lesson not found');
       expect(service.updateStatus).not.toHaveBeenCalled();
     });
@@ -217,14 +225,15 @@ describe('LessonController', () => {
       service.findByClassCodeAndLessonNumber.mockResolvedValue(mockLesson as any);
       const updated = { ...mockLesson, status: LessonStatus.CANCELLED };
       service.updateStatus.mockResolvedValue(updated as any);
+      const mockReq = { user: { sub: 42 } };
 
       const reason = '教室不可用，需要调课';
-      await controller.cancel('TEST01', 3, { reason } as any);
+      await controller.cancel('TEST01', 3, { reason } as any, mockReq);
 
       expect(service.updateStatus).toHaveBeenCalledWith(
         42,
         LessonStatus.CANCELLED,
-        0,
+        42,
         reason,
       );
     });
@@ -248,6 +257,7 @@ describe('LessonController', () => {
         originLessonId: 42,
       };
       service.create = jest.fn().mockResolvedValue(makeupLesson);
+      const mockReq = { user: { sub: 42 } };
 
       const body = {
         courseCode: 'CS101',
@@ -259,7 +269,7 @@ describe('LessonController', () => {
         originLessonId: 42,
       };
 
-      const result = await controller.createMakeup('TEST01', body as any);
+      const result = await controller.createMakeup('TEST01', body as any, mockReq);
 
       expect(service.create).toHaveBeenCalledWith({
         classCode: 'TEST01',
@@ -271,7 +281,7 @@ describe('LessonController', () => {
         teacherId: 7,
         isMakeup: true,
         originLessonId: 42,
-        createdBy: 0,
+        createdBy: 42,
       });
       expect(result).toBe(makeupLesson);
     });
@@ -279,6 +289,7 @@ describe('LessonController', () => {
     it('should pass originLessonId as undefined when not provided', async () => {
       const makeupLesson = { id: 101, isMakeup: true };
       service.create = jest.fn().mockResolvedValue(makeupLesson);
+      const mockReq = { user: { sub: 42 } };
 
       const body = {
         courseCode: 'CS101',
@@ -289,7 +300,7 @@ describe('LessonController', () => {
         teacherId: 1,
       };
 
-      await controller.createMakeup('TEST01', body as any);
+      await controller.createMakeup('TEST01', body as any, mockReq);
 
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -304,6 +315,7 @@ describe('LessonController', () => {
       service.create = jest.fn().mockRejectedValue(
         new Error('Class not found: TEST01'),
       );
+      const mockReq = { user: { sub: 42 } };
 
       const body = {
         courseCode: 'CS101',
@@ -315,7 +327,7 @@ describe('LessonController', () => {
       };
 
       await expect(
-        controller.createMakeup('TEST01', body as any),
+        controller.createMakeup('TEST01', body as any, mockReq),
       ).rejects.toThrow('Class not found: TEST01');
     });
   });

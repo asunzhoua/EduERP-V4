@@ -77,15 +77,16 @@ describe('TeacherAssignmentController', () => {
         role: TeacherRole.PRIMARY,
         reason: '新学期安排',
       };
+      const mockReq = { user: { sub: 42 } };
 
-      const result = await controller.create(dto);
+      const result = await controller.create(dto, mockReq);
 
       expect(result).toEqual(mockAssignment);
       expect(service.assign).toHaveBeenCalledWith({
         classCode: 'CLS-001',
         teacherId: 100,
         role: TeacherRole.PRIMARY,
-        assignedBy: 0,
+        assignedBy: 42,
         reason: '新学期安排',
       });
     });
@@ -96,14 +97,15 @@ describe('TeacherAssignmentController', () => {
         teacherId: 200,
         role: TeacherRole.SUBSTITUTE,
       };
+      const mockReq = { user: { sub: 42 } };
 
-      await controller.create(dto);
+      await controller.create(dto, mockReq);
 
       expect(service.assign).toHaveBeenCalledWith({
         classCode: 'CLS-002',
         teacherId: 200,
         role: TeacherRole.SUBSTITUTE,
-        assignedBy: 0,
+        assignedBy: 42,
         reason: undefined,
       });
     });

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ClassController } from './class.controller';
@@ -18,8 +18,8 @@ import { User } from '../../identity/entities/user.entity';
     EventEmitterModule,
     TeacherAssignmentModule,
     EnrollmentModule,
-    CourseModule,
-    LessonModule,
+    forwardRef(() => CourseModule),
+    forwardRef(() => LessonModule),
   ],
   controllers: [ClassController],
   providers: [ClassService, ClassRepository, ClassCodeGeneratorService],
