@@ -28,6 +28,7 @@ describe('TeacherAssignmentController', () => {
   const mockService = {
     assign: jest.fn<Promise<TeacherAssignmentEntity>, [any]>(),
     unassign: jest.fn<Promise<void>, [number]>(),
+    findAll: jest.fn<Promise<TeacherAssignmentEntity[]>, []>(),
     findActiveByClass: jest.fn(),
     findActivePrimary: jest.fn(),
     findAllByClass: jest.fn(),
@@ -60,6 +61,7 @@ describe('TeacherAssignmentController', () => {
     // Restore default mock implementations
     mockService.assign.mockResolvedValue(mockAssignment);
     mockService.unassign.mockResolvedValue(undefined);
+    mockService.findAll.mockResolvedValue([mockAssignment]);
     mockRepo.findOneBy.mockResolvedValue(mockAssignment);
   });
 
@@ -114,10 +116,20 @@ describe('TeacherAssignmentController', () => {
   // ─── findAll — GET /teacher-assignments ───
 
   describe('findAll', () => {
-    it('should return an empty array', () => {
-      const result = controller.findAll();
+    it('should return all teacher assignments', async () => {
+      const result = await controller.findAll();
+
+      expect(result).toEqual([mockAssignment]);
+      expect(service.findAll).toHaveBeenCalled();
+    });
+
+    it('should return empty array when no assignments exist', async () => {
+      mockService.findAll.mockResolvedValue([]);
+
+      const result = await controller.findAll();
 
       expect(result).toEqual([]);
+      expect(service.findAll).toHaveBeenCalled();
     });
   });
 

@@ -97,4 +97,11 @@ export class TeacherAssignmentService {
   async findAllByClass(classCode: string): Promise<TeacherAssignmentEntity[]> {
     return this.repo.findByClass(classCode);
   }
+
+  /** All assignments (global list). */
+  async findAll(): Promise<TeacherAssignmentEntity[]> {
+    return this.repo['repo'].find({
+      order: { createTime: 'DESC' },
+    });
+  }
 }

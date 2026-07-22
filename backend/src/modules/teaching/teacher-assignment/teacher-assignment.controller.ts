@@ -41,8 +41,7 @@ export class TeacherAssignmentController {
   @Get()
   @ApiOperation({ summary: 'List all teacher assignments' })
   findAll() {
-    // No global list method in service — return empty array
-    return [];
+    return this.service.findAll();
   }
 
   @Get(':id')

@@ -31,7 +31,7 @@ describe('TeacherAssignmentService', () => {
       findActiveByClassAndTeacher: jest.fn(),
       countActivePrimary: jest.fn(),
       endAssignment: jest.fn(),
-      repo: { create: jest.fn() },
+      repo: { create: jest.fn(), find: jest.fn() },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -196,6 +196,29 @@ describe('TeacherAssignmentService', () => {
       const result = await service.findAllByClass('CLS-001');
 
       expect(result).toHaveLength(1);
+    });
+  });
+
+  // ─── findAll ───
+
+  describe('findAll', () => {
+    it('should return all assignments ordered by createTime DESC', async () => {
+      ((repo as any).repo.find as jest.Mock).mockResolvedValue([mockAssignment]);
+
+      const result = await service.findAll();
+
+      expect(result).toEqual([mockAssignment]);
+      expect((repo as any).repo.find).toHaveBeenCalledWith({
+        order: { createTime: 'DESC' },
+      });
+    });
+
+    it('should return empty array when no assignments', async () => {
+      ((repo as any).repo.find as jest.Mock).mockResolvedValue([]);
+
+      const result = await service.findAll();
+
+      expect(result).toEqual([]);
     });
   });
 });

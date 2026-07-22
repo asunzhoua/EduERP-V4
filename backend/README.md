@@ -1,83 +1,46 @@
-# EduOS Backend
+# EduERP-V4 Backend
+
+教培机构 ERP 系统后端 — NestJS + TypeScript + MySQL
 
 ## Tech Stack
 
-- **Runtime:** Node.js 24+
-- **Framework:** NestJS 11
-- **Language:** TypeScript 5
+- **Runtime:** Node.js
+- **Framework:** NestJS
+- **Language:** TypeScript
 - **Database:** MySQL 8.0 (TypeORM)
-- **Auth:** JWT + Passport
+- **Auth:** JWT + Passport + RBAC
 - **EventBus:** @nestjs/event-emitter
+- **API Docs:** Swagger (auto-generated)
 
 ## Project Structure
 
 ```
 src/
-├── common/               # 共享层
-│   ├── constants/        # 常量定义
-│   ├── dto/              # 通用 DTO
-│   ├── decorators/       # 自定义装饰器
-│   ├── enums/            # 枚举定义
-│   ├── exceptions/       # 自定义异常
-│   ├── filters/          # 全局异常过滤器
-│   ├── guards/           # RBAC 权限守卫
-│   ├── interceptors/     # 统一响应拦截器
-│   └── interfaces/       # TypeScript 接口
+├── common/               # 共享层 (DTO, Guards, Decorators, Filters, Interceptors)
 ├── config/               # 配置中心
-│   ├── configuration.ts  # 应用配置
-│   └── database.config.ts# 数据库配置
-├── database/             # 数据库
-│   ├── entities/         # TypeORM 实体
-│   ├── migrations/       # 数据库迁移
-│   ├── seeds/            # 种子数据
-│   └── repository/       # 自定义仓库
-├── events/               # EventBus 事件
-│   ├── lesson/           # 课程事件
-│   ├── leave/            # 请假事件
-│   ├── finance/          # 财务事件
-│   ├── notification/     # 通知事件
-│   ├── event-bus.module.ts
-│   ├── event-bus.service.ts
-│   └── index.ts
-├── modules/              # 业务模块（11 个一级模块）
-│   ├── student/
-│   ├── teacher/
-│   ├── parent/
-│   ├── lesson/
-│   ├── course/
-│   ├── attendance/
-│   ├── leave/
-│   ├── finance/
-│   ├── points/
-│   ├── dashboard/
-│   └── system/
-├── utils/                # 工具
-│   ├── logger/           # 日志系统
-│   ├── helper/           # 辅助函数
-│   └── validator/        # 自定义校验
-├── middleware/            # 中间件
-│── app.module.ts         # 根模块
-└── main.ts               # 入口
+├── modules/              # 业务模块
+│   ├── identity/         # 用户认证 (注册/登录/JWT)
+│   ├── student/          # 学生管理
+│   └── teaching/         # 教学核心
+│       ├── course/       # 课程
+│       ├── class/        # 班级
+│       ├── contract/     # 合同
+│       ├── enrollment/   # 报名
+│       ├── lesson/       # 课时
+│       ├── lesson-attendance/   # 考勤
+│       ├── teacher-assignment/  # 教师分配
+│       ├── teacher-dashboard/   # 教师仪表盘
+│       └── lesson-change-request/ # 调课申请
+└── app.module.ts         # 根模块
 ```
-
-## Path Aliases
-
-| Alias | Path |
-|-------|------|
-| `@common` | `src/common/` |
-| `@modules` | `src/modules/` |
-| `@events` | `src/events/` |
-| `@database` | `src/database/` |
-| `@config` | `src/config/` |
-| `@utils` | `src/utils/` |
 
 ## Getting Started
 
 ```bash
-# Install
+# Install dependencies
 npm install
 
-# Start dev
+# Start dev server
 npm run start:dev
 
 # Build
@@ -87,19 +50,37 @@ npm run build
 npm run start:prod
 ```
 
-## Architecture Rules
+## Testing
 
-1. **Controller** — 只接收请求和返回响应，不写业务逻辑
-2. **Service** — 业务逻辑，通过 EventBus 发布事件
-3. **EventBus** — 模块间唯一通信方式
-4. **Repository** — 数据库访问
-5. **严禁**：Controller 调用其他模块 Service、模块间直接调用、硬编码业务规则
+```bash
+# Run all tests
+npx jest --no-coverage
 
-## Related Docs
+# Run specific module tests
+npx jest teaching
 
-- [Constitution](../../docs/00-Constitution/Constitution-v4.0.md)
-- [PRD](../../docs/01-PRD/PRD-v4.0.md)
-- [SAD](../../docs/02-SAD/SAD-v4.0.md)
-- [API Specification](../../docs/04-API/API-Specification.md)
-- [Event Bus](../../docs/05-EventBus/EventBusSpecification.md)
-- [Coding Convention](../../docs/11-AI-Development/CodingConvention.md)
+# Run with coverage
+npx jest --coverage
+```
+
+**Current status:** 940+ tests, 75+ suites — ALL PASS
+
+## Path Aliases
+
+| Alias | Path |
+|-------|------|
+| `@common` | `src/common/` |
+| `@modules` | `src/modules/` |
+
+## Architecture
+
+- **Controller** — 接收请求、返回响应，不含业务逻辑
+- **Service** — 业务逻辑核心
+- **Repository** — 数据库访问层
+- **Entity** — TypeORM 实体，映射数据库表
+
+## Related
+
+- Frontend: 微信小程序 (miniapp/)
+- Database: MySQL (EduOS schema, 19 tables)
+- GitHub: https://github.com/asunzhoua/EduERP-V4
