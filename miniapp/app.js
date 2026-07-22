@@ -23,7 +23,7 @@ App({
         'Authorization': `Bearer ${this.globalData.token}`
       },
       success: (res) => {
-        if (res.data.success) {
+        if (res.data && res.data.code === 0) {
           this.globalData.userInfo = res.data.data;
         } else {
           this.logout();

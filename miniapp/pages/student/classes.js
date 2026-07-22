@@ -46,9 +46,8 @@ Page({
 
   goToDetail(e) {
     const classData = e.currentTarget.dataset.class;
-    wx.showToast({
-      title: '课程详情开发中',
-      icon: 'none'
+    wx.navigateTo({
+      url: `/pages/student/class-detail?code=${classData.classCode}`
     });
   }
 });

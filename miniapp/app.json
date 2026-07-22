@@ -9,7 +9,9 @@
     "pages/teacher/students",
     "pages/teacher/lesson-record",
     "pages/student/index",
-    "pages/student/classes"
+    "pages/student/classes",
+    "pages/teacher/student-detail",
+    "pages/student/class-detail"
   ],
   "window": {
     "navigationBarTitleText": "EduERP",

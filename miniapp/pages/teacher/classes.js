@@ -1,6 +1,9 @@
 // pages/teacher/classes.js
 const { get } = require('../../utils/request');
 
+// Mock data switch - set to false for production
+const ENABLE_MOCK = true;
+
 Page({
   data: {
     classes: [],
@@ -48,71 +51,75 @@ Page({
     } catch (err) {
       console.error('[Classes] 加载失败:', err);
       
-      // 使用模拟数据作为兜底
-      const mockClasses = [
-        {
-          id: 1,
-          classCode: 'CL2026070001',
-          name: '周六上午班',
-          courseName: '数学思维训练',
-          courseCode: 'CS2026070001',
-          status: 'ACTIVE',
-          startDate: '2026-07-15',
-          endDate: '2026-08-15',
-          currentStudents: 12,
-          maxStudents: 15,
-          completedLessons: 8,
-          totalLessons: 24,
-          schedule: '周六 09:00-11:00'
-        },
-        {
-          id: 2,
-          classCode: 'CL2026070002',
-          name: '周日下午班',
-          courseName: '英语口语提升',
-          courseCode: 'CS2026070002',
-          status: 'ACTIVE',
-          startDate: '2026-07-16',
-          endDate: '2026-08-16',
-          currentStudents: 8,
-          maxStudents: 12,
-          completedLessons: 5,
-          totalLessons: 20,
-          schedule: '周日 14:00-16:00'
-        },
-        {
-          id: 3,
-          classCode: 'CL2026070003',
-          name: '周三晚班',
-          courseName: '编程启蒙',
-          courseCode: 'CS2026070003',
-          status: 'DRAFT',
-          startDate: '2026-07-20',
-          endDate: '2026-08-20',
-          currentStudents: 0,
-          maxStudents: 10,
-          completedLessons: 0,
-          totalLessons: 16,
-          schedule: '周三 19:00-20:30'
-        }
-      ];
+      if (ENABLE_MOCK) {
+        // 使用模拟数据作为兜底
+        const mockClasses = [
+          {
+            id: 1,
+            classCode: 'CL2026070001',
+            name: '周六上午班',
+            courseName: '数学思维训练',
+            courseCode: 'CS2026070001',
+            status: 'ACTIVE',
+            startDate: '2026-07-15',
+            endDate: '2026-08-15',
+            currentStudents: 12,
+            maxStudents: 15,
+            completedLessons: 8,
+            totalLessons: 24,
+            schedule: '周六 09:00-11:00'
+          },
+          {
+            id: 2,
+            classCode: 'CL2026070002',
+            name: '周日下午班',
+            courseName: '英语口语提升',
+            courseCode: 'CS2026070002',
+            status: 'ACTIVE',
+            startDate: '2026-07-16',
+            endDate: '2026-08-16',
+            currentStudents: 8,
+            maxStudents: 12,
+            completedLessons: 5,
+            totalLessons: 20,
+            schedule: '周日 14:00-16:00'
+          },
+          {
+            id: 3,
+            classCode: 'CL2026070003',
+            name: '周三晚班',
+            courseName: '编程启蒙',
+            courseCode: 'CS2026070003',
+            status: 'DRAFT',
+            startDate: '2026-07-20',
+            endDate: '2026-08-20',
+            currentStudents: 0,
+            maxStudents: 10,
+            completedLessons: 0,
+            totalLessons: 16,
+            schedule: '周三 19:00-20:30'
+          }
+        ];
 
-      const progressMap = {};
-      mockClasses.forEach(cls => {
-        progressMap[cls.classCode] = this.calculateProgress(cls);
-      });
+        const progressMap = {};
+        mockClasses.forEach(cls => {
+          progressMap[cls.classCode] = this.calculateProgress(cls);
+        });
 
-      this.setData({
-        classes: mockClasses,
-        progressMap: progressMap,
-        loading: false
-      });
+        this.setData({
+          classes: mockClasses,
+          progressMap: progressMap,
+          loading: false
+        });
 
-      wx.showToast({
-        title: '使用离线数据',
-        icon: 'none',
-        duration: 1500
-      });
+        wx.showToast({
+          title: '使用离线数据',
+          icon: 'none',
+          duration: 1500
+        });
+      } else {
+        wx.showToast({ title: '加载失败', icon: 'none' });
+      }
     }
   },
 

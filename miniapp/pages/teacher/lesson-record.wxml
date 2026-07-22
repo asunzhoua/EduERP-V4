@@ -145,7 +145,7 @@
       </view>
       <view class="confirm-item">
         <text class="confirm-label">到课学生</text>
-        <text class="confirm-value">{{students.filter(s => s.status === 'PRESENT').length}} 人到课 / {{students.filter(s => s.status === 'LATE').length}} 人迟到</text>
+        <text class="confirm-value">{{presentCount}} 人到课 / {{lateCount}} 人迟到</text>
       </view>
     </view>
 

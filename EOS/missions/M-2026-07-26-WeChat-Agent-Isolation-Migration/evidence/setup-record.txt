@@ -1,0 +1,35 @@
+﻿# Agent Creation Evidence
+- Agent ID: JDUbu7
+- Name: 微信个人助手
+- Model: deepseek-v4-flash
+- Workspace: C:\Users\sunz\.qwenpaw\workspaces\JDUbu7
+- Created via: POST /api/agents (201 Created)
+- API确认: list_agents 返回JDUbu7在列表中
+
+# Workspace Structure
+- AGENTS.md ✅ 角色定义
+- PROFILE.md ✅ 用户偏好
+- MEMORY.md ✅ 个人记忆索引
+- HEARTBEAT.md ✅ 日常指引
+- personal/ ✅
+- classes/ ✅ (含 2026暑假班记录.md)
+- reminders/ ✅
+- notes/ ✅
+
+# Memory Migration
+✅ 已迁移:
+  - classes/2026暑假班记录.md (课程记录)
+  - MEMORY.md (用户偏好索引)
+❌ 未迁移:
+  - EOS EVIDENCE_LOG.md
+  - EOS PROJECT_STATE.md
+  - EOS MISSION_QUEUE.md
+  - EOS DECISION_LOG.md
+  - EOS RULES.md
+  - 所有Mission报告
+  - 所有项目文件
+
+# Entry Binding
+- JDUbu7 wechat.enabled: true (已配置凭证)
+- Default agent wechat.enabled: true (待切换)
+- 路由切换状态: 配置完成, 待激活

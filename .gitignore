@@ -52,3 +52,10 @@ temp/
 ## Sensitive file types
 *.bak
 *.log
+ 
+# Test/dev artifacts 
+devtools_*.png 
+check_cc.py 
+wechat_devtools_setup.exe 
+_compile_verify*.png 
+_compile_verify*.py

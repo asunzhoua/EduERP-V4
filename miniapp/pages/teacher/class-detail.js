@@ -29,10 +29,14 @@ Page({
     this.setData({ loading: true, error: null });
 
     try {
-      const data = await get(`/classes/${code}`);
+      const [classInfo, studentsData] = await Promise.all([
+        get(`/classes/${code}`),
+        get(`/classes/${code}/students`)
+      ]);
+
       this.setData({
-        classInfo: data,
-        students: data.students || [],
+        classInfo,
+        students: studentsData || [],
         loading: false
       });
     } catch (err) {

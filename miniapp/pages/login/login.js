@@ -38,9 +38,9 @@ Page({
       // 根据角色跳转
       const role = data.user.role;
       if (role === 'Teacher') {
-        wx.switchTab({ url: '/pages/teacher/courses' });
+        wx.switchTab({ url: '/pages/index/index' });
       } else if (role === 'Student' || role === 'Parent') {
-        wx.switchTab({ url: '/pages/student/index' });
+        wx.navigateTo({ url: '/pages/student/index' });
       } else {
         wx.switchTab({ url: '/pages/index/index' });
       }

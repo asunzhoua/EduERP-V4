@@ -1,0 +1,62 @@
+<!--pages/student/class-detail/index.wxml-->
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error-state" wx:elif="{{error}}">
+    <text class="error-icon">⚠️</text>
+    <text class="error-text">{{error}}</text>
+    <button class="retry-btn" bindtap="onBack">返回列表</button>
+  </view>
+
+  <block wx:else>
+    <!-- 顶部信息卡片 -->
+    <view class="detail-header">
+      <view class="header-top">
+        <text class="class-name">{{classInfo.subject}}课程</text>
+        <text class="class-status status-{{classInfo.status}}">
+          {{classInfo.status === 'ACTIVE' ? '进行中' : '已失效'}}
+        </text>
+      </view>
+      <text class="class-code-label">班级编码：{{classInfo.classCode}}</text>
+    </view>
+
+    <!-- 进度信息 -->
+    <view class="info-section">
+      <view class="section-title">学习进度</view>
+      <view class="progress-area">
+        <view class="progress-bar-big">
+          <view class="progress-fill-big" style="width: {{classInfo.progress}}%"></view>
+        </view>
+        <text class="progress-percent">{{classInfo.progress}}%</text>
+      </view>
+      <view class="progress-detail">
+        <text>已完成 {{classInfo.completedLessons}} 课时</text>
+        <text>共 {{classInfo.totalLessons}} 课时</text>
+      </view>
+    </view>
+
+    <!-- 教师信息 -->
+    <view class="info-section">
+      <view class="section-title">授课教师</view>
+      <view class="teacher-area">
+        <view class="teacher-avatar">
+          <image src="/images/default-avatar.png" mode="aspectFill" class="t-avatar-img"></image>
+        </view>
+        <view class="teacher-info">
+          <text class="teacher-name">{{classInfo.teacherName || '待分配'}}</text>
+          <text class="teacher-label">{{classInfo.subject}}教师</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-section">
+      <button class="action-btn" bindtap="goToCourseDetail">查看我的课程</button>
+    </view>
+  </block>
+</view>

@@ -1,0 +1,19 @@
+﻿Agent 创建记录
+
+API: POST http://127.0.0.1:51111/api/agents
+Payload:
+{
+  "agent_id": "wechat-personal",
+  "name": "微信个人助手",
+  "description": "个人微信助手 — 处理课程记录、日常事务、个人咨询。不处理EOS工程事务。"
+}
+
+Response: 201
+{
+  "id": "JDUbu7",
+  "workspace_dir": "C:\\Users\\sunz\\.qwenpaw\\workspaces\\JDUbu7",
+  "enabled": true
+}
+
+注: agent_id 字段未被 API 使用，生成了随机 ID "JDUbu7"。
+模型已绑定 deepseek-v4-flash（OpenCode），与 default Agent 相同。

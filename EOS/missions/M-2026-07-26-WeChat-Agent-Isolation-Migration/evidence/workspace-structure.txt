@@ -1,0 +1,20 @@
+﻿JDUbu7 工作区目录结构:
+
+C:\Users\sunz\.qwenpaw\workspaces\JDUbu7\
+├── agent.json          (Agent 配置, 含频道绑定)
+├── AGENTS.md           (角色定义, 职责边界)
+├── HEARTBEAT.md        (心跳指引)
+├── MEMORY.md           (工作记忆索引)
+├── PROFILE.md          (用户资料)
+├── SOUL.md             (灵魂模板, 默认)
+├── chats.json          (对话历史索引)
+├── jobs.json           (任务队列)
+├── sessions/           (会话目录)
+├── skills/             (技能目录)
+│   └── channel_message/ (频道消息推送技能)
+├── personal/           (个人信息目录)
+├── classes/            (课程记录目录)
+│   └── 2026暑假班记录.md (暑假班学生名单)
+├── reminders/          (提醒管理目录)
+├── notes/              (笔记目录)
+└── memory/             (记忆目录, 空)

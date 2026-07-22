@@ -1,0 +1,7 @@
+*.md linguist-documentation 
+*.md diff=markdown 
+*.ts linguist-language=TypeScript 
+*.js linguist-language=JavaScript 
+*.wxml linguist-language=HTML 
+*.wxss linguist-language=CSS 
+*.json linguist-language=JSON

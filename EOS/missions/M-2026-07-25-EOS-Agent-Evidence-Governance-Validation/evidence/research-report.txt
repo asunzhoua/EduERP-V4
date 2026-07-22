@@ -1,0 +1,92 @@
+﻿Research Agent Full Output — 2026-07-22
+
+FACT-001: EOS Core 基础设施初始化完成，8 文件，935 PASS
+Evidence: E001(1) Source: EOS/EVIDENCE_LOG.md
+
+FACT-002: 响应格式修复完成
+Evidence: E001(2) Source: EOS/EVIDENCE_LOG.md
+
+FACT-003: Git d3c3fdb, SSH推送, 5处Secret清理
+Evidence: E001(3) Source: EOS/EVIDENCE_LOG.md
+
+FACT-004: JWT 64字节密钥替换
+Evidence: E001(4) Source: EOS/EVIDENCE_LOG.md
+
+FACT-005: SSH审计 154.9.226.175
+Evidence: E001(5) Source: EOS/EVIDENCE_LOG.md
+
+FACT-006: LiteLLM部署 429不可用
+Evidence: E001(6) E009 Source: EOS/EVIDENCE_LOG.md
+
+FACT-007: 多Agent链路验证通过
+Evidence: E001(7) E006 Source: EOS/EVIDENCE_LOG.md
+
+FACT-008: Research/Review分工验证 Reviewer发现问题
+Evidence: E007 Source: M-2026-07-24 final-report
+
+FACT-009: M-2026-07-20-003 PAUSED
+Evidence: E003 Source: EOS/MISSION_QUEUE.md
+
+FACT-010: 75 suites/935 tests ALL PASS
+Evidence: E002 Source: EOS/PROJECT_STATE.md
+
+FACT-011: 27 TS errors 不阻塞
+Evidence: E002 Source: EOS/PROJECT_STATE.md
+
+FACT-012: EOS Core就绪(治理框架)
+Evidence: E001 E004 E005 Source: EOS/*.md
+
+FACT-013: QwenPaw Multi-Agent已验证
+Evidence: E006 E008 Source: M-2026-07-23 final-report
+
+FACT-014: 9 Agents可访问
+Evidence: E008 Source: 运行时探测
+
+FACT-015: Provider OpenCode配置
+Evidence: E008 Source: 环境配置
+
+FACT-016: 后端API已验证 5模块
+Evidence: E010 Source: default workspace报告
+
+FACT-017: 小程序双端页面完成
+Evidence: E010 Source: default workspace报告
+
+FACT-018: 测试覆盖8模块
+Evidence: EduERP-Productization-Audit.md
+
+FACT-019: LiteLLM 154.9.226.175:4000 429
+Evidence: E001(6) E009 Source: EVIDENCE_LOG.md
+
+FACT-020: 美国服务器 /eos-workspace/ SSH可达
+Evidence: E009 Source: 运行时探测
+
+FACT-021: 后端:3000 Bot:8888 QwenPaw:51111 运行中
+Evidence: E008 Source: 运行时探测
+
+FACT-022: 4条决策 D001-D004
+Evidence: E004 Source: EOS/DECISION_LOG.md
+
+FACT-023: 7条规则
+Evidence: E005 Source: EOS/RULES.md
+
+FACT-024: 三层架构 EOS+EduERP+QwenPaw
+Evidence: E001 E006 E008 E010 Source: 综合
+
+FACT-025: Multi-Agent通信 chat_with_agent/submit_to_agent/spawn_subagent
+Evidence: E006 Source: M-2026-07-23
+
+FACT-026: Role Validation 有效
+Evidence: E007 Source: M-2026-07-24
+
+FACT-027: 阻塞-微信开发者工具登录状态未确认
+Evidence: E002 E003 Source: PROJECT_STATE.md MISSION_QUEUE.md
+
+FACT-028: 27 TS errors 可能影响联调
+Evidence: E002 Source: PROJECT_STATE.md
+
+FACT-029: AI Gateway 429
+Evidence: E001(6) Source: EVIDENCE_LOG.md
+
+Risks: 5(R01-R05)
+Unknowns: 6(U01-U06)
+Recommendation: 处理P0阻塞, 审查TS errors, 补充监控

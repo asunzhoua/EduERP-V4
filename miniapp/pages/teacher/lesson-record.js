@@ -1,6 +1,9 @@
 // pages/teacher/lesson-record.js
 const { get, post } = require('../../utils/request');
 
+// Mock data switch - set to false for production
+const ENABLE_MOCK = true;
+
 Page({
   data: {
     // 步骤控制
@@ -34,7 +37,12 @@ Page({
     loadingStudents: false,
 
     // 提交结果
-    submitResult: null
+    submitResult: null,
+
+    // 考勤计数（由JS计算，避免WXML中使用箭头函数）
+    presentCount: 0,
+    lateCount: 0,
+    absentCount: 0
   },
 
   onLoad(options) {
@@ -88,13 +96,17 @@ Page({
       }
     } catch (err) {
       console.warn('[lesson-record] 加载班级列表失败，使用降级数据:', err);
-      // 模拟数据（降级方案）
-      this.setData({
-        classes: [
-          { classCode: 'CL2026070001', name: '周六上午班', courseName: '数学思维训练' },
-          { classCode: 'CL2026070002', name: '周日下午班', courseName: '英语口语提升' }
-        ]
-      });
+      if (ENABLE_MOCK) {
+        // 模拟数据（降级方案）
+        this.setData({
+          classes: [
+            { classCode: 'CL2026070001', name: '周六上午班', courseName: '数学思维训练' },
+            { classCode: 'CL2026070002', name: '周日下午班', courseName: '英语口语提升' }
+          ]
+        });
+      } else {
+        wx.showToast({ title: '加载失败', icon: 'none' });
+      }
     } finally {
       this.setData({ loadingClasses: false });
     }
@@ -110,22 +122,38 @@ Page({
         status: 'PRESENT', // 默认到课
         reason: ''
       }));
+      const presentCount = students.filter(s => s.status === 'PRESENT').length;
+      const lateCount = students.filter(s => s.status === 'LATE').length;
+      const absentCount = students.filter(s => s.status === 'ABSENT').length;
       this.setData({
         students,
-        selectedStudents: students.map(s => s.studentCode)
+        selectedStudents: students.map(s => s.studentCode),
+        presentCount,
+        lateCount,
+        absentCount
       });
     } catch (err) {
       console.warn('[lesson-record] 加载学生列表失败，使用降级数据:', err);
-      // 模拟数据（降级方案）
-      const mockStudents = [
-        { studentCode: 'STU001', name: '张三', status: 'PRESENT' },
-        { studentCode: 'STU002', name: '李四', status: 'PRESENT' },
-        { studentCode: 'STU003', name: '王五', status: 'PRESENT' }
-      ];
-      this.setData({
-        students: mockStudents,
-        selectedStudents: mockStudents.map(s => s.studentCode)
-      });
+      if (ENABLE_MOCK) {
+        // 模拟数据（降级方案）
+        const mockStudents = [
+          { studentCode: 'STU001', name: '张三', status: 'PRESENT' },
+          { studentCode: 'STU002', name: '李四', status: 'PRESENT' },
+          { studentCode: 'STU003', name: '王五', status: 'PRESENT' }
+        ];
+        const presentCount = mockStudents.filter(s => s.status === 'PRESENT').length;
+        const lateCount = mockStudents.filter(s => s.status === 'LATE').length;
+        const absentCount = mockStudents.filter(s => s.status === 'ABSENT').length;
+        this.setData({
+          students: mockStudents,
+          selectedStudents: mockStudents.map(s => s.studentCode),
+          presentCount,
+          lateCount,
+          absentCount
+        });
+      } else {
+        wx.showToast({ title: '加载失败', icon: 'none' });
+      }
     } finally {
       this.setData({ loadingStudents: false });
     }
@@ -172,7 +200,15 @@ Page({
                   }
                   return st;
                 });
-                this.setData({ students: updatedStudents });
+                const presentCount = updatedStudents.filter(s => s.status === 'PRESENT').length;
+                const lateCount = updatedStudents.filter(s => s.status === 'LATE').length;
+                const absentCount = updatedStudents.filter(s => s.status === 'ABSENT').length;
+                this.setData({
+                  students: updatedStudents,
+                  presentCount,
+                  lateCount,
+                  absentCount
+                });
               }
             }
           });
@@ -182,7 +218,10 @@ Page({
       }
       return s;
     });
-    this.setData({ students });
+    const presentCount = students.filter(s => s.status === 'PRESENT').length;
+    const lateCount = students.filter(s => s.status === 'LATE').length;
+    const absentCount = students.filter(s => s.status === 'ABSENT').length;
+    this.setData({ students, presentCount, lateCount, absentCount });
   },
 
   // 日期选择

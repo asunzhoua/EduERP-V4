@@ -1,0 +1,29 @@
+﻿路由配置信息
+
+当前状态:
+- Default Agent agent.json → wechat.enabled = true
+  (当前所有 WeChat 消息路由到 default Agent)
+- JDUbu7 agent.json → wechat.enabled = false
+  (尚未启用，config 已准备)
+
+QwenPaw 路由机制（来自官方文档）:
+- 每个 Agent 有独立的 agent.json，包含 channels 配置
+- 频道消息自动路由到启用了该频道的 Agent
+- 修改 agent.json 后自动重载
+- 不同 Agent 可以绑定不同频道，同时响应
+
+配置切换操作（最终步骤）:
+1. JDUbu7 agent.json channels.wechat.enabled = true
+   (使用 default Agent 的 bot_token 等凭证)
+2. Default agent.json channels.wechat.enabled = false
+   (防止两个 Agent 竞争同一频道)
+
+JDUbu7 WeChat config 已准备（bind_wechat.py 生成）:
+{
+  "enabled": true,
+  "bot_prefix": "",
+  "filter_tool_messages": true,
+  "filter_thinking": true,
+  "allow_from": ["o9cq808LvEfm47YCewlv8aN4T050@im.wechat"],
+  "bot_token": "5d52e1a3128f@im.bot:060000ee665f9c4fee375b741f65d67a79c90d"
+}

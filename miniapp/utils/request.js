@@ -19,18 +19,18 @@ function request(options) {
         'Content-Type': 'application/json'
       },
       success: (res) => {
-        if (res.data.success) {
+        if (res.data && res.data.code === 0) {
           resolve(res.data.data);
-        } else if (res.data.code === 2002) {
+        } else if (res.data && res.data.code === 2002) {
           // Token 过期，跳转登录
           app.logout();
           reject(res.data);
         } else {
           wx.showToast({
-            title: res.data.message || '请求失败',
+            title: (res.data && res.data.message) || '请求失败',
             icon: 'none'
           });
-          reject(res.data);
+          reject(res && res.data);
         }
       },
       fail: (err) => {
