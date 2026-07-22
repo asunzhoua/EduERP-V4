@@ -46,6 +46,23 @@ export class EnrollmentRepository {
     });
   }
 
+  async countActiveByClassCodes(classCodes: string[]): Promise<Map<string, number>> {
+    if (!classCodes.length) return new Map();
+
+    const results = await this.repo
+      .createQueryBuilder('e')
+      .select('e.classCode', 'classCode')
+      .addSelect('COUNT(*)', 'count')
+      .where('e.classCode IN (:...classCodes)', { classCodes })
+      .andWhere('e.status = :status', { status: EnrollmentStatus.ACTIVE })
+      .groupBy('e.classCode')
+      .getRawMany();
+
+    const map = new Map<string, number>();
+    results.forEach(r => map.set(r.classCode, parseInt(r.count, 10)));
+    return map;
+  }
+
   async findActiveByClassAndStudentCodes(
     classCode: string,
     studentCodes: string[],

@@ -4,6 +4,9 @@ import { ClassService } from './class.service';
 import { ClassRepository } from './class.repository';
 import { ClassCodeGeneratorService } from './class-code-generator.service';
 import { TeacherAssignmentService } from '../teacher-assignment/teacher-assignment.service';
+import { CourseRepository } from '../course/course.repository';
+import { EnrollmentRepository } from '../enrollment/enrollment.repository';
+import { LessonRepository } from '../lesson/lesson.repository';
 import { ClassEntity } from './class.entity';
 import { ClassStatus } from './enums/class-status.enum';
 import { TeacherRole } from '@common/enums/teacher-role.enum';
@@ -14,6 +17,9 @@ describe('ClassService', () => {
   let classRepo: jest.Mocked<ClassRepository>;
   let codeGenerator: jest.Mocked<ClassCodeGeneratorService>;
   let teacherService: jest.Mocked<TeacherAssignmentService>;
+  let courseRepo: jest.Mocked<CourseRepository>;
+  let enrollmentRepo: jest.Mocked<EnrollmentRepository>;
+  let lessonRepo: jest.Mocked<LessonRepository>;
   let mockRawCreate: jest.Mock;
 
   const mockClass: ClassEntity = {
@@ -62,12 +68,32 @@ describe('ClassService', () => {
       findActivePrimary: jest.fn(),
     };
 
+    const mockCourseRepo = {
+      findByCodes: jest.fn(),
+      findOne: jest.fn(),
+    };
+
+    const mockEnrollmentRepo = {
+      countActiveByClassCodes: jest.fn(),
+      countActiveByClassCode: jest.fn(),
+    };
+
+    const mockLessonRepo = {
+      countFinishedByClassCodes: jest.fn(),
+      countByClassCodeAndStatus: jest.fn(),
+      findMaxScheduledDateByClassCodes: jest.fn(),
+      findMaxScheduledDateByClassCode: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ClassService,
         { provide: ClassRepository, useValue: mockClassRepo },
         { provide: ClassCodeGeneratorService, useValue: mockCodeGenerator },
         { provide: TeacherAssignmentService, useValue: mockTeacherService },
+        { provide: CourseRepository, useValue: mockCourseRepo },
+        { provide: EnrollmentRepository, useValue: mockEnrollmentRepo },
+        { provide: LessonRepository, useValue: mockLessonRepo },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
       ],
     }).compile();
@@ -76,6 +102,9 @@ describe('ClassService', () => {
     classRepo = module.get(ClassRepository);
     codeGenerator = module.get(ClassCodeGeneratorService);
     teacherService = module.get(TeacherAssignmentService);
+    courseRepo = module.get(CourseRepository);
+    enrollmentRepo = module.get(EnrollmentRepository);
+    lessonRepo = module.get(LessonRepository);
   });
 
   // ─── Create ───

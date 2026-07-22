@@ -58,7 +58,8 @@ export class ClassController {
   @ApiOperation({ summary: 'List all classes (paginated, filterable)' })
   async findAll(@Query() query: QueryClassDto): Promise<ApiResponse> {
     const result = await this.classService.findAll(query);
-    return ApiResponse.success(result);
+    const enrichedItems = await this.classService.enrichClasses(result.items);
+    return ApiResponse.success({ items: enrichedItems, total: result.total });
   }
 
   @Get(':code')
@@ -66,7 +67,8 @@ export class ClassController {
   @ApiOperation({ summary: 'Get class by classCode' })
   async findOne(@Param('code') code: string): Promise<ApiResponse> {
     const cls = await this.classService.findByCode(code);
-    return ApiResponse.success(cls);
+    const enriched = await this.classService.enrichClass(cls);
+    return ApiResponse.success(enriched);
   }
 
   @Put(':code')

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { CourseEntity } from './course.entity';
 
 @Injectable()
@@ -57,5 +57,10 @@ export class CourseRepository {
       .getMany();
 
     return { items, total };
+  }
+
+  async findByCodes(courseCodes: string[]): Promise<CourseEntity[]> {
+    if (!courseCodes.length) return [];
+    return this.repo.find({ where: { courseCode: In(courseCodes) } });
   }
 }

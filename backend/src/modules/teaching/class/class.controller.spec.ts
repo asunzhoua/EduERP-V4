@@ -20,6 +20,8 @@ describe('ClassController', () => {
     assignTeacher: jest.fn(),
     removeTeacher: jest.fn(),
     getTeachers: jest.fn(),
+    enrichClasses: jest.fn(),
+    enrichClass: jest.fn(),
   };
 
   const mockEnrollmentService = {
@@ -80,34 +82,37 @@ describe('ClassController', () => {
   // ─── 2. findAll ───
 
   describe('findAll', () => {
-    it('should return paginated class list', async () => {
+    it('should return paginated class list with enrichment', async () => {
       const query = { page: 1, pageSize: 20 };
-      const paged = {
-        items: [{ classCode: 'CLS001', name: 'Test Class' }],
-        total: 1,
-      };
-      mockClassService.findAll.mockResolvedValue(paged);
+      const rawItems = [{ classCode: 'CLS001', name: 'Test Class' }];
+      const enrichedItems = [{ classCode: 'CLS001', name: 'Test Class', courseName: '数学', currentStudents: 5 }];
+      mockClassService.findAll.mockResolvedValue({ items: rawItems, total: 1 });
+      mockClassService.enrichClasses.mockResolvedValue(enrichedItems);
 
       const result = await controller.findAll(query as any);
 
       expect(result.code).toBe(0);
-      expect(result.data).toEqual(paged);
+      expect(result.data).toEqual({ items: enrichedItems, total: 1 });
       expect(mockClassService.findAll).toHaveBeenCalledWith(query);
+      expect(mockClassService.enrichClasses).toHaveBeenCalledWith(rawItems);
     });
   });
 
   // ─── 3. findOne ───
 
   describe('findOne', () => {
-    it('should return a class by code', async () => {
+    it('should return a class enriched by code', async () => {
       const cls = { classCode: 'CLS001', name: 'Test Class', status: ClassStatus.DRAFT };
+      const enriched = { ...cls, courseName: '数学', currentStudents: 5, schedule: '周六 10:00-11:30' };
       mockClassService.findByCode.mockResolvedValue(cls);
+      mockClassService.enrichClass.mockResolvedValue(enriched);
 
       const result = await controller.findOne('CLS001');
 
       expect(result.code).toBe(0);
-      expect(result.data).toEqual(cls);
+      expect(result.data).toEqual(enriched);
       expect(mockClassService.findByCode).toHaveBeenCalledWith('CLS001');
+      expect(mockClassService.enrichClass).toHaveBeenCalledWith(cls);
     });
   });
 

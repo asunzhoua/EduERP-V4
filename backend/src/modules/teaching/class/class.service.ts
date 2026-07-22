@@ -13,6 +13,10 @@ import { UpdateClassDto } from './dto/update-class.dto';
 import { QueryClassDto } from './dto/query-class.dto';
 import { TeacherAssignmentService } from '../teacher-assignment/teacher-assignment.service';
 import { TeacherRole } from '@common/enums/teacher-role.enum';
+import { CourseRepository } from '../course/course.repository';
+import { EnrollmentRepository } from '../enrollment/enrollment.repository';
+import { LessonRepository } from '../lesson/lesson.repository';
+import { LessonStatus } from '../lesson/enums/lesson-status.enum';
 
 /** Allowed status transitions per ClassStateMachine */
 const VALID_TRANSITIONS: Record<ClassStatus, ClassStatus[]> = {
@@ -30,6 +34,9 @@ export class ClassService {
     private readonly classRepo: ClassRepository,
     private readonly codeGenerator: ClassCodeGeneratorService,
     private readonly teacherAssignmentService: TeacherAssignmentService,
+    private readonly courseRepo: CourseRepository,
+    private readonly enrollmentRepo: EnrollmentRepository,
+    private readonly lessonRepo: LessonRepository,
   ) {}
 
   // ─── Create ───
@@ -208,6 +215,66 @@ export class ClassService {
     await this.classRepo.save(cls);
 
     this.logger.log(`Class soft-deleted: ${classCode}`);
+  }
+
+  // ─── Data Enrichment ───
+
+  private formatSchedule(dayOfWeek: number[], startTime: string, endTime: string): string {
+    const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const sortedDays = [...dayOfWeek].sort((a, b) => a - b);
+    const dayStr = sortedDays.map(d => dayNames[d]).join(',');
+    return `${dayStr} ${startTime}-${endTime}`;
+  }
+
+  private computeEndDate(startDate: string, totalLessons: number): string {
+    const start = new Date(startDate);
+    const endDate = new Date(start);
+    endDate.setDate(endDate.getDate() + totalLessons * 7);
+    return endDate.toISOString().split('T')[0];
+  }
+
+  async enrichClasses(classes: ClassEntity[]): Promise<any[]> {
+    if (!classes.length) return [];
+
+    const classCodes = classes.map(c => c.classCode);
+    const courseCodes = [...new Set(classes.map(c => c.courseCode))];
+
+    const [courses, enrollmentCounts, lessonCounts, endDateMap] = await Promise.all([
+      this.courseRepo.findByCodes(courseCodes),
+      this.enrollmentRepo.countActiveByClassCodes(classCodes),
+      this.lessonRepo.countFinishedByClassCodes(classCodes),
+      this.lessonRepo.findMaxScheduledDateByClassCodes(classCodes),
+    ]);
+
+    const courseNameMap = new Map<string, string>();
+    courses.forEach(c => courseNameMap.set(c.courseCode, c.name));
+
+    return classes.map(cls => ({
+      ...cls,
+      courseName: courseNameMap.get(cls.courseCode) ?? '',
+      currentStudents: enrollmentCounts.get(cls.classCode) ?? 0,
+      completedLessons: lessonCounts.get(cls.classCode) ?? 0,
+      schedule: this.formatSchedule(cls.dayOfWeek, cls.startTime, cls.endTime),
+      endDate: endDateMap.get(cls.classCode) ?? this.computeEndDate(cls.startDate, cls.totalLessons),
+    }));
+  }
+
+  async enrichClass(cls: ClassEntity): Promise<any> {
+    const [course, currentStudents, completedLessons, endDate] = await Promise.all([
+      this.courseRepo.findOne({ where: { courseCode: cls.courseCode } }),
+      this.enrollmentRepo.countActiveByClassCode(cls.classCode),
+      this.lessonRepo.countByClassCodeAndStatus(cls.classCode, LessonStatus.FINISHED),
+      this.lessonRepo.findMaxScheduledDateByClassCode(cls.classCode),
+    ]);
+
+    return {
+      ...cls,
+      courseName: course?.name ?? '',
+      currentStudents,
+      completedLessons,
+      schedule: this.formatSchedule(cls.dayOfWeek, cls.startTime, cls.endTime),
+      endDate: endDate ?? this.computeEndDate(cls.startDate, cls.totalLessons),
+    };
   }
 
   // ─── Teacher Management (delegates to TeacherAssignmentService) ───
