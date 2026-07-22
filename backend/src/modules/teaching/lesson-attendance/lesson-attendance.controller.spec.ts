@@ -32,6 +32,8 @@ describe('LessonAttendanceController', () => {
     { ...mockAttendanceRecord, id: 2, studentCode: 'STU002' },
   ];
 
+  const mockReq = { user: { sub: 42 } };
+
   const mockService = {
     batchRollCall: jest.fn().mockResolvedValue(mockAttendanceList),
     recordAttendance: jest.fn().mockResolvedValue(mockAttendanceRecord),
@@ -82,7 +84,7 @@ describe('LessonAttendanceController', () => {
         ],
       };
 
-      const result = await controller.batchRollCall(1, dto);
+      const result = await controller.batchRollCall(1, dto, mockReq);
 
       expect(result).toEqual(mockAttendanceList);
       expect(result).toHaveLength(2);
@@ -93,7 +95,7 @@ describe('LessonAttendanceController', () => {
             lessonId: 1,
             studentCode: 'STU001',
             status: AttendanceStatus.PRESENT,
-            operator: 0,
+            operator: 42,
             note: '正常到课',
             reason: undefined,
           },
@@ -101,7 +103,7 @@ describe('LessonAttendanceController', () => {
             lessonId: 1,
             studentCode: 'STU002',
             status: AttendanceStatus.LATE,
-            operator: 0,
+            operator: 42,
             reason: '交通堵塞',
             note: undefined,
           },
@@ -117,14 +119,14 @@ describe('LessonAttendanceController', () => {
         note: '补签',
       };
 
-      const result = await controller.updateAttendance(1, 'STU001', body);
+      const result = await controller.updateAttendance(1, 'STU001', body, mockReq);
 
       expect(result).toEqual(mockAttendanceRecord);
       expect(service.recordAttendance).toHaveBeenCalledWith({
         lessonId: 1,
         studentCode: 'STU001',
         status: AttendanceStatus.PRESENT,
-        operator: 0,
+        operator: 42,
         note: '补签',
         reason: undefined,
       });
@@ -136,13 +138,13 @@ describe('LessonAttendanceController', () => {
         reason: '起晚了',
       };
 
-      await controller.updateAttendance(1, 'STU003', body);
+      await controller.updateAttendance(1, 'STU003', body, mockReq);
 
       expect(service.recordAttendance).toHaveBeenCalledWith({
         lessonId: 1,
         studentCode: 'STU003',
         status: AttendanceStatus.LATE,
-        operator: 0,
+        operator: 42,
         reason: '起晚了',
         note: undefined,
       });
@@ -159,11 +161,11 @@ describe('LessonAttendanceController', () => {
   });
 
   describe('confirmAll', () => {
-    it('should call service.confirmAll with lessonId and operator=0', async () => {
-      const result = await controller.confirmAll(1);
+    it('should call service.confirmAll with lessonId and operator from JWT', async () => {
+      const result = await controller.confirmAll(1, mockReq);
 
       expect(result).toEqual(mockAttendanceList);
-      expect(service.confirmAll).toHaveBeenCalledWith(1, 0);
+      expect(service.confirmAll).toHaveBeenCalledWith(1, 42);
     });
   });
 

@@ -6,6 +6,7 @@ import {
   Param,
   Body,
   ParseIntPipe,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { LessonAttendanceService } from './lesson-attendance.service';
@@ -28,13 +29,15 @@ export class LessonAttendanceController {
   async batchRollCall(
     @Param('id', ParseIntPipe) lessonId: number,
     @Body() body: BatchRollCallDto,
+    @Req() req: any,
   ): Promise<LessonAttendanceEntity[]> {
+    const operatorId = req.user.sub;
     const records = body.records.map((r) => ({
       lessonId,
       studentCode: r.studentCode,
       status: r.status,
       reason: r.reason,
-      operator: 0,
+      operator: operatorId,
       note: r.note,
     }));
 
@@ -52,8 +55,9 @@ export class LessonAttendanceController {
   })
   async confirmAll(
     @Param('id', ParseIntPipe) lessonId: number,
+    @Req() req: any,
   ): Promise<LessonAttendanceEntity[]> {
-    return this.attendanceService.confirmAll(lessonId, 0);
+    return this.attendanceService.confirmAll(lessonId, req.user.sub);
   }
 
   @Patch('lessons/:id/attendance/:studentCode')
@@ -63,13 +67,14 @@ export class LessonAttendanceController {
     @Param('studentCode') studentCode: string,
     @Body()
     body: { status: AttendanceStatus; reason?: string; note?: string },
+    @Req() req: any,
   ): Promise<LessonAttendanceEntity> {
     return this.attendanceService.recordAttendance({
       lessonId,
       studentCode,
       status: body.status,
       reason: body.reason,
-      operator: 0,
+      operator: req.user.sub,
       note: body.note,
     });
   }
