@@ -1,9 +1,6 @@
 // pages/teacher/lesson-record.js
 const { get, post } = require('../../utils/request');
 
-// Mock data switch - set to false for production
-const ENABLE_MOCK = false;
-
 Page({
   data: {
     // 步骤控制
@@ -96,17 +93,8 @@ Page({
       }
     } catch (err) {
       console.warn('[lesson-record] 加载班级列表失败，使用降级数据:', err);
-      if (ENABLE_MOCK) {
-        // 模拟数据（降级方案）
-        this.setData({
-          classes: [
-            { classCode: 'CL2026070001', name: '周六上午班', courseName: '数学思维训练' },
-            { classCode: 'CL2026070002', name: '周日下午班', courseName: '英语口语提升' }
-          ]
-        });
-      } else {
-        wx.showToast({ title: '加载失败', icon: 'none' });
-      }
+      wx.showToast({ title: '加载失败', icon: 'none' });
+
     } finally {
       this.setData({ loadingClasses: false });
     }
@@ -134,26 +122,8 @@ Page({
       });
     } catch (err) {
       console.warn('[lesson-record] 加载学生列表失败，使用降级数据:', err);
-      if (ENABLE_MOCK) {
-        // 模拟数据（降级方案）
-        const mockStudents = [
-          { studentCode: 'STU001', name: '张三', status: 'PRESENT' },
-          { studentCode: 'STU002', name: '李四', status: 'PRESENT' },
-          { studentCode: 'STU003', name: '王五', status: 'PRESENT' }
-        ];
-        const presentCount = mockStudents.filter(s => s.status === 'PRESENT').length;
-        const lateCount = mockStudents.filter(s => s.status === 'LATE').length;
-        const absentCount = mockStudents.filter(s => s.status === 'ABSENT').length;
-        this.setData({
-          students: mockStudents,
-          selectedStudents: mockStudents.map(s => s.studentCode),
-          presentCount,
-          lateCount,
-          absentCount
-        });
-      } else {
-        wx.showToast({ title: '加载失败', icon: 'none' });
-      }
+      wx.showToast({ title: '加载失败', icon: 'none' });
+
     } finally {
       this.setData({ loadingStudents: false });
     }

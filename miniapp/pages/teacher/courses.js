@@ -1,9 +1,6 @@
 // pages/teacher/courses.js
 const { get } = require('../../utils/request');
 
-// Mock data switch - set to false for production
-const ENABLE_MOCK = false;
-
 Page({
   data: {
     courses: [],
@@ -99,56 +96,8 @@ Page({
     } catch (err) {
       console.error('[Courses] 加载失败:', err);
       
-      if (ENABLE_MOCK) {
-        // 使用模拟数据作为兜底
-        const mockCourses = [
-          { 
-            id: 1, 
-            courseCode: 'CS2026070001', 
-            name: '数学思维训练', 
-            subject: '数学', 
-            status: 'PUBLISHED',
-            description: '培养学生数学思维能力',
-            lessonCount: 24,
-            enrolledClasses: 3
-          },
-          { 
-            id: 2, 
-            courseCode: 'CS2026070002', 
-            name: '英语口语提升', 
-            subject: '英语', 
-            status: 'PUBLISHED',
-            description: '提升英语口语表达能力',
-            lessonCount: 20,
-            enrolledClasses: 2
-          },
-          { 
-            id: 3, 
-            courseCode: 'CS2026070003', 
-            name: '编程启蒙', 
-            subject: '编程', 
-            status: 'DRAFT',
-            description: '少儿编程入门课程',
-            lessonCount: 16,
-            enrolledClasses: 0
-          }
-        ];
+      wx.showToast({ title: '加载失败', icon: 'none' });
 
-        this.setData({
-          courses: mockCourses,
-          filteredCourses: mockCourses,
-          loading: false,
-          hasMore: false
-        });
-
-        wx.showToast({
-          title: '使用离线数据',
-          icon: 'none',
-          duration: 1500
-        });
-      } else {
-        wx.showToast({ title: '加载失败', icon: 'none' });
-      }
     }
   },
 

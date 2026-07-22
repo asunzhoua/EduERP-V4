@@ -1,9 +1,6 @@
 // pages/teacher/students.js
 const { get } = require('../../utils/request');
 
-// Mock data switch - set to false for production
-const ENABLE_MOCK = false;
-
 Page({
   data: {
     students: [],
@@ -53,19 +50,8 @@ Page({
         loading: false
       });
     } catch (err) {
-      if (ENABLE_MOCK) {
-        // 模拟数据
-        this.setData({
-          students: [
-            { id: 1, studentCode: 'STU001', name: '张三', gender: 'MALE', school: '育才小学', grade: '四年级' },
-            { id: 2, studentCode: 'STU002', name: '李四', gender: 'FEMALE', school: '育才小学', grade: '四年级' },
-            { id: 3, studentCode: 'STU003', name: '王五', gender: 'MALE', school: '实验一小', grade: '五年级' }
-          ],
-          loading: false
-        });
-      } else {
-        wx.showToast({ title: '加载失败', icon: 'none' });
-      }
+      wx.showToast({ title: '加载失败', icon: 'none' });
+
     }
   },
 
