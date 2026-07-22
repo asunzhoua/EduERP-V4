@@ -10,6 +10,8 @@ Page({
     todayLessons: 0,
     pendingAttendance: 0,
     totalStudents: 0,
+    myContracts: [],
+    recentLessons: [],
     loading: false,  // 加载状态
     error: null,     // 错误信息
     refreshing: false // 下拉刷新状态
@@ -60,40 +62,56 @@ Page({
 
     this.setData({ loading: true, error: null });
 
-    try {
-      // 调用真实 API
-      const data = await get('/teacher/dashboard');
-      
-      this.setData({
-        todayLessons: data.todayLessons || 0,
-        pendingAttendance: data.pendingAttendance || 0,
-        totalStudents: data.totalStudents || 0,
-        loading: false
-      });
+    const role = this.data.role;
 
-      console.log('[Dashboard] 加载成功:', data);
-
-    } catch (err) {
-      console.error('[Dashboard] 加载失败:', err);
-      
-      // 错误处理：显示错误信息并使用默认值
-      this.setData({
-        error: err.message || '加载失败',
-        loading: false,
-        // 使用默认值保证界面可用
-        todayLessons: 0,
-        pendingAttendance: 0,
-        totalStudents: 0
-      });
-
-      // 如果是 Token 过期，request.js 已经处理了跳转
-      // 这里只显示提示
-      if (err.code !== 2002) {
-        wx.showToast({
-          title: '数据加载失败，请稍后重试',
-          icon: 'none',
-          duration: 2000
+    if (role === 'Student' || role === 'Parent') {
+      // 学生端数据
+      try {
+        const [contracts, lessons] = await Promise.all([
+          get('/students/self/contracts').catch(() => []),
+          get('/students/self/lessons').catch(() => [])
+        ]);
+        this.setData({
+          myContracts: Array.isArray(contracts) ? contracts : [],
+          recentLessons: Array.isArray(lessons) ? lessons.slice(0, 5) : [],
+          loading: false
         });
+        console.log('[Dashboard] 学生端加载成功:', contracts.length, 'contracts,', lessons.length, 'lessons');
+      } catch (err) {
+        console.error('[Dashboard] 学生端加载失败:', err);
+        this.setData({ error: err.message || '加载失败', loading: false });
+        if (err.code !== 2002) {
+          wx.showToast({ title: '数据加载失败，请稍后重试', icon: 'none', duration: 2000 });
+        }
+      }
+    } else {
+      // 教师端数据
+      try {
+        const data = await get('/teacher/dashboard');
+        
+        this.setData({
+          todayLessons: data.todayLessons || 0,
+          pendingAttendance: data.pendingAttendance || 0,
+          totalStudents: data.totalStudents || 0,
+          loading: false
+        });
+
+        console.log('[Dashboard] 教师端加载成功:', data);
+
+      } catch (err) {
+        console.error('[Dashboard] 教师端加载失败:', err);
+        
+        this.setData({
+          error: err.message || '加载失败',
+          loading: false,
+          todayLessons: 0,
+          pendingAttendance: 0,
+          totalStudents: 0
+        });
+
+        if (err.code !== 2002) {
+          wx.showToast({ title: '数据加载失败，请稍后重试', icon: 'none', duration: 2000 });
+        }
       }
     }
   },
@@ -117,5 +135,14 @@ Page({
 
   goToLessons() {
     wx.navigateTo({ url: '/pages/teacher/lesson-record' });
+  },
+
+  // 学生端导航
+  goToMyClasses() {
+    wx.navigateTo({ url: '/pages/student/classes' });
+  },
+
+  goToMyLessonRecords() {
+    wx.navigateTo({ url: '/pages/student/index' });
   }
 });

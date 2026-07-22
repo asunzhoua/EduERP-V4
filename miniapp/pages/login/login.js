@@ -40,7 +40,7 @@ Page({
       if (role === 'Teacher') {
         wx.switchTab({ url: '/pages/index/index' });
       } else if (role === 'Student' || role === 'Parent') {
-        wx.navigateTo({ url: '/pages/student/index' });
+        wx.switchTab({ url: '/pages/index/index' });
       } else {
         wx.switchTab({ url: '/pages/index/index' });
       }
