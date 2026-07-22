@@ -52,8 +52,6 @@ Page({
         loading: false
       });
 
-      console.log('[Classes] 加载成功:', classes.length, '条');
-
     } catch (err) {
       console.error('[Classes] 加载失败:', err);
       

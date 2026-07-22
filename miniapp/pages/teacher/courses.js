@@ -96,8 +96,6 @@ Page({
         loading: false
       });
 
-      console.log('[Courses] 加载成功:', courses.length, '条');
-
     } catch (err) {
       console.error('[Courses] 加载失败:', err);
       

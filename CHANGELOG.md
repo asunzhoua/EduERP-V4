@@ -1,5 +1,29 @@
 # EduERP V4 — Changelog
 
+## [Unreleased]
+
+### 2026-07-23
+- chore: clean console.log from miniapp pages (F-202)
+- fix: replace hardcoded operatedBy with req.user.sub in all controllers
+- fix: resolve TypeScript compilation errors (jwt.strategy, student.service, seed.service)
+- fix: add missing sitemap.json
+- feat: student TabBar role adaptation (Plan B)
+- feat: page title unification (12 pages)
+- feat: implement Contract.findAll with pagination
+- feat: implement Enrollment findAll with pagination
+- feat: implement TeacherAssignment findAll
+- test: add TeacherDashboard controller tests
+- docs: update README.md
+
+### 2026-07-22
+- feat: P1 Batch 2+3 — Course enrichment, enrollment enrichment, classCode fix
+- fix: P0 import path fix for student/class-detail and teacher/student-detail
+
+### 2026-07-20
+- feat: complete teacher and student miniapp MVP workflow (d3c3fdb)
+
+---
+
 ## v0.3.0 — Student Domain (2026-07-07) 🟢 Gate #003 Approved (98/100)
 
 ### Student Domain (Sprint 3)

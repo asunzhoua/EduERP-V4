@@ -76,7 +76,6 @@ Page({
           recentLessons: Array.isArray(lessons) ? lessons.slice(0, 5) : [],
           loading: false
         });
-        console.log('[Dashboard] 学生端加载成功:', contracts.length, 'contracts,', lessons.length, 'lessons');
       } catch (err) {
         console.error('[Dashboard] 学生端加载失败:', err);
         this.setData({ error: err.message || '加载失败', loading: false });
@@ -95,8 +94,6 @@ Page({
           totalStudents: data.totalStudents || 0,
           loading: false
         });
-
-        console.log('[Dashboard] 教师端加载成功:', data);
 
       } catch (err) {
         console.error('[Dashboard] 教师端加载失败:', err);
