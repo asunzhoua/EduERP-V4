@@ -108,7 +108,7 @@ export class StudentService {
     const keyword = query.keyword;
 
     const [items, total] = await this.studentRepository.findAndCount({
-      where: (qb: any) => {
+      where: ((qb: any) => {
         qb.where(where);
         if (keyword) {
           qb.andWhere(
@@ -120,7 +120,7 @@ export class StudentService {
             })
           );
         }
-      },
+      }) as any,
       skip,
       take: pageSize,
       order: { createTime: 'DESC' } as any,
