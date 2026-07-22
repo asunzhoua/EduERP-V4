@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, ParseIntPipe, Req } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { LessonChangeRequestService } from './lesson-change-request.service';
 import { CreateChangeRequestDto } from './dto/create-change-request.dto';
@@ -14,11 +14,12 @@ export class LessonChangeRequestController {
   createRequest(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: CreateChangeRequestDto,
+    @Req() req: any,
   ) {
     return this.service.createRequest({
       lessonId: id,
       requestType: body.requestType,
-      requestedBy: 0,
+      requestedBy: req.user.sub,
       reason: body.reason,
       previousDate: body.previousDate,
       newDate: body.newDate,
@@ -39,8 +40,8 @@ export class LessonChangeRequestController {
 
   @Patch('change-requests/:id/approve')
   @ApiOperation({ summary: 'Approve a change request (admin)' })
-  approve(@Param('id', ParseIntPipe) id: number) {
-    return this.service.approve(id, 0);
+  approve(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.service.approve(id, req.user.sub);
   }
 
   @Patch('change-requests/:id/reject')
@@ -48,7 +49,8 @@ export class LessonChangeRequestController {
   reject(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { reason: string },
+    @Req() req: any,
   ) {
-    return this.service.reject(id, 0, body.reason);
+    return this.service.reject(id, req.user.sub, body.reason);
   }
 }

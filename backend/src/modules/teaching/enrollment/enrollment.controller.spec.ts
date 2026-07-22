@@ -18,6 +18,7 @@ describe('EnrollmentController', () => {
 
   const mockEnrollmentService = {
     enroll: jest.fn().mockResolvedValue(mockEnrollment),
+    findAll: jest.fn().mockResolvedValue({ items: [mockEnrollment], total: 1 }),
     findOne: jest.fn().mockResolvedValue(mockEnrollment),
     withdraw: jest.fn().mockResolvedValue({
       ...mockEnrollment,
@@ -44,6 +45,7 @@ describe('EnrollmentController', () => {
     jest.clearAllMocks();
     // Re-mock resolved values after clearAllMocks
     mockEnrollmentService.enroll.mockResolvedValue(mockEnrollment);
+    mockEnrollmentService.findAll.mockResolvedValue({ items: [mockEnrollment], total: 1 });
     mockEnrollmentService.findOne.mockResolvedValue(mockEnrollment);
     mockEnrollmentService.withdraw.mockResolvedValue({
       ...mockEnrollment,
@@ -75,6 +77,16 @@ describe('EnrollmentController', () => {
         studentCode: 'STU001',
         contractCode: 'CTR001',
       });
+    });
+  });
+
+  // findAll - GET /enrollments
+  describe('findAll', () => {
+    it('should return paginated enrollments', async () => {
+      const result = await controller.findAll({});
+
+      expect(result).toEqual({ items: [mockEnrollment], total: 1 });
+      expect(service.findAll).toHaveBeenCalled();
     });
   });
 

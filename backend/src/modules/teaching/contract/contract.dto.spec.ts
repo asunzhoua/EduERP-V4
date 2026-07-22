@@ -31,9 +31,13 @@ describe('Contract DTOs', () => {
       expect(dto).toBeDefined();
     });
 
-    it('should have no enumerable properties by default', () => {
+    it('should have all filter fields as optional (undefined by default)', () => {
       const dto = new QueryContractDto();
-      expect(Object.keys(dto)).toHaveLength(0);
+      expect(dto.studentCode).toBeUndefined();
+      expect(dto.subject).toBeUndefined();
+      expect(dto.status).toBeUndefined();
+      expect(dto.page).toBeUndefined();
+      expect(dto.pageSize).toBeUndefined();
     });
   });
 

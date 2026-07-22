@@ -174,6 +174,18 @@ export class EnrollmentService {
     });
   }
 
+  async findAll(
+    query: { classCode?: string; studentCode?: string; status?: string; page?: number; pageSize?: number },
+  ): Promise<{ items: EnrollmentEntity[]; total: number }> {
+    return this.enrollmentRepo.findMany({
+      classCode: query.classCode,
+      studentCode: query.studentCode,
+      status: query.status,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+    });
+  }
+
   /**
    * Find actively enrolled students with personal info for a class.
    * Reads ACTIVE enrollments → resolves student names via StudentRepository.

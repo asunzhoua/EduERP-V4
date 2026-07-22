@@ -27,6 +27,7 @@ describe('ContractController', () => {
 
   const mockService = {
     create: jest.fn().mockResolvedValue(mockContract),
+    findAll: jest.fn().mockResolvedValue({ items: [mockContract], total: 1 }),
     findOneByCode: jest.fn().mockResolvedValue(mockContract),
     findByStudentCode: jest.fn().mockResolvedValue([mockContract]),
     freeze: jest.fn().mockResolvedValue({
@@ -58,6 +59,7 @@ describe('ContractController', () => {
     jest.clearAllMocks();
     // Re-mock resolved values after clearAllMocks
     mockService.create.mockResolvedValue(mockContract);
+    mockService.findAll.mockResolvedValue({ items: [mockContract], total: 1 });
     mockService.findOneByCode.mockResolvedValue(mockContract);
     mockService.findByStudentCode.mockResolvedValue([mockContract]);
     mockService.freeze.mockResolvedValue({
@@ -138,10 +140,11 @@ describe('ContractController', () => {
   // ─── findAll - GET /contracts ───
 
   describe('findAll', () => {
-    it('should return an empty array', () => {
-      const result = controller.findAll();
+    it('should return paginated contracts', async () => {
+      const result = await controller.findAll({});
 
-      expect(result).toEqual([]);
+      expect(result).toEqual({ items: [mockContract], total: 1 });
+      expect(mockService.findAll).toHaveBeenCalled();
     });
   });
 

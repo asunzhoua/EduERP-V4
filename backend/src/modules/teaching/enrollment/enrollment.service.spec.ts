@@ -66,6 +66,7 @@ describe('EnrollmentService', () => {
       findByStudentCode: jest.fn(),
       findByClassAndStudent: jest.fn(),
       countActiveByClassCode: jest.fn(),
+      findMany: jest.fn(),
     };
 
     const mockContractRepo = {
@@ -251,6 +252,39 @@ describe('EnrollmentService', () => {
       expect(result[0].courseName).toBe('数学思维训练');
       expect(result[0].completedLessons).toBe(10);
       expect(result[0].totalLessons).toBe(24);
+    });
+  });
+
+  // ─── findAll ───
+
+  describe('findAll', () => {
+    it('should return paginated enrollments', async () => {
+      enrollmentRepo.findMany.mockResolvedValue({
+        items: [{ ...mockEnrollment }],
+        total: 1,
+      });
+      const result = await service.findAll({ page: 1, pageSize: 20 });
+      expect(result.items).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect(enrollmentRepo.findMany).toHaveBeenCalledWith({
+        classCode: undefined,
+        studentCode: undefined,
+        status: undefined,
+        page: 1,
+        pageSize: 20,
+      });
+    });
+
+    it('should default page=1 pageSize=20 when not provided', async () => {
+      enrollmentRepo.findMany.mockResolvedValue({ items: [], total: 0 });
+      await service.findAll({});
+      expect(enrollmentRepo.findMany).toHaveBeenCalledWith({
+        classCode: undefined,
+        studentCode: undefined,
+        status: undefined,
+        page: 1,
+        pageSize: 20,
+      });
     });
   });
 

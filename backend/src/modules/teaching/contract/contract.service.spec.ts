@@ -47,6 +47,7 @@ describe('ContractService', () => {
       findOneByCode: jest.fn(),
       findByStudentCode: jest.fn(),
       countByStudentCode: jest.fn(),
+      findMany: jest.fn(),
     };
 
     const mockCodeGen = {
@@ -130,6 +131,37 @@ describe('ContractService', () => {
       ]);
       const result = await service.findByStudentCode('ST2026010001');
       expect(result).toHaveLength(2);
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return paginated contracts', async () => {
+      contractRepo.findMany.mockResolvedValue({
+        items: [{ ...mockContract }],
+        total: 1,
+      });
+      const result = await service.findAll({ page: 1, pageSize: 20 });
+      expect(result.items).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect(contractRepo.findMany).toHaveBeenCalledWith({
+        studentCode: undefined,
+        subject: undefined,
+        status: undefined,
+        page: 1,
+        pageSize: 20,
+      });
+    });
+
+    it('should default page=1 pageSize=20 when not provided', async () => {
+      contractRepo.findMany.mockResolvedValue({ items: [], total: 0 });
+      await service.findAll({});
+      expect(contractRepo.findMany).toHaveBeenCalledWith({
+        studentCode: undefined,
+        subject: undefined,
+        status: undefined,
+        page: 1,
+        pageSize: 20,
+      });
     });
   });
 

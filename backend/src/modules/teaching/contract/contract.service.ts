@@ -92,6 +92,18 @@ export class ContractService {
     return this.contractRepo.findByStudentCode(studentCode);
   }
 
+  async findAll(
+    query: { studentCode?: string; subject?: string; status?: string; page?: number; pageSize?: number },
+  ): Promise<{ items: ContractEntity[]; total: number }> {
+    return this.contractRepo.findMany({
+      studentCode: query.studentCode,
+      subject: query.subject,
+      status: query.status,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+    });
+  }
+
   // ─── Status Transitions ───
 
   async freeze(

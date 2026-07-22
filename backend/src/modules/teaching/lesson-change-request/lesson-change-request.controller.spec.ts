@@ -43,12 +43,13 @@ describe('LessonChangeRequestController', () => {
       const entity = new LessonChangeRequestEntity();
       service.createRequest.mockResolvedValue(entity);
 
-      const result = await controller.createRequest(1, dto as any);
+      const mockReq = { user: { sub: 42 } };
+      const result = await controller.createRequest(1, dto as any, mockReq);
 
       expect(service.createRequest).toHaveBeenCalledWith({
         lessonId: 1,
         requestType: ChangeRequestType.RESCHEDULE,
-        requestedBy: 0,
+        requestedBy: 42,
         reason: '需要调课',
         previousDate: '2026-07-20',
         newDate: '2026-07-22',
@@ -76,27 +77,29 @@ describe('LessonChangeRequestController', () => {
   });
 
   describe('approve', () => {
-    it('should call service.approve', async () => {
+    it('should call service.approve with operatorId from req', async () => {
       const entity = new LessonChangeRequestEntity();
       entity.status = ChangeRequestStatus.APPROVED;
       service.approve.mockResolvedValue(entity);
 
-      const result = await controller.approve(1);
+      const mockReq = { user: { sub: 42 } };
+      const result = await controller.approve(1, mockReq);
 
-      expect(service.approve).toHaveBeenCalledWith(1, 0);
+      expect(service.approve).toHaveBeenCalledWith(1, 42);
       expect(result.status).toBe(ChangeRequestStatus.APPROVED);
     });
   });
 
   describe('reject', () => {
-    it('should call service.reject with reason', async () => {
+    it('should call service.reject with reason and operatorId from req', async () => {
       const entity = new LessonChangeRequestEntity();
       entity.status = ChangeRequestStatus.REJECTED;
       service.reject.mockResolvedValue(entity);
 
-      const result = await controller.reject(1, { reason: '拒绝理由' });
+      const mockReq = { user: { sub: 42 } };
+      const result = await controller.reject(1, { reason: '拒绝理由' }, mockReq);
 
-      expect(service.reject).toHaveBeenCalledWith(1, 0, '拒绝理由');
+      expect(service.reject).toHaveBeenCalledWith(1, 42, '拒绝理由');
       expect(result.status).toBe(ChangeRequestStatus.REJECTED);
     });
   });

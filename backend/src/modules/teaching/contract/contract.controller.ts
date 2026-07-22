@@ -6,12 +6,14 @@ import {
   Param,
   Body,
   Logger,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { ContractService } from './contract.service';
 import { CreateContractDto } from './dto/create-contract.dto';
+import { QueryContractDto } from './dto/query-contract.dto';
 import { CreateContractInput } from './contract.service';
 import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
@@ -47,8 +49,15 @@ export class ContractController {
 
   @Get()
   @ApiOperation({ summary: 'List all contracts (paginated, filterable)' })
-  findAll() {
-    return [];
+  async findAll(@Query() query: QueryContractDto) {
+    const result = await this.contractService.findAll({
+      studentCode: query.studentCode,
+      subject: query.subject,
+      status: query.status,
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+    return result;
   }
 
   @Get('students/:studentCode/contracts')

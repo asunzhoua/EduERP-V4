@@ -75,4 +75,34 @@ export class EnrollmentRepository {
       },
     });
   }
+
+  async findMany(options: {
+    classCode?: string;
+    studentCode?: string;
+    status?: string;
+    page: number;
+    pageSize: number;
+  }): Promise<{ items: EnrollmentEntity[]; total: number }> {
+    const qb = this.repo.createQueryBuilder('e');
+
+    if (options.classCode) {
+      qb.andWhere('e.classCode = :classCode', { classCode: options.classCode });
+    }
+    if (options.studentCode) {
+      qb.andWhere('e.studentCode = :studentCode', { studentCode: options.studentCode });
+    }
+    if (options.status) {
+      qb.andWhere('e.status = :status', { status: options.status });
+    }
+
+    qb.orderBy('e.enrolledAt', 'DESC');
+
+    const total = await qb.getCount();
+    const items = await qb
+      .skip((options.page - 1) * options.pageSize)
+      .take(options.pageSize)
+      .getMany();
+
+    return { items, total };
+  }
 }

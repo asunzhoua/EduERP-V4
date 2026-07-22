@@ -5,11 +5,13 @@ import {
   Param,
   Body,
   ParseIntPipe,
+  Query,
   Req,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { EnrollmentService } from './enrollment.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
+import { QueryEnrollmentDto } from './dto/query-enrollment.dto';
 import { WithdrawEnrollmentDto } from './dto/withdraw-enrollment.dto';
 import { ApiResponse } from '@common/dto/api-response';
 
@@ -31,10 +33,15 @@ export class EnrollmentController {
 
   @Get()
   @ApiOperation({ summary: 'List all enrollments (paginated, filterable)' })
-  findAll() {
-    // Service does not have findAll method
-    // Return empty array for now, or could throw NotImplementedException
-    return [];
+  async findAll(@Query() query: QueryEnrollmentDto) {
+    const result = await this.enrollmentService.findAll({
+      classCode: query.classCode,
+      studentCode: query.studentCode,
+      status: query.status,
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+    return result;
   }
 
   @Get(':id')
