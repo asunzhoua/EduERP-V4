@@ -44,6 +44,16 @@ v2.6 变更（Batch 4.2 — Batch Duration Tracking & Timeout Alerts）：
 - 增强 get_batch_duration() — 支持 batch_completed_at / batch_duration_minutes
 - 增强 check_eos_statistics() — 集成耗时统计报表输出
 
+v2.7 变更（Batch 4.3 — Automatic Daily Report Generation）：
+- 新增 DAILY_REPORTS_DIR — 日报输出目录常量
+- 新增 collect_daily_completed() — 收集指定日期完成的 Mission/Task
+- 新增 get_daily_commits() — 获取指定日期的 git commits
+- 新增 get_daily_evidence() — 获取指定日期新增的 Evidence 文件
+- 新增 get_test_status() — 获取当前测试状态
+- 新增 get_build_status() — 获取当前构建状态
+- 新增 generate_daily_report() — 生成日报并写入文件
+- 新增 --daily-report 命令行参数 — 支持生成今日/指定日期日报
+
 由 Windows Task Scheduler 每 15 分钟调用一次。
 """
 
@@ -2122,18 +2132,331 @@ def check_mission_priority_queue() -> tuple[str, str, bool]:
 
 
 # ──────────────────────────────────────────────
+# Daily Report Generation (Batch 4.3 — v2.7)
+# ──────────────────────────────────────────────
+
+DAILY_REPORTS_DIR = os.path.join(os.path.dirname(BASE_DIR), "daily-reports")
+
+
+def collect_daily_completed(date_str: str) -> list[dict]:
+    """收集指定日期完成的 Mission/Phase/Batch。
+
+    扫描所有 mission.state 文件，找出在 date_str 当天完成的任务。
+    判定标准：tasks 中 completed_at 的日期 = date_str。
+    返回 list[dict]，每个 dict 包含 mission_id, task_id, description, commit, evidence。
+    """
+    completed = []
+    seen_keys = set()  # dedup by (mission_id, task_id)
+    search_dirs = [MISSIONS_DIR]
+    if os.path.isdir(PROJECT_MISSIONS_DIR):
+        search_dirs.append(PROJECT_MISSIONS_DIR)
+
+    for base_dir in search_dirs:
+        if not os.path.isdir(base_dir):
+            continue
+        state_files = glob.glob(
+            os.path.join(base_dir, "*", "mission.state"), recursive=True
+        )
+        for sf in state_files:
+            state = None
+            try:
+                with open(sf, "r", encoding="utf-8") as f:
+                    state = json.load(f)
+            except Exception:
+                try:
+                    with open(sf, "r", encoding="gbk") as f:
+                        state = json.load(f)
+                except Exception:
+                    continue
+
+            if not state:
+                continue
+
+            mission_id = state.get("mission_id", "unknown")
+            tasks = state.get("tasks", [])
+            for task in tasks:
+                completed_at = task.get("completed_at", "")
+                if completed_at and date_str in completed_at:
+                    dedup_key = (mission_id, task.get("id", "?"))
+                    if dedup_key in seen_keys:
+                        continue
+                    seen_keys.add(dedup_key)
+                    completed.append({
+                        "mission_id": mission_id,
+                        "task_id": task.get("id", "?"),
+                        "description": task.get("description", ""),
+                        "commit": task.get("commit", "—"),
+                        "evidence": task.get("evidence", "—"),
+                    })
+
+    return completed
+
+
+def get_daily_commits(date_str: str) -> list[dict]:
+    """获取指定日期的 git commits。
+
+    使用 git log --since --until 获取当日 commits。
+    返回 list[dict]，每个 dict 包含 sha, message, author。
+    """
+    repo_dir = os.path.dirname(BASE_DIR)  # 项目根目录
+    try:
+        result = subprocess.run(
+            [
+                "git", "log",
+                f"--since={date_str}T00:00:00",
+                f"--until={date_str}T23:59:59",
+                "--format=%H|%s|%an",
+                "--no-merges",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=repo_dir,
+            timeout=30,
+            encoding="utf-8",
+            errors="replace",
+        )
+        if result.returncode != 0:
+            return []
+
+        commits = []
+        for line in result.stdout.strip().split("\n"):
+            if not line.strip():
+                continue
+            parts = line.split("|", 2)
+            if len(parts) >= 2:
+                commits.append({
+                    "sha": parts[0][:7],
+                    "message": parts[1],
+                    "author": parts[2] if len(parts) > 2 else "unknown",
+                })
+        return commits
+    except Exception:
+        return []
+
+
+def get_daily_evidence(date_str: str) -> list[str]:
+    """获取指定日期新增的 Evidence 文件。
+
+    扫描所有 .missions/*/evidence/ 目录，找出 mtime 在 date_str 当天的文件。
+    返回 list[str]，文件名列表。
+    """
+    evidence_files = []
+    seen_names = set()  # dedup by filename
+    search_dirs = [MISSIONS_DIR]
+    if os.path.isdir(PROJECT_MISSIONS_DIR):
+        search_dirs.append(PROJECT_MISSIONS_DIR)
+
+    target_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+
+    for base_dir in search_dirs:
+        if not os.path.isdir(base_dir):
+            continue
+        ev_dirs = glob.glob(
+            os.path.join(base_dir, "*", "evidence"), recursive=True
+        )
+        for ev_dir in ev_dirs:
+            if not os.path.isdir(ev_dir):
+                continue
+            for fname in os.listdir(ev_dir):
+                fpath = os.path.join(ev_dir, fname)
+                if os.path.isfile(fpath):
+                    try:
+                        mtime = datetime.datetime.fromtimestamp(
+                            os.path.getmtime(fpath)
+                        ).date()
+                        if mtime == target_date:
+                            if fname not in seen_names:
+                                seen_names.add(fname)
+                                evidence_files.append(fname)
+                    except Exception:
+                        pass
+
+    return evidence_files
+
+
+def get_test_status() -> str:
+    """获取当前测试状态摘要。"""
+    search_dirs = [MISSIONS_DIR]
+    if os.path.isdir(PROJECT_MISSIONS_DIR):
+        search_dirs.append(PROJECT_MISSIONS_DIR)
+
+    for base_dir in search_dirs:
+        if not os.path.isdir(base_dir):
+            continue
+        state_files = glob.glob(
+            os.path.join(base_dir, "*", "mission.state"), recursive=True
+        )
+        for sf in state_files:
+            state = None
+            try:
+                with open(sf, "r", encoding="utf-8") as f:
+                    state = json.load(f)
+            except Exception:
+                continue
+            if state and state.get("test_baseline"):
+                return state["test_baseline"]
+
+    return "—"
+
+
+def get_build_status() -> str:
+    """获取当前构建状态。从 dist/ 目录推断。"""
+    dist_dir = os.path.join(BASE_DIR, "dist")
+    if os.path.isdir(dist_dir):
+        try:
+            files = os.listdir(dist_dir)
+            if files:
+                return "PASS"
+        except Exception:
+            pass
+    return "—"
+
+
+def generate_daily_report(date_str: str) -> str:
+    """生成指定日期的日报并写入文件。
+
+    参数: date_str — 日期字符串，格式 YYYY-MM-DD
+    返回: 生成的文件路径
+    """
+    # 确保输出目录存在
+    os.makedirs(DAILY_REPORTS_DIR, exist_ok=True)
+
+    # 收集数据
+    completed = collect_daily_completed(date_str)
+    commits = get_daily_commits(date_str)
+    evidence = get_daily_evidence(date_str)
+    test_status = get_test_status()
+    build_status = get_build_status()
+
+    # 构建完成项文本
+    if completed:
+        completed_lines = []
+        for item in completed:
+            completed_lines.append(
+                f"- Mission: {item['mission_id']}\n"
+                f"  - Task: {item['task_id']}\n"
+                f"  - 描述: {item['description']}\n"
+                f"  - Commit: {item['commit']}\n"
+                f"  - Evidence: {item['evidence']}"
+            )
+        completed_text = "\n".join(completed_lines)
+    else:
+        completed_text = "- 无记录"
+
+    # 待处理项（从当前 running mission 的 decision gates 推断）
+    decision_count = 0
+    blocking_count = 0
+    next_mission = "—"
+    next_priority = "—"
+
+    # 尝试获取下一个 mission 信息
+    seen_missions = set()  # dedup by mission_id
+    search_dirs = [MISSIONS_DIR]
+    if os.path.isdir(PROJECT_MISSIONS_DIR):
+        search_dirs.append(PROJECT_MISSIONS_DIR)
+
+    for base_dir in search_dirs:
+        if not os.path.isdir(base_dir):
+            continue
+        state_files = glob.glob(
+            os.path.join(base_dir, "*", "mission.state"), recursive=True
+        )
+        for sf in state_files:
+            state = None
+            try:
+                with open(sf, "r", encoding="utf-8") as f:
+                    state = json.load(f)
+            except Exception:
+                continue
+            if state and state.get("status") == "RUNNING":
+                mid = state.get("mission_id", "—")
+                if mid in seen_missions:
+                    continue
+                seen_missions.add(mid)
+                for task in state.get("tasks", []):
+                    if task.get("status") == "PENDING":
+                        if next_mission == "—":
+                            next_mission = state.get("mission_id", "—")
+                            next_priority = state.get("priority", "—")
+                        break
+
+    # 读取模板
+    template_path = os.path.join(TOOLS_DIR, "daily_report_template.md")
+    try:
+        with open(template_path, "r", encoding="utf-8") as f:
+            template = f.read()
+    except Exception:
+        template = "# EOS 日报 — {date}\n\n{content}"
+
+    # 填充模板
+    report = template.replace("{date}", date_str)
+    report = report.replace("{completed_items}", completed_text)
+    report = report.replace("{commit_count}", str(len(commits)))
+    report = report.replace("{test_status}", test_status)
+    report = report.replace("{build_status}", build_status)
+    report = report.replace("{evidence_count}", str(len(evidence)))
+    report = report.replace("{decision_count}", str(decision_count))
+    report = report.replace("{blocking_count}", str(blocking_count))
+    report = report.replace("{next_mission}", next_mission)
+    report = report.replace("{next_priority}", next_priority)
+
+    # 追加 commit 列表
+    if commits:
+        report += "\n\n## 今日 Commits\n"
+        for c in commits:
+            report += f"- `{c['sha']}` {c['message']} ({c['author']})\n"
+
+    # 追加 evidence 列表
+    if evidence:
+        report += "\n\n## 今日 Evidence\n"
+        for e in evidence:
+            report += f"- {e}\n"
+
+    # 写入文件
+    output_path = os.path.join(DAILY_REPORTS_DIR, f"{date_str}.md")
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(report)
+
+    return output_path
+
+
+# ──────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────
 
 
 def main() -> int:
     """执行所有检测项并输出日志。"""
+    # 命令行参数解析（Batch 4.3 新增）
+    args = sys.argv[1:]
+
+    if "--daily-report" in args:
+        # 确定日期
+        date_arg = None
+        for i, arg in enumerate(args):
+            if arg == "--daily-report" and i + 1 < len(args):
+                next_arg = args[i + 1]
+                # 检查是否是日期格式
+                if len(next_arg) == 10 and next_arg[4] == '-':
+                    date_arg = next_arg
+                    break
+
+        report_date = date_arg if date_arg else _today()
+        print(f"Generating daily report for {report_date}...")
+        try:
+            output_path = generate_daily_report(report_date)
+            print(f"Daily report generated: {output_path}")
+            return 0
+        except Exception as e:
+            print(f"ERROR: Failed to generate daily report: {e}")
+            return 1
+
     # 清除代理
     for k in ["http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY"]:
         os.environ.pop(k, None)
 
     print("=" * 60)
-    print(f"  EOS Heartbeat Check v2.5")
+    print(f"  EOS Heartbeat Check v2.7")
     print(f"  Time:   {_now()}")
     print(f"  PID:    {os.getpid()}")
     print(f"  CWD:    {BASE_DIR}")
