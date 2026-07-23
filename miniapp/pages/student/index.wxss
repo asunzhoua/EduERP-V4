@@ -102,6 +102,56 @@
   color: #1890ff;
 }
 
+/* 学习概览卡片 */
+.overview-card {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.overview-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.overview-stats {
+  display: flex;
+  justify-content: space-around;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.stat-used {
+  color: #52c41a;
+}
+
+.stat-remain {
+  color: #1890ff;
+}
+
+.stat-progress {
+  color: #fa8c16;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
 /* 合同卡片 */
 .contract-card {
   background: #fff;
@@ -245,4 +295,54 @@
 .section-action {
   font-size: 26rpx;
   color: #1890ff;
+}
+
+/* 学习概览卡片 */
+.overview-card {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.overview-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.overview-stats {
+  display: flex;
+  justify-content: space-around;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.stat-used {
+  color: #52c41a;
+}
+
+.stat-remain {
+  color: #1890ff;
+}
+
+.stat-progress {
+  color: #fa8c16;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
 }

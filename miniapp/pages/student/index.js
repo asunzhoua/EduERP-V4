@@ -6,6 +6,7 @@ Page({
     studentInfo: {},
     contracts: [],
     recentLessons: [],
+    overviewStats: { totalLessons: 0, usedLessons: 0, remainingLessons: 0, overallProgress: 0 },
     loading: true,
     error: null
   },
@@ -50,10 +51,19 @@ Page({
         get('/students/self/lessons').catch(() => [])
       ]);
 
+      const contractList = Array.isArray(contracts) ? contracts : [];
+
+      // Compute overview stats from contracts
+      const totalLessons = contractList.reduce((sum, c) => sum + (c.totalLessons || 0), 0);
+      const remainingLessons = contractList.reduce((sum, c) => sum + (c.remainingLessons || 0), 0);
+      const usedLessons = totalLessons - remainingLessons;
+      const overallProgress = totalLessons > 0 ? Math.round(usedLessons / totalLessons * 100) : 0;
+
       this.setData({
         studentInfo: info || {},
-        contracts: Array.isArray(contracts) ? contracts : [],
+        contracts: contractList,
         recentLessons: Array.isArray(lessons) ? lessons.slice(0, 5) : [],
+        overviewStats: { totalLessons, usedLessons, remainingLessons, overallProgress },
         loading: false
       });
     } catch (err) {

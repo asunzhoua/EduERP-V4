@@ -132,3 +132,57 @@
   color: #999;
   border: 2rpx solid #d9d9d9;
 }
+
+/* 统计卡片 */
+.stats-card {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.stats-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+
+.stats-row {
+  display: flex;
+  justify-content: space-around;
+}
+
+.stats-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stats-value {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.stats-present {
+  color: #52c41a;
+}
+
+.stats-absent {
+  color: #ff4d4f;
+}
+
+.stats-late {
+  color: #fa8c16;
+}
+
+.stats-leave {
+  color: #1890ff;
+}
+
+.stats-label {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 6rpx;
+}
