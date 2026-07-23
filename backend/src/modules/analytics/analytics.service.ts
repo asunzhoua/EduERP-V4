@@ -18,6 +18,12 @@ interface MetricItem {
   unit: string;
 }
 
+export interface TrendData {
+  date: string; // YYYY-MM-DD
+  value: number;
+  label?: string;
+}
+
 @Injectable()
 export class AnalyticsService {
   constructor(
@@ -228,5 +234,280 @@ export class AnalyticsService {
     metrics.push({ name: 'totalClasses', value: totalClasses, unit: '个' });
 
     return { metrics };
+  }
+
+  // ─── Trend Analysis ───
+
+  /**
+   * Helper: generate an array of YYYY-MM-DD strings for the past N days (including today).
+   */
+  private generateDateRange(days: number): string[] {
+    const dates: string[] = [];
+    const now = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      dates.push(`${yyyy}-${mm}-${dd}`);
+    }
+    return dates;
+  }
+
+  /**
+   * Helper: format a Date or date-string to YYYY-MM-DD.
+   */
+  private formatDate(d: Date | string): string {
+    const date = typeof d === 'string' ? new Date(d) : d;
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  /**
+   * Student trend: learning trend (daily lesson count) + attendance trend (daily attendance rate)
+   */
+  async getStudentTrend(
+    studentCode: string,
+    days: number = 7,
+  ): Promise<{ learningTrend: TrendData[]; attendanceTrend: TrendData[] }> {
+    const dateRange = this.generateDateRange(days);
+    const startDate = dateRange[0];
+    const endDate = dateRange[dateRange.length - 1];
+
+    // Step 1: Get lessons in date range
+    const lessons = await this.lessonRepository
+      .createQueryBuilder('lesson')
+      .select('lesson.id', 'id')
+      .addSelect('lesson.scheduledDate', 'date')
+      .where('lesson.scheduledDate >= :startDate', { startDate })
+      .andWhere('lesson.scheduledDate <= :endDate', { endDate })
+      .getRawMany();
+
+    if (lessons.length === 0) {
+      return {
+        learningTrend: dateRange.map(d => ({ date: d, value: 0 })),
+        attendanceTrend: dateRange.map(d => ({ date: d, value: 0 })),
+      };
+    }
+
+    const lessonIds = lessons.map(l => parseInt(l.id, 10));
+    const lessonIdToDate = new Map<number, string>();
+    for (const l of lessons) {
+      const id = parseInt(l.id, 10);
+      const date = typeof l.date === 'string' ? l.date : this.formatDate(l.date);
+      lessonIdToDate.set(id, date);
+    }
+
+    // Step 2: Count attendance records per lesson for learning trend
+    const learningRows = await this.lessonAttendanceRepository
+      .createQueryBuilder('att')
+      .select('att.lessonId', 'lessonId')
+      .addSelect('COUNT(*)', 'count')
+      .where('att.studentCode = :studentCode', { studentCode })
+      .andWhere('att.lessonId IN (:...lessonIds)', { lessonIds })
+      .groupBy('att.lessonId')
+      .getRawMany();
+
+    const lessonMap = new Map<string, number>();
+    for (const row of learningRows) {
+      const lid = parseInt(row.lessonId, 10);
+      const date = lessonIdToDate.get(lid);
+      if (date) {
+        lessonMap.set(date, (lessonMap.get(date) || 0) + parseInt(row.count, 10));
+      }
+    }
+
+    const learningTrend: TrendData[] = dateRange.map((date) => ({
+      date,
+      value: lessonMap.get(date) || 0,
+    }));
+
+    // Step 3: Get attendance status per lesson for attendance trend
+    const attRows = await this.lessonAttendanceRepository
+      .createQueryBuilder('att')
+      .select('att.lessonId', 'lessonId')
+      .addSelect('att.status', 'status')
+      .where('att.studentCode = :studentCode', { studentCode })
+      .andWhere('att.lessonId IN (:...lessonIds)', { lessonIds })
+      .getRawMany();
+
+    const dateStats = new Map<string, { total: number; present: number }>();
+    for (const row of attRows) {
+      const lid = parseInt(row.lessonId, 10);
+      const date = lessonIdToDate.get(lid);
+      if (!date) continue;
+      if (!dateStats.has(date)) dateStats.set(date, { total: 0, present: 0 });
+      const stats = dateStats.get(date)!;
+      stats.total++;
+      if (row.status === AttendanceStatus.PRESENT || row.status === AttendanceStatus.LATE) {
+        stats.present++;
+      }
+    }
+
+    const attMap = new Map<string, number>();
+    for (const [date, stats] of dateStats) {
+      const rate = stats.total > 0 ? Math.round((stats.present / stats.total) * 1000) / 10 : 0;
+      attMap.set(date, rate);
+    }
+
+    const attendanceTrend: TrendData[] = dateRange.map((date) => ({
+      date,
+      value: attMap.get(date) || 0,
+    }));
+
+    return { learningTrend, attendanceTrend };
+  }
+
+  /**
+   * Teacher trend: daily lesson count + daily student attendance rate
+   */
+  async getTeacherTrend(
+    teacherId: number,
+    days: number = 7,
+  ): Promise<{ lessonTrend: TrendData[]; attendanceTrend: TrendData[] }> {
+    const dateRange = this.generateDateRange(days);
+    const startDate = dateRange[0];
+    const endDate = dateRange[dateRange.length - 1];
+
+    // Lesson trend: count of lessons per day for this teacher
+    const lessonRows = await this.lessonRepository
+      .createQueryBuilder('lesson')
+      .select('lesson.scheduledDate', 'date')
+      .addSelect('COUNT(*)', 'count')
+      .where('lesson.teacherId = :teacherId', { teacherId })
+      .andWhere('lesson.scheduledDate >= :startDate', { startDate })
+      .andWhere('lesson.scheduledDate <= :endDate', { endDate })
+      .groupBy('lesson.scheduledDate')
+      .getRawMany();
+
+    const lessonMap = new Map<string, number>();
+    for (const row of lessonRows) {
+      lessonMap.set(row.date, parseInt(row.count, 10));
+    }
+
+    const lessonTrend: TrendData[] = dateRange.map((date) => ({
+      date,
+      value: lessonMap.get(date) || 0,
+    }));
+
+    // Attendance trend: student attendance rate under this teacher per day
+    // Step 1: Get lessons for this teacher in date range
+    const teacherLessons = await this.lessonRepository
+      .createQueryBuilder('lesson')
+      .select('lesson.id', 'id')
+      .addSelect('lesson.scheduledDate', 'date')
+      .where('lesson.teacherId = :teacherId', { teacherId })
+      .andWhere('lesson.scheduledDate >= :startDate', { startDate })
+      .andWhere('lesson.scheduledDate <= :endDate', { endDate })
+      .getRawMany();
+
+    if (teacherLessons.length === 0) {
+      return {
+        lessonTrend: dateRange.map(d => ({ date: d, value: 0 })),
+        attendanceTrend: dateRange.map(d => ({ date: d, value: 0 })),
+      };
+    }
+
+    const teacherLessonIds = teacherLessons.map(l => parseInt(l.id, 10));
+    const teacherLessonIdToDate = new Map<number, string>();
+    for (const l of teacherLessons) {
+      const id = parseInt(l.id, 10);
+      const date = typeof l.date === 'string' ? l.date : this.formatDate(l.date);
+      teacherLessonIdToDate.set(id, date);
+    }
+
+    // Step 2: Get attendance records for these lessons
+    const attRows = await this.lessonAttendanceRepository
+      .createQueryBuilder('att')
+      .select('att.lessonId', 'lessonId')
+      .addSelect('att.status', 'status')
+      .where('att.lessonId IN (:...teacherLessonIds)', { teacherLessonIds })
+      .getRawMany();
+
+    const dateStats = new Map<string, { total: number; present: number }>();
+    for (const row of attRows) {
+      const lid = parseInt(row.lessonId, 10);
+      const date = teacherLessonIdToDate.get(lid);
+      if (!date) continue;
+      if (!dateStats.has(date)) dateStats.set(date, { total: 0, present: 0 });
+      const stats = dateStats.get(date)!;
+      stats.total++;
+      if (row.status === AttendanceStatus.PRESENT || row.status === AttendanceStatus.LATE) {
+        stats.present++;
+      }
+    }
+
+    const attMap = new Map<string, number>();
+    for (const [date, stats] of dateStats) {
+      const rate = stats.total > 0 ? Math.round((stats.present / stats.total) * 1000) / 10 : 0;
+      attMap.set(date, rate);
+    }
+
+    const attendanceTrend: TrendData[] = dateRange.map((date) => ({
+      date,
+      value: attMap.get(date) || 0,
+    }));
+
+    return { lessonTrend, attendanceTrend };
+  }
+
+  /**
+   * Institution trend: daily lesson count + daily new student enrollment count
+   */
+  async getInstitutionTrend(
+    days: number = 7,
+  ): Promise<{ lessonTrend: TrendData[]; enrollmentTrend: TrendData[] }> {
+    const dateRange = this.generateDateRange(days);
+    const startDate = dateRange[0];
+    const endDate = dateRange[dateRange.length - 1];
+
+    // Lesson trend: total lessons per day across the institution
+    const lessonRows = await this.lessonRepository
+      .createQueryBuilder('lesson')
+      .select('lesson.scheduledDate', 'date')
+      .addSelect('COUNT(*)', 'count')
+      .where('lesson.scheduledDate >= :startDate', { startDate })
+      .andWhere('lesson.scheduledDate <= :endDate', { endDate })
+      .groupBy('lesson.scheduledDate')
+      .getRawMany();
+
+    const lessonMap = new Map<string, number>();
+    for (const row of lessonRows) {
+      lessonMap.set(row.date, parseInt(row.count, 10));
+    }
+
+    const lessonTrend: TrendData[] = dateRange.map((date) => ({
+      date,
+      value: lessonMap.get(date) || 0,
+    }));
+
+    // Enrollment trend: new students per day
+    const enrollRows = await this.studentRepository
+      .createQueryBuilder('student')
+      .select('DATE(student.createTime)', 'date')
+      .addSelect('COUNT(*)', 'count')
+      .where('student.createTime >= :startDate', { startDate })
+      .andWhere('student.createTime <= :endDate', { endDate })
+      .andWhere('student.deleted = :deleted', { deleted: false })
+      .groupBy('date')
+      .getRawMany();
+
+    const enrollMap = new Map<string, number>();
+    for (const row of enrollRows) {
+      const dateKey =
+        typeof row.date === 'string'
+          ? row.date.substring(0, 10)
+          : this.formatDate(row.date);
+      enrollMap.set(dateKey, parseInt(row.count, 10));
+    }
+
+    const enrollmentTrend: TrendData[] = dateRange.map((date) => ({
+      date,
+      value: enrollMap.get(date) || 0,
+    }));
+
+    return { lessonTrend, enrollmentTrend };
   }
 }

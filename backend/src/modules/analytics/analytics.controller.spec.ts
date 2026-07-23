@@ -9,6 +9,9 @@ describe('AnalyticsController', () => {
     getStudentMetrics: jest.fn(),
     getTeacherMetrics: jest.fn(),
     getInstitutionMetrics: jest.fn(),
+    getStudentTrend: jest.fn(),
+    getTeacherTrend: jest.fn(),
+    getInstitutionTrend: jest.fn(),
   };
 
   beforeAll(async () => {
@@ -99,6 +102,92 @@ describe('AnalyticsController', () => {
       expect(result.message).toBe('success');
       expect(result.data).toEqual(mockMetrics);
       expect(mockAnalyticsService.getInstitutionMetrics).toHaveBeenCalled();
+    });
+  });
+
+  // ─── GET /analytics/student/:studentCode/trend ───
+
+  describe('getStudentTrend', () => {
+    it('should return ApiResponse.success with student trend data', async () => {
+      const mockTrend = {
+        learningTrend: [
+          { date: '2026-07-17', value: 3 },
+          { date: '2026-07-18', value: 2 },
+        ],
+        attendanceTrend: [
+          { date: '2026-07-17', value: 85.5 },
+          { date: '2026-07-18', value: 90.0 },
+        ],
+      };
+      mockAnalyticsService.getStudentTrend.mockResolvedValue(mockTrend);
+
+      const result = await controller.getStudentTrend('STU-001', '7');
+
+      expect(result.code).toBe(0);
+      expect(result.message).toBe('success');
+      expect(result.data).toEqual(mockTrend);
+      expect(mockAnalyticsService.getStudentTrend).toHaveBeenCalledWith('STU-001', 7);
+    });
+
+    it('should default to 7 days when days param is missing', async () => {
+      mockAnalyticsService.getStudentTrend.mockResolvedValue({
+        learningTrend: [],
+        attendanceTrend: [],
+      });
+
+      await controller.getStudentTrend('STU-001');
+
+      expect(mockAnalyticsService.getStudentTrend).toHaveBeenCalledWith('STU-001', 7);
+    });
+  });
+
+  // ─── GET /analytics/teacher/:teacherId/trend ───
+
+  describe('getTeacherTrend', () => {
+    it('should return ApiResponse.success with teacher trend data', async () => {
+      const mockTrend = {
+        lessonTrend: [
+          { date: '2026-07-17', value: 5 },
+          { date: '2026-07-18', value: 3 },
+        ],
+        attendanceTrend: [
+          { date: '2026-07-17', value: 92.0 },
+          { date: '2026-07-18', value: 88.5 },
+        ],
+      };
+      mockAnalyticsService.getTeacherTrend.mockResolvedValue(mockTrend);
+
+      const result = await controller.getTeacherTrend(100, '7');
+
+      expect(result.code).toBe(0);
+      expect(result.message).toBe('success');
+      expect(result.data).toEqual(mockTrend);
+      expect(mockAnalyticsService.getTeacherTrend).toHaveBeenCalledWith(100, 7);
+    });
+  });
+
+  // ─── GET /analytics/institution/trend ───
+
+  describe('getInstitutionTrend', () => {
+    it('should return ApiResponse.success with institution trend data', async () => {
+      const mockTrend = {
+        lessonTrend: [
+          { date: '2026-07-17', value: 10 },
+          { date: '2026-07-18', value: 8 },
+        ],
+        enrollmentTrend: [
+          { date: '2026-07-17', value: 2 },
+          { date: '2026-07-18', value: 1 },
+        ],
+      };
+      mockAnalyticsService.getInstitutionTrend.mockResolvedValue(mockTrend);
+
+      const result = await controller.getInstitutionTrend('7');
+
+      expect(result.code).toBe(0);
+      expect(result.message).toBe('success');
+      expect(result.data).toEqual(mockTrend);
+      expect(mockAnalyticsService.getInstitutionTrend).toHaveBeenCalledWith(7);
     });
   });
 });

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
@@ -28,6 +28,36 @@ export class AnalyticsController {
   @Roles('SuperAdmin', 'Admin')
   async getInstitutionMetrics() {
     const result = await this.analyticsService.getInstitutionMetrics();
+    return ApiResponse.success(result);
+  }
+
+  @Get('student/:studentCode/trend')
+  @Roles('SuperAdmin', 'Admin', 'Teacher', 'Parent', 'Student')
+  async getStudentTrend(
+    @Param('studentCode') studentCode: string,
+    @Query('days') days?: string,
+  ) {
+    const parsedDays = days ? parseInt(days, 10) : 7;
+    const result = await this.analyticsService.getStudentTrend(studentCode, parsedDays);
+    return ApiResponse.success(result);
+  }
+
+  @Get('teacher/:teacherId/trend')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
+  async getTeacherTrend(
+    @Param('teacherId', ParseIntPipe) teacherId: number,
+    @Query('days') days?: string,
+  ) {
+    const parsedDays = days ? parseInt(days, 10) : 7;
+    const result = await this.analyticsService.getTeacherTrend(teacherId, parsedDays);
+    return ApiResponse.success(result);
+  }
+
+  @Get('institution/trend')
+  @Roles('SuperAdmin', 'Admin')
+  async getInstitutionTrend(@Query('days') days?: string) {
+    const parsedDays = days ? parseInt(days, 10) : 7;
+    const result = await this.analyticsService.getInstitutionTrend(parsedDays);
     return ApiResponse.success(result);
   }
 }
