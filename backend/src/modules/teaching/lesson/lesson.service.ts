@@ -272,38 +272,15 @@ export class LessonService {
       lesson.cancelledReason = reason;
     }
 
-    // Guard: ARCHIVED → FINISHED (reopen) requires reason
-    if (
-      lesson.status === LessonStatus.ARCHIVED &&
-      targetStatus === LessonStatus.FINISHED
-    ) {
+    // Guard: All reopen (reverse) transitions require reason
+    const isReopenTransition =
+      (lesson.status === LessonStatus.ARCHIVED && targetStatus === LessonStatus.FINISHED) ||
+      (lesson.status === LessonStatus.FINISHED && targetStatus === LessonStatus.SCHEDULED) ||
+      (lesson.status === LessonStatus.CANCELLED && targetStatus === LessonStatus.SCHEDULED);
+    if (isReopenTransition) {
       if (!reason || reason.trim().length === 0) {
         throw new BadRequestException(
-          'Reason required to reopen from ARCHIVED to FINISHED (may need financial rollback)',
-        );
-      }
-    }
-
-    // Guard: FINISHED → SCHEDULED (reopen) requires reason
-    if (
-      lesson.status === LessonStatus.FINISHED &&
-      targetStatus === LessonStatus.SCHEDULED
-    ) {
-      if (!reason || reason.trim().length === 0) {
-        throw new BadRequestException(
-          'Reason required to reopen from FINISHED to SCHEDULED',
-        );
-      }
-    }
-
-    // Guard: CANCELLED → SCHEDULED (reopen) requires reason
-    if (
-      lesson.status === LessonStatus.CANCELLED &&
-      targetStatus === LessonStatus.SCHEDULED
-    ) {
-      if (!reason || reason.trim().length === 0) {
-        throw new BadRequestException(
-          'Reason required to reopen from CANCELLED to SCHEDULED',
+          `Reason required to reopen from ${lesson.status} to ${targetStatus}`,
         );
       }
     }

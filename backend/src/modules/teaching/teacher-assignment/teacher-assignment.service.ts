@@ -47,7 +47,7 @@ export class TeacherAssignmentService {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    const assignment = this.repo['repo'].create({
+    const assignment = this.repo.create({
       classCode,
       teacherId,
       role,
@@ -100,8 +100,16 @@ export class TeacherAssignmentService {
 
   /** All assignments (global list). */
   async findAll(): Promise<TeacherAssignmentEntity[]> {
-    return this.repo['repo'].find({
-      order: { createTime: 'DESC' },
-    });
+    return this.repo.findAll();
+  }
+
+  /**
+   * Batch: find active PRIMARY assignments for multiple class codes.
+   * Eliminates N+1 pattern in class enrichment queries.
+   */
+  async findActivePrimaryByClassCodes(
+    classCodes: string[],
+  ): Promise<TeacherAssignmentEntity[]> {
+    return this.repo.findActivePrimaryByClassCodes(classCodes);
   }
 }

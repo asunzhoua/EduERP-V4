@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { ClassRepository } from './class.repository';
 import { ClassCodeGeneratorService } from './class-code-generator.service';
 import { ClassEntity } from './class.entity';
@@ -254,15 +254,16 @@ export class ClassService {
     const courseNameMap = new Map<string, string>();
     courses.forEach(c => courseNameMap.set(c.courseCode, c.name));
 
-    // Batch resolve teacher names
-    const teacherPromises = classCodes.map(async (code) => {
-      const primary = await this.teacherAssignmentService.findActivePrimary(code);
-      if (!primary) return { classCode: code, teacherName: '' };
-      const teacher = await this.userRepo.findOne({ where: { id: primary.teacherId } });
-      return { classCode: code, teacherName: teacher?.name ?? '' };
-    });
-    const teacherResults = await Promise.all(teacherPromises);
-    const teacherNameMap = new Map(teacherResults.map(r => [r.classCode, r.teacherName]));
+    // Batch resolve teacher names (eliminates N+1: 2N queries → 2 queries)
+    const primaryAssignments = await this.teacherAssignmentService.findActivePrimaryByClassCodes(classCodes);
+    const teacherIds = [...new Set(primaryAssignments.map(a => a.teacherId))];
+    const teachers = teacherIds.length > 0
+      ? await this.userRepo.find({ where: { id: In(teacherIds) } })
+      : [];
+    const teacherNameById = new Map(teachers.map(t => [t.id, t.name]));
+    const teacherNameMap = new Map(
+      primaryAssignments.map(a => [a.classCode, teacherNameById.get(a.teacherId) ?? '']),
+    );
 
     return classes.map(cls => ({
       ...cls,

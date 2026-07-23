@@ -31,7 +31,9 @@ describe('TeacherAssignmentService', () => {
       findActiveByClassAndTeacher: jest.fn(),
       countActivePrimary: jest.fn(),
       endAssignment: jest.fn(),
-      repo: { create: jest.fn(), find: jest.fn() },
+      create: jest.fn(),
+      findAll: jest.fn(),
+      findActivePrimaryByClassCodes: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -55,7 +57,7 @@ describe('TeacherAssignmentService', () => {
     it('should assign a teacher to a class', async () => {
       repo.findActiveByClassAndTeacher.mockResolvedValue(null);
       repo.findActivePrimary.mockResolvedValue(null);
-      ((repo as any).repo.create as jest.Mock).mockReturnValue(mockAssignment);
+      (repo.create as jest.Mock).mockReturnValue(mockAssignment);
       repo.save.mockResolvedValue(mockAssignment);
 
       const result = await service.assign({
@@ -116,7 +118,7 @@ describe('TeacherAssignmentService', () => {
     it('should allow SUBSTITUTE when PRIMARY exists', async () => {
       repo.findActiveByClassAndTeacher.mockResolvedValue(null);
       repo.findActivePrimary.mockResolvedValue({ ...mockAssignment, teacherId: 200 } as TeacherAssignmentEntity);
-      ((repo as any).repo.create as jest.Mock).mockReturnValue({ ...mockAssignment, role: TeacherRole.SUBSTITUTE });
+      (repo.create as jest.Mock).mockReturnValue({ ...mockAssignment, role: TeacherRole.SUBSTITUTE });
       repo.save.mockResolvedValue({ ...mockAssignment, role: TeacherRole.SUBSTITUTE } as TeacherAssignmentEntity);
 
       const result = await service.assign({
@@ -203,18 +205,15 @@ describe('TeacherAssignmentService', () => {
 
   describe('findAll', () => {
     it('should return all assignments ordered by createTime DESC', async () => {
-      ((repo as any).repo.find as jest.Mock).mockResolvedValue([mockAssignment]);
+      repo.findAll.mockResolvedValue([mockAssignment]);
 
       const result = await service.findAll();
 
       expect(result).toEqual([mockAssignment]);
-      expect((repo as any).repo.find).toHaveBeenCalledWith({
-        order: { createTime: 'DESC' },
-      });
     });
 
     it('should return empty array when no assignments', async () => {
-      ((repo as any).repo.find as jest.Mock).mockResolvedValue([]);
+      repo.findAll.mockResolvedValue([]);
 
       const result = await service.findAll();
 

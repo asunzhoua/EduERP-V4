@@ -170,17 +170,20 @@ export class StudentService {
     student.updatedBy = operatorId;
     const saved = await this.studentRepository.save(student);
 
-    // Audit log for each change
-    for (const change of changes) {
-      const audit = new StudentAuditLog();
-      audit.studentId = id;
-      audit.action = AuditAction.UPDATE;
-      audit.fieldName = change.fieldName;
-      audit.oldValue = change.oldValue;
-      audit.newValue = change.newValue;
-      audit.operatedBy = operatorId;
-      audit.source = CreatedSource.API;
-      await this.studentAuditLogRepository.save(audit);
+    // Audit log for each change (batch save to eliminate N+1)
+    if (changes.length > 0) {
+      const audits = changes.map(change => {
+        const audit = new StudentAuditLog();
+        audit.studentId = id;
+        audit.action = AuditAction.UPDATE;
+        audit.fieldName = change.fieldName;
+        audit.oldValue = change.oldValue;
+        audit.newValue = change.newValue;
+        audit.operatedBy = operatorId;
+        audit.source = CreatedSource.API;
+        return audit;
+      });
+      await this.studentAuditLogRepository.save(audits);
     }
 
     return saved;

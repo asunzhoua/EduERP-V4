@@ -69,4 +69,30 @@ export class TeacherAssignmentRepository {
   async endAssignment(id: number, effectiveTo: string): Promise<void> {
     await this.repo.update(id, { effectiveTo });
   }
+
+  /**
+   * Batch: find active PRIMARY assignments for multiple class codes.
+   * Eliminates N+1 pattern in class enrichment queries.
+   */
+  async findActivePrimaryByClassCodes(
+    classCodes: string[],
+  ): Promise<TeacherAssignmentEntity[]> {
+    if (classCodes.length === 0) return [];
+    return this.repo
+      .createQueryBuilder('ta')
+      .where('ta.classCode IN (:...classCodes)', { classCodes })
+      .andWhere('ta.role = :role', { role: TeacherRole.PRIMARY })
+      .andWhere('ta.effectiveTo IS NULL')
+      .getMany();
+  }
+
+  /** Create a new TeacherAssignment entity (factory method). */
+  create(data: Partial<TeacherAssignmentEntity>): TeacherAssignmentEntity {
+    return this.repo.create(data);
+  }
+
+  /** Find all assignments ordered by createTime DESC. */
+  async findAll(): Promise<TeacherAssignmentEntity[]> {
+    return this.repo.find({ order: { createTime: 'DESC' } });
+  }
 }
