@@ -95,7 +95,11 @@ Page({
 
   // 返回
   onBack() {
-    wx.navigateBack();
+    wx.navigateBack({
+      fail() {
+        wx.switchTab({ url: '/pages/index/index' });
+      }
+    });
   },
 
   // 重试加载

@@ -32,6 +32,8 @@ Page({
     // 加载状态
     loadingClasses: false,
     loadingStudents: false,
+    errorClasses: null,
+    errorStudents: null,
 
     // 提交结果
     submitResult: null,
@@ -81,7 +83,7 @@ Page({
 
   // 加载班级列表
   async loadClasses() {
-    this.setData({ loadingClasses: true });
+    this.setData({ loadingClasses: true, errorClasses: null });
     try {
       const data = await get('/classes', { status: 'ACTIVE' });
       if (data && data.items) {
@@ -93,7 +95,7 @@ Page({
       }
     } catch (err) {
       console.error('[lesson-record] 加载班级列表失败:', err);
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      this.setData({ errorClasses: '班级加载失败，请下拉刷新重试' });
 
     } finally {
       this.setData({ loadingClasses: false });
@@ -102,7 +104,7 @@ Page({
 
   // 加载学生列表
   async loadStudents(classCode) {
-    this.setData({ loadingStudents: true });
+    this.setData({ loadingStudents: true, errorStudents: null });
     try {
       const data = await get(`/classes/${classCode}/students`);
       const students = (data || []).map(s => ({
@@ -122,7 +124,7 @@ Page({
       });
     } catch (err) {
       console.error('[lesson-record] 加载学生列表失败:', err);
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      this.setData({ errorStudents: '学生加载失败，请下拉刷新重试' });
 
     } finally {
       this.setData({ loadingStudents: false });

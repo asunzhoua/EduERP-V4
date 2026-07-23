@@ -16,6 +16,12 @@ Page({
     this.loadData();
   },
 
+  onPullDownRefresh() {
+    this.loadData().finally(() => {
+      wx.stopPullDownRefresh();
+    });
+  },
+
   async loadData() {
     if (this.data.loading) return;
     this.setData({ loading: true, error: null });

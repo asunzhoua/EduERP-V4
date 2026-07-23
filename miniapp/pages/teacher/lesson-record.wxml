@@ -43,7 +43,10 @@
         </view>
       </block>
     </view>
-    <view class="empty-hint" wx:if="{{!loadingClasses && classes.length === 0}}">
+    <view class="empty-hint" wx:if="{{errorClasses}}">
+      <text style="color:#e74c3c;">{{errorClasses}}</text>
+    </view>
+    <view class="empty-hint" wx:elif="{{!loadingClasses && classes.length === 0}}">
       <text>暂无可用班级</text>
     </view>
   </view>
@@ -72,7 +75,10 @@
         </view>
       </block>
     </view>
-    <view class="empty-hint" wx:if="{{!loadingStudents && students.length === 0}}">
+    <view class="empty-hint" wx:if="{{errorStudents}}">
+      <text style="color:#e74c3c;">{{errorStudents}}</text>
+    </view>
+    <view class="empty-hint" wx:elif="{{!loadingStudents && students.length === 0}}">
       <text>该班级暂无学生</text>
     </view>
     <view class="action-bar">

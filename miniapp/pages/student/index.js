@@ -21,6 +21,12 @@ Page({
     }
   },
 
+  onPullDownRefresh() {
+    this.loadData().finally(() => {
+      wx.stopPullDownRefresh();
+    });
+  },
+
   goToAttendance() {
     wx.navigateTo({
       url: '/pages/student/attendance',
