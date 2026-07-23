@@ -4,6 +4,7 @@ import { LessonAttendanceService } from './lesson-attendance.service';
 import { AttendanceStatus } from './enums/attendance-status.enum';
 import { BatchRollCallDto } from './dto/batch-roll-call.dto';
 import { RecordAttendanceDto } from './dto/record-attendance.dto';
+import { ApiResponse } from '@common/dto/api-response';
 
 describe('LessonAttendanceController', () => {
   let controller: LessonAttendanceController;
@@ -86,8 +87,8 @@ describe('LessonAttendanceController', () => {
 
       const result = await controller.batchRollCall(1, dto, mockReq);
 
-      expect(result).toEqual(mockAttendanceList);
-      expect(result).toHaveLength(2);
+      expect(result).toEqual(ApiResponse.success(mockAttendanceList, 'Attendance recorded'));
+      expect(result.data).toHaveLength(2);
       expect(service.batchRollCall).toHaveBeenCalledWith({
         lessonId: 1,
         records: [
@@ -121,7 +122,7 @@ describe('LessonAttendanceController', () => {
 
       const result = await controller.updateAttendance(1, 'STU001', body, mockReq);
 
-      expect(result).toEqual(mockAttendanceRecord);
+      expect(result).toEqual(ApiResponse.success(mockAttendanceRecord, 'Attendance updated'));
       expect(service.recordAttendance).toHaveBeenCalledWith({
         lessonId: 1,
         studentCode: 'STU001',
@@ -155,7 +156,7 @@ describe('LessonAttendanceController', () => {
     it('should call service.findByLessonId with correct param', async () => {
       const result = await controller.findByLesson(1);
 
-      expect(result).toEqual(mockAttendanceList);
+      expect(result).toEqual(ApiResponse.success(mockAttendanceList));
       expect(service.findByLessonId).toHaveBeenCalledWith(1);
     });
   });
@@ -164,7 +165,7 @@ describe('LessonAttendanceController', () => {
     it('should call service.confirmAll with lessonId and operator from JWT', async () => {
       const result = await controller.confirmAll(1, mockReq);
 
-      expect(result).toEqual(mockAttendanceList);
+      expect(result).toEqual(ApiResponse.success(mockAttendanceList, 'Attendance confirmed'));
       expect(service.confirmAll).toHaveBeenCalledWith(1, 42);
     });
   });
@@ -173,7 +174,7 @@ describe('LessonAttendanceController', () => {
     it('should call service.findByStudentCode with correct param', async () => {
       const result = await controller.findByStudent('STU001');
 
-      expect(result).toEqual(mockAttendanceList);
+      expect(result).toEqual(ApiResponse.success(mockAttendanceList));
       expect(service.findByStudentCode).toHaveBeenCalledWith('STU001');
     });
   });

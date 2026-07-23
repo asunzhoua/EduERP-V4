@@ -7,6 +7,7 @@ import { TeacherAssignmentService } from './teacher-assignment.service';
 import { TeacherAssignmentEntity } from './teacher-assignment.entity';
 import { TeacherRole } from '@common/enums/teacher-role.enum';
 import { CreateTeacherAssignmentDto } from './dto/create-teacher-assignment.dto';
+import { ApiResponse } from '@common/dto/api-response';
 
 describe('TeacherAssignmentController', () => {
   let controller: TeacherAssignmentController;
@@ -83,7 +84,7 @@ describe('TeacherAssignmentController', () => {
 
       const result = await controller.create(dto, mockReq);
 
-      expect(result).toEqual(mockAssignment);
+      expect(result).toEqual(ApiResponse.success(mockAssignment, 'Teacher assigned'));
       expect(service.assign).toHaveBeenCalledWith({
         classCode: 'CLS-001',
         teacherId: 100,
@@ -119,7 +120,7 @@ describe('TeacherAssignmentController', () => {
     it('should return all teacher assignments', async () => {
       const result = await controller.findAll();
 
-      expect(result).toEqual([mockAssignment]);
+      expect(result).toEqual(ApiResponse.success([mockAssignment]));
       expect(service.findAll).toHaveBeenCalled();
     });
 
@@ -128,7 +129,7 @@ describe('TeacherAssignmentController', () => {
 
       const result = await controller.findAll();
 
-      expect(result).toEqual([]);
+      expect(result).toEqual(ApiResponse.success([]));
       expect(service.findAll).toHaveBeenCalled();
     });
   });
@@ -139,7 +140,7 @@ describe('TeacherAssignmentController', () => {
     it('should return a teacher assignment by id', async () => {
       const result = await controller.findOne(1);
 
-      expect(result).toEqual(mockAssignment);
+      expect(result).toEqual(ApiResponse.success(mockAssignment));
       expect(repo.findOneBy).toHaveBeenCalledWith({ id: 1 });
     });
 
@@ -157,9 +158,10 @@ describe('TeacherAssignmentController', () => {
 
   describe('remove', () => {
     it('should unassign a teacher (end dated)', async () => {
-      await controller.remove(1);
+      const result = await controller.remove(1);
 
       expect(service.unassign).toHaveBeenCalledWith(1);
+      expect(result).toEqual(ApiResponse.success(undefined, 'Teacher assignment ended'));
     });
   });
 });

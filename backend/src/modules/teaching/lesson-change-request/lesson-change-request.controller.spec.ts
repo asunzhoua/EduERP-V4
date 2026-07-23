@@ -4,6 +4,7 @@ import { LessonChangeRequestService } from './lesson-change-request.service';
 import { LessonChangeRequestEntity } from './lesson-change-request.entity';
 import { ChangeRequestType } from '@common/enums/change-request-type.enum';
 import { ChangeRequestStatus } from './enums/change-request-status.enum';
+import { ApiResponse } from '@common/dto/api-response';
 
 describe('LessonChangeRequestController', () => {
   let controller: LessonChangeRequestController;
@@ -60,7 +61,7 @@ describe('LessonChangeRequestController', () => {
         previousTeacherId: undefined,
         newTeacherId: undefined,
       });
-      expect(result).toBe(entity);
+      expect(result).toEqual(ApiResponse.success(entity, 'Change request submitted'));
     });
   });
 
@@ -72,7 +73,7 @@ describe('LessonChangeRequestController', () => {
       const result = await controller.findByLesson(1);
 
       expect(service.findByLessonId).toHaveBeenCalledWith(1);
-      expect(result).toBe(entities);
+      expect(result).toEqual(ApiResponse.success(entities));
     });
   });
 
@@ -86,7 +87,7 @@ describe('LessonChangeRequestController', () => {
       const result = await controller.approve(1, mockReq);
 
       expect(service.approve).toHaveBeenCalledWith(1, 42);
-      expect(result.status).toBe(ChangeRequestStatus.APPROVED);
+      expect(result.data.status).toBe(ChangeRequestStatus.APPROVED);
     });
   });
 
@@ -100,7 +101,7 @@ describe('LessonChangeRequestController', () => {
       const result = await controller.reject(1, { reason: '拒绝理由' }, mockReq);
 
       expect(service.reject).toHaveBeenCalledWith(1, 42, '拒绝理由');
-      expect(result.status).toBe(ChangeRequestStatus.REJECTED);
+      expect(result.data.status).toBe(ChangeRequestStatus.REJECTED);
     });
   });
 });

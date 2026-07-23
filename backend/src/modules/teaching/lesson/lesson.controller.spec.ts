@@ -6,6 +6,7 @@ import { LessonStatus } from './enums/lesson-status.enum';
 import { ClassService } from '../class/class.service';
 import { LessonAttendanceService } from '../lesson-attendance/lesson-attendance.service';
 import { TeacherRole } from '@common/enums/teacher-role.enum';
+import { ApiResponse } from '@common/dto/api-response';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(() => 'test-uuid'),
@@ -82,7 +83,8 @@ describe('LessonController', () => {
   it('findByClass should return lessons', async () => {
     const result = [{ id: 1, lessonNumber: 1, status: 'SCHEDULED' }];
     service.findByClassCode = jest.fn().mockResolvedValue(result);
-    expect(await controller.findByClass('TEST01')).toBe(result);
+    const response = await controller.findByClass('TEST01');
+    expect(response).toEqual(ApiResponse.success(result));
   });
 
   // ─── findOne ───
@@ -93,7 +95,7 @@ describe('LessonController', () => {
       const result = await controller.findOne('TEST01', 3);
 
       expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 3);
-      expect(result).toBe(mockLesson);
+      expect(result).toEqual(ApiResponse.success(mockLesson));
     });
 
     it('should propagate errors from the service', async () => {
@@ -119,7 +121,7 @@ describe('LessonController', () => {
 
       expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 3);
       expect(service.updateStatus).toHaveBeenCalledWith(42, LessonStatus.TEACHING, 42);
-      expect(result).toBe(updated);
+      expect(result).toEqual(ApiResponse.success(updated, 'Lesson started'));
     });
 
     it('should throw if lesson is not found', async () => {
@@ -146,7 +148,7 @@ describe('LessonController', () => {
 
       expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 3);
       expect(service.updateStatus).toHaveBeenCalledWith(42, LessonStatus.FINISHED, 42);
-      expect(result).toBe(updated);
+      expect(result).toEqual(ApiResponse.success(updated, 'Lesson completed'));
     });
 
     it('should throw if lesson is not found', async () => {
@@ -173,7 +175,7 @@ describe('LessonController', () => {
 
       expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 3);
       expect(service.updateStatus).toHaveBeenCalledWith(42, LessonStatus.ARCHIVED, 42);
-      expect(result).toBe(updated);
+      expect(result).toEqual(ApiResponse.success(updated, 'Lesson confirmed'));
     });
 
     it('should throw if lesson is not found', async () => {
@@ -206,7 +208,7 @@ describe('LessonController', () => {
         42,
         '教师请假',
       );
-      expect(result).toBe(updated);
+      expect(result).toEqual(ApiResponse.success(updated, 'Lesson cancelled'));
     });
 
     it('should throw if lesson is not found', async () => {
@@ -283,7 +285,7 @@ describe('LessonController', () => {
         originLessonId: 42,
         createdBy: 42,
       });
-      expect(result).toBe(makeupLesson);
+      expect(result).toEqual(ApiResponse.success(makeupLesson, 'Makeup lesson created'));
     });
 
     it('should pass originLessonId as undefined when not provided', async () => {

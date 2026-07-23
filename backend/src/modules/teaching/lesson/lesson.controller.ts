@@ -8,6 +8,7 @@ import {
   Body,
   ParseIntPipe,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { LessonService } from './lesson.service';
@@ -28,10 +29,14 @@ import { AttendanceSource } from '../lesson-attendance/enums/attendance-source.e
 import { TeacherRole } from '@common/enums/teacher-role.enum';
 import { ApiResponse } from '@common/dto/api-response';
 import { BadRequestException } from '@nestjs/common';
+import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
 
 @ApiTags('Lesson')
 @ApiBearerAuth()
 @Controller()
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class LessonController {
   constructor(
     private readonly lessonService: LessonService,
@@ -41,21 +46,26 @@ export class LessonController {
   ) {}
 
   @Get('classes/:code/lessons')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'List lessons for a class (paginated)' })
-  findByClass(@Param('code') code: string) {
-    return this.lessonService.findByClassCode(code);
+  async findByClass(@Param('code') code: string) {
+    const result = await this.lessonService.findByClassCode(code);
+    return ApiResponse.success(result);
   }
 
   @Get('classes/:code/lessons/:lessonNumber')
+  @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
   @ApiOperation({ summary: 'Get lesson by classCode + lessonNumber' })
   async findOne(
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
   ) {
-    return this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
+    const result = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
+    return ApiResponse.success(result);
   }
 
   @Patch('classes/:code/lessons/:lessonNumber/start')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Mark lesson as TEACHING (in progress)' })
   async start(
     @Param('code') code: string,
@@ -63,13 +73,13 @@ export class LessonController {
     @Req() req: any,
   ) {
     const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
-
-    // Update status to TEACHING
     const operatorId = req.user.sub;
-    return this.lessonService.updateStatus(lesson.id, LessonStatus.TEACHING, operatorId);
+    const result = await this.lessonService.updateStatus(lesson.id, LessonStatus.TEACHING, operatorId);
+    return ApiResponse.success(result, 'Lesson started');
   }
 
   @Patch('classes/:code/lessons/:lessonNumber/complete')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({
     summary: 'Complete lesson into FINISHED + emit LessonCompleted',
   })
@@ -79,13 +89,13 @@ export class LessonController {
     @Req() req: any,
   ) {
     const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
-
-    // Update status to FINISHED
     const operatorId = req.user.sub;
-    return this.lessonService.updateStatus(lesson.id, LessonStatus.FINISHED, operatorId);
+    const result = await this.lessonService.updateStatus(lesson.id, LessonStatus.FINISHED, operatorId);
+    return ApiResponse.success(result, 'Lesson completed');
   }
 
   @Patch('classes/:code/lessons/:lessonNumber/confirm')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({
     summary: 'Confirm lesson into ARCHIVED + emit LessonFinished',
   })
@@ -95,13 +105,13 @@ export class LessonController {
     @Req() req: any,
   ) {
     const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
-
-    // Update status to ARCHIVED
     const operatorId = req.user.sub;
-    return this.lessonService.updateStatus(lesson.id, LessonStatus.ARCHIVED, operatorId);
+    const result = await this.lessonService.updateStatus(lesson.id, LessonStatus.ARCHIVED, operatorId);
+    return ApiResponse.success(result, 'Lesson confirmed');
   }
 
   @Patch('classes/:code/lessons/:lessonNumber/cancel')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Cancel lesson (requires reason)' })
   async cancel(
     @Param('code') code: string,
@@ -110,27 +120,26 @@ export class LessonController {
     @Req() req: any,
   ) {
     const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
-
-    // Update status to CANCELLED with reason
     const operatorId = req.user.sub;
-    return this.lessonService.updateStatus(
+    const result = await this.lessonService.updateStatus(
       lesson.id,
       LessonStatus.CANCELLED,
       operatorId,
       body.reason,
     );
+    return ApiResponse.success(result, 'Lesson cancelled');
   }
 
   @Post('classes/:code/lessons/makeup')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Create a makeup lesson' })
-  createMakeup(
+  async createMakeup(
     @Param('code') code: string,
     @Body() body: CreateMakeupDto,
     @Req() req: any,
   ) {
     const operatorId = req.user.sub;
-
-    return this.lessonService.create({
+    const result = await this.lessonService.create({
       classCode: code,
       courseCode: body.courseCode,
       lessonNumber: body.lessonNumber,
@@ -142,11 +151,13 @@ export class LessonController {
       originLessonId: body.originLessonId,
       createdBy: operatorId,
     });
+    return ApiResponse.success(result, 'Makeup lesson created');
   }
 
   // ─── Create Lesson With Attendance ───
 
   @Post('lessons')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Create lesson with attendance records (auto lessonNumber)' })
   async createWithAttendance(
     @Body() dto: CreateLessonWithAttendanceDto,

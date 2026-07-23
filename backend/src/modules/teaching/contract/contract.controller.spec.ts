@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ContractController } from './contract.controller';
 import { ContractService } from './contract.service';
 import { NotFoundException } from '@nestjs/common';
+import { ApiResponse } from '@common/dto/api-response';
 
 describe('ContractController', () => {
   let controller: ContractController;
@@ -94,7 +95,7 @@ describe('ContractController', () => {
 
       const result = await controller.create(dto);
 
-      expect(result).toEqual(mockContract);
+      expect(result).toEqual(ApiResponse.success(mockContract, 'Contract created'));
       expect(mockService.create).toHaveBeenCalledWith({
         studentCode: 'STU20260001',
         subject: 'MATH',
@@ -143,7 +144,7 @@ describe('ContractController', () => {
     it('should return paginated contracts', async () => {
       const result = await controller.findAll({});
 
-      expect(result).toEqual({ items: [mockContract], total: 1 });
+      expect(result).toEqual(ApiResponse.success({ items: [mockContract], total: 1 }));
       expect(mockService.findAll).toHaveBeenCalled();
     });
   });
@@ -154,7 +155,7 @@ describe('ContractController', () => {
     it('should return a contract by code', async () => {
       const result = await controller.findOneByCode('CTR2026070001');
 
-      expect(result).toEqual(mockContract);
+      expect(result).toEqual(ApiResponse.success(mockContract));
       expect(mockService.findOneByCode).toHaveBeenCalledWith(
         'CTR2026070001',
       );
@@ -180,7 +181,7 @@ describe('ContractController', () => {
       const mockReq = { user: { sub: 42 } };
       const result = await controller.freeze('CTR2026070001', mockReq);
 
-      expect(result.status).toBe('FROZEN');
+      expect(result.data.status).toBe('FROZEN');
       expect(mockService.freeze).toHaveBeenCalledWith(
         'CTR2026070001',
         42,
@@ -195,7 +196,7 @@ describe('ContractController', () => {
       const mockReq = { user: { sub: 42 } };
       const result = await controller.unfreeze('CTR2026070001', mockReq);
 
-      expect(result.status).toBe('ACTIVE');
+      expect(result.data.status).toBe('ACTIVE');
       expect(mockService.unfreeze).toHaveBeenCalledWith(
         'CTR2026070001',
         42,
@@ -209,7 +210,7 @@ describe('ContractController', () => {
     it('should return contracts for a student', async () => {
       const result = await controller.findByStudentCode('STU20260001');
 
-      expect(result).toEqual([mockContract]);
+      expect(result).toEqual(ApiResponse.success([mockContract]));
       expect(mockService.findByStudentCode).toHaveBeenCalledWith(
         'STU20260001',
       );

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EnrollmentController } from './enrollment.controller';
 import { EnrollmentService } from './enrollment.service';
+import { ApiResponse } from '@common/dto/api-response';
 
 describe('EnrollmentController', () => {
   let controller: EnrollmentController;
@@ -71,7 +72,7 @@ describe('EnrollmentController', () => {
 
       const result = await controller.enroll(dto);
 
-      expect(result).toEqual(mockEnrollment);
+      expect(result).toEqual(ApiResponse.success(mockEnrollment, 'Student enrolled'));
       expect(service.enroll).toHaveBeenCalledWith({
         classCode: 'CLS001',
         studentCode: 'STU001',
@@ -85,7 +86,7 @@ describe('EnrollmentController', () => {
     it('should return paginated enrollments', async () => {
       const result = await controller.findAll({});
 
-      expect(result).toEqual({ items: [mockEnrollment], total: 1 });
+      expect(result).toEqual(ApiResponse.success({ items: [mockEnrollment], total: 1 }));
       expect(service.findAll).toHaveBeenCalled();
     });
   });
@@ -95,7 +96,7 @@ describe('EnrollmentController', () => {
     it('should return an enrollment by id', async () => {
       const result = await controller.findOne(1);
 
-      expect(result).toEqual(mockEnrollment);
+      expect(result).toEqual(ApiResponse.success(mockEnrollment));
       expect(service.findOne).toHaveBeenCalledWith(1);
     });
   });
@@ -108,7 +109,7 @@ describe('EnrollmentController', () => {
 
       const result = await controller.withdraw(1, dto, mockReq);
 
-      expect(result.status).toBe('WITHDRAWN');
+      expect(result.data.status).toBe('WITHDRAWN');
       expect(service.withdraw).toHaveBeenCalledWith(1, '个人原因', 42);
     });
   });
@@ -118,7 +119,7 @@ describe('EnrollmentController', () => {
     it('should return enrollments for a class', async () => {
       const result = await controller.findByClass('CLS001');
 
-      expect(result).toEqual([mockEnrollment]);
+      expect(result).toEqual(ApiResponse.success([mockEnrollment]));
       expect(service.findByClassCode).toHaveBeenCalledWith('CLS001');
     });
   });
@@ -128,7 +129,7 @@ describe('EnrollmentController', () => {
     it('should return enrollments for a student', async () => {
       const result = await controller.findByStudent('STU001');
 
-      expect(result).toEqual({ code: 0, message: 'success', data: [mockEnrollment] });
+      expect(result).toEqual(ApiResponse.success([mockEnrollment]));
       expect(service.findByStudentCode).toHaveBeenCalledWith('STU001');
     });
   });
