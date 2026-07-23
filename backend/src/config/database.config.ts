@@ -13,4 +13,9 @@ export const databaseConfig: TypeOrmModuleOptions = {
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   synchronize: false,
   logging: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  extra: {
+    connectionLimit: 10,
+    connectTimeout: 10000,
+    idleTimeout: 30000,
+  },
 };

@@ -10,8 +10,8 @@ export const appConfig = registerAs('app', () => ({
   database: {
     host: process.env.DB_HOST || 'localhost',
     port: Number(process.env.DB_PORT) || 3306,
-    username: process.env.DB_USERNAME || 'root',
-    password: process.env.DB_PASSWORD || 'root',
+    username: process.env.DB_USERNAME || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('DB_USERNAME must be set in production'); })() : 'root'),
+    password: process.env.DB_PASSWORD || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('DB_PASSWORD must be set in production'); })() : 'root'),
     database: process.env.DB_DATABASE || 'EduOS',
   },
   wechat: {
