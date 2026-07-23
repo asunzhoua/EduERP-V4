@@ -30,10 +30,8 @@ Page({
     try {
       const data = await post('/auth/login', { username, password });
 
-      // 保存 token
-      app.globalData.token = data.accessToken;
-      app.globalData.userInfo = data.user;
-      wx.setStorageSync('token', data.accessToken);
+      // 保存 token（使用统一的 saveLoginInfo 方法）
+      app.saveLoginInfo(data.accessToken, data.user, data.expiresIn);
 
       // 根据角色跳转
       const role = data.user.role;

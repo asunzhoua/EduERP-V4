@@ -12,7 +12,8 @@ Page({
   onLoad(options) {
     // 角色守卫：学生不允许访问教师页面
     const app = getApp();
-    const role = app.globalData.userInfo?.role;
+    var userInfo = app.globalData.userInfo || {};
+    const role = userInfo.role;
     if (role === 'Student' || role === 'Parent') {
       wx.reLaunch({ url: '/pages/index/index' });
       return;
@@ -54,8 +55,15 @@ Page({
         students = data.items || data || [];
       }
 
+      // 预计算首字母（避免 WXML 中数组索引兼容性问题）
+      var studentsWithInitial = students.map(function(s) {
+        return Object.assign({}, s, {
+          initial: (s.name && s.name.length > 0) ? s.name[0] : '?'
+        });
+      });
+
       this.setData({
-        students,
+        students: studentsWithInitial,
         loading: false
       });
     } catch (err) {

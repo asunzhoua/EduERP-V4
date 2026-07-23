@@ -17,7 +17,8 @@ Page({
 
   onLoad() {
     const app = getApp();
-    const role = app.globalData.userInfo?.role;
+    var userInfo = app.globalData.userInfo || {};
+    const role = userInfo.role;
     if (role === 'Student' || role === 'Parent') {
       wx.reLaunch({ url: '/pages/index/index' });
       return;

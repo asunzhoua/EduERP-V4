@@ -15,6 +15,11 @@ v2.2 变更（Batch 5.1）：
 - 新增 Decision Gate 检测（check_decision_gates）
 - 新增长时间等待检测（check_long_wait）
 
+v2.3 变更（Batch 5.4）：
+- 新增 Mission 状态同步检测（check_mission_state_sync）
+- 当 mission.state 与 .md 文件 Status 不一致时，以 .md 为准自动修复
+- 新增 _extract_status_from_md() 辅助函数
+
 由 Windows Task Scheduler 每 15 分钟调用一次。
 """
 
@@ -1150,6 +1155,148 @@ def check_long_wait() -> tuple[str, str, bool]:
 
 
 # ──────────────────────────────────────────────
+# Check 9: Mission 状态同步（mission.state ↔ .md）
+# ──────────────────────────────────────────────
+
+
+def _extract_status_from_md(md_path: str) -> Optional[str]:
+    """从 .md 文件头部提取 **Status** 字段值。
+
+    支持格式: **Status**: RUNNING / COMPLETED / FAILED / PAUSED / WAITING_DECISION
+    返回 None 表示未找到或无法解析。
+    """
+    try:
+        with open(md_path, "r", encoding="utf-8") as f:
+            # 只读前 20 行，Status 通常在文件头部
+            for line in f:
+                if "**Status**" in line:
+                    # 提取冒号后的值
+                    parts = line.split(":", 1)
+                    if len(parts) == 2:
+                        status = parts[1].strip()
+                        # 清理可能的 Markdown 格式残留
+                        status = status.strip("*").strip()
+                        if status:
+                            return status
+                    break
+                # 超过 20 行还没找到就放弃
+                if f.tell() > 2000:
+                    break
+    except Exception:
+        try:
+            with open(md_path, "r", encoding="gbk") as f:
+                for line in f:
+                    if "**Status**" in line:
+                        parts = line.split(":", 1)
+                        if len(parts) == 2:
+                            status = parts[1].strip().strip("*").strip()
+                            if status:
+                                return status
+                        break
+                    if f.tell() > 2000:
+                        break
+        except Exception:
+            pass
+    return None
+
+
+def check_mission_state_sync() -> tuple[str, str, bool]:
+    """Check 9: Mission 状态同步检测。
+
+    当 mission.state 中的 status 与 .md 文件头部 Status 字段不一致时，
+    以 .md 文件为准自动修复 mission.state。
+
+    规则:
+    - .md 文件是 Source of Truth（人工/Orchestrator 直接维护）
+    - mission.state 是机器可读缓存（可能被遗漏更新）
+    - 不一致时以 .md 为准更新 mission.state
+    - 记录同步动作到日志
+    """
+    if not os.path.isdir(MISSIONS_DIR):
+        return ("OK", ".missions 目录不存在", False)
+
+    synced: list[str] = []
+    errors: list[str] = []
+
+    # 扫描所有 mission.state 文件
+    state_files = glob.glob(
+        os.path.join(MISSIONS_DIR, "*", "mission.state"),
+        recursive=True,
+    )
+
+    for sf in state_files:
+        mission_dir = os.path.dirname(sf)
+        mission_id = os.path.basename(mission_dir)
+
+        # 读取 mission.state
+        try:
+            with open(sf, "r", encoding="utf-8") as f:
+                state = json.load(f)
+        except Exception:
+            try:
+                with open(sf, "r", encoding="gbk") as f:
+                    state = json.load(f)
+            except Exception:
+                errors.append(f"{mission_id}: mission.state 读取失败")
+                continue
+
+        state_status = state.get("status", "UNKNOWN")
+
+        # 查找对应的 .md 文件
+        md_path = os.path.join(MISSIONS_DIR, f"{mission_id}.md")
+        if not os.path.exists(md_path):
+            # 没有 .md 文件，跳过（不作为错误）
+            continue
+
+        # 从 .md 提取 Status
+        md_status = _extract_status_from_md(md_path)
+        if md_status is None:
+            # .md 中没有 Status 字段，跳过
+            continue
+
+        # 比较
+        if state_status != md_status:
+            # 以 .md 为准更新 mission.state
+            old_status = state_status
+            state["status"] = md_status
+            state["updated_at"] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+            state["sync_source"] = "md_file_auto_sync"
+
+            try:
+                with open(sf, "w", encoding="utf-8") as f:
+                    json.dump(state, f, ensure_ascii=False, indent=2)
+                synced.append(f"{mission_id}: {old_status} → {md_status}")
+                print(f"  [SYNC] {mission_id}: {old_status} → {md_status}")
+            except OSError as e:
+                errors.append(f"{mission_id}: 写入失败 ({e})")
+
+    # 输出结果
+    if errors:
+        detail = f"同步 {len(synced)} 项, 错误 {len(errors)} 项: {'; '.join(errors)}"
+        return ("WARNING", detail, False)
+
+    if synced:
+        detail = f"自动同步 {len(synced)} 项: {'; '.join(synced)}"
+        check_id = "state_sync"
+        sync_detail = "; ".join(synced)
+        if should_notify(check_id, sync_detail):
+            msg = (
+                f"[EOS] Mission 状态自动同步\n"
+                f"同步项: {len(synced)}\n"
+                f"详情: {'; '.join(synced)}\n"
+                f"规则: 以 .md 文件为准"
+            )
+            notified = send_feishu_text(msg)
+            if notified:
+                mark_notified(check_id, sync_detail)
+        else:
+            notified = False
+        return ("INFO", detail, notified)
+
+    return ("OK", "所有 mission.state 与 .md 状态一致", False)
+
+
+# ──────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────
 
@@ -1161,7 +1308,7 @@ def main() -> int:
         os.environ.pop(k, None)
 
     print("=" * 60)
-    print(f"  EOS Heartbeat Check v2.2")
+    print(f"  EOS Heartbeat Check v2.3")
     print(f"  Time:   {_now()}")
     print(f"  PID:    {os.getpid()}")
     print(f"  CWD:    {BASE_DIR}")
@@ -1176,6 +1323,7 @@ def main() -> int:
         ("Mission Completion", check_mission_completion),
         ("Decision Gate", check_decision_gates),
         ("Long Wait", check_long_wait),
+        ("State Sync", check_mission_state_sync),
     ]
 
     results: list[tuple[str, str, str, bool]] = []

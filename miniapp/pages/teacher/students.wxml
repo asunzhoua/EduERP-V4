@@ -28,7 +28,7 @@
     <block wx:for="{{students}}" wx:key="id">
       <view class="student-card" bindtap="goToStudentDetail" data-code="{{item.studentCode}}">
         <view class="student-avatar">
-          <text>{{item.name[0] || '?'}}</text>
+          <text>{{item.initial || '?'}}</text>
         </view>
         <view class="student-info">
           <view class="student-header">
