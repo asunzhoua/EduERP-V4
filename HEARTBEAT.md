@@ -19,6 +19,19 @@
 - 运行 `cd C:\Users\sunz\Desktop\AI\EduERP-V4\EduERP-V4\backend && npx jest --no-coverage --silent 2>&1 | tail -5` 获取测试状态
 - 对比 `mission.state` 中的 `updated_at` 与当前时间，判断是否停滞
 
+### 1.3.1 停滞检测（Stall Detection）
+
+检查以下三个指标的最后更新时间，取**最晚的一个**作为 Mission 最后活动时间：
+
+1. **Last Commit**: `git log -1 --format=%ci`（仓库最新 commit 时间）
+2. **Last Evidence**: 扫描 `.missions/<mission-id>/evidence/` 目录，取最新文件的 mtime
+3. **Mission State**: `.missions/<mission-id>/mission.state` 文件的 mtime
+
+判定规则：
+- 最晚活动时间距今 > 30 分钟 → HEARTBEAT_WARNING（停滞）
+- 最晚活动时间距今 > 60 分钟 → 进入深度恢复流程（Step 2.2）
+- Mission 状态为 WAITING_DECISION → 不参与停滞判定（等待Owner是正常行为）
+
 ### 1.4 验证 Evidence 完整性
 - 检查 `.missions/<mission-id>/evidence/EVIDENCE-SUMMARY.md` 是否存在
 - 对比已完成 Batch 数量与 Evidence 记录数量是否一致
@@ -88,6 +101,170 @@
 - ❌ 修改业务逻辑
 - ❌ 绕过 Decision Gate
 - ❌ 超过 3 次自动恢复（必须上报）
+
+### Step 2.2: 深度恢复流程（Deep Recovery）
+
+当停滞超过 60 分钟时，执行以下诊断：
+
+1. **CC 进程存活检查**
+   - Windows: `tasklist | findstr /I "claude"`
+   - Linux/Mac: `ps aux | grep claude`
+   - 如果 CC 进程不存在 → 记录 "CC process not found"
+
+2. **错误日志扫描**
+   - 检查 `backend/logs/heartbeat/` 最新日志文件
+   - 搜索 ERROR / FATAL / Exception 关键词
+   - 检查 `.missions/<mission-id>/` 下是否有 error 文件
+
+3. **输出 Recovery Report**
+   ```
+   [EOS Recovery Report]
+   Mission: <Mission ID>
+   Stall Duration: <X> 分钟
+   CC Process: <Alive / Not Found>
+   Last Error: <最近错误信息，无则输出"无">
+   Evidence Files: <数量>
+   Mission State: <从 mission.state 读取>
+   
+   诊断结论: <CC 崩溃 / 网络中断 / 任务卡住 / 未知原因>
+   建议动作: <重新调度 CC / 等待网络恢复 / 人工介入>
+   ```
+
+4. **恢复决策**
+   - CC 进程不存在 + 有错误日志 → 重新调度 CC
+   - CC 进程存在但无活动 → 可能是任务卡住，先尝试中断再重新调度
+   - 无错误 + CC 存在 → 可能是长计算任务，再等待 30 分钟后复查
+
+### Step 2.3: Executor 恢复机制（Batch 5.3 新增）
+
+当 Step 2.2 深度恢复检测到具体 Executor 异常时，按以下分类处理。
+
+#### 2.3.1 CC 异常检测与恢复
+
+**检测方法：**
+```bash
+# Windows
+tasklist | findstr /I "claude"
+# Linux/Mac
+ps aux | grep claude
+```
+
+**异常类型与恢复动作：**
+
+| 异常类型 | 检测条件 | 恢复动作 |
+|:---------|:---------|:---------|
+| CC 进程死亡 | tasklist 无 claude 进程 | 自动重新调度 CC（spawn_subagent） |
+| CC 卡住 | CC 进程存在但 >15 分钟无文件修改 | 终止 CC 进程 → 重新调度 |
+| CC 错误日志 | backend/logs/ 或 .missions/ 下有 error 文件 | 输出错误摘要 → 等待 Owner 决策 |
+| CC 超时 | spawn_subagent 返回 timeout | 降低任务复杂度 → 重新调度 |
+
+**CC 恢复流程：**
+```
+CC 异常检测
+  |
+  ├─ 进程死亡 → 直接重新调度（无需 Owner 确认）
+  |
+  ├─ 进程卡住 → taskkill /F /IM claude.exe → 重新调度
+  |
+  ├─ 错误日志 → 读取错误 → 输出摘要 → NEEDS_OWNER_DECISION
+  |
+  └─ 超时 → 拆分任务 → 重新调度（最多 2 次）
+```
+
+#### 2.3.2 Pump Runner 异常检测与恢复
+
+**检测方法：**
+```bash
+# Windows
+tasklist | findstr /I "python"
+# 检查 pump_runner.py 进程
+wmic process where "commandline like '%pump_runner%'" get processid,commandline
+```
+
+**异常类型与恢复动作：**
+
+| 异常类型 | 检测条件 | 恢复动作 |
+|:---------|:---------|:---------|
+| Runner 进程死亡 | 无 pump_runner 进程 | 输出告警 → 等待 Owner 决策（Runner 重启需人工确认） |
+| 任务队列异常 | 队列文件损坏或为空 | 输出告警 → 等待 Owner 决策 |
+| 任务连续失败 | 同一任务失败 ≥3 次 | 跳过该任务 → 记录到 EVIDENCE-SUMMARY → 继续下一个 |
+| 任务超时 | 单任务执行超过预设超时 | 终止任务 → 标记为 TIMEOUT → 等待 Owner 决策 |
+
+**Runner 恢复约束：**
+- ✅ 允许：记录失败任务、跳过超时任务、继续队列
+- ❌ 禁止：自动重启 Runner（需要 Owner 确认运行参数）
+- ❌ 禁止：修改任务队列内容
+- ❌ 禁止：重试已失败任务超过 1 次
+
+#### 2.3.3 Agent（QwenPaw）停止检测与恢复
+
+**检测方法：**
+```bash
+# Windows
+tasklist | findstr /I "qwenpaw"
+# 检查 QwenPaw 主进程
+tasklist | findstr /I "node"
+```
+
+**异常类型与恢复动作：**
+
+| 异常类型 | 检测条件 | 恢复动作 |
+|:---------|:---------|:---------|
+| QwenPaw 进程死亡 | 无 qwenpaw/node 进程 | 输出 HEARTBEAT_BLOCKED → 等待 Owner 重启 |
+| Heartbeat 未触发 | Cron 任务存在但 >30 分钟无心跳日志 | 检查 Windows Task Scheduler → 输出告警 |
+| Agent 错误日志 | QwenPaw 日志中有 ERROR/FATAL | 输出错误摘要 → 等待 Owner 决策 |
+| 频道断连 | 飞书/微信 channel 连接失败 | 输出告警 → 等待 Owner 检查网络 |
+
+**Agent 恢复约束：**
+- ✅ 允许：检测进程状态、读取错误日志、输出告警
+- ❌ 禁止：自动重启 QwenPaw（Owner 必须知晓系统中断）
+- ❌ 禁止：自动重连频道（可能掩盖网络问题）
+- ❌ 禁止：修改 QwenPaw 配置
+
+#### 2.3.4 Recovery Report 格式（Executor 级别）
+
+当检测到 Executor 异常并执行恢复后，必须输出以下格式的报告：
+
+```
+[Recovery Report]
+Status: RECOVERED / NEEDS_OWNER_DECISION
+Issue: <问题描述，中文>
+Detected At: <检测时间，YYYY-MM-DD HH:MM:SS>
+Executor Type: CC / Runner / Agent
+Root Cause: <根因分析>
+Recovery Action: <恢复动作>
+Result: <恢复结果：成功/失败/等待中>
+Next Step: <下一步动作>
+```
+
+**Status 判定规则：**
+- RECOVERED：恢复动作已成功执行，系统恢复正常
+- NEEDS_OWNER_DECISION：需要 Owner 介入决策（错误日志/复杂故障/禁止自动恢复的操作）
+
+**示例：**
+```
+[Recovery Report]
+Status: RECOVERED
+Issue: CC 进程死亡，任务中断
+Detected At: 2026-07-23 14:30:00
+Executor Type: CC
+Root Cause: CC 子进程超时退出（spawn_subagent timeout）
+Recovery Action: 重新调度 CC（spawn_subagent），任务不变
+Result: 成功 — CC 进程已恢复，继续执行当前 Batch
+Next Step: 继续 Batch 5.3 执行
+```
+
+```
+[Recovery Report]
+Status: NEEDS_OWNER_DECISION
+Issue: CC 错误日志发现数据库连接异常
+Detected At: 2026-07-23 15:00:00
+Executor Type: CC
+Root Cause: MySQL 连接超时（ECONNREFUSED 127.0.0.1:3306）
+Recovery Action: 输出错误摘要，等待 Owner 决策
+Result: 等待中
+Next Step: 等待 Owner 确认数据库状态后恢复
+```
 
 ## Step 3: 输出格式
 
@@ -167,6 +344,8 @@ Last Evidence：<Evidence ID>
 - 系统健康（QwenPaw / Pump Runner / Feishu）
 - **中文输出**（Language Rule v1.0）
 - **结构化输出**（Batch 5.1 — 固定字段格式 v1.0）
+- 深度恢复（CC 进程检查 + 错误日志扫描 + Recovery Report）
+- **Executor 恢复**（Batch 5.3 — CC/Runner/Agent 异常检测与分类恢复）
 
 ### ❌ 不属于 EOS Heartbeat
 - 课时记录
@@ -203,3 +382,5 @@ Last Evidence：<Evidence ID>
 ## 版本追踪
 - v1.0: 基础 Heartbeat 流程（Mission 状态 + 自动恢复 + 中文输出）
 - v1.1 (Batch 5.1): 结构化输出格式 — 固定 8 字段（Mission/Phase/Batch/Executor/Last Commit/Last Evidence/Next Action/状态）
+- v1.2 (Batch 5.2): 停滞检测增强 — 三指标检测 + 深度恢复机制（CC 进程检查 + 错误日志 + Recovery Report）
+- v1.3 (Batch 5.3): Executor 恢复机制 — CC/Runner/Agent 三类异常检测 + 分类恢复 + Recovery Report 格式
