@@ -1,0 +1,38 @@
+<!-- pages/student/lessons.wxml -->
+<view class="container">
+  <!-- Loading -->
+  <view wx:if="{{loading}}" class="loading-state">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- Error -->
+  <view wx:elif="{{error}}" class="error-state">
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadLessons">重试</view>
+  </view>
+
+  <!-- Empty -->
+  <view wx:elif="{{lessons.length === 0}}" class="empty-state">
+    <text class="empty-text">暂无课时记录</text>
+  </view>
+
+  <!-- List -->
+  <view wx:else class="lesson-list">
+    <view wx:for="{{lessons}}" wx:key="lessonId" class="lesson-item">
+      <view class="lesson-date">
+        <text class="date-text">{{item.lessonDate}}</text>
+      </view>
+      <view class="lesson-info">
+        <text class="course-name">{{item.courseName || item.topic || '未知课程'}}</text>
+        <text class="class-name">{{item.className || '未知班级'}}</text>
+        <view class="lesson-bottom">
+          <text class="lesson-time">{{item.startTime}} - {{item.endTime}}</text>
+          <text class="lesson-status {{item.status === 'PRESENT' ? 'tag-present' : item.status === 'ABSENT' ? 'tag-absent' : item.status === 'LATE' ? 'tag-late' : item.status === 'LEAVE' ? 'tag-leave' : 'tag-other'}}">
+            {{item.status === 'PRESENT' ? '已到' : item.status === 'ABSENT' ? '缺课' : item.status === 'LATE' ? '迟到' : item.status === 'LEAVE' ? '请假' : '待确认'}}
+          </text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

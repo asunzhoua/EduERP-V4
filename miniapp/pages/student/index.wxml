@@ -57,6 +57,7 @@
     <view class="section">
       <view class="section-header">
         <text class="section-title">最近课时</text>
+        <text class="section-action" bindtap="goToLessons">查看全部</text>
       </view>
       <view class="lesson-item" wx:for="{{recentLessons}}" wx:key="lessonDate">
         <view class="lesson-date">

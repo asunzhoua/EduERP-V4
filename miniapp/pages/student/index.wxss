@@ -68,6 +68,9 @@
 }
 
 .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 20rpx 0;
 }
 
@@ -75,6 +78,11 @@
   font-size: 32rpx;
   font-weight: bold;
   color: #333;
+}
+
+.section-action {
+  font-size: 26rpx;
+  color: #1890ff;
 }
 
 /* 合同卡片 */

@@ -26,6 +26,12 @@ Page({
     });
   },
 
+  goToLessons() {
+    wx.navigateTo({
+      url: '/pages/student/lessons'
+    });
+  },
+
   async loadData() {
     if (this.data.loading) return;
     this.setData({ loading: true, error: null });
