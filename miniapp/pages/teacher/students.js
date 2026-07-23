@@ -50,8 +50,9 @@ Page({
         loading: false
       });
     } catch (err) {
+      console.error('[Students] 加载失败:', err);
+      this.setData({ loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });
-
     }
   },
 

@@ -95,9 +95,8 @@ Page({
 
     } catch (err) {
       console.error('[Courses] 加载失败:', err);
-      
+      this.setData({ loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });
-
     }
   },
 
@@ -141,9 +140,9 @@ Page({
     wx.navigateTo({ 
       url: `/pages/teacher/course-detail?code=${code}`,
       fail: (err) => {
-        console.warn('[Navigation] 课程详情页不存在:', err);
+        console.error('[Navigation] 跳转课程详情失败:', err);
         wx.showToast({
-          title: '详情页开发中',
+          title: '跳转失败',
           icon: 'none'
         });
       }

@@ -51,9 +51,8 @@ Page({
 
     } catch (err) {
       console.error('[Classes] 加载失败:', err);
-      
+      this.setData({ loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });
-
     }
   },
 
@@ -78,9 +77,9 @@ Page({
     wx.navigateTo({ 
       url: `/pages/teacher/class-detail?code=${code}`,
       fail: (err) => {
-        console.warn('[Navigation] 班级详情页不存在:', err);
+        console.error('[Navigation] 跳转班级详情失败:', err);
         wx.showToast({
-          title: '详情页开发中',
+          title: '跳转失败',
           icon: 'none'
         });
       }

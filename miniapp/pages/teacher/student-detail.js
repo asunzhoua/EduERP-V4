@@ -51,6 +51,7 @@ Page({
     } catch (err) {
       console.error('[Student Detail] 加载失败:', err);
       this.setData({
+        error: err.message || '加载失败',
         student: null,
         classes: [],
         loading: false
