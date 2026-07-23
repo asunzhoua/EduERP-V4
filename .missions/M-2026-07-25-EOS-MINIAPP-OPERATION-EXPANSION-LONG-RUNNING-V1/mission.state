@@ -10,24 +10,33 @@
   "created_at": "2026-07-24T00:00:00",
   "updated_at": "2026-07-24T12:00:00",
   "current_phase": 4,
-  "current_batch": "4.1",
+  "current_batch": "4.2",
+  "batch_started_at": "2026-07-24T12:00:00Z",
+  "batch_completed_at": null,
+  "batch_duration_minutes": null,
   "phases_completed": [],
-  "last_commit": null,
+  "last_commit": "6d9346e",
   "test_baseline": "992 passed, 80 suites",
   "tasks": [
     {
       "id": "4.1",
       "description": "Mission自动排序 — 优先级定义 + 排序逻辑 + 展示",
-      "status": "IN_PROGRESS",
-      "commit": null,
-      "evidence": null
+      "status": "COMPLETED",
+      "commit": "6d9346e",
+      "evidence": "E-4.1",
+      "started_at": "2026-07-24T10:00:00Z",
+      "completed_at": "2026-07-24T11:30:00Z",
+      "duration_minutes": 90
     },
     {
       "id": "4.2",
       "description": "Batch耗时统计增强",
-      "status": "PENDING",
+      "status": "IN_PROGRESS",
       "commit": null,
-      "evidence": null
+      "evidence": null,
+      "started_at": "2026-07-24T12:00:00Z",
+      "completed_at": null,
+      "duration_minutes": null
     },
     {
       "id": "4.3",

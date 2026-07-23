@@ -34,6 +34,16 @@ v2.5 变更（Batch 4.1 — Mission Priority & Auto-Sorting）：
 - 新增 check_mission_priority_queue() — Check 11: 优先级队列展示
 - 新增 PROJECT_MISSIONS_DIR — 项目级 .missions 目录（mission.state 物理存储位置）
 
+v2.6 变更（Batch 4.2 — Batch Duration Tracking & Timeout Alerts）：
+- 新增 BATCH_TIMEOUT_MINUTES — 超时阈值常量（120 分钟）
+- 新增 get_batch_duration_stats() — 跨 Mission Batch 耗时统计报表（avg/max/min/total）
+- 新增 check_batch_timeout() — 独立超时告警检测函数
+- 新增 record_batch_start() — 记录 Batch 开始时间到 mission.state
+- 新增 record_batch_end() — 记录 Batch 结束时间 + 计算耗时
+- 新增 check_batch_duration_statistics() — Check 12: 耗时统计报表
+- 增强 get_batch_duration() — 支持 batch_completed_at / batch_duration_minutes
+- 增强 check_eos_statistics() — 集成耗时统计报表输出
+
 由 Windows Task Scheduler 每 15 分钟调用一次。
 """
 
@@ -83,6 +93,9 @@ PRIORITY_LABELS = {
     "P2": "中（功能完善）",
     "P3": "低（优化改进）",
 }
+
+# Batch 超时阈值（分钟）— Batch 4.2 新增
+BATCH_TIMEOUT_MINUTES = 120  # 2 小时
 
 # 龙虾 App 凭证（保证通知通道可用）
 LOBSTER_APP_ID = "your-feishu-app-id"
@@ -1559,6 +1572,372 @@ def check_eos_statistics() -> tuple[str, str, bool]:
 
 
 # ──────────────────────────────────────────────
+# Batch 4.2: Duration Tracking & Timeout Alerts (v2.6)
+# ──────────────────────────────────────────────
+
+
+def _parse_iso_datetime(dt_str: str) -> Optional[datetime.datetime]:
+    """安全解析 ISO 格式时间字符串，返回带 tzinfo 的 datetime 或 None。
+
+    兼容 Python 3.10（不支持 'Z' 后缀），自动将 'Z' 替换为 '+00:00'。
+    """
+    if not dt_str:
+        return None
+    try:
+        # Python 3.10 fromisoformat 不支持 'Z'，需手动替换
+        normalized = dt_str.replace("Z", "+00:00")
+        dt = datetime.datetime.fromisoformat(normalized)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        return dt
+    except (ValueError, TypeError):
+        return None
+
+
+def record_batch_start(mission_id: str, batch_id: str,
+                       started_at: Optional[str] = None) -> bool:
+    """记录 Batch 开始时间到 mission.state。
+
+    Args:
+        mission_id: Mission ID
+        batch_id: Batch ID (e.g. "4.2")
+        started_at: ISO 格式时间字符串，默认当前 UTC 时间
+
+    Returns:
+        True 如果成功写入，False 否则
+    """
+    if started_at is None:
+        started_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+    # 搜索两个目录
+    search_dirs = [MISSIONS_DIR]
+    if os.path.isdir(PROJECT_MISSIONS_DIR):
+        search_dirs.append(PROJECT_MISSIONS_DIR)
+
+    for base_dir in search_dirs:
+        state_path = os.path.join(base_dir, mission_id, "mission.state")
+        if not os.path.isfile(state_path):
+            continue
+
+        try:
+            with open(state_path, "r", encoding="utf-8") as f:
+                state = json.load(f)
+        except Exception:
+            try:
+                with open(state_path, "r", encoding="gbk") as f:
+                    state = json.load(f)
+            except Exception:
+                continue
+
+        state["batch_started_at"] = started_at
+        state["batch_completed_at"] = None
+        state["batch_duration_minutes"] = None
+        state["current_batch"] = batch_id
+        state["updated_at"] = datetime.datetime.now(
+            datetime.timezone.utc
+        ).isoformat()
+
+        try:
+            with open(state_path, "w", encoding="utf-8") as f:
+                json.dump(state, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception:
+            continue
+
+    return False
+
+
+def record_batch_end(mission_id: str,
+                     completed_at: Optional[str] = None) -> bool:
+    """记录 Batch 结束时间并计算耗时到 mission.state。
+
+    Args:
+        mission_id: Mission ID
+        completed_at: ISO 格式时间字符串，默认当前 UTC 时间
+
+    Returns:
+        True 如果成功写入，False 否则
+    """
+    if completed_at is None:
+        completed_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+    search_dirs = [MISSIONS_DIR]
+    if os.path.isdir(PROJECT_MISSIONS_DIR):
+        search_dirs.append(PROJECT_MISSIONS_DIR)
+
+    for base_dir in search_dirs:
+        state_path = os.path.join(base_dir, mission_id, "mission.state")
+        if not os.path.isfile(state_path):
+            continue
+
+        try:
+            with open(state_path, "r", encoding="utf-8") as f:
+                state = json.load(f)
+        except Exception:
+            try:
+                with open(state_path, "r", encoding="gbk") as f:
+                    state = json.load(f)
+            except Exception:
+                continue
+
+        started_at_str = state.get("batch_started_at")
+        started_at = _parse_iso_datetime(started_at_str)
+        end_at = _parse_iso_datetime(completed_at)
+
+        duration_minutes = None
+        if started_at and end_at:
+            duration_minutes = round(
+                (end_at - started_at).total_seconds() / 60, 1
+            )
+
+        state["batch_completed_at"] = completed_at
+        state["batch_duration_minutes"] = duration_minutes
+        state["updated_at"] = datetime.datetime.now(
+            datetime.timezone.utc
+        ).isoformat()
+
+        # 同时更新 tasks 列表中当前 batch 的状态
+        current_batch = state.get("current_batch")
+        tasks = state.get("tasks", [])
+        for task in tasks:
+            if str(task.get("id")) == str(current_batch):
+                task["completed_at"] = completed_at
+                if duration_minutes is not None:
+                    task["duration_minutes"] = duration_minutes
+                break
+
+        try:
+            with open(state_path, "w", encoding="utf-8") as f:
+                json.dump(state, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception:
+            continue
+
+    return False
+
+
+def get_batch_duration_stats() -> dict:
+    """跨 Mission Batch 耗时统计报表。
+
+    扫描所有 mission.state，收集有 batch_duration_minutes 的记录。
+    返回 dict: {
+        total_batches, avg_minutes, max_minutes, min_minutes,
+        total_minutes, max_mission_id, min_mission_id, batches: [...]
+    }
+    """
+    batches = []
+
+    search_dirs = [MISSIONS_DIR]
+    if os.path.isdir(PROJECT_MISSIONS_DIR):
+        search_dirs.append(PROJECT_MISSIONS_DIR)
+
+    seen_ids = set()
+
+    for base_dir in search_dirs:
+        if not os.path.isdir(base_dir):
+            continue
+
+        state_files = glob.glob(
+            os.path.join(base_dir, "*", "mission.state"),
+            recursive=True,
+        )
+
+        for sf in state_files:
+            try:
+                with open(sf, "r", encoding="utf-8") as f:
+                    state = json.load(f)
+            except Exception:
+                try:
+                    with open(sf, "r", encoding="gbk") as f:
+                        state = json.load(f)
+                except Exception:
+                    continue
+
+            mission_id = state.get("mission_id", "unknown")
+
+            # 去重
+            dedup_key = mission_id
+            if dedup_key in seen_ids:
+                continue
+            seen_ids.add(dedup_key)
+
+            # 收集 tasks 中有 duration_minutes 的记录
+            tasks = state.get("tasks", [])
+            for task in tasks:
+                dur = task.get("duration_minutes")
+                if dur is not None and isinstance(dur, (int, float)):
+                    batches.append({
+                        "mission_id": mission_id,
+                        "batch_id": str(task.get("id", "?")),
+                        "duration_minutes": dur,
+                        "completed_at": task.get("completed_at", ""),
+                    })
+
+            # 也检查顶层 batch_duration_minutes（当前 batch）
+            top_dur = state.get("batch_duration_minutes")
+            if top_dur is not None and isinstance(top_dur, (int, float)):
+                # 避免重复（如果 task 里已经有了）
+                current_batch = state.get("current_batch", "")
+                already = any(
+                    b["mission_id"] == mission_id
+                    and b["batch_id"] == str(current_batch)
+                    for b in batches
+                )
+                if not already:
+                    batches.append({
+                        "mission_id": mission_id,
+                        "batch_id": str(current_batch),
+                        "duration_minutes": top_dur,
+                        "completed_at": state.get("batch_completed_at", ""),
+                    })
+
+    if not batches:
+        return {
+            "total_batches": 0,
+            "avg_minutes": 0,
+            "max_minutes": 0,
+            "min_minutes": 0,
+            "total_minutes": 0,
+            "max_mission_id": None,
+            "min_mission_id": None,
+            "batches": [],
+        }
+
+    durations = [b["duration_minutes"] for b in batches]
+    max_idx = durations.index(max(durations))
+    min_idx = durations.index(min(durations))
+
+    return {
+        "total_batches": len(batches),
+        "avg_minutes": round(sum(durations) / len(durations), 1),
+        "max_minutes": max(durations),
+        "min_minutes": min(durations),
+        "total_minutes": round(sum(durations), 1),
+        "max_mission_id": batches[max_idx]["mission_id"],
+        "max_batch_id": batches[max_idx]["batch_id"],
+        "min_mission_id": batches[min_idx]["mission_id"],
+        "min_batch_id": batches[min_idx]["batch_id"],
+        "batches": batches,
+    }
+
+
+def check_batch_timeout() -> tuple[str, str, bool]:
+    """独立超时告警检测。
+
+    检查当前 RUNNING 的 Batch 是否超过 BATCH_TIMEOUT_MINUTES。
+    返回 (status, detail, needs_owner)
+    """
+    if not os.path.isdir(MISSIONS_DIR):
+        return ("OK", "无 Active Mission", False)
+
+    search_dirs = [MISSIONS_DIR]
+    if os.path.isdir(PROJECT_MISSIONS_DIR):
+        search_dirs.append(PROJECT_MISSIONS_DIR)
+
+    seen_ids = set()
+
+    for base_dir in search_dirs:
+        if not os.path.isdir(base_dir):
+            continue
+
+        state_files = glob.glob(
+            os.path.join(base_dir, "*", "mission.state"),
+            recursive=True,
+        )
+
+        for sf in state_files:
+            try:
+                with open(sf, "r", encoding="utf-8") as f:
+                    state = json.load(f)
+            except Exception:
+                try:
+                    with open(sf, "r", encoding="gbk") as f:
+                        state = json.load(f)
+                except Exception:
+                    continue
+
+            if state.get("status") != "RUNNING":
+                continue
+
+            mission_id = state.get("mission_id", "unknown")
+            if mission_id in seen_ids:
+                continue
+            seen_ids.add(mission_id)
+
+            batch_started_at = state.get("batch_started_at")
+            if not batch_started_at:
+                continue
+
+            started = _parse_iso_datetime(batch_started_at)
+            if not started:
+                continue
+
+            now = datetime.datetime.now(datetime.timezone.utc)
+            elapsed = (now - started).total_seconds() / 60
+            current_batch = state.get("current_batch", "?")
+
+            if elapsed > BATCH_TIMEOUT_MINUTES:
+                return (
+                    "WARNING",
+                    f"[{mission_id}] Batch {current_batch} 已运行 "
+                    f"{elapsed:.0f}min，超过阈值 {BATCH_TIMEOUT_MINUTES}min",
+                    False,
+                )
+
+    return ("OK", f"无 Batch 超时（阈值 {BATCH_TIMEOUT_MINUTES}min）", False)
+
+
+def check_batch_duration_statistics() -> tuple[str, str, bool]:
+    """Check 12: Batch 耗时统计报表。
+
+    输出所有已完成 Batch 的耗时统计（avg/max/min/total）。
+    同时集成超时告警。
+    """
+    stats = get_batch_duration_stats()
+    timeout_status, timeout_detail, _ = check_batch_timeout()
+
+    print(f"  Batch 总数: {stats['total_batches']}")
+
+    if stats["total_batches"] > 0:
+        print(f"  平均耗时: {stats['avg_minutes']:.1f} 分钟")
+        print(f"  最长耗时: {stats['max_minutes']:.1f} 分钟 "
+              f"({stats.get('max_mission_id', '?')} / "
+              f"Batch {stats.get('max_batch_id', '?')})")
+        print(f"  最短耗时: {stats['min_minutes']:.1f} 分钟 "
+              f"({stats.get('min_mission_id', '?')} / "
+              f"Batch {stats.get('min_batch_id', '?')})")
+        print(f"  累计耗时: {stats['total_minutes']:.1f} 分钟")
+    else:
+        print(f"  平均耗时: —")
+        print(f"  最长耗时: —")
+        print(f"  最短耗时: —")
+        print(f"  累计耗时: —")
+
+    # 超时告警
+    if timeout_status == "WARNING":
+        print(f"  [WARNING] 超时告警: {timeout_detail}")
+
+    # 当前 Batch 实时耗时
+    batch_dur = get_batch_duration()
+    if batch_dur["mission_id"] and batch_dur["batch_started_at"]:
+        print(f"  当前 Batch: {batch_dur['elapsed_minutes']:.0f} 分钟 (进行中)")
+
+    if timeout_status == "WARNING":
+        return ("WARNING", timeout_detail, False)
+
+    if stats["total_batches"] > 0:
+        detail = (
+            f"{stats['total_batches']} batches, "
+            f"avg {stats['avg_minutes']:.0f}min, "
+            f"max {stats['max_minutes']:.0f}min"
+        )
+    else:
+        detail = "无已完成 Batch 记录"
+
+    return ("OK", detail, False)
+
+
+# ──────────────────────────────────────────────
 # Check 11: Mission 优先级队列（Batch 4.1 新增）
 # ──────────────────────────────────────────────
 
@@ -1772,6 +2151,7 @@ def main() -> int:
         ("State Sync", check_mission_state_sync),
         ("EOS Statistics", check_eos_statistics),
         ("Priority Queue", check_mission_priority_queue),
+        ("Batch Duration Stats", check_batch_duration_statistics),
     ]
 
     results: list[tuple[str, str, str, bool]] = []
