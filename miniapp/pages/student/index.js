@@ -52,6 +52,15 @@ Page({
     });
   },
 
+  goToProfile() {
+    wx.navigateTo({
+      url: '/pages/student/profile',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
   async loadData() {
     if (this._dataLoading) return;
     this._dataLoading = true;

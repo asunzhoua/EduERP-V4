@@ -1,0 +1,393 @@
+/* pages/student/profile.wxss */
+.container {
+  padding: 20rpx;
+  padding-bottom: 40rpx;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+/* === 顶部个人信息 === */
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 50rpx 30rpx 40rpx;
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.avatar-area {
+  margin-bottom: 20rpx;
+}
+
+.avatar-circle {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4rpx solid rgba(255, 255, 255, 0.5);
+}
+
+.avatar-text {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.profile-name {
+  font-size: 38rpx;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 8rpx;
+}
+
+.profile-code {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* === 基础信息卡片 === */
+.info-card {
+  background: #ffffff;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.card-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.info-value {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+/* === 通用 Section 卡片 === */
+.section-card {
+  background: #ffffff;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+/* === 合同状态 === */
+.contract-summary {
+  font-size: 24rpx;
+  color: #52c41a;
+  font-weight: normal;
+}
+
+.contract-summary.expiring {
+  color: #fa8c16;
+  margin-left: 16rpx;
+}
+
+.contract-item {
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.contract-item:last-child {
+  border-bottom: none;
+}
+
+.contract-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.contract-subject {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.contract-tag {
+  font-size: 22rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 6rpx;
+}
+
+.status-active {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 1rpx solid #b7eb8f;
+}
+
+.status-expiring {
+  background: #fff7e6;
+  color: #fa8c16;
+  border: 1rpx solid #ffd591;
+}
+
+.status-expired {
+  background: #fff1f0;
+  color: #f5222d;
+  border: 1rpx solid #ffa39e;
+}
+
+.status-suspended {
+  background: #f5f5f5;
+  color: #999;
+  border: 1rpx solid #d9d9d9;
+}
+
+.status-unknown {
+  background: #f5f5f5;
+  color: #999;
+  border: 1rpx solid #d9d9d9;
+}
+
+.contract-detail {
+  padding-left: 10rpx;
+}
+
+.contract-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8rpx 0;
+}
+
+.detail-label {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.detail-value {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.detail-value.highlight {
+  color: #1890ff;
+  font-weight: bold;
+}
+
+/* 进度条 */
+.progress-bar-wrap {
+  display: flex;
+  align-items: center;
+  margin-top: 12rpx;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 12rpx;
+  background: #f0f0f0;
+  border-radius: 6rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1890ff, #52c41a);
+  border-radius: 6rpx;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 22rpx;
+  color: #999;
+  margin-left: 12rpx;
+  min-width: 60rpx;
+  text-align: right;
+}
+
+/* === 学习概览 === */
+.overview-grid {
+  display: flex;
+  justify-content: space-around;
+  padding: 10rpx 0;
+}
+
+.overview-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.overview-value {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.overview-value.used {
+  color: #52c41a;
+}
+
+.overview-value.remain {
+  color: #1890ff;
+}
+
+.overview-value.rate {
+  color: #fa8c16;
+}
+
+.overview-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+/* === 最近课程 === */
+.lesson-item {
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.lesson-item:last-child {
+  border-bottom: none;
+}
+
+.lesson-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.lesson-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.lesson-tag {
+  font-size: 22rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 4rpx;
+}
+
+.status-present {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.status-absent {
+  background: #fff1f0;
+  color: #f5222d;
+}
+
+.status-late {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.status-leave {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.status-pending {
+  background: #f5f5f5;
+  color: #999;
+}
+
+.lesson-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lesson-info {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.lesson-time {
+  font-size: 24rpx;
+  color: #bbb;
+}
+
+/* === 空状态 === */
+.empty-hint {
+  text-align: center;
+  padding: 40rpx 0;
+  color: #ccc;
+  font-size: 26rpx;
+}
+
+/* === 加载中 === */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #ddd;
+  border-top-color: #1890ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* === 错误 === */
+.error-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 30rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.error-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.retry-btn {
+  font-size: 28rpx;
+  color: #1890ff;
+  margin-top: 20rpx;
+  padding: 10rpx 30rpx;
+  border: 2rpx solid #1890ff;
+  border-radius: 8rpx;
+}

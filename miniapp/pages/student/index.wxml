@@ -6,6 +6,10 @@
       <text class="welcome-text">你好，{{studentInfo.name || '同学'}}</text>
       <text class="student-code">学号：{{studentInfo.studentCode || ''}}</text>
     </view>
+    <view class="profile-entry" bindtap="goToProfile">
+      <text class="profile-entry-text">个人中心</text>
+      <text class="profile-entry-arrow">></text>
+    </view>
   </view>
 
   <!-- 学习概览 -->

@@ -1,0 +1,133 @@
+<!-- pages/student/profile.wxml -->
+<view class="container">
+  <!-- 顶部个人信息卡片 -->
+  <view class="profile-header">
+    <view class="avatar-area">
+      <view class="avatar-circle">
+        <text class="avatar-text">{{studentInfo.name[0] || '?'}}</text>
+      </view>
+    </view>
+    <view class="profile-name">{{studentInfo.name || '同学'}}</view>
+    <view class="profile-code">学号：{{studentInfo.studentCode || '--'}}</view>
+  </view>
+
+  <!-- 基础信息 -->
+  <view class="info-card">
+    <view class="card-title">基础信息</view>
+    <view class="info-row">
+      <text class="info-label">姓名</text>
+      <text class="info-value">{{studentInfo.name || '--'}}</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">学号</text>
+      <text class="info-value">{{studentInfo.studentCode || '--'}}</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">性别</text>
+      <text class="info-value">{{studentInfo.gender || '未设置'}}</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">手机</text>
+      <text class="info-value">{{studentInfo.phone || '未绑定'}}</text>
+    </view>
+  </view>
+
+  <!-- 合同状态 -->
+  <view class="section-card">
+    <view class="card-title">
+      <text>合同状态</text>
+      <text class="contract-summary" wx:if="{{contractStats.activeCount > 0}}">
+        {{contractStats.activeCount}}个有效
+      </text>
+      <text class="contract-summary expiring" wx:if="{{contractStats.expiringCount > 0}}">
+        {{contractStats.expiringCount}}个即将到期
+      </text>
+    </view>
+
+    <view class="contract-item" wx:for="{{contracts}}" wx:key="contractCode">
+      <view class="contract-top">
+        <text class="contract-subject">{{item.subject}}</text>
+        <text class="contract-tag {{item.statusClass}}">{{item.statusText}}</text>
+      </view>
+      <view class="contract-detail">
+        <view class="contract-detail-row">
+          <text class="detail-label">授课老师</text>
+          <text class="detail-value">{{item.teacherName}}</text>
+        </view>
+        <view class="contract-detail-row">
+          <text class="detail-label">课时进度</text>
+          <text class="detail-value">{{item.usedLessons}}/{{item.totalLessons}}</text>
+        </view>
+        <view class="contract-detail-row">
+          <text class="detail-label">剩余课时</text>
+          <text class="detail-value highlight">{{item.remainingLessons}}</text>
+        </view>
+        <view class="contract-detail-row">
+          <text class="detail-label">有效期</text>
+          <text class="detail-value">{{item.validFrom}} ~ {{item.validTo}}</text>
+        </view>
+      </view>
+      <!-- 进度条 -->
+      <view class="progress-bar-wrap" wx:if="{{item.totalLessons > 0}}">
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{item.progress}}%"></view>
+        </view>
+        <text class="progress-text">{{item.progress}}%</text>
+      </view>
+    </view>
+
+    <view class="empty-hint" wx:if="{{!loading && contracts.length === 0}}">
+      <text>暂无合同信息</text>
+    </view>
+  </view>
+
+  <!-- 学习概览 -->
+  <view class="section-card">
+    <view class="card-title">学习概览</view>
+    <view class="overview-grid">
+      <view class="overview-item">
+        <text class="overview-value">{{learningOverview.totalLessons}}</text>
+        <text class="overview-label">总课时</text>
+      </view>
+      <view class="overview-item">
+        <text class="overview-value used">{{learningOverview.usedLessons}}</text>
+        <text class="overview-label">已上课</text>
+      </view>
+      <view class="overview-item">
+        <text class="overview-value remain">{{learningOverview.remainingLessons}}</text>
+        <text class="overview-label">剩余课时</text>
+      </view>
+      <view class="overview-item">
+        <text class="overview-value rate">{{learningOverview.attendanceRateText}}</text>
+        <text class="overview-label">出勤率</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 最近课程 -->
+  <view class="section-card" wx:if="{{recentLessons.length > 0}}">
+    <view class="card-title">最近课程</view>
+    <view class="lesson-item" wx:for="{{recentLessons}}" wx:key="index">
+      <view class="lesson-top">
+        <text class="lesson-name">{{item.courseName}}</text>
+        <text class="lesson-tag {{item.statusClass}}">{{item.statusText}}</text>
+      </view>
+      <view class="lesson-bottom">
+        <text class="lesson-info">{{item.className}} · {{item.lessonDate}}</text>
+        <text class="lesson-time">{{item.timeRange}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误提示 -->
+  <view class="error-card" wx:if="{{error && !loading}}">
+    <text class="error-text">{{error}}</text>
+    <text class="retry-btn" bindtap="loadData">点击重试</text>
+  </view>
+</view>

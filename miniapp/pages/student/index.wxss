@@ -27,6 +27,30 @@
   margin-top: 12rpx;
 }
 
+/* 个人中心入口 */
+.profile-entry {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 20rpx;
+  padding: 12rpx 20rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8rpx;
+  width: fit-content;
+  margin-left: auto;
+}
+
+.profile-entry-text {
+  font-size: 26rpx;
+  color: #ffffff;
+  margin-right: 8rpx;
+}
+
+.profile-entry-arrow {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+
 /* 加载中 */
 .loading-state {
   display: flex;
