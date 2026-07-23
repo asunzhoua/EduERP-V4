@@ -63,7 +63,7 @@ export class ClassController {
   }
 
   @Get(':code')
-  @Roles('SuperAdmin', 'Admin', 'Teacher')
+  @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
   @ApiOperation({ summary: 'Get class by classCode' })
   async findOne(@Param('code') code: string): Promise<ApiResponse> {
     const cls = await this.classService.findByCode(code);
