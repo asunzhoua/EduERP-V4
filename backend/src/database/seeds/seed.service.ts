@@ -294,7 +294,7 @@ export class SeedService {
     const students = [
       {
         studentCode: 'STU001',
-        name: '张三',
+        name: '李小华',  // Must match user "student1" name
         gender: Gender.MALE,
         birthDate: '2014-05-10',
         phone: '13800000001',
