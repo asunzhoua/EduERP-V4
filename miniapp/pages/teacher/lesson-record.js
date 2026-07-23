@@ -45,6 +45,14 @@ Page({
   },
 
   onLoad(options) {
+    // 角色守卫：学生不允许访问教师页面
+    const app = getApp();
+    const role = app.globalData.userInfo?.role;
+    if (role === 'Student' || role === 'Parent') {
+      wx.reLaunch({ url: '/pages/index/index' });
+      return;
+    }
+
     // 设置默认日期为今天
     const today = new Date();
     const dateStr = this.formatDate(today);

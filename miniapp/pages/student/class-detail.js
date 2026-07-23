@@ -71,6 +71,26 @@ Page({
     this.loadData(this.data.classCode);
   },
 
+  // 跳看出勤记录
+  goToAttendance() {
+    wx.navigateTo({
+      url: '/pages/student/attendance',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 跳转课时记录
+  goToLessons() {
+    wx.navigateTo({
+      url: '/pages/student/lessons',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
   // 返回
   onBack() {
     wx.navigateBack();

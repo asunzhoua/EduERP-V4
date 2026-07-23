@@ -56,7 +56,9 @@
 
     <!-- 操作按钮 -->
     <view class="action-section">
-      <button class="action-btn" bindtap="goToMyClasses">查看我的课程</button>
+      <button class="action-btn primary" bindtap="goToAttendance">查看出勤记录</button>
+      <button class="action-btn" bindtap="goToLessons">查看课时记录</button>
+      <button class="action-btn secondary" bindtap="goToMyClasses">返回班级列表</button>
     </view>
   </block>
 </view>

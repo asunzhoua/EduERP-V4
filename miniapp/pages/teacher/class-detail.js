@@ -15,6 +15,14 @@ Page({
   },
 
   onLoad(options) {
+    // 角色守卫：学生不允许访问教师页面
+    const app = getApp();
+    const role = app.globalData.userInfo?.role;
+    if (role === 'Student' || role === 'Parent') {
+      wx.reLaunch({ url: '/pages/index/index' });
+      return;
+    }
+
     const { code } = options;
     if (code) {
       this.setData({ classCode: code });
