@@ -206,7 +206,7 @@ export class SeedService {
       this.logger.log('Teacher user already exists, skipping creation', 'Seed');
       savedTeacher = existingTeacher;
     } else {
-      const teacherPassword = await bcrypt.hash('teacher123', 10);
+      const teacherPassword = await bcrypt.hash(process.env.SEED_TEACHER_PASSWORD || 'Teacher@Dev2026', 10);
       const teacher = userRepo.create({
         username: 'teacher1',
         password: teacherPassword,
@@ -238,7 +238,7 @@ export class SeedService {
       this.logger.log('Student user already exists, skipping creation', 'Seed');
       savedStudent = existingStudent;
     } else {
-      const studentPassword = await bcrypt.hash('student123', 10);
+      const studentPassword = await bcrypt.hash(process.env.SEED_STUDENT_PASSWORD || 'Student@Dev2026', 10);
       const student = userRepo.create({
         username: 'student1',
         password: studentPassword,
@@ -270,7 +270,7 @@ export class SeedService {
       this.logger.log('Parent user already exists, skipping creation', 'Seed');
       savedParent = existingParent;
     } else {
-      const parentPassword = await bcrypt.hash('parent123', 10);
+      const parentPassword = await bcrypt.hash(process.env.SEED_PARENT_PASSWORD || 'Parent@Dev2026', 10);
       const parent = userRepo.create({
         username: 'parent1',
         password: parentPassword,
