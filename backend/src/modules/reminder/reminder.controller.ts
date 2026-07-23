@@ -18,7 +18,7 @@ import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
 
-@Controller('api/v1/reminders')
+@Controller('reminders')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ReminderController {
   constructor(private readonly reminderService: ReminderService) {}

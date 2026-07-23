@@ -1,0 +1,208 @@
+[
+  {
+    "step": "1-Login",
+    "api": "POST /api/v1/auth/login",
+    "http_status": 200,
+    "response": {
+      "code": 0,
+      "user": {
+        "id": "3",
+        "username": "student1",
+        "mobile": "13900000002",
+        "openid": null,
+        "unionid": null,
+        "name": "李小华",
+        "role": "Student",
+        "status": 1,
+        "campusId": "1",
+        "avatar": null,
+        "lastLoginAt": "2026-07-23T23:07:01.000Z",
+        "createTime": "2026-07-19T22:55:54.796Z",
+        "updateTime": "2026-07-23T23:07:00.000Z",
+        "version": 5,
+        "deleted": 0
+      }
+    },
+    "checks": [
+      {
+        "name": "has accessToken",
+        "pass": true
+      },
+      {
+        "name": "user.name = 李小华",
+        "pass": true
+      },
+      {
+        "name": "user.role = Student",
+        "pass": true
+      }
+    ]
+  },
+  {
+    "step": "2-StudentSelf",
+    "api": "GET /api/v1/students/self",
+    "http_status": 200,
+    "response": {
+      "code": 0,
+      "message": "success",
+      "data": {
+        "studentCode": "STU001",
+        "name": "李小华",
+        "gender": "MALE",
+        "phone": "13800000001"
+      }
+    },
+    "checks": [
+      {
+        "name": "has name",
+        "pass": true
+      },
+      {
+        "name": "has studentId",
+        "pass": false
+      },
+      {
+        "name": "has phone/mobile",
+        "pass": true
+      }
+    ]
+  },
+  {
+    "step": "3-Courses",
+    "api": "GET /api/v1/students/self/courses",
+    "http_status": 404,
+    "response": {
+      "code": 404,
+      "message": "Cannot GET /api/v1/students/self/courses",
+      "data": null
+    },
+    "checks": [
+      {
+        "name": "API exists and returns data",
+        "pass": false
+      }
+    ]
+  },
+  {
+    "step": "4-Classes",
+    "api": "GET /api/v1/students/self/classes",
+    "http_status": 404,
+    "response": {
+      "code": 404,
+      "message": "Cannot GET /api/v1/students/self/classes",
+      "data": null
+    },
+    "checks": [
+      {
+        "name": "API exists and returns data",
+        "pass": false
+      }
+    ]
+  },
+  {
+    "step": "5-Lessons",
+    "api": "GET /api/v1/students/self/lessons",
+    "http_status": 200,
+    "response": {
+      "code": 0,
+      "message": "success",
+      "data": [
+        {
+          "lessonDate": "2026-07-18",
+          "startTime": "09:00",
+          "endTime": "10:30",
+          "status": "ABSENT",
+          "lessonStatus": "FINISHED"
+        },
+        {
+          "lessonDate": "2026-07-11",
+          "startTime": "09:00",
+          "endTime": "10:30",
+          "status": "PRESENT",
+          "lessonStatus": "FINISHED"
+        },
+        {
+          "lessonDate": "2026-07-04",
+          "startTime": "09:00",
+          "endTime": "10:30",
+          "status": "PRESENT",
+          "lessonStatus": "FINISHED"
+        }
+      ]
+    },
+    "checks": [
+      {
+        "name": "returns data",
+        "pass": true
+      },
+      {
+        "name": "has lessons",
+        "pass": true
+      }
+    ]
+  },
+  {
+    "step": "6-Attendance",
+    "api": "GET /api/v1/students/self/attendance",
+    "http_status": 200,
+    "response": {
+      "code": 0,
+      "message": "success",
+      "data": []
+    },
+    "checks": [
+      {
+        "name": "returns data",
+        "pass": true
+      },
+      {
+        "name": "has records",
+        "pass": false
+      }
+    ]
+  },
+  {
+    "step": "7-Contracts",
+    "api": "GET /api/v1/students/self/contracts",
+    "http_status": 200,
+    "response": {
+      "code": 0,
+      "message": "success",
+      "data": [
+        {
+          "contractCode": "CT2026070001",
+          "classCode": "CL2026070001",
+          "teacherName": "张老师",
+          "subject": "MATH",
+          "totalLessons": 50,
+          "remainingLessons": 50,
+          "status": "ACTIVE",
+          "validFrom": "2026-07-01",
+          "validTo": null
+        }
+      ]
+    },
+    "checks": [
+      {
+        "name": "returns data",
+        "pass": true
+      }
+    ]
+  },
+  {
+    "step": "8-Reminders",
+    "api": "GET /api/v1/reminders",
+    "http_status": 404,
+    "response": {
+      "code": 404,
+      "message": "Cannot GET /api/v1/reminders",
+      "data": null
+    },
+    "checks": [
+      {
+        "name": "API exists and returns data",
+        "pass": false
+      }
+    ]
+  }
+]
