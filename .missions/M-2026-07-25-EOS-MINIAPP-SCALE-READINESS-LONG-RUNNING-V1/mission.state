@@ -1,12 +1,12 @@
 {
   "mission_id": "M-2026-07-25-EOS-MINIAPP-SCALE-READINESS-LONG-RUNNING-V1",
   "status": "RUNNING",
-  "current_phase": 2,
-  "current_batch": "2.2",
+  "current_phase": 3,
+  "current_batch": "3.1",
   "updated_at": "2026-07-24T03:30:00+08:00",
-  "last_commit": "278a38a",
-  "last_evidence": "B2.2-001",
-  "completed_batches": ["1.1", "1.2", "2.1", "2.2"],
+  "last_commit": "c6ccfc3",
+  "last_evidence": "B3.1-001",
+  "completed_batches": ["1.1", "1.2", "2.1", "2.2", "3.1"],
   "pending_batches": [],
   "owner": "user",
   "created_at": "2026-07-24T02:20:00+08:00"

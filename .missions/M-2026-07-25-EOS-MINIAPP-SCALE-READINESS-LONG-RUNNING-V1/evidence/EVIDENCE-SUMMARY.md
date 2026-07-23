@@ -123,3 +123,41 @@
 4. **权限控制正确** — onLoad 检查 role，非 Admin 显示无权限 ✅
 5. **测试通过** — 987 tests ALL PASS ✅
 6. **Git commit + push** — 278a38a 已推送 ✅
+
+---
+
+## Phase 3 Batch 3.1 — 权限扫描与修复
+
+| Evidence ID | Type | Description | File | Status |
+|:------------|:-----|:------------|:-----|:-------|
+| B3.1-001 | Fix(P1) | Analytics: 添加学生数据归属验证（Student/Parent 只能访问自己的 studentCode） | analytics.controller.ts | ✅ PASS |
+| B3.1-002 | Fix(P2) | Reminder: 4个自助端点添加显式 @Roles 装饰器（findMyReminders/markAsRead/markAllAsRead/getUnreadCount） | reminder.controller.ts | ✅ PASS |
+| B3.1-003 | Fix(P2) | Miniapp: 5个学生页面添加角色守卫（防止 Teacher 误入学生专属页面） | student/index.js, attendance.js, classes.js, lessons.js, class-detail.js | ✅ PASS |
+| B3.1-004 | Test | 新增 5 个数据归属验证测试（Student 自有数据/越权拒绝/不存在拒绝/Parent 访问/Teacher 免检） | analytics.controller.spec.ts | ✅ PASS |
+
+### 扫描结果摘要
+
+- 扫描 Controller：13 个（全部有 @UseGuards + @Roles）
+- 扫描 Service：数据隔离正确（self 端点使用 req.user.sub）
+- 扫描 Miniapp 页面：15 个（全部有角色守卫或后端保护）
+- 发现问题：3 类（1×P1 数据越权 + 2×P2 显式声明缺失）
+- 已修复：3 类
+- 测试状态：992 tests, 80 suites ALL PASS（新增 5 个测试）
+- Commit SHA：c6ccfc3
+
+### 扫描发现详情
+
+**P1 — Analytics 数据越权（已修复）**
+- 问题：`GET /analytics/student/:studentCode` 允许 Student/Parent 查询任意 studentCode
+- 修复：添加 `verifyStudentAccess()` 方法，Student/Parent 只能查询 userId === req.user.sub 的学生
+- 影响：2 个端点（getStudentMetrics + getStudentTrend）
+
+**P2 — Reminder 缺少 @Roles（已修复）**
+- 问题：4 个自助端点缺少显式 @Roles 装饰器（依赖 RolesGuard 默认放行）
+- 修复：添加 @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
+- 影响：4 个端点
+
+**P2 — 学生页面缺少前端角色守卫（已修复）**
+- 问题：5 个学生页面没有前端角色守卫（后端 self 端点已保护，但 Teacher 访问会看到 404/空页面）
+- 修复：添加 onLoad 角色检查，Teacher 重定向到首页
+- 影响：5 个页面
