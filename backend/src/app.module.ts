@@ -7,6 +7,7 @@ import { StudentModule } from '@modules/student/student.module';
 import { TeachingModule } from '@modules/teaching/teaching.module';
 import { DatabaseModule } from '@database/database.module';
 import { AnalyticsModule } from '@modules/analytics/analytics.module';
+import { ReminderModule } from '@modules/reminder/reminder.module';
 import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
 import { ResponseInterceptor } from '@common/interceptors/response.interceptor';
@@ -32,6 +33,7 @@ import { databaseConfig } from '@config/database.config';
     TeachingModule,
     DatabaseModule,
     AnalyticsModule,
+    ReminderModule,
   ],
   providers: [
     {
