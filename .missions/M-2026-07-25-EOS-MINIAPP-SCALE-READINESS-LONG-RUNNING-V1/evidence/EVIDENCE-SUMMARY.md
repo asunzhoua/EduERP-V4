@@ -57,3 +57,33 @@
 3. **错误恢复** — request.js 三层防御（网络预检 + 自动重试 + 超时分类）+ 页面级 retry 按钮 ✅
 4. **数据一致性** — index/classes 有 onShow 刷新；attendance/lessons 为叶子页面，onLoad 加载 ✅
 5. **用户体验** — 修复下拉刷新配置缺失 + wx:key 不唯一问题 ✅
+
+---
+
+## Phase 2 Batch 2.1 — Backend Analytics Review
+
+| Evidence ID | Type | Description | File | Status |
+|:------------|:-----|:------------|:-----|:-------|
+| B2.1-001 | Fix(P1) | getTeacherTrend: 合并 2 次 lessonRepository 查询为 1 次（消除重复 DB 查询） | analytics.service.ts | ✅ PASS |
+| B2.1-002 | Fix(P1) | getStudentTrend: 合并 2 次 lessonAttendanceRepository 查询为 1 次（消除重复 DB 查询） | analytics.service.ts | ✅ PASS |
+| B2.1-003 | Fix(P2) | Controller: 添加 days 参数验证（NaN 防护 + 范围限制 1-365） | analytics.controller.ts | ✅ PASS |
+| B2.1-004 | Fix(P2) | 导出 MetricItem 接口修复 TS4053 编译错误 | analytics.service.ts | ✅ PASS |
+| B2.1-005 | Fix(P2) | 测试 mock 泄漏修复（clearAllMocks → resetAllMocks + 重新初始化） | analytics.service.spec.ts | ✅ PASS |
+
+### 扫描结果摘要
+
+- 扫描文件：5 个（controller / service / module / controller.spec / service.spec）
+- 检查项：5 大类（数据完整性 / 权限 / 查询性能 / 返回格式 / 错误处理）
+- 发现问题：5 个（2×P1 + 3×P2）
+- 已修复：5 个
+- 测试状态：987 tests, 80 suites ALL PASS
+- Build 状态：analytics 模块 0 errors（identity.module.ts 预存错误不在范围内）
+- Commit SHA：fe81cdd
+
+### 5 项检查结果
+
+1. **数据完整性** — 学生 8 指标 + 教师 3 指标 + 机构 4 指标 + 3 个趋势端点 ✅ 完整
+2. **权限** — 全局 JwtAuthGuard + RolesGuard，角色分配合理（学生/家长只能看自己，教师看自己，管理员看全部）✅
+3. **查询性能** — 修复 getTeacherTrend 和 getStudentTrend 的重复查询（各减少 1 次 DB 查询）✅
+4. **返回格式** — 统一 ApiResponse.success() 包装，MetricItem 结构一致 ✅
+5. **错误处理** — 添加 days 参数 NaN 防护 + 范围限制，导出 MetricItem 修复编译错误 ✅
