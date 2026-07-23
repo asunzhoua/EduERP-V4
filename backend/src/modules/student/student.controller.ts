@@ -25,6 +25,8 @@ import { Repository, In, IsNull } from 'typeorm';
 import { LessonEntity } from '../teaching/lesson/lesson.entity';
 import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
 import { TeacherAssignmentEntity } from '../teaching/teacher-assignment/teacher-assignment.entity';
+import { ClassEntity } from '../teaching/class/class.entity';
+import { CourseEntity } from '../teaching/course/course.entity';
 import { User } from '../identity/entities/user.entity';
 import { TeacherRole } from '@common/enums/teacher-role.enum';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -51,6 +53,10 @@ export class StudentController {
     private teacherAssignmentRepository: Repository<TeacherAssignmentEntity>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(ClassEntity)
+    private classRepository: Repository<ClassEntity>,
+    @InjectRepository(CourseEntity)
+    private courseRepository: Repository<CourseEntity>,
   ) {}
 
   @Post()
@@ -185,6 +191,66 @@ export class StudentController {
         };
       }),
     );
+  }
+
+  @Get('self/attendance')
+  @Roles('Student', 'Parent')
+  async getSelfAttendance(@Req() req: any) {
+    const userId = req.user.sub;
+    const student = await this.studentService.findByUserId(userId);
+    if (!student) {
+      return ApiResponse.error(404, '未找到关联的学生信息');
+    }
+
+    // 1. Get all attendance records for this student
+    const attendances = await this.lessonAttendanceRepository.findByStudentCode(student.studentCode);
+    if (attendances.length === 0) {
+      return ApiResponse.success([]);
+    }
+
+    // 2. Get all related lessons
+    const lessonIds = attendances.map(a => a.lessonId);
+    const lessons = await this.lessonRepository.find({
+      where: { id: In(lessonIds) },
+    });
+    const lessonMap = new Map(lessons.map(l => [l.id, l]));
+
+    // 3. Get class names
+    const classCodes = [...new Set(lessons.map(l => l.classCode))];
+    const classes = await this.classRepository.find({
+      where: { classCode: In(classCodes) },
+    });
+    const classMap = new Map(classes.map(c => [c.classCode, c.name]));
+
+    // 4. Get course names
+    const courseCodes = [...new Set(lessons.map(l => l.courseCode))];
+    const courses = await this.courseRepository.find({
+      where: { courseCode: In(courseCodes) },
+    });
+    const courseMap = new Map(courses.map(c => [c.courseCode, c.name]));
+
+    // 5. Assemble response
+    const result = attendances.map(a => {
+      const lesson = lessonMap.get(a.lessonId);
+      return {
+        id: a.id,
+        lessonDate: lesson?.scheduledDate || null,
+        startTime: lesson?.startTime || null,
+        endTime: lesson?.endTime || null,
+        courseName: lesson ? (courseMap.get(lesson.courseCode) || null) : null,
+        className: lesson ? (classMap.get(lesson.classCode) || null) : null,
+        status: a.status || 'PENDING',
+      };
+    });
+
+    // Sort by date descending
+    result.sort((a, b) => {
+      if (!a.lessonDate) return 1;
+      if (!b.lessonDate) return -1;
+      return b.lessonDate.localeCompare(a.lessonDate);
+    });
+
+    return ApiResponse.success(result);
   }
 
   @Get()

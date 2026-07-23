@@ -6,6 +6,8 @@ import { LessonAttendanceRepository } from '../teaching/lesson-attendance/lesson
 import { LessonEntity } from '../teaching/lesson/lesson.entity';
 import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
 import { TeacherAssignmentEntity } from '../teaching/teacher-assignment/teacher-assignment.entity';
+import { ClassEntity } from '../teaching/class/class.entity';
+import { CourseEntity } from '../teaching/course/course.entity';
 import { User } from '../identity/entities/user.entity';
 import { ApiResponse } from '@common/dto/api-response';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -36,6 +38,12 @@ describe('StudentController', () => {
   const mockUserRepository = {
     find: jest.fn().mockResolvedValue([]),
   };
+  const mockClassRepository = {
+    find: jest.fn().mockResolvedValue([]),
+  };
+  const mockCourseRepository = {
+    find: jest.fn().mockResolvedValue([]),
+  };
 
   beforeAll(async () => {
     service = {
@@ -63,6 +71,8 @@ describe('StudentController', () => {
         { provide: getRepositoryToken(EnrollmentEntity), useValue: mockEnrollmentRepository },
         { provide: getRepositoryToken(TeacherAssignmentEntity), useValue: mockTeacherAssignmentRepository },
         { provide: getRepositoryToken(User), useValue: mockUserRepository },
+        { provide: getRepositoryToken(ClassEntity), useValue: mockClassRepository },
+        { provide: getRepositoryToken(CourseEntity), useValue: mockCourseRepository },
       ],
     }).compile();
 

@@ -20,6 +20,12 @@ Page({
     }
   },
 
+  goToAttendance() {
+    wx.navigateTo({
+      url: '/pages/student/attendance'
+    });
+  },
+
   async loadData() {
     if (this.data.loading) return;
     this.setData({ loading: true, error: null });

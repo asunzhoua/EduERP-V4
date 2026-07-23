@@ -73,5 +73,13 @@
         <text>暂无课时记录</text>
       </view>
     </view>
+
+    <!-- 出勤记录入口 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">出勤记录</text>
+        <text class="section-action" bindtap="goToAttendance">查看全部</text>
+      </view>
+    </view>
   </block>
 </view>

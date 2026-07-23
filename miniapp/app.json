@@ -11,7 +11,8 @@
     "pages/student/index",
     "pages/student/classes",
     "pages/teacher/student-detail",
-    "pages/student/class-detail"
+    "pages/student/class-detail",
+    "pages/student/attendance"
   ],
   "window": {
     "navigationBarTitleText": "EduERP",

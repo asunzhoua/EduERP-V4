@@ -1,0 +1,36 @@
+<!-- pages/student/attendance.wxml -->
+<view class="container">
+  <!-- Loading -->
+  <view wx:if="{{loading}}" class="loading-state">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- Error -->
+  <view wx:elif="{{error}}" class="error-state">
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadAttendance">重试</view>
+  </view>
+
+  <!-- Empty -->
+  <view wx:elif="{{attendanceList.length === 0}}" class="empty-state">
+    <text class="empty-text">暂无出勤记录</text>
+  </view>
+
+  <!-- List -->
+  <view wx:else class="attendance-list">
+    <view wx:for="{{attendanceList}}" wx:key="id" class="attendance-item">
+      <view class="attendance-date">
+        <text class="date-text">{{item.lessonDate || '待定'}}</text>
+        <text class="time-text" wx:if="{{item.startTime}}">{{item.startTime}} - {{item.endTime}}</text>
+      </view>
+      <view class="attendance-info">
+        <text class="course-name">{{item.courseName || '未知课程'}}</text>
+        <text class="class-name">{{item.className || '未知班级'}}</text>
+      </view>
+      <view class="attendance-status status-{{item.status}}">
+        {{item.status === 'PRESENT' ? '到课' : item.status === 'ABSENT' ? '缺勤' : item.status === 'LATE' ? '迟到' : item.status === 'LEAVE' ? '请假' : '待确认'}}
+      </view>
+    </view>
+  </view>
+</view>
