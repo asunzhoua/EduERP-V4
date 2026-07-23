@@ -1,0 +1,137 @@
+<!-- pages/teacher/profile.wxml -->
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error-state" wx:elif="{{error}}">
+    <text class="error-icon">⚠️</text>
+    <text class="error-text">{{error}}</text>
+    <button class="retry-btn" bindtap="onPullDownRefresh">重试</button>
+  </view>
+
+  <!-- 正常内容 -->
+  <view wx:else>
+    <!-- 顶部个人信息卡片 -->
+    <view class="profile-header">
+      <view class="avatar-area">
+        <image 
+          class="avatar-img" 
+          wx:if="{{teacherInfo.avatar}}" 
+          src="{{teacherInfo.avatar}}" 
+          mode="aspectFill"
+        />
+        <view class="avatar-circle" wx:else>
+          <text class="avatar-text">{{teacherInfo.name[0] || '教'}}</text>
+        </view>
+      </view>
+      <view class="profile-name">{{teacherInfo.name}}</view>
+      <view class="profile-role">{{teacherInfo.role}}</view>
+    </view>
+
+    <!-- 基础信息 -->
+    <view class="info-card">
+      <view class="card-title">基础信息</view>
+      <view class="info-row">
+        <text class="info-label">姓名</text>
+        <text class="info-value">{{teacherInfo.name}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">账号</text>
+        <text class="info-value">{{teacherInfo.username}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">手机</text>
+        <text class="info-value">{{teacherInfo.mobile}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">角色</text>
+        <text class="info-value">{{teacherInfo.role}}</text>
+      </view>
+    </view>
+
+    <!-- 班级统计 -->
+    <view class="stats-card">
+      <view class="card-title">教学统计</view>
+      <view class="stats-grid">
+        <view class="stat-item" bindtap="goToClasses">
+          <text class="stat-number">{{stats.totalClasses}}</text>
+          <text class="stat-label">班级</text>
+        </view>
+        <view class="stat-item" bindtap="goToStudents">
+          <text class="stat-number">{{stats.totalStudents}}</text>
+          <text class="stat-label">学生</text>
+        </view>
+        <view class="stat-item" bindtap="goToCourses">
+          <text class="stat-number">{{stats.totalLessons}}</text>
+          <text class="stat-label">已完成课时</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 教学概览 -->
+    <view class="overview-card">
+      <view class="card-title">今日概览</view>
+      <view class="overview-row">
+        <view class="overview-item">
+          <text class="overview-number">{{overview.todayLessons}}</text>
+          <text class="overview-label">今日课时</text>
+        </view>
+        <view class="overview-item">
+          <text class="overview-number">{{overview.pendingAttendance}}</text>
+          <text class="overview-label">待记出勤</text>
+        </view>
+      </view>
+      <!-- 月度统计（预留位置，后端暂无支持） -->
+      <view class="overview-row">
+        <view class="overview-item">
+          <text class="overview-number">{{overview.monthLessons}}</text>
+          <text class="overview-label">本月课时</text>
+        </view>
+        <view class="overview-item">
+          <text class="overview-number">{{overview.monthAttendanceRate}}</text>
+          <text class="overview-label">本月出勤率</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 最近课程 -->
+    <view class="recent-card" wx:if="{{recentLessons.length > 0}}">
+      <view class="card-title">最近课程</view>
+      <view class="lesson-item" wx:for="{{recentLessons}}" wx:key="classCode">
+        <view class="lesson-top">
+          <text class="lesson-class">{{item.className}}</text>
+          <text class="lesson-status status-{{item.status}}">{{item.statusText}}</text>
+        </view>
+        <view class="lesson-info">
+          <text class="lesson-topic">第{{item.lessonNumber}}课 {{item.topic}}</text>
+          <text class="lesson-date">{{item.scheduledDate}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 快捷入口 -->
+    <view class="quick-nav">
+      <view class="nav-item" bindtap="goToClasses">
+        <text class="nav-icon">📚</text>
+        <text class="nav-text">我的班级</text>
+      </view>
+      <view class="nav-item" bindtap="goToCourses">
+        <text class="nav-icon">📖</text>
+        <text class="nav-text">我的课程</text>
+      </view>
+      <view class="nav-item" bindtap="goToStudents">
+        <text class="nav-icon">👥</text>
+        <text class="nav-text">我的学生</text>
+      </view>
+    </view>
+
+    <!-- 退出登录 -->
+    <view class="logout-section">
+      <button class="logout-btn" bindtap="handleLogout">退出登录</button>
+    </view>
+  </view>
+</view>

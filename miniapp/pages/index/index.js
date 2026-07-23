@@ -199,5 +199,15 @@ Page({
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
     });
+  },
+
+  // 个人中心（教师端）
+  goToProfile() {
+    wx.navigateTo({
+      url: '/pages/teacher/profile',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   }
 });

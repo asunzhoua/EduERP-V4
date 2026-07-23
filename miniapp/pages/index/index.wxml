@@ -36,6 +36,10 @@
         <text class="action-icon">🔔</text>
         <text class="action-text">我的提醒</text>
       </view>
+      <view class="action-item" bindtap="goToProfile">
+        <text class="action-icon">👤</text>
+        <text class="action-text">个人中心</text>
+      </view>
     </view>
   </view>
 

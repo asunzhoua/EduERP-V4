@@ -15,6 +15,7 @@
     "pages/student/attendance",
     "pages/student/lessons",
     "pages/student/profile",
+    "pages/teacher/profile",
     "pages/operation/dashboard",
     "pages/reminder/list",
     "pages/reminder/detail"
