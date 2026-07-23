@@ -83,7 +83,7 @@ describe('AnalyticsController', () => {
       };
       mockAnalyticsService.getTeacherMetrics.mockResolvedValue(mockMetrics);
 
-      const result = await controller.getTeacherMetrics(100);
+      const result = await controller.getTeacherMetrics(100, mockReq(100, 'Teacher'));
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('success');
@@ -167,7 +167,7 @@ describe('AnalyticsController', () => {
       };
       mockAnalyticsService.getTeacherTrend.mockResolvedValue(mockTrend);
 
-      const result = await controller.getTeacherTrend(100, '7');
+      const result = await controller.getTeacherTrend(100, '7', mockReq(100, 'Teacher'));
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('success');
@@ -225,7 +225,7 @@ describe('AnalyticsController', () => {
 
       await expect(
         controller.getStudentMetrics('FAKE', mockReq(42, 'Student')),
-      ).rejects.toThrow('无权访问该学生数据');
+      ).rejects.toThrow('学生不存在');
     });
 
     it('should allow Parent to access their child data', async () => {

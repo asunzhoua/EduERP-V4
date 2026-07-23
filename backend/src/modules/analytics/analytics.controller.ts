@@ -27,7 +27,8 @@ export class AnalyticsController {
 
   @Get('teacher/:teacherId')
   @Roles('SuperAdmin', 'Admin', 'Teacher')
-  async getTeacherMetrics(@Param('teacherId', ParseIntPipe) teacherId: number) {
+  async getTeacherMetrics(@Param('teacherId', ParseIntPipe) teacherId: number, @Req() req: any) {
+    await this.verifyTeacherAccess(req, teacherId);
     const result = await this.analyticsService.getTeacherMetrics(teacherId);
     return ApiResponse.success(result);
   }
@@ -57,7 +58,9 @@ export class AnalyticsController {
   async getTeacherTrend(
     @Param('teacherId', ParseIntPipe) teacherId: number,
     @Query('days') days?: string,
+    @Req() req?: any,
   ) {
+    await this.verifyTeacherAccess(req, teacherId);
     const parsedDays = this.parseDays(days);
     const result = await this.analyticsService.getTeacherTrend(teacherId, parsedDays);
     return ApiResponse.success(result);
@@ -88,11 +91,33 @@ export class AnalyticsController {
    */
   private async verifyStudentAccess(req: any, studentCode: string): Promise<void> {
     const user = req.user;
-    if (user.role === 'Student' || user.role === 'Parent') {
-      const student = await this.studentRepository.findOne({ where: { studentCode } });
-      if (!student || student.userId !== user.sub) {
-        throw new ForbiddenException('无权访问该学生数据');
-      }
+    // SuperAdmin/Admin/Teacher can access any student's data
+    if (user.role === 'SuperAdmin' || user.role === 'Admin' || user.role === 'Teacher') {
+      return;
+    }
+    // Student/Parent can only access their own data
+    const student = await this.studentRepository.findOne({
+      where: { studentCode, deleted: false },
+    });
+    if (!student) {
+      throw new ForbiddenException('学生不存在');
+    }
+    if (student.userId !== user.sub) {
+      throw new ForbiddenException('无权访问该学生数据');
+    }
+  }
+
+  /**
+   * Verify that Teacher role can only access their own metrics.
+   * SuperAdmin/Admin can access any teacher's data.
+   */
+  private async verifyTeacherAccess(req: any, teacherId: number): Promise<void> {
+    const user = req.user;
+    if (user.role === 'SuperAdmin' || user.role === 'Admin') {
+      return;
+    }
+    if (user.role === 'Teacher' && user.sub !== teacherId) {
+      throw new ForbiddenException('无权访问其他教师数据');
     }
   }
 }
