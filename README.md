@@ -47,6 +47,62 @@ npx jest --no-coverage    # 运行测试
 # 使用微信开发者工具打开 miniapp/ 目录
 ```
 
+## 部署指南
+
+### 环境要求
+
+- Node.js 18+
+- MySQL 8.0+
+- npm 9+
+- 微信开发者工具（小程序发布）
+
+### 后端部署
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/asunzhoua/EduERP-V4.git
+cd EduERP-V4/backend
+
+# 2. 安装依赖
+npm install
+
+# 3. 配置环境变量
+cp .env.example .env
+# 编辑 .env，填入实际的数据库密码、JWT Secret 等
+
+# 4. 初始化数据库（首次部署）
+npm run seed
+
+# 5. 生产模式启动
+npm run start:prod
+```
+
+### 小程序部署
+
+1. 修改 `miniapp/config.js` 中的 `ENV` 为 `'production'`
+2. 将 `production.baseUrl` 替换为实际生产环境 API 域名
+3. 使用微信开发者工具打开 `miniapp/` 目录
+4. 点击"上传" → 填写版本号 → 提交审核
+5. 审核通过后发布
+
+### 环境变量说明
+
+| 变量 | 说明 | 示例 |
+|:-----|:-----|:-----|
+| DB_HOST | 数据库地址 | localhost |
+| DB_PORT | 数据库端口 | 3306 |
+| DB_USERNAME | 数据库用户名 | your_db_user |
+| DB_PASSWORD | 数据库密码 | （必填，无默认值） |
+| DB_DATABASE | 数据库名称 | EduOS |
+| JWT_SECRET | JWT 签名密钥 | 64位随机hex字符串 |
+| JWT_EXPIRES_IN | Token 有效期 | 7d |
+| SERVER_PORT | 后端服务端口 | 3000 |
+| LOG_LEVEL | 日志级别 | debug / info / warn |
+| WECHAT_APP_ID | 微信小程序 AppID | （预留） |
+| WECHAT_APP_SECRET | 微信小程序 AppSecret | （预留） |
+| REDIS_HOST | Redis 地址 | localhost |
+| REDIS_PORT | Redis 端口 | 6379 |
+
 ## 核心模块
 
 - **identity** — 用户认证 (注册/登录/JWT)

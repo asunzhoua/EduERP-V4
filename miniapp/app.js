@@ -1,9 +1,11 @@
 // app.js
+const config = require('./config')
+
 App({
   globalData: {
     userInfo: null,
     token: null,
-    baseUrl: 'http://localhost:3000/api/v1', // TODO: 部署时替换为生产环境 API 域名
+    baseUrl: config.baseUrl,
   },
 
   onLaunch() {
