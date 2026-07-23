@@ -20,6 +20,12 @@ v2.3 变更（Batch 5.4）：
 - 当 mission.state 与 .md 文件 Status 不一致时，以 .md 为准自动修复
 - 新增 _extract_status_from_md() 辅助函数
 
+v2.4 变更（Batch 5.1 — Heartbeat Statistics）：
+- 新增 get_mission_completion_rate() — Mission 完成率统计
+- 新增 get_batch_duration() — Batch 耗时统计
+- 新增 get_decision_wait_time() — Decision 等待统计
+- 新增 check_eos_statistics() — 整合统计检测项
+
 由 Windows Task Scheduler 每 15 分钟调用一次。
 """
 
@@ -1297,6 +1303,228 @@ def check_mission_state_sync() -> tuple[str, str, bool]:
 
 
 # ──────────────────────────────────────────────
+# EOS Statistics (Batch 5.1 — v2.4)
+# ──────────────────────────────────────────────
+
+
+def get_mission_completion_rate() -> dict:
+    """统计 Mission 完成率。
+
+    扫描 .missions/ 下所有 mission.state 文件，统计各状态数量。
+    返回 dict: {total, completed, running, failed, created, paused, rate}
+    """
+    if not os.path.isdir(MISSIONS_DIR):
+        return {"total": 0, "completed": 0, "running": 0, "failed": 0,
+                "created": 0, "paused": 0, "rate": 0.0}
+
+    counts = {"COMPLETED": 0, "RUNNING": 0, "FAILED": 0, "CREATED": 0, "PAUSED": 0}
+
+    state_files = glob.glob(
+        os.path.join(MISSIONS_DIR, "*", "mission.state"),
+        recursive=True,
+    )
+
+    for sf in state_files:
+        try:
+            with open(sf, "r", encoding="utf-8") as f:
+                state = json.load(f)
+        except Exception:
+            try:
+                with open(sf, "r", encoding="gbk") as f:
+                    state = json.load(f)
+            except Exception:
+                continue
+
+        status = state.get("status", "UNKNOWN")
+        if status in counts:
+            counts[status] += 1
+
+    total = sum(counts.values())
+    rate = (counts["COMPLETED"] / total * 100) if total > 0 else 0.0
+
+    return {
+        "total": total,
+        "completed": counts["COMPLETED"],
+        "running": counts["RUNNING"],
+        "failed": counts["FAILED"],
+        "created": counts["CREATED"],
+        "paused": counts["PAUSED"],
+        "rate": round(rate, 1),
+    }
+
+
+def get_batch_duration() -> dict:
+    """计算当前 Active Mission 的 Batch 耗时。
+
+    从 mission.state 读取 batch_started_at，计算已耗时分钟数。
+    返回 dict: {mission_id, batch_started_at, elapsed_minutes, has_warning}
+    """
+    if not os.path.isdir(MISSIONS_DIR):
+        return {"mission_id": None, "batch_started_at": None,
+                "elapsed_minutes": 0, "has_warning": False}
+
+    # 查找 RUNNING 的 mission
+    state_files = glob.glob(
+        os.path.join(MISSIONS_DIR, "*", "mission.state"),
+        recursive=True,
+    )
+
+    for sf in state_files:
+        try:
+            with open(sf, "r", encoding="utf-8") as f:
+                state = json.load(f)
+        except Exception:
+            try:
+                with open(sf, "r", encoding="gbk") as f:
+                    state = json.load(f)
+            except Exception:
+                continue
+
+        if state.get("status") != "RUNNING":
+            continue
+
+        mission_id = state.get("mission_id", os.path.basename(os.path.dirname(sf)))
+        batch_started_at = state.get("batch_started_at")
+
+        if not batch_started_at:
+            return {"mission_id": mission_id, "batch_started_at": None,
+                    "elapsed_minutes": 0, "has_warning": False}
+
+        try:
+            started = datetime.datetime.fromisoformat(batch_started_at)
+            if started.tzinfo is None:
+                started = started.replace(tzinfo=datetime.timezone.utc)
+            now = datetime.datetime.now(datetime.timezone.utc)
+            elapsed = (now - started).total_seconds() / 60
+
+            # 超过 120 分钟且无新 commit → 警告
+            has_warning = elapsed > 120
+
+            return {
+                "mission_id": mission_id,
+                "batch_started_at": batch_started_at,
+                "elapsed_minutes": round(elapsed, 1),
+                "has_warning": has_warning,
+            }
+        except (ValueError, TypeError):
+            return {"mission_id": mission_id, "batch_started_at": None,
+                    "elapsed_minutes": 0, "has_warning": False}
+
+    return {"mission_id": None, "batch_started_at": None,
+            "elapsed_minutes": 0, "has_warning": False}
+
+
+def get_decision_wait_time() -> dict:
+    """计算 Decision Gate 等待时间。
+
+    从 mission.state 读取 pending_decision_gates 和 updated_at。
+    返回 dict: {mission_id, pending_count, gates, wait_hours, has_warning}
+    """
+    if not os.path.isdir(MISSIONS_DIR):
+        return {"mission_id": None, "pending_count": 0, "gates": [],
+                "wait_hours": 0, "has_warning": False}
+
+    state_files = glob.glob(
+        os.path.join(MISSIONS_DIR, "*", "mission.state"),
+        recursive=True,
+    )
+
+    for sf in state_files:
+        try:
+            with open(sf, "r", encoding="utf-8") as f:
+                state = json.load(f)
+        except Exception:
+            try:
+                with open(sf, "r", encoding="gbk") as f:
+                    state = json.load(f)
+            except Exception:
+                continue
+
+        if state.get("status") != "RUNNING":
+            continue
+
+        mission_id = state.get("mission_id", os.path.basename(os.path.dirname(sf)))
+        gates = state.get("pending_decision_gates", [])
+        updated_at = state.get("updated_at", "")
+
+        if not gates:
+            return {"mission_id": mission_id, "pending_count": 0, "gates": [],
+                    "wait_hours": 0, "has_warning": False}
+
+        wait_hours = 0
+        has_warning = False
+
+        if updated_at:
+            try:
+                updated = datetime.datetime.fromisoformat(updated_at)
+                if updated.tzinfo is None:
+                    updated = updated.replace(tzinfo=datetime.timezone.utc)
+                now = datetime.datetime.now(datetime.timezone.utc)
+                wait_hours = round((now - updated).total_seconds() / 3600, 1)
+                has_warning = wait_hours > 24
+            except (ValueError, TypeError):
+                pass
+
+        return {
+            "mission_id": mission_id,
+            "pending_count": len(gates),
+            "gates": gates,
+            "wait_hours": wait_hours,
+            "has_warning": has_warning,
+        }
+
+    return {"mission_id": None, "pending_count": 0, "gates": [],
+            "wait_hours": 0, "has_warning": False}
+
+
+def check_eos_statistics() -> tuple[str, str, bool]:
+    """Check 10: EOS 统计能力（Batch 5.1 新增）。
+
+    整合 Mission 完成率、Batch 耗时、Decision 等待统计。
+    始终返回 OK（统计信息不触发告警，仅输出）。
+    告警由 Batch 耗时和 Decision 等待的子条件触发。
+    """
+    # Mission 完成率
+    completion = get_mission_completion_rate()
+    print(f"  Mission 完成率: {completion['completed']}/{completion['total']} ({completion['rate']}%)")
+
+    # Batch 耗时
+    batch_dur = get_batch_duration()
+    if batch_dur["mission_id"]:
+        if batch_dur["batch_started_at"]:
+            print(f"  当前 Batch 耗时: {batch_dur['elapsed_minutes']:.0f} 分钟")
+        else:
+            print(f"  当前 Batch 耗时: — (无 batch_started_at)")
+    else:
+        print(f"  当前 Batch 耗时: — (无 Active Mission)")
+
+    # Decision 等待
+    decision = get_decision_wait_time()
+    if decision["mission_id"] and decision["pending_count"] > 0:
+        print(f"  Decision 等待: {decision['pending_count']} 项, 最长 {decision['wait_hours']:.1f} 小时")
+    else:
+        print(f"  Decision 等待: 无")
+
+    # 判断是否有告警
+    warnings = []
+    if batch_dur.get("has_warning"):
+        warnings.append(f"Batch 耗时 {batch_dur['elapsed_minutes']:.0f}min 超限")
+    if decision.get("has_warning"):
+        warnings.append(f"Decision 等待 {decision['wait_hours']:.1f}h 超 24h")
+
+    if warnings:
+        detail = "; ".join(warnings)
+        return ("WARNING", detail, False)
+
+    detail = (
+        f"完成率 {completion['completed']}/{completion['total']} ({completion['rate']}%), "
+        f"Batch {batch_dur['elapsed_minutes']:.0f}min, "
+        f"Decision {decision['pending_count']}项"
+    )
+    return ("OK", detail, False)
+
+
+# ──────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────
 
@@ -1308,7 +1536,7 @@ def main() -> int:
         os.environ.pop(k, None)
 
     print("=" * 60)
-    print(f"  EOS Heartbeat Check v2.3")
+    print(f"  EOS Heartbeat Check v2.4")
     print(f"  Time:   {_now()}")
     print(f"  PID:    {os.getpid()}")
     print(f"  CWD:    {BASE_DIR}")
@@ -1324,6 +1552,7 @@ def main() -> int:
         ("Decision Gate", check_decision_gates),
         ("Long Wait", check_long_wait),
         ("State Sync", check_mission_state_sync),
+        ("EOS Statistics", check_eos_statistics),
     ]
 
     results: list[tuple[str, str, str, bool]] = []
