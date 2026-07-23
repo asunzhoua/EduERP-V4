@@ -137,6 +137,11 @@
         <view class="empty-hint" wx:elif="{{lessonsLoading}}">
           <text>加载中...</text>
         </view>
+        <view class="error-state" wx:elif="{{lessonsError}}">
+          <text class="error-icon">⚠️</text>
+          <text class="error-text">{{lessonsError}}</text>
+          <view class="retry-btn" bindtap="retryLessons">点击重试</view>
+        </view>
         <view class="empty-hint" wx:else>
           <text>暂无课时记录</text>
         </view>

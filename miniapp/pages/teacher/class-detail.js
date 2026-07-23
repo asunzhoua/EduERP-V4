@@ -11,6 +11,7 @@ Page({
     activeTab: 'info',  // info | students | lessons
     lessons: [],
     lessonsLoading: false,
+    lessonsError: null,
     attendanceRate: 0
   },
 
@@ -121,7 +122,7 @@ Page({
   // 加载课时列表
   async loadLessons() {
     if (this.data.lessons.length > 0 || this.data.lessonsLoading) return;
-    this.setData({ lessonsLoading: true });
+    this.setData({ lessonsLoading: true, lessonsError: null });
     try {
       const data = await get(`/classes/${this.data.classCode}/lessons`);
       const lessons = Array.isArray(data) ? data : (data.items || []);
@@ -129,9 +130,14 @@ Page({
       this.setData({ lessons: lessons, lessonsLoading: false, attendanceRate });
     } catch (err) {
       console.error('[Class Detail] 课时加载失败:', err);
-      this.setData({ lessonsLoading: false });
-      wx.showToast({ title: '课时加载失败', icon: 'none' });
+      this.setData({ lessonsLoading: false, lessonsError: '课时加载失败' });
     }
+  },
+
+  // 重试加载课时
+  retryLessons() {
+    this.setData({ lessons: [], lessonsError: null });
+    this.loadLessons();
   },
 
   // 计算出勤率

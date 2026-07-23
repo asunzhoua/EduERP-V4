@@ -104,7 +104,7 @@ Page({
       }
     } catch (err) {
       console.error('[lesson-record] 加载班级列表失败:', err);
-      this.setData({ errorClasses: '班级加载失败，请下拉刷新重试' });
+      this.setData({ errorClasses: '班级加载失败，请点击重试' });
 
     } finally {
       this.setData({ loadingClasses: false });
@@ -133,10 +133,22 @@ Page({
       });
     } catch (err) {
       console.error('[lesson-record] 加载学生列表失败:', err);
-      this.setData({ errorStudents: '学生加载失败，请下拉刷新重试' });
+      this.setData({ errorStudents: '学生加载失败，请点击重试' });
 
     } finally {
       this.setData({ loadingStudents: false });
+    }
+  },
+
+  // 重试加载班级列表
+  retryLoadClasses() {
+    this.loadClasses();
+  },
+
+  // 重试加载学生列表
+  retryLoadStudents() {
+    if (this.data.selectedClass) {
+      this.loadStudents(this.data.selectedClass.classCode);
     }
   },
 

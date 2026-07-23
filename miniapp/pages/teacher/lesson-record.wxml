@@ -43,8 +43,10 @@
         </view>
       </block>
     </view>
-    <view class="empty-hint" wx:if="{{errorClasses}}">
-      <text style="color:#e74c3c;">{{errorClasses}}</text>
+    <view class="error-state" wx:if="{{errorClasses}}">
+      <text class="error-icon">⚠️</text>
+      <text class="error-text">{{errorClasses}}</text>
+      <view class="retry-btn" bindtap="retryLoadClasses">点击重试</view>
     </view>
     <view class="empty-hint" wx:elif="{{!loadingClasses && classes.length === 0}}">
       <text>暂无可用班级</text>
@@ -75,8 +77,10 @@
         </view>
       </block>
     </view>
-    <view class="empty-hint" wx:if="{{errorStudents}}">
-      <text style="color:#e74c3c;">{{errorStudents}}</text>
+    <view class="error-state" wx:if="{{errorStudents}}">
+      <text class="error-icon">⚠️</text>
+      <text class="error-text">{{errorStudents}}</text>
+      <view class="retry-btn" bindtap="retryLoadStudents">点击重试</view>
     </view>
     <view class="empty-hint" wx:elif="{{!loadingStudents && students.length === 0}}">
       <text>该班级暂无学生</text>
