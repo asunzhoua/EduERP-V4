@@ -14,13 +14,21 @@
   <!-- ========== 有权限 — 正常内容 ========== -->
   <block wx:if="{{hasPermission}}">
 
-    <!-- 顶部：时间范围选择 -->
+    <!-- 顶部：时间范围选择 + 操作按钮 -->
     <view class="top-bar">
+      <view class="top-bar-left">
+        <view class="action-btn {{refreshing ? 'action-btn-disabled' : ''}}" bindtap="onManualRefresh">
+          <text class="action-icon {{refreshing ? 'action-icon-spin' : ''}}">🔄</text>
+        </view>
+        <view class="action-btn" bindtap="onExportData">
+          <text class="action-icon">📤</text>
+        </view>
+      </view>
       <view class="segmented-control">
-        <view class="segment-item {{days === 7 ? 'segment-active' : ''}}" bindtap="switchDays" data-days="{{7}}">
+        <view class="segment-item {{days === 7 ? 'segment-active' : ''}} {{trendLoading && days === 7 ? 'segment-loading' : ''}}" bindtap="switchDays" data-days="{{7}}">
           <text>7天</text>
         </view>
-        <view class="segment-item {{days === 30 ? 'segment-active' : ''}}" bindtap="switchDays" data-days="{{30}}">
+        <view class="segment-item {{days === 30 ? 'segment-active' : ''}} {{trendLoading && days === 30 ? 'segment-loading' : ''}}" bindtap="switchDays" data-days="{{30}}">
           <text>30天</text>
         </view>
       </view>
@@ -118,9 +126,9 @@
 
         <!-- 柱状图 -->
         <view class="bar-chart" wx:else>
-          <view class="bar-item" wx:for="{{enrollmentTrend}}" wx:key="date">
-            <text class="bar-value">{{item.value}}</text>
-            <view class="bar" style="height: {{item.heightPercent}}%"></view>
+          <view class="bar-item {{selectedBar === index && selectedBarType === 'enrollment' ? 'bar-item-selected' : ''}}" wx:for="{{enrollmentTrend}}" wx:key="date" bindtap="onBarTap" data-index="{{index}}" data-type="enrollment">
+            <text class="bar-value {{selectedBar === index && selectedBarType === 'enrollment' ? 'bar-value-highlight' : ''}}">{{item.value}}</text>
+            <view class="bar bar-animate" style="height: {{item.heightPercent}}%; animation-delay: {{index * 50}}ms"></view>
             <text class="bar-label">{{item.shortDate}}</text>
           </view>
         </view>
@@ -167,9 +175,9 @@
 
         <!-- 柱状图 -->
         <view class="bar-chart" wx:else>
-          <view class="bar-item" wx:for="{{lessonTrend}}" wx:key="date">
-            <text class="bar-value">{{item.value}}</text>
-            <view class="bar" style="height: {{item.heightPercent}}%"></view>
+          <view class="bar-item {{selectedBar === index && selectedBarType === 'lesson' ? 'bar-item-selected' : ''}}" wx:for="{{lessonTrend}}" wx:key="date" bindtap="onBarTap" data-index="{{index}}" data-type="lesson">
+            <text class="bar-value {{selectedBar === index && selectedBarType === 'lesson' ? 'bar-value-highlight' : ''}}">{{item.value}}</text>
+            <view class="bar bar-animate" style="height: {{item.heightPercent}}%; animation-delay: {{index * 50}}ms"></view>
             <text class="bar-label">{{item.shortDate}}</text>
           </view>
         </view>
@@ -202,9 +210,9 @@
         </view>
 
         <view class="bar-chart" wx:else>
-          <view class="bar-item" wx:for="{{enrollmentTrend}}" wx:key="date">
-            <text class="bar-value">{{item.value}}</text>
-            <view class="bar bar-blue" style="height: {{item.heightPercent}}%"></view>
+          <view class="bar-item {{selectedBar === index && selectedBarType === 'enrollment-tab2' ? 'bar-item-selected' : ''}}" wx:for="{{enrollmentTrend}}" wx:key="date" bindtap="onBarTap" data-index="{{index}}" data-type="enrollment-tab2">
+            <text class="bar-value {{selectedBar === index && selectedBarType === 'enrollment-tab2' ? 'bar-value-highlight' : ''}}">{{item.value}}</text>
+            <view class="bar bar-blue bar-animate" style="height: {{item.heightPercent}}%; animation-delay: {{index * 50}}ms"></view>
             <text class="bar-label">{{item.shortDate}}</text>
           </view>
         </view>
@@ -225,9 +233,9 @@
         </view>
 
         <view class="bar-chart" wx:else>
-          <view class="bar-item" wx:for="{{lessonTrend}}" wx:key="date">
-            <text class="bar-value">{{item.value}}</text>
-            <view class="bar bar-green" style="height: {{item.heightPercent}}%"></view>
+          <view class="bar-item {{selectedBar === index && selectedBarType === 'lesson-tab2' ? 'bar-item-selected' : ''}}" wx:for="{{lessonTrend}}" wx:key="date" bindtap="onBarTap" data-index="{{index}}" data-type="lesson-tab2">
+            <text class="bar-value {{selectedBar === index && selectedBarType === 'lesson-tab2' ? 'bar-value-highlight' : ''}}">{{item.value}}</text>
+            <view class="bar bar-green bar-animate" style="height: {{item.heightPercent}}%; animation-delay: {{index * 50}}ms"></view>
             <text class="bar-label">{{item.shortDate}}</text>
           </view>
         </view>

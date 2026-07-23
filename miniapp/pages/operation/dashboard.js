@@ -18,6 +18,7 @@ Page({
     error: null,
     trendLoading: false,
     trendError: null,
+    refreshing: false,
 
     // 指标数据
     totalStudents: 0,
@@ -29,6 +30,10 @@ Page({
     // 趋势数据（已处理，含 heightPercent）
     enrollmentTrend: [],
     lessonTrend: [],
+
+    // 图表交互
+    selectedBar: null,
+    selectedBarType: null,
 
     // 空状态
     isEmpty: false
@@ -189,8 +194,36 @@ Page({
   switchDays(e) {
     var days = e.currentTarget.dataset.days;
     if (days === this.data.days) return;
-    this.setData({ days: days });
+    this.setData({ days: days, selectedBar: null, selectedBarType: null });
     this.loadTrendData();
+  },
+
+  // 手动刷新
+  onManualRefresh() {
+    if (this.data.loading || this.data.refreshing) return;
+    this.setData({ refreshing: true });
+    this.loadAllData().finally(function() {
+      this.setData({ refreshing: false });
+    }.bind(this));
+  },
+
+  // 图表柱状点击
+  onBarTap(e) {
+    var index = e.currentTarget.dataset.index;
+    var type = e.currentTarget.dataset.type;
+    this.setData({
+      selectedBar: index,
+      selectedBarType: type
+    });
+  },
+
+  // 数据导出（占位）
+  onExportData() {
+    wx.showToast({
+      title: '功能开发中',
+      icon: 'none',
+      duration: 2000
+    });
   },
 
   // 重试
