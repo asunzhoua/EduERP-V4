@@ -71,7 +71,21 @@ describe('AnalyticsService', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    // Re-assign mock implementations after reset
+    mockLessonRepo.createQueryBuilder = jest.fn();
+    mockStudentRepo.createQueryBuilder = jest.fn();
+    mockStudentRepo.count = jest.fn();
+    mockEnrollmentRepo.find = jest.fn();
+    mockEnrollmentRepo.createQueryBuilder = jest.fn();
+    mockLessonRepo.count = jest.fn();
+    mockLessonAttendanceRepo.find = jest.fn();
+    mockLessonAttendanceRepo.createQueryBuilder = jest.fn();
+    mockTeacherAssignmentRepo.find = jest.fn();
+    mockCourseRepo.count = jest.fn();
+    mockClassRepo.find = jest.fn();
+    mockClassRepo.count = jest.fn();
+    mockLoginLogRepo.createQueryBuilder = jest.fn();
   });
 
   it('should be defined', () => {
@@ -294,21 +308,8 @@ describe('AnalyticsService', () => {
         ]),
       };
 
-      // Mock attendance count query (Step 2 - learning)
-      const mockAttCountQb = {
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        getRawMany: jest.fn().mockResolvedValue([
-          { lessonId: '1', count: '2' },
-          { lessonId: '2', count: '1' },
-        ]),
-      };
-
-      // Mock attendance status query (Step 3 - attendance rate)
-      const mockAttStatusQb = {
+      // Mock single attendance query (merged: returns lessonId + status for both trends)
+      const mockAttQb = {
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -321,9 +322,7 @@ describe('AnalyticsService', () => {
       };
 
       mockLessonRepo.createQueryBuilder.mockReturnValue(mockLessonQb);
-      mockLessonAttendanceRepo.createQueryBuilder
-        .mockReturnValueOnce(mockAttCountQb)
-        .mockReturnValueOnce(mockAttStatusQb);
+      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(mockAttQb);
 
       const result = await service.getStudentTrend('STU-001', 7);
 
@@ -360,32 +359,20 @@ describe('AnalyticsService', () => {
 
   describe('getTeacherTrend', () => {
     it('should return lessonTrend and attendanceTrend with correct structure', async () => {
-      // Mock lesson query for lessonTrend
-      const mockLessonTrendQb = {
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        getRawMany: jest.fn().mockResolvedValue([
-          { date: '2026-07-17', count: '3' },
-          { date: '2026-07-18', count: '2' },
-        ]),
-      };
-
-      // Mock lesson query for attendance (Step 1)
+      // Mock single lesson query (merged: returns id + date for both trends)
       const mockTeacherLessonsQb = {
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         getRawMany: jest.fn().mockResolvedValue([
-          { id: '1', date: '2026-07-17' },
-          { id: '2', date: '2026-07-18' },
+          { id: '1', date: '2026-07-20' },
+          { id: '2', date: '2026-07-20' },
+          { id: '3', date: '2026-07-21' },
         ]),
       };
 
-      // Mock attendance query (Step 2)
+      // Mock attendance query
       const mockAttQb = {
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
@@ -393,14 +380,12 @@ describe('AnalyticsService', () => {
         andWhere: jest.fn().mockReturnThis(),
         getRawMany: jest.fn().mockResolvedValue([
           { lessonId: '1', status: AttendanceStatus.PRESENT },
-          { lessonId: '1', status: AttendanceStatus.PRESENT },
-          { lessonId: '2', status: AttendanceStatus.ABSENT },
+          { lessonId: '2', status: AttendanceStatus.PRESENT },
+          { lessonId: '3', status: AttendanceStatus.ABSENT },
         ]),
       };
 
-      mockLessonRepo.createQueryBuilder
-        .mockReturnValueOnce(mockLessonTrendQb)
-        .mockReturnValueOnce(mockTeacherLessonsQb);
+      mockLessonRepo.createQueryBuilder.mockReturnValue(mockTeacherLessonsQb);
       mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(mockAttQb);
 
       const result = await service.getTeacherTrend(100, 7);
@@ -409,19 +394,15 @@ describe('AnalyticsService', () => {
       expect(result).toHaveProperty('attendanceTrend');
       expect(result.lessonTrend).toHaveLength(7);
       expect(result.attendanceTrend).toHaveLength(7);
+      // Verify lessonTrend has correct counts from merged query
+      const jul20 = result.lessonTrend.find(t => t.date === '2026-07-20');
+      expect(jul20?.value).toBe(2);
+      const jul21 = result.lessonTrend.find(t => t.date === '2026-07-21');
+      expect(jul21?.value).toBe(1);
     });
 
     it('should return all zeros when no lessons for teacher', async () => {
-      const mockLessonTrendQb = {
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        getRawMany: jest.fn().mockResolvedValue([]),
-      };
-
-      const mockTeacherLessonsQb = {
+      const mockEmptyQb = {
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -429,9 +410,7 @@ describe('AnalyticsService', () => {
         getRawMany: jest.fn().mockResolvedValue([]),
       };
 
-      mockLessonRepo.createQueryBuilder
-        .mockReturnValueOnce(mockLessonTrendQb)
-        .mockReturnValueOnce(mockTeacherLessonsQb);
+      mockLessonRepo.createQueryBuilder.mockReturnValue(mockEmptyQb);
 
       const result = await service.getTeacherTrend(999, 7);
 

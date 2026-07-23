@@ -37,7 +37,7 @@ export class AnalyticsController {
     @Param('studentCode') studentCode: string,
     @Query('days') days?: string,
   ) {
-    const parsedDays = days ? parseInt(days, 10) : 7;
+    const parsedDays = this.parseDays(days);
     const result = await this.analyticsService.getStudentTrend(studentCode, parsedDays);
     return ApiResponse.success(result);
   }
@@ -48,7 +48,7 @@ export class AnalyticsController {
     @Param('teacherId', ParseIntPipe) teacherId: number,
     @Query('days') days?: string,
   ) {
-    const parsedDays = days ? parseInt(days, 10) : 7;
+    const parsedDays = this.parseDays(days);
     const result = await this.analyticsService.getTeacherTrend(teacherId, parsedDays);
     return ApiResponse.success(result);
   }
@@ -56,8 +56,19 @@ export class AnalyticsController {
   @Get('institution/trend')
   @Roles('SuperAdmin', 'Admin')
   async getInstitutionTrend(@Query('days') days?: string) {
-    const parsedDays = days ? parseInt(days, 10) : 7;
+    const parsedDays = this.parseDays(days);
     const result = await this.analyticsService.getInstitutionTrend(parsedDays);
     return ApiResponse.success(result);
+  }
+
+  /**
+   * Parse and validate the `days` query parameter.
+   * Defaults to 7, clamped to [1, 365].
+   */
+  private parseDays(days?: string): number {
+    if (!days) return 7;
+    const parsed = parseInt(days, 10);
+    if (isNaN(parsed) || parsed < 1) return 7;
+    return Math.min(parsed, 365);
   }
 }

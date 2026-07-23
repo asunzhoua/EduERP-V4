@@ -12,7 +12,7 @@ import { ClassEntity } from '@modules/teaching/class/class.entity';
 import { AttendanceStatus } from '@modules/teaching/lesson-attendance/enums/attendance-status.enum';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 
-interface MetricItem {
+export interface MetricItem {
   name: string;
   value: number;
   unit: string;
@@ -300,31 +300,7 @@ export class AnalyticsService {
       lessonIdToDate.set(id, date);
     }
 
-    // Step 2: Count attendance records per lesson for learning trend
-    const learningRows = await this.lessonAttendanceRepository
-      .createQueryBuilder('att')
-      .select('att.lessonId', 'lessonId')
-      .addSelect('COUNT(*)', 'count')
-      .where('att.studentCode = :studentCode', { studentCode })
-      .andWhere('att.lessonId IN (:...lessonIds)', { lessonIds })
-      .groupBy('att.lessonId')
-      .getRawMany();
-
-    const lessonMap = new Map<string, number>();
-    for (const row of learningRows) {
-      const lid = parseInt(row.lessonId, 10);
-      const date = lessonIdToDate.get(lid);
-      if (date) {
-        lessonMap.set(date, (lessonMap.get(date) || 0) + parseInt(row.count, 10));
-      }
-    }
-
-    const learningTrend: TrendData[] = dateRange.map((date) => ({
-      date,
-      value: lessonMap.get(date) || 0,
-    }));
-
-    // Step 3: Get attendance status per lesson for attendance trend
+    // Step 2: Single query — get lessonId + status for both trends
     const attRows = await this.lessonAttendanceRepository
       .createQueryBuilder('att')
       .select('att.lessonId', 'lessonId')
@@ -333,11 +309,19 @@ export class AnalyticsService {
       .andWhere('att.lessonId IN (:...lessonIds)', { lessonIds })
       .getRawMany();
 
+    // Build both trends from the same result set
+    const lessonCountByDate = new Map<string, number>();
     const dateStats = new Map<string, { total: number; present: number }>();
+
     for (const row of attRows) {
       const lid = parseInt(row.lessonId, 10);
       const date = lessonIdToDate.get(lid);
       if (!date) continue;
+
+      // Learning trend: count attendance records per date
+      lessonCountByDate.set(date, (lessonCountByDate.get(date) || 0) + 1);
+
+      // Attendance trend: track present/total per date
       if (!dateStats.has(date)) dateStats.set(date, { total: 0, present: 0 });
       const stats = dateStats.get(date)!;
       stats.total++;
@@ -346,16 +330,16 @@ export class AnalyticsService {
       }
     }
 
-    const attMap = new Map<string, number>();
-    for (const [date, stats] of dateStats) {
-      const rate = stats.total > 0 ? Math.round((stats.present / stats.total) * 1000) / 10 : 0;
-      attMap.set(date, rate);
-    }
-
-    const attendanceTrend: TrendData[] = dateRange.map((date) => ({
+    const learningTrend: TrendData[] = dateRange.map((date) => ({
       date,
-      value: attMap.get(date) || 0,
+      value: lessonCountByDate.get(date) || 0,
     }));
+
+    const attendanceTrend: TrendData[] = dateRange.map((date) => {
+      const stats = dateStats.get(date);
+      if (!stats || stats.total === 0) return { date, value: 0 };
+      return { date, value: Math.round((stats.present / stats.total) * 1000) / 10 };
+    });
 
     return { learningTrend, attendanceTrend };
   }
@@ -371,29 +355,7 @@ export class AnalyticsService {
     const startDate = dateRange[0];
     const endDate = dateRange[dateRange.length - 1];
 
-    // Lesson trend: count of lessons per day for this teacher
-    const lessonRows = await this.lessonRepository
-      .createQueryBuilder('lesson')
-      .select('lesson.scheduledDate', 'date')
-      .addSelect('COUNT(*)', 'count')
-      .where('lesson.teacherId = :teacherId', { teacherId })
-      .andWhere('lesson.scheduledDate >= :startDate', { startDate })
-      .andWhere('lesson.scheduledDate <= :endDate', { endDate })
-      .groupBy('lesson.scheduledDate')
-      .getRawMany();
-
-    const lessonMap = new Map<string, number>();
-    for (const row of lessonRows) {
-      lessonMap.set(row.date, parseInt(row.count, 10));
-    }
-
-    const lessonTrend: TrendData[] = dateRange.map((date) => ({
-      date,
-      value: lessonMap.get(date) || 0,
-    }));
-
-    // Attendance trend: student attendance rate under this teacher per day
-    // Step 1: Get lessons for this teacher in date range
+    // Single query: get all lessons with id + date for both trends
     const teacherLessons = await this.lessonRepository
       .createQueryBuilder('lesson')
       .select('lesson.id', 'id')
@@ -410,13 +372,22 @@ export class AnalyticsService {
       };
     }
 
-    const teacherLessonIds = teacherLessons.map(l => parseInt(l.id, 10));
+    // Build lessonTrend + idToDate map from the same result set
+    const lessonCountByDate = new Map<string, number>();
     const teacherLessonIdToDate = new Map<number, string>();
     for (const l of teacherLessons) {
       const id = parseInt(l.id, 10);
       const date = typeof l.date === 'string' ? l.date : this.formatDate(l.date);
+      lessonCountByDate.set(date, (lessonCountByDate.get(date) || 0) + 1);
       teacherLessonIdToDate.set(id, date);
     }
+
+    const lessonTrend: TrendData[] = dateRange.map((date) => ({
+      date,
+      value: lessonCountByDate.get(date) || 0,
+    }));
+
+    const teacherLessonIds = teacherLessons.map(l => parseInt(l.id, 10));
 
     // Step 2: Get attendance records for these lessons
     const attRows = await this.lessonAttendanceRepository
