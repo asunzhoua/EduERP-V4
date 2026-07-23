@@ -16,8 +16,15 @@
     <text class="loading-text">加载中...</text>
   </view>
 
+  <!-- 错误状态 -->
+  <view class="error-state" wx:elif="{{error}}">
+    <text class="error-icon">⚠️</text>
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadStudents">点击重试</view>
+  </view>
+
   <!-- 学生列表 -->
-  <view class="student-list" wx:if="{{!loading}}">
+  <view class="student-list" wx:else>
     <block wx:for="{{students}}" wx:key="id">
       <view class="student-card" bindtap="goToStudentDetail" data-code="{{item.studentCode}}">
         <view class="student-avatar">

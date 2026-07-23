@@ -56,8 +56,8 @@ Page({
     }
   },
 
-  // 查看课程详情
-  goToCourseDetail() {
+  // 查看我的课程列表
+  goToMyClasses() {
     wx.navigateTo({
       url: `/pages/student/classes`,
       fail() {

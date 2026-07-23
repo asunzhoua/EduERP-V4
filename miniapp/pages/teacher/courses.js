@@ -7,6 +7,7 @@ Page({
     filteredCourses: [],  // 搜索过滤后的列表
     loading: true,
     loadingMore: false,
+    error: null,
     page: 1,
     pageSize: 20,
     hasMore: true,
@@ -75,7 +76,7 @@ Page({
 
   // 加载课程列表
   async loadCourses() {
-    this.setData({ loading: true });
+    this.setData({ loading: true, error: null });
 
     try {
       const data = await get('/courses', {
@@ -95,8 +96,10 @@ Page({
 
     } catch (err) {
       console.error('[Courses] 加载失败:', err);
-      this.setData({ loading: false });
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      this.setData({ 
+        error: '加载失败，请稍后重试',
+        loading: false 
+      });
     }
   },
 

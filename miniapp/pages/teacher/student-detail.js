@@ -63,19 +63,32 @@ Page({
   goToClassDetail(e) {
     const { code } = e.currentTarget.dataset;
     wx.navigateTo({
-      url: `/pages/teacher/class-detail?code=${code}`
+      url: `/pages/teacher/class-detail?code=${code}`,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
     });
   },
 
   // 跳转出勤记录
   goToLessonRecord() {
     wx.navigateTo({
-      url: `/pages/teacher/lesson-record`
+      url: `/pages/teacher/lesson-record`,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
     });
   },
 
   // 返回
   onBack() {
     wx.navigateBack();
+  },
+
+  // 重试加载
+  retryLoad() {
+    if (this.data.studentCode) {
+      this.loadData(this.data.studentCode);
+    }
   }
 });

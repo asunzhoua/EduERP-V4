@@ -6,7 +6,7 @@ Page({
     studentInfo: {},
     contracts: [],
     recentLessons: [],
-    loading: false,
+    loading: true,
     error: null
   },
 

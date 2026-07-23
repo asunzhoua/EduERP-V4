@@ -61,18 +61,25 @@
       <text class="loading-text">加载中...</text>
     </view>
 
+    <!-- 错误状态 -->
+    <view class="error-state" wx:elif="{{error}}">
+      <text class="error-icon">⚠️</text>
+      <text class="error-text">{{error}}</text>
+      <view class="retry-btn" bindtap="loadCourses">点击重试</view>
+    </view>
+
     <!-- 加载更多 -->
     <view class="load-more" wx:if="{{loadingMore}}">
       <text>加载更多...</text>
     </view>
 
     <!-- 没有更多 -->
-    <view class="no-more" wx:if="{{!loading && !hasMore && filteredCourses.length > 0}}">
+    <view class="no-more" wx:if="{{!loading && !error && !hasMore && filteredCourses.length > 0}}">
       <text>已加载全部</text>
     </view>
 
     <!-- 空状态 -->
-    <view class="empty-state" wx:if="{{!loading && filteredCourses.length === 0}}">
+    <view class="empty-state" wx:if="{{!loading && !error && filteredCourses.length === 0}}">
       <text class="empty-icon">📭</text>
       <text class="empty-text" wx:if="{{searchKeyword}}">未找到匹配的课程</text>
       <text class="empty-text" wx:else>暂无课程</text>

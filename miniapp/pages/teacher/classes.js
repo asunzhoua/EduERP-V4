@@ -5,6 +5,7 @@ Page({
   data: {
     classes: [],
     loading: true,
+    error: null,
     filter: 'ALL',
     progressMap: {},
     courseCode: ''  // 班级进度缓存
@@ -32,7 +33,7 @@ Page({
 
   // 加载班级列表
   async loadClasses() {
-    this.setData({ loading: true });
+    this.setData({ loading: true, error: null });
 
     try {
       const params = {
@@ -59,8 +60,10 @@ Page({
 
     } catch (err) {
       console.error('[Classes] 加载失败:', err);
-      this.setData({ loading: false });
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      this.setData({ 
+        error: '加载失败，请稍后重试',
+        loading: false 
+      });
     }
   },
 
@@ -98,7 +101,10 @@ Page({
   goToStudents(e) {
     const { code } = e.currentTarget.dataset;
     wx.navigateTo({ 
-      url: `/pages/teacher/students?classCode=${code}`
+      url: `/pages/teacher/students?classCode=${code}`,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
     });
   },
 
@@ -106,7 +112,10 @@ Page({
   goToRecordLesson(e) {
     const { code } = e.currentTarget.dataset;
     wx.navigateTo({ 
-      url: `/pages/teacher/lesson-record?classCode=${code}`
+      url: `/pages/teacher/lesson-record?classCode=${code}`,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
     });
   },
 

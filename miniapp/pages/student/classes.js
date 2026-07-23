@@ -4,7 +4,7 @@ const { get } = require('../../utils/request');
 Page({
   data: {
     classes: [],
-    loading: false,
+    loading: true,
     error: null
   },
 

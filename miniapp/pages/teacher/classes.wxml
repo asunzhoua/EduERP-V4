@@ -105,8 +105,15 @@
       <text class="loading-text">加载中...</text>
     </view>
 
+    <!-- 错误状态 -->
+    <view class="error-state" wx:elif="{{error}}">
+      <text class="error-icon">⚠️</text>
+      <text class="error-text">{{error}}</text>
+      <view class="retry-btn" bindtap="loadClasses">点击重试</view>
+    </view>
+
     <!-- 空状态 -->
-    <view class="empty-state" wx:if="{{!loading && classes.length === 0}}">
+    <view class="empty-state" wx:elif="{{classes.length === 0}}">
       <text class="empty-icon">📭</text>
       <text class="empty-text">暂无班级</text>
       <text class="empty-hint">请先创建班级</text>

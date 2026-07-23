@@ -5,6 +5,7 @@ Page({
   data: {
     students: [],
     loading: true,
+    error: null,
     keyword: ''
   },
 
@@ -27,7 +28,7 @@ Page({
   },
 
   async loadStudents() {
-    this.setData({ loading: true });
+    this.setData({ loading: true, error: null });
 
     try {
       let students = [];
@@ -51,8 +52,10 @@ Page({
       });
     } catch (err) {
       console.error('[Students] 加载失败:', err);
-      this.setData({ loading: false });
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      this.setData({ 
+        error: '加载失败，请稍后重试',
+        loading: false 
+      });
     }
   },
 

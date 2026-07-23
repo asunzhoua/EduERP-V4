@@ -119,19 +119,39 @@ Page({
   },
 
   goToCourses() {
-    wx.switchTab({ url: '/pages/teacher/courses' });
+    wx.switchTab({ 
+      url: '/pages/teacher/courses',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   },
 
   goToClasses() {
-    wx.switchTab({ url: '/pages/teacher/classes' });
+    wx.switchTab({ 
+      url: '/pages/teacher/classes',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   },
 
   goToStudents() {
-    wx.navigateTo({ url: '/pages/teacher/students' });
+    wx.navigateTo({ 
+      url: '/pages/teacher/students',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   },
 
   goToLessons() {
-    wx.navigateTo({ url: '/pages/teacher/lesson-record' });
+    wx.navigateTo({ 
+      url: '/pages/teacher/lesson-record',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   },
 
   // 学生端导航
@@ -146,7 +166,7 @@ Page({
 
   goToMyLessonRecords() {
     wx.navigateTo({
-      url: '/pages/student/index',
+      url: '/pages/student/lessons',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }

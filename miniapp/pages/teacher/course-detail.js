@@ -46,10 +46,20 @@ Page({
     wx.navigateBack();
   },
 
+  // 重试加载
+  retryLoad() {
+    if (this.data.courseCode) {
+      this.loadCourseDetail(this.data.courseCode);
+    }
+  },
+
   // 跳转班级列表
   goToClasses() {
     wx.navigateTo({
-      url: `/pages/teacher/classes?courseCode=${this.data.courseCode}`
+      url: `/pages/teacher/classes?courseCode=${this.data.courseCode}`,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
     });
   }
 });

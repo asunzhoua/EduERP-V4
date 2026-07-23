@@ -62,20 +62,33 @@ Page({
   // 跳转学生列表
   goToStudents() {
     wx.navigateTo({
-      url: `/pages/teacher/students?classCode=${this.data.classCode}`
+      url: `/pages/teacher/students?classCode=${this.data.classCode}`,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
     });
   },
 
   // 跳转课时记录
   goToRecordLesson() {
     wx.navigateTo({
-      url: `/pages/teacher/lesson-record?classCode=${this.data.classCode}`
+      url: `/pages/teacher/lesson-record?classCode=${this.data.classCode}`,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
     });
   },
 
   // 返回
   onBack() {
     wx.navigateBack();
+  },
+
+  // 重试加载
+  retryLoad() {
+    if (this.data.classCode) {
+      this.loadClassDetail(this.data.classCode);
+    }
   },
 
   // 加载课时列表

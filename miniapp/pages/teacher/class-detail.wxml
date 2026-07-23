@@ -10,7 +10,7 @@
   <view class="error-state" wx:elif="{{error}}">
     <text class="error-icon">⚠️</text>
     <text class="error-text">{{error}}</text>
-    <button class="retry-btn" bindtap="onBack">返回列表</button>
+    <button class="retry-btn" bindtap="retryLoad">重试</button>
   </view>
 
   <!-- 班级详情 -->
