@@ -1,0 +1,87 @@
+<!-- pages/reminder/list.wxml -->
+<view class="container">
+  <!-- 顶部操作栏 -->
+  <view class="top-bar">
+    <view class="unread-badge" wx:if="{{unreadCount > 0}}">
+      <text class="unread-text">{{unreadCount}} 条未读</text>
+    </view>
+    <view class="mark-all-btn" bindtap="onMarkAllRead" wx:if="{{unreadCount > 0}}">
+      <text class="mark-all-text">全部已读</text>
+    </view>
+  </view>
+
+  <!-- 筛选 Tab -->
+  <view class="filter-bar">
+    <view
+      class="filter-item {{activeFilter === item.value ? 'filter-active' : ''}}"
+      wx:for="{{filters}}"
+      wx:key="value"
+      data-value="{{item.value}}"
+      bindtap="onFilterChange"
+    >
+      <text class="filter-text">{{item.label}}</text>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误提示 -->
+  <view class="error-card" wx:elif="{{error}}">
+    <text class="error-icon">⚠️</text>
+    <text class="error-text">{{error}}</text>
+    <text class="retry-btn" bindtap="onRetry">点击重试</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:elif="{{isEmpty}}">
+    <text class="empty-icon">🔔</text>
+    <text class="empty-text">暂无提醒</text>
+    <text class="empty-hint">所有提醒都会出现在这里</text>
+  </view>
+
+  <!-- 提醒列表 -->
+  <block wx:else>
+    <view class="reminder-list">
+      <view
+        class="reminder-card {{item.status === 'PENDING' ? 'reminder-unread' : ''}}"
+        wx:for="{{reminders}}"
+        wx:key="id"
+        data-item="{{item}}"
+        bindtap="onReminderTap"
+      >
+        <!-- 未读标记 -->
+        <view class="unread-dot" wx:if="{{item.status === 'PENDING'}}"></view>
+
+        <!-- 提醒内容 -->
+        <view class="reminder-body">
+          <view class="reminder-header">
+            <text class="reminder-title">{{item.title}}</text>
+            <text class="reminder-status status-{{item.status === 'PENDING' ? 'pending' : item.status === 'READ' ? 'read' : 'dismissed'}}">{{item.statusText}}</text>
+          </view>
+          <text class="reminder-content">{{item.content}}</text>
+          <view class="reminder-footer">
+            <text class="reminder-type">{{item.typeText}}</text>
+            <text class="reminder-time">{{item.createdAt}}</text>
+          </view>
+        </view>
+
+        <!-- 箭头 -->
+        <view class="reminder-arrow">
+          <text class="arrow-icon">›</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="load-more" wx:if="{{loadingMore}}">
+      <text class="load-more-text">加载中...</text>
+    </view>
+    <view class="load-more" wx:if="{{!hasMore && reminders.length > 0}}">
+      <text class="load-more-text">没有更多了</text>
+    </view>
+  </block>
+</view>

@@ -189,5 +189,15 @@ Page({
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
     });
+  },
+
+  // 我的提醒
+  goToReminders() {
+    wx.navigateTo({
+      url: '/pages/reminder/list',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   }
 });

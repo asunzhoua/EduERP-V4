@@ -1,0 +1,79 @@
+<!-- pages/reminder/detail.wxml -->
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误 -->
+  <view class="error-card" wx:elif="{{error}}">
+    <text class="error-icon">⚠️</text>
+    <text class="error-text">{{error}}</text>
+  </view>
+
+  <!-- 提醒详情 -->
+  <block wx:elif="{{reminder}}">
+    <!-- 状态头部 -->
+    <view class="detail-header status-bg-{{reminder.status === 'PENDING' ? 'pending' : reminder.status === 'READ' ? 'read' : 'dismissed'}}">
+      <view class="detail-status-row">
+        <text class="detail-status">{{reminder.statusText}}</text>
+        <text class="detail-type-badge">{{reminder.typeText}}</text>
+      </view>
+      <text class="detail-title">{{reminder.title}}</text>
+    </view>
+
+    <!-- 内容区域 -->
+    <view class="detail-content-card">
+      <view class="content-section">
+        <text class="content-label">提醒内容</text>
+        <text class="content-text">{{reminder.content || '无详细内容'}}</text>
+      </view>
+
+      <view class="info-divider"></view>
+
+      <view class="info-section">
+        <view class="info-row">
+          <text class="info-label">提醒类型</text>
+          <text class="info-value">{{reminder.typeText}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">创建时间</text>
+          <text class="info-value">{{reminder.createdAt}}</text>
+        </view>
+        <view class="info-row" wx:if="{{reminder.readAt}}">
+          <text class="info-label">阅读时间</text>
+          <text class="info-value">{{reminder.readAt}}</text>
+        </view>
+        <view class="info-row" wx:if="{{reminder.relatedEntityType}}">
+          <text class="info-label">关联实体</text>
+          <text class="info-value">{{reminder.relatedEntityType}} #{{reminder.relatedEntityId}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-bar">
+      <view
+        class="action-btn btn-primary"
+        wx:if="{{reminder.status === 'PENDING'}}"
+        bindtap="onMarkAsRead"
+      >
+        <text class="btn-text" wx:if="{{!marking}}">标记为已读</text>
+        <text class="btn-text" wx:else>处理中...</text>
+      </view>
+
+      <view
+        class="action-btn btn-secondary"
+        wx:if="{{reminder.status === 'PENDING'}}"
+        bindtap="onDismiss"
+      >
+        <text class="btn-text-secondary">忽略此提醒</text>
+      </view>
+
+      <view class="done-hint" wx:if="{{reminder.status !== 'PENDING'}}">
+        <text class="done-text">此提醒已处理</text>
+      </view>
+    </view>
+  </block>
+</view>

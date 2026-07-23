@@ -14,7 +14,9 @@
     "pages/student/class-detail",
     "pages/student/attendance",
     "pages/student/lessons",
-    "pages/operation/dashboard"
+    "pages/operation/dashboard",
+    "pages/reminder/list",
+    "pages/reminder/detail"
   ],
   "window": {
     "navigationBarTitleText": "EduERP",

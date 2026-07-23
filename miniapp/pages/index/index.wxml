@@ -32,6 +32,10 @@
         <text class="action-icon">📊</text>
         <text class="action-text">运营看板</text>
       </view>
+      <view class="action-item" bindtap="goToReminders">
+        <text class="action-icon">🔔</text>
+        <text class="action-text">我的提醒</text>
+      </view>
     </view>
   </view>
 
@@ -45,6 +49,10 @@
       <view class="action-item" bindtap="goToMyLessonRecords">
         <text class="action-icon">📝</text>
         <text class="action-text">课时记录</text>
+      </view>
+      <view class="action-item" bindtap="goToReminders">
+        <text class="action-icon">🔔</text>
+        <text class="action-text">我的提醒</text>
       </view>
     </view>
   </view>

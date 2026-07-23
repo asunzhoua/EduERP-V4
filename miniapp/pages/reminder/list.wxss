@@ -1,0 +1,278 @@
+/* pages/reminder/list.wxss */
+.container {
+  padding: 20rpx;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+/* 顶部操作栏 */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 8rpx;
+  margin-bottom: 8rpx;
+}
+
+.unread-badge {
+  background: #fff1f0;
+  border: 2rpx solid #ffa39e;
+  border-radius: 20rpx;
+  padding: 6rpx 20rpx;
+}
+
+.unread-text {
+  font-size: 24rpx;
+  color: #ff4d4f;
+}
+
+.mark-all-btn {
+  padding: 6rpx 20rpx;
+}
+
+.mark-all-text {
+  font-size: 26rpx;
+  color: #1890ff;
+}
+
+/* 筛选栏 */
+.filter-bar {
+  display: flex;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 8rpx;
+  margin-bottom: 20rpx;
+}
+
+.filter-item {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  border-radius: 8rpx;
+  transition: all 0.2s;
+}
+
+.filter-active {
+  background: #1890ff;
+}
+
+.filter-active .filter-text {
+  color: #fff;
+}
+
+.filter-text {
+  font-size: 26rpx;
+  color: #666;
+}
+
+/* 加载中 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #ddd;
+  border-top-color: #1890ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 错误 */
+.error-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 30rpx;
+  background: #fff;
+  border-radius: 12rpx;
+}
+
+.error-icon {
+  font-size: 60rpx;
+  margin-bottom: 16rpx;
+}
+
+.error-text {
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 20rpx;
+}
+
+.retry-btn {
+  font-size: 28rpx;
+  color: #1890ff;
+  padding: 10rpx 30rpx;
+  border: 2rpx solid #1890ff;
+  border-radius: 8rpx;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 30rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-text {
+  font-size: 32rpx;
+  color: #333;
+  margin-bottom: 12rpx;
+}
+
+.empty-hint {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 提醒列表 */
+.reminder-list {
+  padding-bottom: 20rpx;
+}
+
+.reminder-card {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  position: relative;
+}
+
+.reminder-unread {
+  background: #f0f7ff;
+  border-left: 6rpx solid #1890ff;
+}
+
+/* 未读圆点 */
+.unread-dot {
+  position: absolute;
+  top: 24rpx;
+  left: 12rpx;
+  width: 12rpx;
+  height: 12rpx;
+  background: #ff4d4f;
+  border-radius: 50%;
+}
+
+/* 提醒内容 */
+.reminder-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.reminder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.reminder-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reminder-status {
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
+  margin-left: 12rpx;
+  flex-shrink: 0;
+}
+
+.status-pending {
+  background: #fff7e6;
+  color: #fa8c16;
+  border: 2rpx solid #ffd591;
+}
+
+.status-read {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 2rpx solid #b7eb8f;
+}
+
+.status-dismissed {
+  background: #f5f5f5;
+  color: #999;
+  border: 2rpx solid #d9d9d9;
+}
+
+.reminder-content {
+  font-size: 26rpx;
+  color: #666;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-bottom: 12rpx;
+  line-height: 1.5;
+}
+
+.reminder-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reminder-type {
+  font-size: 22rpx;
+  color: #1890ff;
+  background: #e6f7ff;
+  padding: 2rpx 12rpx;
+  border-radius: 4rpx;
+}
+
+.reminder-time {
+  font-size: 22rpx;
+  color: #999;
+}
+
+/* 箭头 */
+.reminder-arrow {
+  margin-left: 12rpx;
+  flex-shrink: 0;
+}
+
+.arrow-icon {
+  font-size: 36rpx;
+  color: #ccc;
+}
+
+/* 加载更多 */
+.load-more {
+  text-align: center;
+  padding: 24rpx 0;
+}
+
+.load-more-text {
+  font-size: 24rpx;
+  color: #999;
+}
