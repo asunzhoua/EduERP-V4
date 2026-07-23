@@ -70,6 +70,12 @@
 
     <!-- ========== Tab 1: 学员概览 ========== -->
     <scroll-view class="content-area" scroll-y wx:elif="{{activeTab === 0}}">
+      <!-- 空状态引导 -->
+      <view class="empty-guide" wx:if="{{isEmpty}}">
+        <text class="empty-guide-icon">📋</text>
+        <text class="empty-guide-text">暂无学员数据</text>
+        <text class="empty-guide-hint">添加学员后即可查看统计</text>
+      </view>
       <!-- 指标卡片 -->
       <view class="metric-grid">
         <view class="metric-card">
@@ -123,6 +129,12 @@
 
     <!-- ========== Tab 2: 课程概览 ========== -->
     <scroll-view class="content-area" scroll-y wx:elif="{{activeTab === 1}}">
+      <!-- 空状态引导 -->
+      <view class="empty-guide" wx:if="{{isEmpty}}">
+        <text class="empty-guide-icon">📚</text>
+        <text class="empty-guide-text">暂无课程数据</text>
+        <text class="empty-guide-hint">创建课程后即可查看统计</text>
+      </view>
       <!-- 指标卡片 -->
       <view class="metric-grid">
         <view class="metric-card">
@@ -166,6 +178,15 @@
 
     <!-- ========== Tab 3: 趋势分析 ========== -->
     <scroll-view class="content-area" scroll-y wx:elif="{{activeTab === 2}}">
+      <!-- 趋势加载错误 -->
+      <view class="error-card" wx:if="{{trendError}}">
+        <text class="error-icon">⚠️</text>
+        <text class="error-text">{{trendError}}</text>
+        <view class="retry-btn" bindtap="retryTrend">
+          <text class="retry-btn-text">重新加载</text>
+        </view>
+      </view>
+      <block wx:else>
       <!-- 学员增长趋势 -->
       <view class="chart-card">
         <view class="chart-title">学员增长趋势</view>
@@ -211,6 +232,7 @@
           </view>
         </view>
       </view>
+      </block>
     </scroll-view>
 
   </block>

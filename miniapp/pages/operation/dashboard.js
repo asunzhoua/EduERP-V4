@@ -17,6 +17,7 @@ Page({
     loading: true,
     error: null,
     trendLoading: false,
+    trendError: null,
 
     // 指标数据
     totalStudents: 0,
@@ -103,18 +104,22 @@ Page({
 
   // 仅加载趋势数据（切换时间范围时）
   async loadTrendData() {
-    this.setData({ trendLoading: true });
+    this.setData({ trendLoading: true, trendError: null });
 
     try {
       const trendRes = await get('/analytics/institution/trend', { days: this.data.days });
       if (trendRes) {
         this.processTrend(trendRes);
+      } else {
+        this.setData({ enrollmentTrend: [], lessonTrend: [] });
       }
       this.setData({ trendLoading: false });
     } catch (err) {
       console.error('[Dashboard] 趋势加载失败:', err);
-      this.setData({ trendLoading: false });
-      wx.showToast({ title: '趋势数据加载失败', icon: 'none', duration: 2000 });
+      this.setData({
+        trendLoading: false,
+        trendError: '趋势数据加载失败'
+      });
     }
   },
 
@@ -193,8 +198,13 @@ Page({
     this.loadAllData();
   },
 
-  // 返回
+  // 返回首页
   goBack() {
-    wx.navigateBack();
+    wx.switchTab({ url: '/pages/index/index' });
+  },
+
+  // 重试趋势加载
+  retryTrend() {
+    this.loadTrendData();
   }
 });
