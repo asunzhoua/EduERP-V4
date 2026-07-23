@@ -62,8 +62,8 @@ Page({
 
     try {
       const [metricsRes, trendRes] = await Promise.all([
-        get('/api/v1/analytics/institution').catch(() => null),
-        get('/api/v1/analytics/institution/trend', { days: this.data.days }).catch(() => null)
+        get('/analytics/institution').catch(() => null),
+        get('/analytics/institution/trend', { days: this.data.days }).catch(() => null)
       ]);
 
       // 处理指标数据
@@ -106,7 +106,7 @@ Page({
     this.setData({ trendLoading: true });
 
     try {
-      const trendRes = await get('/api/v1/analytics/institution/trend', { days: this.data.days });
+      const trendRes = await get('/analytics/institution/trend', { days: this.data.days });
       if (trendRes) {
         this.processTrend(trendRes);
       }
