@@ -23,7 +23,7 @@ import { appConfig } from '@config/configuration';
         const config = appConfig();
         return {
           secret: config.jwt.secret,
-          signOptions: { expiresIn: config.jwt.expiresIn },
+          signOptions: { expiresIn: config.jwt.expiresIn as any },
         };
       },
     }),
