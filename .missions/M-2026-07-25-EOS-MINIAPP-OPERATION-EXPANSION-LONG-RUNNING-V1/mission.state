@@ -1,0 +1,47 @@
+{
+  "mission_id": "M-2026-07-25-EOS-MINIAPP-OPERATION-EXPANSION-LONG-RUNNING-V1",
+  "name": "EduMiniApp Operation Expansion Long Running V1",
+  "description": "基于已稳定的系统，继续增加运营能力",
+  "status": "RUNNING",
+  "priority": "P2",
+  "owner": "主人",
+  "executor": "Claude Code",
+  "mode": "Long Running (Mode C)",
+  "created_at": "2026-07-24T00:00:00",
+  "updated_at": "2026-07-24T12:00:00",
+  "current_phase": 4,
+  "current_batch": "4.1",
+  "phases_completed": [],
+  "last_commit": null,
+  "test_baseline": "992 passed, 80 suites",
+  "tasks": [
+    {
+      "id": "4.1",
+      "description": "Mission自动排序 — 优先级定义 + 排序逻辑 + 展示",
+      "status": "IN_PROGRESS",
+      "commit": null,
+      "evidence": null
+    },
+    {
+      "id": "4.2",
+      "description": "Batch耗时统计增强",
+      "status": "PENDING",
+      "commit": null,
+      "evidence": null
+    },
+    {
+      "id": "4.3",
+      "description": "自动生成日报",
+      "status": "PENDING",
+      "commit": null,
+      "evidence": null
+    },
+    {
+      "id": "4.4",
+      "description": "Evidence自动汇总",
+      "status": "PENDING",
+      "commit": null,
+      "evidence": null
+    }
+  ]
+}

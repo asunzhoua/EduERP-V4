@@ -26,6 +26,14 @@ v2.4 变更（Batch 5.1 — Heartbeat Statistics）：
 - 新增 get_decision_wait_time() — Decision 等待统计
 - 新增 check_eos_statistics() — 整合统计检测项
 
+v2.5 变更（Batch 4.1 — Mission Priority & Auto-Sorting）：
+- 新增 PRIORITY_ORDER — 优先级排序常量（P0 > P1 > P2 > P3）
+- 新增 get_mission_priority() — 获取单个 Mission 优先级
+- 新增 sort_missions_by_priority() — 按优先级+创建时间排序所有待执行 Mission
+- 新增 get_next_mission() — 获取下一个将执行的 Mission
+- 新增 check_mission_priority_queue() — Check 11: 优先级队列展示
+- 新增 PROJECT_MISSIONS_DIR — 项目级 .missions 目录（mission.state 物理存储位置）
+
 由 Windows Task Scheduler 每 15 分钟调用一次。
 """
 
@@ -62,6 +70,19 @@ USERPROFILE = os.environ.get("USERPROFILE", "C:\\Users\\sunz")
 MISSIONS_DIR = os.path.join(
     USERPROFILE, ".qwenpaw", "workspaces", "default", ".missions"
 )
+
+# 项目级 .missions 目录（mission.state 物理存储位置）
+# BASE_DIR = backend/, 项目根 = backend/../, .missions 在项目根下
+PROJECT_MISSIONS_DIR = os.path.join(os.path.dirname(BASE_DIR), ".missions")
+
+# Mission 优先级定义（P0 最高，P3 最低）
+PRIORITY_ORDER = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
+PRIORITY_LABELS = {
+    "P0": "紧急（系统故障/安全漏洞）",
+    "P1": "高（核心功能阻塞）",
+    "P2": "中（功能完善）",
+    "P3": "低（优化改进）",
+}
 
 # 龙虾 App 凭证（保证通知通道可用）
 LOBSTER_APP_ID = "your-feishu-app-id"
@@ -1508,6 +1529,16 @@ def check_eos_statistics() -> tuple[str, str, bool]:
     else:
         print(f"  Decision 等待: 无")
 
+    # 优先级队列（Batch 4.1 新增）
+    pending = sort_missions_by_priority(status_filter={"CREATED", "PENDING"})
+    if pending:
+        next_m = pending[0]
+        next_id = next_m.get("mission_id", "unknown")
+        next_pri = next_m.get("priority", "P2")
+        print(f"  优先级队列: {len(pending)} 个待执行, 下一个: [{next_pri}] {next_id}")
+    else:
+        print(f"  优先级队列: 空")
+
     # 判断是否有告警
     warnings = []
     if batch_dur.get("has_warning"):
@@ -1528,6 +1559,190 @@ def check_eos_statistics() -> tuple[str, str, bool]:
 
 
 # ──────────────────────────────────────────────
+# Check 11: Mission 优先级队列（Batch 4.1 新增）
+# ──────────────────────────────────────────────
+
+
+def _load_all_mission_states() -> list[dict]:
+    """加载所有 mission.state 文件（从项目目录和 QwenPaw 工作区两个位置）。
+
+    返回 list[dict]，每个 dict 是一个 mission.state 的内容。
+    去重逻辑：以 mission_id 为键，优先读项目目录（更新更频繁）。
+    """
+    states_by_id: dict[str, dict] = {}
+
+    # 搜索两个目录
+    search_dirs = [MISSIONS_DIR]
+    if os.path.isdir(PROJECT_MISSIONS_DIR):
+        search_dirs.append(PROJECT_MISSIONS_DIR)
+
+    for base_dir in search_dirs:
+        if not os.path.isdir(base_dir):
+            continue
+        state_files = glob.glob(
+            os.path.join(base_dir, "*", "mission.state"),
+            recursive=True,
+        )
+        for sf in state_files:
+            state = None
+            try:
+                with open(sf, "r", encoding="utf-8") as f:
+                    state = json.load(f)
+            except Exception:
+                try:
+                    with open(sf, "r", encoding="gbk") as f:
+                        state = json.load(f)
+                except Exception:
+                    continue
+
+            if state and "mission_id" in state:
+                mid = state["mission_id"]
+                # 优先保留项目目录的版本（通常更新）
+                if mid not in states_by_id or base_dir == PROJECT_MISSIONS_DIR:
+                    states_by_id[mid] = state
+
+    return list(states_by_id.values())
+
+
+def get_mission_priority(mission_id: str) -> str:
+    """获取单个 Mission 的优先级。
+
+    优先级: P0 > P1 > P2 > P3
+    如果 mission.state 中无 priority 字段，默认返回 P2。
+    """
+    states = _load_all_mission_states()
+    for state in states:
+        if state.get("mission_id") == mission_id:
+            return state.get("priority", "P2")
+    return "P2"  # 默认优先级
+
+
+def sort_missions_by_priority(
+    status_filter: Optional[set[str]] = None,
+) -> list[dict]:
+    """按优先级+创建时间排序 Mission 列表。
+
+    排序规则:
+    1. 按优先级排序: P0 > P1 > P2 > P3
+    2. 同优先级按创建时间排序: 先创建先执行（FIFO）
+
+    Args:
+        status_filter: 要包含的状态集合，如 {"CREATED", "PENDING"}。
+                       None 表示包含所有状态。
+
+    Returns:
+        排序后的 mission state 列表。
+    """
+    states = _load_all_mission_states()
+
+    # 过滤状态
+    if status_filter:
+        states = [s for s in states if s.get("status") in status_filter]
+
+    # 排序: 先按优先级，再按创建时间
+    def sort_key(state: dict) -> tuple[int, str]:
+        priority = state.get("priority", "P2")
+        priority_val = PRIORITY_ORDER.get(priority, 99)
+        created_at = state.get("created_at", "9999-99-99")
+        # 处理 ISO 格式中的时区后缀，统一截取前 19 字符
+        if len(created_at) > 19:
+            created_at = created_at[:19]
+        return (priority_val, created_at)
+
+    return sorted(states, key=sort_key)
+
+
+def get_next_mission() -> Optional[dict]:
+    """获取下一个将执行的 Mission。
+
+    从 CREATED/PENDING 状态的 Mission 中，按优先级排序取第一个。
+    如果没有待执行的 Mission，返回 None。
+    """
+    sorted_missions = sort_missions_by_priority(
+        status_filter={"CREATED", "PENDING"}
+    )
+    if sorted_missions:
+        return sorted_missions[0]
+    return None
+
+
+def check_mission_priority_queue() -> tuple[str, str, bool]:
+    """Check 11: Mission 优先级队列展示。
+
+    输出:
+    - 当前 RUNNING Mission 的优先级
+    - 待执行 Mission 列表（按优先级排序）
+    - 下一个将执行的 Mission
+    """
+    states = _load_all_mission_states()
+
+    # 当前 RUNNING Mission
+    running = [s for s in states if s.get("status") == "RUNNING"]
+    # 待执行 Mission（CREATED/PENDING）
+    pending = sort_missions_by_priority(status_filter={"CREATED", "PENDING"})
+
+    lines = []
+
+    # RUNNING Mission 优先级
+    if running:
+        lines.append(f"当前 RUNNING: {len(running)} 个")
+        for m in running:
+            mid = m.get("mission_id", "unknown")
+            priority = m.get("priority", "P2")
+            label = PRIORITY_LABELS.get(priority, priority)
+            phase = m.get("current_phase", "?")
+            batch = m.get("current_batch", "?")
+            lines.append(
+                f"  [{priority}] {mid} (Phase {phase}, Batch {batch})"
+            )
+    else:
+        lines.append("当前 RUNNING: 无")
+
+    # 待执行列表
+    if pending:
+        lines.append(f"待执行队列: {len(pending)} 个（按优先级排序）")
+        for i, m in enumerate(pending, 1):
+            mid = m.get("mission_id", "unknown")
+            priority = m.get("priority", "P2")
+            created = m.get("created_at", "unknown")[:10]
+            lines.append(f"  {i}. [{priority}] {mid} (创建: {created})")
+
+        # 下一个将执行的
+        next_m = pending[0]
+        next_id = next_m.get("mission_id", "unknown")
+        next_priority = next_m.get("priority", "P2")
+        lines.append(f"下一个执行: [{next_priority}] {next_id}")
+    else:
+        lines.append("待执行队列: 空")
+        lines.append("下一个执行: 无（等待 Owner 创建新 Mission）")
+
+    detail = "\n".join(lines)
+
+    # 统计各优先级数量
+    all_states = states
+    priority_counts = {"P0": 0, "P1": 0, "P2": 0, "P3": 0}
+    for s in all_states:
+        p = s.get("priority", "P2")
+        if p in priority_counts:
+            priority_counts[p] += 1
+
+    # 检查是否有 P0 待执行（紧急 Mission 排队）
+    p0_pending = [m for m in pending if m.get("priority") == "P0"]
+    has_warning = False
+    if p0_pending and running:
+        # P0 Mission 在排队但当前有非 P0 Mission 在运行
+        for m in running:
+            if m.get("priority", "P2") > "P0":
+                has_warning = True
+                break
+
+    if has_warning:
+        return ("WARNING", f"P0 紧急 Mission 等待执行，当前有低优先级 Mission 运行中", False)
+
+    return ("OK", detail, False)
+
+
+# ──────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────
 
@@ -1539,7 +1754,7 @@ def main() -> int:
         os.environ.pop(k, None)
 
     print("=" * 60)
-    print(f"  EOS Heartbeat Check v2.4")
+    print(f"  EOS Heartbeat Check v2.5")
     print(f"  Time:   {_now()}")
     print(f"  PID:    {os.getpid()}")
     print(f"  CWD:    {BASE_DIR}")
@@ -1556,6 +1771,7 @@ def main() -> int:
         ("Long Wait", check_long_wait),
         ("State Sync", check_mission_state_sync),
         ("EOS Statistics", check_eos_statistics),
+        ("Priority Queue", check_mission_priority_queue),
     ]
 
     results: list[tuple[str, str, str, bool]] = []

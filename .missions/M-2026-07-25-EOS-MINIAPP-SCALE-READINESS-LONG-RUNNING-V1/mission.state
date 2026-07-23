@@ -1,6 +1,7 @@
 {
   "mission_id": "M-2026-07-25-EOS-MINIAPP-SCALE-READINESS-LONG-RUNNING-V1",
   "status": "RUNNING",
+  "priority": "P1",
   "current_phase": 4,
   "current_batch": "4.1",
   "updated_at": "2026-07-24T04:45:00+08:00",
