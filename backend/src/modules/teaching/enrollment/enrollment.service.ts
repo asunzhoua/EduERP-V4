@@ -138,24 +138,24 @@ export class EnrollmentService {
     // Collect class codes
     const classCodes = enrollments.map(e => e.classCode);
 
-    // Batch get classes
+    // Batch get classes (needed first to derive courseCodes)
     const classes = await this.classRepo.find({ where: { classCode: In(classCodes) } });
     const classMap = new Map(classes.map(c => [c.classCode, c]));
 
-    // Batch get courses (via courseCode from classes)
+    // Optimization: parallelize 2 independent enrichment queries (was sequential)
     const courseCodes = [...new Set(classes.map(c => c.courseCode))];
-    const courses = await this.courseRepo.find({ where: { courseCode: In(courseCodes) } });
+    const [courses, completedLessonCounts] = await Promise.all([
+      this.courseRepo.find({ where: { courseCode: In(courseCodes) } }),
+      this.lessonRepo
+        .createQueryBuilder('l')
+        .select('l.classCode', 'classCode')
+        .addSelect('COUNT(*)', 'count')
+        .where('l.classCode IN (:...classCodes)', { classCodes })
+        .andWhere('l.status = :status', { status: LessonStatus.FINISHED })
+        .groupBy('l.classCode')
+        .getRawMany(),
+    ]);
     const courseNameMap = new Map(courses.map(c => [c.courseCode, c.name]));
-
-    // Batch get completed lessons count per class
-    const completedLessonCounts = await this.lessonRepo
-      .createQueryBuilder('l')
-      .select('l.classCode', 'classCode')
-      .addSelect('COUNT(*)', 'count')
-      .where('l.classCode IN (:...classCodes)', { classCodes })
-      .andWhere('l.status = :status', { status: LessonStatus.FINISHED })
-      .groupBy('l.classCode')
-      .getRawMany();
     const completedMap = new Map<string, number>();
     completedLessonCounts.forEach(r => completedMap.set(r.classCode, parseInt(r.count, 10)));
 

@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Student } from './student.entity';
 import { User } from '../../identity/entities/user.entity';
@@ -16,6 +17,7 @@ export class StudentParent {
   id: number;
 
   @Column({ type: 'bigint' })
+  @Index()
   studentId: number;
 
   @ManyToOne(() => Student, { onDelete: 'CASCADE' })
@@ -23,6 +25,7 @@ export class StudentParent {
   student: Student;
 
   @Column({ type: 'bigint' })
+  @Index()
   parentId: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

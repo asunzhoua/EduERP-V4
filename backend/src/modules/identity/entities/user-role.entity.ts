@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Role } from './role.entity';
@@ -15,9 +16,11 @@ export class UserRole {
   id: number;
 
   @Column({ type: 'bigint' })
+  @Index()
   userId: number;
 
   @Column({ type: 'bigint' })
+  @Index()
   roleId: number;
 
   @CreateDateColumn()

@@ -99,13 +99,14 @@ export class LessonService {
     }
 
     // ─── 5. Check lessonNumber uniqueness within class ───
-    const existingLessons = await this.lessonRepo.findByClassCode(input.classCode);
-    const duplicateNumber = existingLessons.find(
-      (l) => l.lessonNumber === input.lessonNumber && l.status !== LessonStatus.CANCELLED,
+    // Optimization: use targeted query instead of loading ALL lessons for the class
+    const existingLesson = await this.lessonRepo.findOneByClassCodeAndLessonNumber(
+      input.classCode,
+      input.lessonNumber,
     );
-    if (duplicateNumber) {
+    if (existingLesson && existingLesson.status !== LessonStatus.CANCELLED) {
       throw new BadRequestException(
-        `Lesson number ${input.lessonNumber} already exists for class ${input.classCode} (lesson id=${duplicateNumber.id}, status=${duplicateNumber.status})`,
+        `Lesson number ${input.lessonNumber} already exists for class ${input.classCode} (lesson id=${existingLesson.id}, status=${existingLesson.status})`,
       );
     }
 

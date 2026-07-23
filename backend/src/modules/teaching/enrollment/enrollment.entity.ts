@@ -37,6 +37,7 @@ export class EnrollmentEntity {
     enum: EnrollmentStatus,
     default: EnrollmentStatus.ACTIVE,
   })
+  @Index()
   status: EnrollmentStatus;
 
   // ─── Withdrawal ───

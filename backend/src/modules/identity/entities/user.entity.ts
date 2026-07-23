@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   VersionColumn,
+  Index,
 } from 'typeorm';
 
 export enum UserStatus {
@@ -44,9 +45,11 @@ export class User {
   name: string;
 
   @Column({ type: 'varchar', length: 50 })
+  @Index()
   role: string;
 
   @Column({ type: 'tinyint', default: UserStatus.ACTIVE })
+  @Index()
   status: UserStatus;
 
   @Column({ type: 'bigint', default: 0 })

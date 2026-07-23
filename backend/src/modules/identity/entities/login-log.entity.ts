@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 
 @Entity('login_log')
@@ -11,6 +12,7 @@ export class LoginLog {
   id: number;
 
   @Column({ type: 'bigint' })
+  @Index()
   userId: number;
 
   @Column({ type: 'varchar', length: 50 })

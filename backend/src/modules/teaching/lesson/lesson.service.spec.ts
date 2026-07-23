@@ -86,6 +86,7 @@ describe('LessonService', () => {
       saveAll: jest.fn(),
       findOneById: jest.fn(),
       findByClassCode: jest.fn(),
+      findOneByClassCodeAndLessonNumber: jest.fn(),
       countByClassCode: jest.fn(),
     };
 
@@ -133,7 +134,7 @@ describe('LessonService', () => {
   describe('create', () => {
     it('should create a lesson with DRAFT status when all validations pass', async () => {
       classRepo.findOneByCode.mockResolvedValue({ ...mockActiveClass });
-      lessonRepo.findByClassCode.mockResolvedValue([]);
+      lessonRepo.findOneByClassCodeAndLessonNumber.mockResolvedValue(null);
       lessonRepo.save.mockResolvedValue({ ...mockLesson });
 
       const result = await service.create(mockLessonInput);
@@ -216,9 +217,9 @@ describe('LessonService', () => {
 
     it('should throw BadRequestException when lessonNumber already exists', async () => {
       classRepo.findOneByCode.mockResolvedValue({ ...mockActiveClass });
-      lessonRepo.findByClassCode.mockResolvedValue([
+      lessonRepo.findOneByClassCodeAndLessonNumber.mockResolvedValue(
         { ...mockLesson, lessonNumber: 1 },
-      ]);
+      );
 
       await expect(service.create(mockLessonInput)).rejects.toThrow(
         BadRequestException,
@@ -230,9 +231,9 @@ describe('LessonService', () => {
 
     it('should pass when lessonNumber exists but is CANCELLED (can reuse)', async () => {
       classRepo.findOneByCode.mockResolvedValue({ ...mockActiveClass });
-      lessonRepo.findByClassCode.mockResolvedValue([
+      lessonRepo.findOneByClassCodeAndLessonNumber.mockResolvedValue(
         { ...mockLesson, id: 5, lessonNumber: 1, status: LessonStatus.CANCELLED },
-      ]);
+      );
       lessonRepo.save.mockResolvedValue({ ...mockLesson });
 
       const result = await service.create(mockLessonInput);
