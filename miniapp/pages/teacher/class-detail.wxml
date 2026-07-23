@@ -93,7 +93,7 @@
           <text class="view-all" bindtap="goToStudents">查看全部 ></text>
         </view>
         <view class="student-list" wx:if="{{students.length > 0}}">
-          <view class="student-item" wx:for="{{students}}" wx:key="id">
+          <view class="student-item" wx:for="{{students}}" wx:key="id" bindtap="goToStudentDetail" data-code="{{item.studentCode}}">
             <text class="student-name">{{item.name}}</text>
             <text class="student-status status-{{item.status}}">{{item.status === 'ENROLLED' ? '在读' : '请假'}}</text>
           </view>

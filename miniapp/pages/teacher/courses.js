@@ -19,7 +19,7 @@ Page({
     const app = getApp();
     const role = app.globalData.userInfo?.role;
     if (role === 'Student' || role === 'Parent') {
-      wx.redirectTo({ url: '/pages/student/classes' });
+      wx.reLaunch({ url: '/pages/index/index' });
       return;
     }
     this.loadCourses();

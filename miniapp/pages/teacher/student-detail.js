@@ -70,14 +70,19 @@ Page({
     });
   },
 
-  // 跳转出勤记录
+  // 跳看出勤记录（从所属班级进入，取第一个班级）
   goToLessonRecord() {
-    wx.navigateTo({
-      url: `/pages/teacher/lesson-record`,
-      fail() {
-        wx.showToast({ title: '页面跳转失败', icon: 'none' });
-      }
-    });
+    const classes = this.data.classes;
+    if (classes && classes.length > 0) {
+      wx.navigateTo({
+        url: `/pages/teacher/lesson-record?classCode=${classes[0].classCode}`,
+        fail() {
+          wx.showToast({ title: '页面跳转失败', icon: 'none' });
+        }
+      });
+    } else {
+      wx.showToast({ title: '该学生暂无班级信息', icon: 'none' });
+    }
   },
 
   // 返回

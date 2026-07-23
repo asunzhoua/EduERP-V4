@@ -69,6 +69,19 @@ Page({
     });
   },
 
+  // 跳转学生详情
+  goToStudentDetail(e) {
+    const { code } = e.currentTarget.dataset;
+    if (code) {
+      wx.navigateTo({
+        url: `/pages/teacher/student-detail?code=${code}`,
+        fail() {
+          wx.showToast({ title: '页面跳转失败', icon: 'none' });
+        }
+      });
+    }
+  },
+
   // 跳转课时记录
   goToRecordLesson() {
     wx.navigateTo({

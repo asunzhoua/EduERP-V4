@@ -56,12 +56,12 @@ Page({
     }
   },
 
-  // 查看我的课程列表
+  // 返回班级列表（避免导航栈堆积）
   goToMyClasses() {
-    wx.navigateTo({
-      url: `/pages/student/classes`,
+    wx.navigateBack({
       fail() {
-        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+        // 如果导航栈为空，降级跳转到班级列表
+        wx.navigateTo({ url: '/pages/student/classes' });
       }
     });
   },
