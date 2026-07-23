@@ -13,7 +13,8 @@
     "pages/teacher/student-detail",
     "pages/student/class-detail",
     "pages/student/attendance",
-    "pages/student/lessons"
+    "pages/student/lessons",
+    "pages/operation/dashboard"
   ],
   "window": {
     "navigationBarTitleText": "EduERP",

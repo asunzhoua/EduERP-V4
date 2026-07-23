@@ -28,6 +28,10 @@
         <text class="action-icon">📝</text>
         <text class="action-text">课时记录</text>
       </view>
+      <view class="action-item" bindtap="goToDashboard" wx:if="{{role === 'Admin' || role === 'SuperAdmin'}}">
+        <text class="action-icon">📊</text>
+        <text class="action-text">运营看板</text>
+      </view>
     </view>
   </view>
 

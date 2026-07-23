@@ -1,0 +1,337 @@
+/* pages/operation/dashboard.wxss */
+
+.page-container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========== 无权限 ========== */
+.no-permission {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 200rpx;
+}
+
+.no-perm-icon {
+  font-size: 96rpx;
+}
+
+.no-perm-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-top: 30rpx;
+}
+
+.no-perm-desc {
+  font-size: 28rpx;
+  color: #999;
+  margin-top: 16rpx;
+}
+
+.no-perm-btn {
+  margin-top: 60rpx;
+  padding: 20rpx 60rpx;
+  background: #1890ff;
+  border-radius: 40rpx;
+}
+
+.no-perm-btn-text {
+  color: #fff;
+  font-size: 30rpx;
+}
+
+/* ========== 顶部栏 ========== */
+.top-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 20rpx 30rpx 0;
+  background: #fff;
+}
+
+.segmented-control {
+  display: flex;
+  background: #f0f0f0;
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.segment-item {
+  padding: 12rpx 32rpx;
+  font-size: 26rpx;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.segment-active {
+  background: #1890ff;
+  color: #fff;
+  border-radius: 8rpx;
+}
+
+/* ========== Tab 栏 ========== */
+.tab-bar {
+  display: flex;
+  background: #fff;
+  border-bottom: 1rpx solid #eee;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24rpx 0 20rpx;
+  position: relative;
+}
+
+.tab-text {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.tab-active .tab-text {
+  color: #1890ff;
+  font-weight: bold;
+}
+
+.tab-underline {
+  position: absolute;
+  bottom: 0;
+  width: 60rpx;
+  height: 4rpx;
+  background: #1890ff;
+  border-radius: 2rpx;
+}
+
+/* ========== 内容区域 ========== */
+.content-area {
+  flex: 1;
+  padding: 20rpx;
+}
+
+/* ========== 骨架屏 ========== */
+.skeleton-card {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+}
+
+.skeleton-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 0;
+}
+
+.skeleton-value {
+  width: 80rpx;
+  height: 48rpx;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 8rpx;
+}
+
+.skeleton-label {
+  width: 100rpx;
+  height: 24rpx;
+  background: #f0f0f0;
+  border-radius: 4rpx;
+  margin-top: 12rpx;
+}
+
+.skeleton-chart {
+  width: 100%;
+  height: 200rpx;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 8rpx;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ========== 错误状态 ========== */
+.error-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 30rpx;
+  background: #fff;
+  border-radius: 12rpx;
+}
+
+.error-icon {
+  font-size: 64rpx;
+}
+
+.error-text {
+  font-size: 28rpx;
+  color: #999;
+  margin-top: 20rpx;
+  text-align: center;
+}
+
+.retry-btn {
+  margin-top: 30rpx;
+  padding: 16rpx 48rpx;
+  background: #1890ff;
+  border-radius: 32rpx;
+}
+
+.retry-btn-text {
+  color: #fff;
+  font-size: 28rpx;
+}
+
+/* ========== 指标卡片 ========== */
+.metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30rpx 20rpx;
+  background: #fff;
+  border-radius: 12rpx;
+}
+
+.metric-value {
+  font-size: 56rpx;
+  font-weight: bold;
+  color: #1890ff;
+  line-height: 1.2;
+}
+
+.metric-unit {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.metric-label {
+  font-size: 26rpx;
+  color: #666;
+  margin-top: 8rpx;
+}
+
+/* ========== 图表卡片 ========== */
+.chart-card {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.chart-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.chart-subtitle {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 4rpx;
+  margin-bottom: 24rpx;
+}
+
+/* ========== 图表加载/空状态 ========== */
+.chart-loading {
+  padding: 20rpx 0;
+}
+
+.chart-skeleton {
+  width: 100%;
+  height: 200rpx;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 8rpx;
+}
+
+.chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 0;
+}
+
+.empty-icon {
+  font-size: 48rpx;
+}
+
+.empty-text {
+  font-size: 26rpx;
+  color: #999;
+  margin-top: 12rpx;
+}
+
+/* ========== 柱状图 ========== */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  height: 240rpx;
+  padding-top: 20rpx;
+  overflow: hidden;
+}
+
+.bar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.bar-value {
+  font-size: 18rpx;
+  color: #999;
+  margin-bottom: 6rpx;
+  line-height: 1;
+}
+
+.bar {
+  width: 60%;
+  min-height: 4rpx;
+  background: #1890ff;
+  border-radius: 4rpx 4rpx 0 0;
+  transition: height 0.3s ease;
+}
+
+.bar-blue {
+  background: #1890ff;
+}
+
+.bar-green {
+  background: #52c41a;
+}
+
+.bar-label {
+  font-size: 18rpx;
+  color: #999;
+  margin-top: 8rpx;
+  line-height: 1;
+  white-space: nowrap;
+}

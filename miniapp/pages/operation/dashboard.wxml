@@ -1,0 +1,217 @@
+<!--pages/operation/dashboard.wxml-->
+<view class="page-container">
+
+  <!-- ========== 无权限状态 ========== -->
+  <view class="no-permission" wx:if="{{!hasPermission}}">
+    <text class="no-perm-icon">🔒</text>
+    <text class="no-perm-title">无访问权限</text>
+    <text class="no-perm-desc">该页面仅对管理员开放</text>
+    <view class="no-perm-btn" bindtap="goBack">
+      <text class="no-perm-btn-text">返回首页</text>
+    </view>
+  </view>
+
+  <!-- ========== 有权限 — 正常内容 ========== -->
+  <block wx:if="{{hasPermission}}">
+
+    <!-- 顶部：时间范围选择 -->
+    <view class="top-bar">
+      <view class="segmented-control">
+        <view class="segment-item {{days === 7 ? 'segment-active' : ''}}" bindtap="switchDays" data-days="{{7}}">
+          <text>7天</text>
+        </view>
+        <view class="segment-item {{days === 30 ? 'segment-active' : ''}}" bindtap="switchDays" data-days="{{30}}">
+          <text>30天</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- Tab 栏 -->
+    <view class="tab-bar">
+      <view class="tab-item {{activeTab === 0 ? 'tab-active' : ''}}" bindtap="switchTab" data-index="{{0}}">
+        <text class="tab-text">学员概览</text>
+        <view class="tab-underline" wx:if="{{activeTab === 0}}"></view>
+      </view>
+      <view class="tab-item {{activeTab === 1 ? 'tab-active' : ''}}" bindtap="switchTab" data-index="{{1}}">
+        <text class="tab-text">课程概览</text>
+        <view class="tab-underline" wx:if="{{activeTab === 1}}"></view>
+      </view>
+      <view class="tab-item {{activeTab === 2 ? 'tab-active' : ''}}" bindtap="switchTab" data-index="{{2}}">
+        <text class="tab-text">趋势分析</text>
+        <view class="tab-underline" wx:if="{{activeTab === 2}}"></view>
+      </view>
+    </view>
+
+    <!-- ========== 首次加载骨架屏 ========== -->
+    <view class="content-area" wx:if="{{loading}}">
+      <view class="skeleton-card">
+        <view class="skeleton-grid">
+          <view class="skeleton-metric" wx:for="{{4}}" wx:key="*this">
+            <view class="skeleton-value"></view>
+            <view class="skeleton-label"></view>
+          </view>
+        </view>
+      </view>
+      <view class="skeleton-card">
+        <view class="skeleton-chart"></view>
+      </view>
+    </view>
+
+    <!-- ========== 错误状态 ========== -->
+    <view class="content-area" wx:elif="{{error}}">
+      <view class="error-card">
+        <text class="error-icon">⚠️</text>
+        <text class="error-text">{{error}}</text>
+        <view class="retry-btn" bindtap="retry">
+          <text class="retry-btn-text">重新加载</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ========== Tab 1: 学员概览 ========== -->
+    <scroll-view class="content-area" scroll-y wx:elif="{{activeTab === 0}}">
+      <!-- 指标卡片 -->
+      <view class="metric-grid">
+        <view class="metric-card">
+          <text class="metric-value">{{totalStudents}}</text>
+          <text class="metric-unit">人</text>
+          <text class="metric-label">总学员数</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{activeStudents}}</text>
+          <text class="metric-unit">人</text>
+          <text class="metric-label">活跃学员数</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{totalClasses}}</text>
+          <text class="metric-unit">个</text>
+          <text class="metric-label">总班级数</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{activeRate}}</text>
+          <text class="metric-unit">%</text>
+          <text class="metric-label">活跃率</text>
+        </view>
+      </view>
+
+      <!-- 新增学员趋势 -->
+      <view class="chart-card">
+        <view class="chart-title">新增学员趋势</view>
+        <view class="chart-subtitle">最近{{days}}天</view>
+
+        <!-- 趋势加载中 -->
+        <view class="chart-loading" wx:if="{{trendLoading}}">
+          <view class="chart-skeleton"></view>
+        </view>
+
+        <!-- 空状态 -->
+        <view class="chart-empty" wx:elif="{{enrollmentTrend.length === 0}}">
+          <text class="empty-icon">📭</text>
+          <text class="empty-text">暂无数据</text>
+        </view>
+
+        <!-- 柱状图 -->
+        <view class="bar-chart" wx:else>
+          <view class="bar-item" wx:for="{{enrollmentTrend}}" wx:key="date">
+            <text class="bar-value">{{item.value}}</text>
+            <view class="bar" style="height: {{item.heightPercent}}%"></view>
+            <text class="bar-label">{{item.shortDate}}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- ========== Tab 2: 课程概览 ========== -->
+    <scroll-view class="content-area" scroll-y wx:elif="{{activeTab === 1}}">
+      <!-- 指标卡片 -->
+      <view class="metric-grid">
+        <view class="metric-card">
+          <text class="metric-value">{{totalCourses}}</text>
+          <text class="metric-unit">个</text>
+          <text class="metric-label">总课程数</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{totalClasses}}</text>
+          <text class="metric-unit">个</text>
+          <text class="metric-label">总班级数</text>
+        </view>
+      </view>
+
+      <!-- 课时完成趋势 -->
+      <view class="chart-card">
+        <view class="chart-title">课时完成趋势</view>
+        <view class="chart-subtitle">最近{{days}}天</view>
+
+        <!-- 趋势加载中 -->
+        <view class="chart-loading" wx:if="{{trendLoading}}">
+          <view class="chart-skeleton"></view>
+        </view>
+
+        <!-- 空状态 -->
+        <view class="chart-empty" wx:elif="{{lessonTrend.length === 0}}">
+          <text class="empty-icon">📭</text>
+          <text class="empty-text">暂无数据</text>
+        </view>
+
+        <!-- 柱状图 -->
+        <view class="bar-chart" wx:else>
+          <view class="bar-item" wx:for="{{lessonTrend}}" wx:key="date">
+            <text class="bar-value">{{item.value}}</text>
+            <view class="bar" style="height: {{item.heightPercent}}%"></view>
+            <text class="bar-label">{{item.shortDate}}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- ========== Tab 3: 趋势分析 ========== -->
+    <scroll-view class="content-area" scroll-y wx:elif="{{activeTab === 2}}">
+      <!-- 学员增长趋势 -->
+      <view class="chart-card">
+        <view class="chart-title">学员增长趋势</view>
+        <view class="chart-subtitle">最近{{days}}天</view>
+
+        <view class="chart-loading" wx:if="{{trendLoading}}">
+          <view class="chart-skeleton"></view>
+        </view>
+
+        <view class="chart-empty" wx:elif="{{enrollmentTrend.length === 0}}">
+          <text class="empty-icon">📭</text>
+          <text class="empty-text">暂无数据</text>
+        </view>
+
+        <view class="bar-chart" wx:else>
+          <view class="bar-item" wx:for="{{enrollmentTrend}}" wx:key="date">
+            <text class="bar-value">{{item.value}}</text>
+            <view class="bar bar-blue" style="height: {{item.heightPercent}}%"></view>
+            <text class="bar-label">{{item.shortDate}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 课时完成趋势 -->
+      <view class="chart-card">
+        <view class="chart-title">课时完成趋势</view>
+        <view class="chart-subtitle">最近{{days}}天</view>
+
+        <view class="chart-loading" wx:if="{{trendLoading}}">
+          <view class="chart-skeleton"></view>
+        </view>
+
+        <view class="chart-empty" wx:elif="{{lessonTrend.length === 0}}">
+          <text class="empty-icon">📭</text>
+          <text class="empty-text">暂无数据</text>
+        </view>
+
+        <view class="bar-chart" wx:else>
+          <view class="bar-item" wx:for="{{lessonTrend}}" wx:key="date">
+            <text class="bar-value">{{item.value}}</text>
+            <view class="bar bar-green" style="height: {{item.heightPercent}}%"></view>
+            <text class="bar-label">{{item.shortDate}}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+  </block>
+</view>
