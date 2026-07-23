@@ -22,6 +22,12 @@ Page({
     }
   },
 
+  onPullDownRefresh() {
+    this.loadData(this.data.classCode).finally(() => {
+      wx.stopPullDownRefresh();
+    });
+  },
+
   async loadData(code) {
     this.setData({ loading: true, error: null });
 

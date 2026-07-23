@@ -23,7 +23,8 @@ Page({
   },
 
   async loadData() {
-    if (this.data.loading) return;
+    if (this._dataLoading) return;
+    this._dataLoading = true;
     this.setData({ loading: true, error: null });
 
     try {
@@ -47,6 +48,8 @@ Page({
         error: '数据加载失败，请稍后重试',
         loading: false
       });
+    } finally {
+      this._dataLoading = false;
     }
   },
 
