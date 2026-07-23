@@ -59,8 +59,16 @@ Page({
   // 查看课程详情
   goToCourseDetail() {
     wx.navigateTo({
-      url: `/pages/student/classes`
+      url: `/pages/student/classes`,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
     });
+  },
+
+  // 重试加载
+  retryLoad() {
+    this.loadData(this.data.classCode);
   },
 
   // 返回

@@ -22,13 +22,19 @@ Page({
 
   goToAttendance() {
     wx.navigateTo({
-      url: '/pages/student/attendance'
+      url: '/pages/student/attendance',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
     });
   },
 
   goToLessons() {
     wx.navigateTo({
-      url: '/pages/student/lessons'
+      url: '/pages/student/lessons',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
     });
   },
 

@@ -4,8 +4,9 @@
     <text class="page-title">我的课程</text>
   </view>
 
-  <view class="loading" wx:if="{{loading}}">
-    <text>加载中...</text>
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
   </view>
 
   <view class="error-card" wx:elif="{{error}}">

@@ -47,7 +47,10 @@ Page({
   goToDetail(e) {
     const classData = e.currentTarget.dataset.class;
     wx.navigateTo({
-      url: `/pages/student/class-detail?code=${classData.classCode}`
+      url: `/pages/student/class-detail?code=${classData.classCode}`,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
     });
   }
 });

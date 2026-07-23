@@ -28,13 +28,30 @@
 }
 
 /* 加载中 */
-.loading {
+.loading-state {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  height: 200rpx;
-  color: #999;
+  padding: 120rpx 0;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #ddd;
+  border-top-color: #1890ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
   font-size: 28rpx;
+  color: #999;
 }
 
 /* 错误 */

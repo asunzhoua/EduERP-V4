@@ -136,10 +136,20 @@ Page({
 
   // 学生端导航
   goToMyClasses() {
-    wx.navigateTo({ url: '/pages/student/classes' });
+    wx.navigateTo({
+      url: '/pages/student/classes',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   },
 
   goToMyLessonRecords() {
-    wx.navigateTo({ url: '/pages/student/index' });
+    wx.navigateTo({
+      url: '/pages/student/index',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   }
 });
