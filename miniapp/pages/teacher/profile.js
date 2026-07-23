@@ -188,9 +188,9 @@ Page({
       // 并行获取各班级的最近课程
       var promises = activeCodes.map(function (code) {
         return get('/classes/' + code + '/lessons').then(function (data) {
-          if (!data || !data.items || data.items.length === 0) return null;
+          var items = Array.isArray(data) ? data : (data && data.items ? data.items : []);
+          if (!items || items.length === 0) return null;
           // 取最近一条（按 lessonNumber 降序取第一条）
-          var items = data.items;
           var latest = items[items.length - 1] || items[0];
           return {
             classCode: code,

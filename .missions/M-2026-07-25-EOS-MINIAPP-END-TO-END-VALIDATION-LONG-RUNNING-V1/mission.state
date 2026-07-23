@@ -1,0 +1,20 @@
+{
+  "mission_id": "M-2026-07-25-EOS-MINIAPP-END-TO-END-VALIDATION-LONG-RUNNING-V1",
+  "status": "RUNNING",
+  "current_phase": 1,
+  "current_batch": "1.1",
+  "phase_status": {
+    "1": "IN_PROGRESS"
+  },
+  "batch_status": {
+    "1.1": "COMPLETED"
+  },
+  "updated_at": "2026-07-24T07:30:00+08:00",
+  "batch_started_at": "2026-07-24T07:00:00+08:00",
+  "batch_completed_at": "2026-07-24T07:30:00+08:00",
+  "last_commit": "b799752",
+  "last_evidence": "E-1.1-STUDENT-FLOW-EVIDENCE.md",
+  "pending_decision_gates": [],
+  "recovery_attempts": 0,
+  "notes": "Batch 1.1 学生端完整流程真实链路验证完成。发现并修复2个P0问题：Reminder Controller双重前缀 + reminder表缺失。"
+}

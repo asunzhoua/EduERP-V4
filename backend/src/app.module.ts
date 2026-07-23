@@ -13,7 +13,6 @@ import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
 import { ResponseInterceptor } from '@common/interceptors/response.interceptor';
 import { JwtAuthGuard } from '@modules/identity/auth/jwt-auth.guard';
 import { appConfig } from '@config/configuration';
-import { databaseConfig } from '@config/database.config';
 
 @Module({
   imports: [
@@ -25,7 +24,31 @@ import { databaseConfig } from '@config/database.config';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: () => databaseConfig,
+      useFactory: () => {
+        console.log('[DB Config]', {
+          host: process.env.DB_HOST,
+          port: process.env.DB_PORT,
+          username: process.env.DB_USERNAME,
+          password: process.env.DB_PASSWORD?.substring(0, 3) + '...',
+          database: process.env.DB_DATABASE,
+        });
+        return {
+        type: 'mysql',
+        host: process.env.DB_HOST || 'localhost',
+        port: Number(process.env.DB_PORT) || 3306,
+        username: process.env.DB_USERNAME || 'root',
+        password: process.env.DB_PASSWORD || 'root',
+        database: process.env.DB_DATABASE || 'EduOS',
+        entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+        synchronize: false,
+        logging: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+        extra: {
+          connectionLimit: 10,
+          connectTimeout: 10000,
+          idleTimeout: 30000,
+        },
+      };
+      },
     }),
     EventBusModule,
     IdentityModule,
