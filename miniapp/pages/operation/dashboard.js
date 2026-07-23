@@ -1,6 +1,15 @@
 // pages/operation/dashboard.js
 const { get } = require('../../utils/request');
 
+// 指标说明文案
+const METRIC_DESCRIPTIONS = {
+  totalStudents: '系统中所有已注册学员的总数，包含在读和休学状态。',
+  activeStudents: '近7天内有登录记录或出勤记录的学员数量，反映实际活跃情况。',
+  totalClasses: '系统中已创建的班级总数，包含所有状态的班级。',
+  activeRate: '活跃学员占总学员的百分比，反映整体学习活跃度。',
+  totalCourses: '系统中已开设的课程总数。'
+};
+
 Page({
   data: {
     // 权限
@@ -36,7 +45,15 @@ Page({
     selectedBarType: null,
 
     // 空状态
-    isEmpty: false
+    isEmpty: false,
+
+    // 指标说明 tooltip
+    activeTooltip: '',
+    tooltipDesc: '',
+
+    // 趋势摘要
+    enrollmentSummary: null,
+    lessonSummary: null
   },
 
   onLoad() {
@@ -158,11 +175,64 @@ Page({
     });
   },
 
+  // 显示指标说明 tooltip
+  showMetricDesc(e) {
+    var key = e.currentTarget.dataset.key;
+    var desc = METRIC_DESCRIPTIONS[key] || '';
+    if (this.data.activeTooltip === key) {
+      // 再次点击同一个，关闭 tooltip
+      this.setData({ activeTooltip: '', tooltipDesc: '' });
+    } else {
+      this.setData({ activeTooltip: key, tooltipDesc: desc });
+    }
+  },
+
+  // 关闭 tooltip
+  hideTooltip() {
+    this.setData({ activeTooltip: '', tooltipDesc: '' });
+  },
+
+  // 计算趋势摘要（总计、日均、最高）
+  calcTrendSummary(trendArr) {
+    if (!trendArr || trendArr.length === 0) return null;
+    var values = trendArr.map(function(item) { return item.value; });
+    var total = 0;
+    var max = 0;
+    var maxDate = '';
+    for (var i = 0; i < values.length; i++) {
+      total += values[i];
+      if (values[i] > max) {
+        max = values[i];
+        maxDate = trendArr[i].date;
+      }
+    }
+    var avg = Math.round(total / values.length * 10) / 10;
+    // 格式化最高日期为 MM/DD
+    var maxDateShort = '';
+    if (maxDate) {
+      var parts = maxDate.split('-');
+      maxDateShort = parts[1] + '/' + parts[2];
+    }
+    return {
+      total: total,
+      avg: avg,
+      max: max,
+      maxDate: maxDateShort
+    };
+  },
+
   // 处理趋势数据
   processTrend(trendRes) {
     const enrollmentTrend = this.processTrendData(trendRes.enrollmentTrend);
     const lessonTrend = this.processTrendData(trendRes.lessonTrend);
-    this.setData({ enrollmentTrend, lessonTrend });
+    const enrollmentSummary = this.calcTrendSummary(enrollmentTrend);
+    const lessonSummary = this.calcTrendSummary(lessonTrend);
+    this.setData({
+      enrollmentTrend,
+      lessonTrend,
+      enrollmentSummary,
+      lessonSummary
+    });
   },
 
   // 趋势数据预处理 — 计算柱状图高度百分比

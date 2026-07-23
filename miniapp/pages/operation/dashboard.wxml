@@ -50,6 +50,14 @@
       </view>
     </view>
 
+    <!-- ========== Tooltip 遮罩 ========== -->
+    <view class="tooltip-overlay" wx:if="{{activeTooltip}}" bindtap="hideTooltip">
+      <view class="tooltip-bubble" catchtap="">
+        <text class="tooltip-text">{{tooltipDesc}}</text>
+        <text class="tooltip-hint">点击空白处关闭</text>
+      </view>
+    </view>
+
     <!-- ========== 首次加载骨架屏 ========== -->
     <view class="content-area" wx:if="{{loading}}">
       <view class="skeleton-card">
@@ -89,29 +97,63 @@
         <view class="metric-card">
           <text class="metric-value">{{totalStudents}}</text>
           <text class="metric-unit">人</text>
-          <text class="metric-label">总学员数</text>
+          <view class="metric-label-row">
+            <text class="metric-label">总学员数</text>
+            <text class="metric-info" bindtap="showMetricDesc" data-key="totalStudents">ℹ</text>
+          </view>
         </view>
         <view class="metric-card">
           <text class="metric-value">{{activeStudents}}</text>
           <text class="metric-unit">人</text>
-          <text class="metric-label">活跃学员数</text>
+          <view class="metric-label-row">
+            <text class="metric-label">活跃学员数</text>
+            <text class="metric-info" bindtap="showMetricDesc" data-key="activeStudents">ℹ</text>
+          </view>
         </view>
         <view class="metric-card">
           <text class="metric-value">{{totalClasses}}</text>
           <text class="metric-unit">个</text>
-          <text class="metric-label">总班级数</text>
+          <view class="metric-label-row">
+            <text class="metric-label">总班级数</text>
+            <text class="metric-info" bindtap="showMetricDesc" data-key="totalClasses">ℹ</text>
+          </view>
         </view>
         <view class="metric-card">
           <text class="metric-value">{{activeRate}}</text>
           <text class="metric-unit">%</text>
-          <text class="metric-label">活跃率</text>
+          <view class="metric-label-row">
+            <text class="metric-label">活跃率</text>
+            <text class="metric-info" bindtap="showMetricDesc" data-key="activeRate">ℹ</text>
+          </view>
         </view>
       </view>
 
       <!-- 新增学员趋势 -->
       <view class="chart-card">
-        <view class="chart-title">新增学员趋势</view>
+        <view class="chart-title-row">
+          <view class="chart-title">新增学员趋势</view>
+          <view class="chart-legend">
+            <view class="legend-dot legend-blue"></view>
+            <text class="legend-text">每日新增</text>
+          </view>
+        </view>
         <view class="chart-subtitle">最近{{days}}天</view>
+
+        <!-- 趋势摘要 -->
+        <view class="trend-summary" wx:if="{{enrollmentSummary}}">
+          <view class="summary-item">
+            <text class="summary-label">总计</text>
+            <text class="summary-value summary-blue">{{enrollmentSummary.total}}</text>
+          </view>
+          <view class="summary-item">
+            <text class="summary-label">日均</text>
+            <text class="summary-value summary-blue">{{enrollmentSummary.avg}}</text>
+          </view>
+          <view class="summary-item">
+            <text class="summary-label">最高</text>
+            <text class="summary-value summary-blue">{{enrollmentSummary.max}}<text class="summary-date">（{{enrollmentSummary.maxDate}}）</text></text>
+          </view>
+        </view>
 
         <!-- 趋势加载中 -->
         <view class="chart-loading" wx:if="{{trendLoading}}">
@@ -148,19 +190,47 @@
         <view class="metric-card">
           <text class="metric-value">{{totalCourses}}</text>
           <text class="metric-unit">个</text>
-          <text class="metric-label">总课程数</text>
+          <view class="metric-label-row">
+            <text class="metric-label">总课程数</text>
+            <text class="metric-info" bindtap="showMetricDesc" data-key="totalCourses">ℹ</text>
+          </view>
         </view>
         <view class="metric-card">
           <text class="metric-value">{{totalClasses}}</text>
           <text class="metric-unit">个</text>
-          <text class="metric-label">总班级数</text>
+          <view class="metric-label-row">
+            <text class="metric-label">总班级数</text>
+            <text class="metric-info" bindtap="showMetricDesc" data-key="totalClasses">ℹ</text>
+          </view>
         </view>
       </view>
 
       <!-- 课时完成趋势 -->
       <view class="chart-card">
-        <view class="chart-title">课时完成趋势</view>
+        <view class="chart-title-row">
+          <view class="chart-title">课时完成趋势</view>
+          <view class="chart-legend">
+            <view class="legend-dot legend-green"></view>
+            <text class="legend-text">每日课时</text>
+          </view>
+        </view>
         <view class="chart-subtitle">最近{{days}}天</view>
+
+        <!-- 趋势摘要 -->
+        <view class="trend-summary" wx:if="{{lessonSummary}}">
+          <view class="summary-item">
+            <text class="summary-label">总计</text>
+            <text class="summary-value summary-green">{{lessonSummary.total}}</text>
+          </view>
+          <view class="summary-item">
+            <text class="summary-label">日均</text>
+            <text class="summary-value summary-green">{{lessonSummary.avg}}</text>
+          </view>
+          <view class="summary-item">
+            <text class="summary-label">最高</text>
+            <text class="summary-value summary-green">{{lessonSummary.max}}<text class="summary-date">（{{lessonSummary.maxDate}}）</text></text>
+          </view>
+        </view>
 
         <!-- 趋势加载中 -->
         <view class="chart-loading" wx:if="{{trendLoading}}">
@@ -197,8 +267,30 @@
       <block wx:else>
       <!-- 学员增长趋势 -->
       <view class="chart-card">
-        <view class="chart-title">学员增长趋势</view>
+        <view class="chart-title-row">
+          <view class="chart-title">学员增长趋势</view>
+          <view class="chart-legend">
+            <view class="legend-dot legend-blue"></view>
+            <text class="legend-text">每日新增</text>
+          </view>
+        </view>
         <view class="chart-subtitle">最近{{days}}天</view>
+
+        <!-- 趋势摘要 -->
+        <view class="trend-summary" wx:if="{{enrollmentSummary}}">
+          <view class="summary-item">
+            <text class="summary-label">总计</text>
+            <text class="summary-value summary-blue">{{enrollmentSummary.total}}</text>
+          </view>
+          <view class="summary-item">
+            <text class="summary-label">日均</text>
+            <text class="summary-value summary-blue">{{enrollmentSummary.avg}}</text>
+          </view>
+          <view class="summary-item">
+            <text class="summary-label">最高</text>
+            <text class="summary-value summary-blue">{{enrollmentSummary.max}}<text class="summary-date">（{{enrollmentSummary.maxDate}}）</text></text>
+          </view>
+        </view>
 
         <view class="chart-loading" wx:if="{{trendLoading}}">
           <view class="chart-skeleton"></view>
@@ -220,8 +312,30 @@
 
       <!-- 课时完成趋势 -->
       <view class="chart-card">
-        <view class="chart-title">课时完成趋势</view>
+        <view class="chart-title-row">
+          <view class="chart-title">课时完成趋势</view>
+          <view class="chart-legend">
+            <view class="legend-dot legend-green"></view>
+            <text class="legend-text">每日课时</text>
+          </view>
+        </view>
         <view class="chart-subtitle">最近{{days}}天</view>
+
+        <!-- 趋势摘要 -->
+        <view class="trend-summary" wx:if="{{lessonSummary}}">
+          <view class="summary-item">
+            <text class="summary-label">总计</text>
+            <text class="summary-value summary-green">{{lessonSummary.total}}</text>
+          </view>
+          <view class="summary-item">
+            <text class="summary-label">日均</text>
+            <text class="summary-value summary-green">{{lessonSummary.avg}}</text>
+          </view>
+          <view class="summary-item">
+            <text class="summary-label">最高</text>
+            <text class="summary-value summary-green">{{lessonSummary.max}}<text class="summary-date">（{{lessonSummary.maxDate}}）</text></text>
+          </view>
+        </view>
 
         <view class="chart-loading" wx:if="{{trendLoading}}">
           <view class="chart-skeleton"></view>

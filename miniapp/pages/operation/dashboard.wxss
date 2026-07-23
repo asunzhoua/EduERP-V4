@@ -222,10 +222,64 @@
   margin-top: 4rpx;
 }
 
+.metric-label-row {
+  display: flex;
+  align-items: center;
+  margin-top: 8rpx;
+  gap: 6rpx;
+}
+
 .metric-label {
   font-size: 26rpx;
   color: #666;
-  margin-top: 8rpx;
+}
+
+.metric-info {
+  font-size: 22rpx;
+  color: #bbb;
+  width: 28rpx;
+  height: 28rpx;
+  line-height: 28rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: #f0f0f0;
+}
+
+/* ========== Tooltip ========== */
+.tooltip-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tooltip-bubble {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 40rpx;
+  max-width: 560rpx;
+  box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.15);
+}
+
+.tooltip-text {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+  display: block;
+}
+
+.tooltip-hint {
+  font-size: 22rpx;
+  color: #bbb;
+  margin-top: 20rpx;
+  display: block;
+  text-align: center;
 }
 
 /* ========== 图表卡片 ========== */
@@ -236,10 +290,41 @@
   margin-bottom: 20rpx;
 }
 
+.chart-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .chart-title {
   font-size: 30rpx;
   font-weight: bold;
   color: #333;
+}
+
+.chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.legend-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+}
+
+.legend-blue {
+  background: #1890ff;
+}
+
+.legend-green {
+  background: #52c41a;
+}
+
+.legend-text {
+  font-size: 22rpx;
+  color: #999;
 }
 
 .chart-subtitle {
@@ -247,6 +332,47 @@
   color: #999;
   margin-top: 4rpx;
   margin-bottom: 24rpx;
+}
+
+/* ========== 趋势摘要 ========== */
+.trend-summary {
+  display: flex;
+  justify-content: space-around;
+  padding: 20rpx 0;
+  margin-bottom: 20rpx;
+  background: #fafafa;
+  border-radius: 8rpx;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.summary-label {
+  font-size: 22rpx;
+  color: #999;
+  margin-bottom: 6rpx;
+}
+
+.summary-value {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.summary-blue {
+  color: #1890ff;
+}
+
+.summary-green {
+  color: #52c41a;
+}
+
+.summary-date {
+  font-size: 20rpx;
+  font-weight: normal;
+  color: #bbb;
 }
 
 /* ========== 图表加载/空状态 ========== */
