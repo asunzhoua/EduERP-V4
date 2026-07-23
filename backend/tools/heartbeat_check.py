@@ -6,6 +6,10 @@ v2.0 变更：
 - 新增 Evidence 新增检测
 - 通知从 Webhook 切到飞书 API（龙虾 App）
 
+v2.1 变更（Batch 5.2）：
+- 新增 Mission 停滞检测（三指标综合判定：Commit / Evidence / State file）
+- 新增深度恢复机制（CC 进程检查 + 错误日志扫描 + Recovery Report）
+
 由 Windows Task Scheduler 每 15 分钟调用一次。
 """
 
@@ -68,6 +72,8 @@ if not MISSION_BOARD_TOKEN:
 SHEET_ID = "40e76d"
 
 STALE_MINUTES = 30
+DEEP_RECOVERY_MINUTES = 60  # 深度恢复阈值
+CC_PROCESS_NAMES = ["claude", "node"]  # CC 相关进程名
 IDLE_HOURS = 4
 NOTIFY_COOLDOWN = 900  # 15 分钟冷却（匹配心跳间隔）
 
@@ -552,6 +558,203 @@ def check_liveness() -> tuple[str, str, bool]:
 
 
 # ──────────────────────────────────────────────
+# Check 5: Mission 停滞检测（三指标综合判定）
+# ──────────────────────────────────────────────
+
+
+def check_mission_stall() -> tuple[str, str, bool]:
+    """Check 5: Mission 停滞检测 — 三指标综合判定。
+
+    检查三个指标的最后活动时间，取最晚的一个：
+    1. Last Commit (git log)
+    2. Last Evidence (evidence 目录最新文件 mtime)
+    3. Mission State (mission.state 文件 mtime)
+
+    超过 STALE_MINUTES → WARNING
+    超过 DEEP_RECOVERY_MINUTES → ERROR + 深度恢复报告
+    """
+    if not os.path.isdir(MISSIONS_DIR):
+        return ("OK", ".missions 目录不存在", False)
+
+    now = time.time()
+    stall_reports: list[str] = []
+    deep_recovery_needed: list[str] = []
+
+    # 获取 Last Commit 时间
+    last_commit_time = _get_last_commit_time()
+
+    # 扫描所有 RUNNING mission
+    state_files = glob.glob(
+        os.path.join(MISSIONS_DIR, "*", "mission.state"),
+        recursive=True,
+    )
+
+    for sf in state_files:
+        try:
+            with open(sf, "r", encoding="utf-8") as f:
+                state = json.load(f)
+        except Exception:
+            try:
+                with open(sf, "r", encoding="gbk") as f:
+                    state = json.load(f)
+            except Exception:
+                continue
+
+        status = state.get("status", "UNKNOWN")
+        if status != "RUNNING":
+            continue
+
+        mission_id = state.get("mission_id", os.path.basename(os.path.dirname(sf)))
+
+        # 三指标检测
+        indicators = {}
+
+        # 指标 1: Last Commit
+        if last_commit_time > 0:
+            indicators["commit"] = last_commit_time
+
+        # 指标 2: Last Evidence
+        evidence_dir = os.path.join(os.path.dirname(sf), "evidence")
+        evidence_time = _get_latest_file_time(evidence_dir)
+        if evidence_time > 0:
+            indicators["evidence"] = evidence_time
+
+        # 指标 3: Mission State file mtime
+        try:
+            indicators["state_file"] = os.path.getmtime(sf)
+        except OSError:
+            pass
+
+        if not indicators:
+            stall_reports.append(f"{mission_id}: 无活动时间指标")
+            continue
+
+        # 取最晚时间
+        latest_activity = max(indicators.values())
+        stall_minutes = (now - latest_activity) / 60
+
+        if stall_minutes > DEEP_RECOVERY_MINUTES:
+            deep_recovery_needed.append(mission_id)
+            # 执行深度恢复诊断
+            cc_alive = _check_cc_process()
+            last_error = _scan_error_logs()
+            report = (
+                f"{mission_id}: STALLED {int(stall_minutes)}min "
+                f"(CC: {'Alive' if cc_alive else 'Dead'}, "
+                f"Error: {last_error})"
+            )
+            stall_reports.append(report)
+        elif stall_minutes > STALE_MINUTES:
+            stall_reports.append(f"{mission_id}: STALE {int(stall_minutes)}min")
+
+    if deep_recovery_needed:
+        detail = "; ".join(stall_reports)
+        check_id = "deep_recovery"
+        if should_notify(check_id, detail):
+            msg = "[EOS 深度恢复报告]\n" + "\n".join(stall_reports)
+            notified = send_feishu_text(msg)
+            if notified:
+                mark_notified(check_id, detail)
+        return ("ERROR", detail, True)
+
+    if stall_reports:
+        detail = "; ".join(stall_reports)
+        check_id = "mission_stall"
+        if should_notify(check_id, detail):
+            notified = send_notification("WARNING", detail, title="Mission 停滞告警")
+            if notified:
+                mark_notified(check_id, detail)
+        return ("WARNING", detail, True)
+
+    return ("OK", "无 RUNNING Mission 停滞", False)
+
+
+def _get_last_commit_time() -> float:
+    """获取仓库最新 commit 的 Unix 时间戳。"""
+    repo_dir = os.path.dirname(BASE_DIR)  # backend 的上级是项目根
+    # 也尝试从 BASE_DIR 直接作为 repo
+    for d in [BASE_DIR, repo_dir, os.path.join(BASE_DIR, "..")]:
+        try:
+            result = subprocess.run(
+                ["git", "log", "-1", "--format=%ct"],
+                capture_output=True, text=True, timeout=10,
+                cwd=d,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return float(result.stdout.strip())
+        except Exception:
+            continue
+    return 0.0
+
+
+def _get_latest_file_time(directory: str) -> float:
+    """获取目录下最新文件的 mtime。"""
+    if not os.path.isdir(directory):
+        return 0.0
+    latest = 0.0
+    try:
+        for f in os.listdir(directory):
+            fpath = os.path.join(directory, f)
+            if os.path.isfile(fpath):
+                try:
+                    mt = os.path.getmtime(fpath)
+                    if mt > latest:
+                        latest = mt
+                except OSError:
+                    pass
+    except OSError:
+        pass
+    return latest
+
+
+def _check_cc_process() -> bool:
+    """检查 CC (Claude Code) 进程是否存活。"""
+    for proc_name in CC_PROCESS_NAMES:
+        try:
+            if sys.platform == "win32":
+                result = subprocess.run(
+                    ["tasklist", "/FI", f"IMAGENAME eq {proc_name}*"],
+                    capture_output=True, text=True, timeout=10,
+                )
+                if proc_name.lower() in result.stdout.lower():
+                    return True
+            else:
+                result = subprocess.run(
+                    ["pgrep", "-f", proc_name],
+                    capture_output=True, text=True, timeout=10,
+                )
+                if result.returncode == 0:
+                    return True
+        except Exception:
+            pass
+    return False
+
+
+def _scan_error_logs() -> str:
+    """扫描最近的错误日志。"""
+    today = _today()
+    log_file = os.path.join(LOG_DIR, f"{today}.log")
+    if not os.path.exists(log_file):
+        return "无"
+
+    try:
+        with open(log_file, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        # 从末尾往前找最近 50 行中的 ERROR/FATAL
+        recent_lines = lines[-50:] if len(lines) > 50 else lines
+        errors = [l.strip() for l in recent_lines if "ERROR" in l or "FATAL" in l]
+
+        if errors:
+            # 返回最后一条错误
+            last_err = errors[-1]
+            return last_err[:100]  # 截断
+        return "无"
+    except Exception:
+        return "无"
+
+
+# ──────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────
 
@@ -574,6 +777,7 @@ def main() -> int:
         ("Runtime State", check_runtime_state),
         ("Evidence", check_evidence),
         ("Liveness", check_liveness),
+        ("Mission Stall", check_mission_stall),
     ]
 
     results: list[tuple[str, str, str, bool]] = []
