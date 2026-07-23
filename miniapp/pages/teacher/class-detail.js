@@ -8,7 +8,9 @@ Page({
     students: [],
     loading: true,
     error: null,
-    activeTab: 'info'  // info | students | lessons
+    activeTab: 'info',  // info | students | lessons
+    lessons: [],
+    lessonsLoading: false
   },
 
   onLoad(options) {
@@ -52,6 +54,9 @@ Page({
   onTabChange(e) {
     const { tab } = e.currentTarget.dataset;
     this.setData({ activeTab: tab });
+    if (tab === 'lessons') {
+      this.loadLessons();
+    }
   },
 
   // 跳转学生列表
@@ -71,5 +76,20 @@ Page({
   // 返回
   onBack() {
     wx.navigateBack();
-  }
+  },
+
+  // 加载课时列表
+  async loadLessons() {
+    if (this.data.lessons.length > 0 || this.data.lessonsLoading) return;
+    this.setData({ lessonsLoading: true });
+    try {
+      const data = await get(`/classes/${this.data.classCode}/lessons`);
+      const lessons = Array.isArray(data) ? data : (data.items || []);
+      this.setData({ lessons: lessons, lessonsLoading: false });
+    } catch (err) {
+      console.error('[Class Detail] 课时加载失败:', err);
+      this.setData({ lessonsLoading: false });
+    }
+  },
+
 });

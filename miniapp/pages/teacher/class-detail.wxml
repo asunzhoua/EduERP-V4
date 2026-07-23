@@ -110,10 +110,33 @@
         </view>
         <view class="progress-card">
           <view class="progress-bar">
-            <view class="progress-fill" style="width: {{(classInfo.completedLessons / classInfo.totalLessons) * 100}}%"></view>
+            <view class="progress-fill" style="width: {{classInfo.totalLessons > 0 ? (classInfo.completedLessons / classInfo.totalLessons) * 100 : 0}}%"></view>
           </view>
           <text class="progress-text">{{classInfo.completedLessons}}/{{classInfo.totalLessons}} 节课</text>
         </view>
+
+        <!-- 课时列表 -->
+        <view class="lesson-list" wx:if="{{lessons.length > 0}}">
+          <view class="lesson-item" wx:for="{{lessons}}" wx:key="id">
+            <view class="lesson-left">
+              <text class="lesson-number">第{{item.lessonNumber}}课时</text>
+              <text class="lesson-date">{{item.scheduledDate}}</text>
+            </view>
+            <view class="lesson-right">
+              <text class="lesson-status status-{{item.status}}">
+                {{item.status === 'FINISHED' ? '已完成' : item.status === 'TEACHING' ? '进行中' : item.status === 'CANCELLED' ? '已取消' : '未开始'}}
+              </text>
+              <text class="lesson-note" wx:if="{{item.note}}">{{item.note}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="empty-hint" wx:elif="{{lessonsLoading}}">
+          <text>加载中...</text>
+        </view>
+        <view class="empty-hint" wx:else>
+          <text>暂无课时记录</text>
+        </view>
+
         <button class="record-btn" bindtap="goToRecordLesson">记录课时</button>
       </view>
     </view>

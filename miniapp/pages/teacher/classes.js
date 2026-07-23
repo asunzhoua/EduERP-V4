@@ -6,15 +6,19 @@ Page({
     classes: [],
     loading: true,
     filter: 'ALL',
-    progressMap: {}  // 班级进度缓存
+    progressMap: {},
+    courseCode: ''  // 班级进度缓存
   },
 
-  onLoad() {
+  onLoad(options) {
     const app = getApp();
     const role = app.globalData.userInfo?.role;
     if (role === 'Student' || role === 'Parent') {
       wx.redirectTo({ url: '/pages/student/classes' });
       return;
+    }
+    if (options.courseCode) {
+      this.setData({ courseCode: options.courseCode });
     }
     this.loadClasses();
   },
@@ -31,9 +35,13 @@ Page({
     this.setData({ loading: true });
 
     try {
-      const data = await get('/classes', {
+      const params = {
         status: this.data.filter === 'ALL' ? undefined : this.data.filter
-      });
+      };
+      if (this.data.courseCode) {
+        params.courseCode = this.data.courseCode;
+      }
+      const data = await get('/classes', params);
 
       const classes = data.items || [];
       
