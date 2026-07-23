@@ -54,6 +54,15 @@ v2.7 变更（Batch 4.3 — Automatic Daily Report Generation）：
 - 新增 generate_daily_report() — 生成日报并写入文件
 - 新增 --daily-report 命令行参数 — 支持生成今日/指定日期日报
 
+v2.8 变更（Batch 4.4 — Evidence Auto-Classification & Indexing）：
+- 新增 EVIDENCE_INDEX_FILE — Evidence 索引文件路径常量
+- 新增 EVIDENCE_TYPE_KEYWORDS — 分类关键词映射常量
+- 新增 classify_evidence(evidence_file) — 根据 Evidence 内容自动分类
+- 新增 generate_evidence_index() — 生成 Evidence 索引文件（.missions/EVIDENCE-INDEX.md）
+- 新增 get_evidence_statistics() — 获取 Evidence 统计（总量/类型/Mission/近7天）
+- 新增 --evidence-index 命令行参数 — 生成 Evidence 索引
+- 新增 --evidence-stats 命令行参数 — 输出 Evidence 统计
+
 由 Windows Task Scheduler 每 15 分钟调用一次。
 """
 
@@ -2137,6 +2146,44 @@ def check_mission_priority_queue() -> tuple[str, str, bool]:
 
 DAILY_REPORTS_DIR = os.path.join(os.path.dirname(BASE_DIR), "daily-reports")
 
+# Evidence 索引文件路径（Batch 4.4 — v2.8）
+EVIDENCE_INDEX_FILE = os.path.join(
+    os.path.dirname(BASE_DIR), ".missions", "EVIDENCE-INDEX.md"
+)
+
+# Evidence 分类关键词映射（按优先级排列，先匹配先生效）
+EVIDENCE_TYPE_KEYWORDS = {
+    "fix": [
+        "修复", "fix", "bug", "hotfix", "patch", "defect",
+        "error", "crash", "broken", "regression", "guard bug",
+        "泄漏", "leak",
+    ],
+    "feat": [
+        "新增", "功能", "feat", "feature", "implement",
+        "implementation", "add", "new page", "new endpoint",
+        "新增页面", "新增功能", "新增端点", "新增方法",
+    ],
+    "docs": [
+        "文档", "docs", "document", "readme", "blueprint",
+        "plan", "计划", "方案", "research",
+        "扫描报告", "计划文档",
+    ],
+    "test": [
+        "测试", "test", "spec", "coverage",
+        "回归测试", "regression test", "unit test",
+    ],
+    "chore": [
+        "配置", "chore", "config", "env", "dependency",
+        "依赖", "upgrade", "迁移", "migration", "cleanup",
+        "清理", "重构", "refactor",
+    ],
+    "verify": [
+        "验证报告", "verify", "validation", "audit",
+        "验收", "review", "scan", "扫描结果",
+        "pass",
+    ],
+}
+
 
 def collect_daily_completed(date_str: str) -> list[dict]:
     """收集指定日期完成的 Mission/Phase/Batch。
@@ -2421,8 +2468,374 @@ def generate_daily_report(date_str: str) -> str:
 
 
 # ──────────────────────────────────────────────
-# Main
+# Evidence Auto-Classification & Indexing (Batch 4.4 — v2.8)
 # ──────────────────────────────────────────────
+
+
+def classify_evidence(evidence_file: str) -> str:
+    """根据 Evidence 文件内容自动分类。
+
+    读取文件内容，按 EVIDENCE_TYPE_KEYWORDS 中的关键词匹配。
+    使用评分机制：统计每个类型的关键词命中次数，取得分最高的类型。
+    如果所有类型得分都为 0，返回 "unknown"。
+    """
+    if not os.path.isfile(evidence_file):
+        return "unknown"
+
+    try:
+        with open(evidence_file, "r", encoding="utf-8") as f:
+            content = f.read().lower()
+    except UnicodeDecodeError:
+        try:
+            with open(evidence_file, "r", encoding="gbk") as f:
+                content = f.read().lower()
+        except Exception:
+            return "unknown"
+    except Exception:
+        return "unknown"
+
+    # 也检查文件名本身（文件名权重 x3）
+    filename = os.path.basename(evidence_file).lower()
+    combined = (filename + " ") * 3 + content
+
+    # 评分机制：统计每个类型的关键词命中次数
+    scores: dict[str, int] = {}
+    for evidence_type, keywords in EVIDENCE_TYPE_KEYWORDS.items():
+        score = 0
+        for kw in keywords:
+            # 统计关键词出现次数
+            count = combined.lower().count(kw.lower())
+            score += count
+        scores[evidence_type] = score
+
+    # 取得分最高的类型
+    best_type = max(scores, key=scores.get)  # type: ignore[arg-type]
+    best_score = scores[best_type]
+
+    if best_score == 0:
+        return "unknown"
+
+    return best_type
+
+
+def _collect_all_evidence() -> list[dict]:
+    """收集所有 Evidence 文件信息。
+
+    扫描 .missions/ 下所有 evidence/ 目录中的 .md 文件。
+    返回 list[dict]，每个 dict 包含：
+        file_path, file_name, mission_id, evidence_id,
+        classification, description, mtime, size
+    """
+    results = []
+    search_dirs = [MISSIONS_DIR]
+    if os.path.isdir(PROJECT_MISSIONS_DIR):
+        search_dirs.append(PROJECT_MISSIONS_DIR)
+
+    seen_files = set()  # dedup by (mission_id, file_name)
+
+    for base_dir in search_dirs:
+        if not os.path.isdir(base_dir):
+            continue
+
+        # 查找所有 evidence/ 目录下的 .md 文件
+        for root, dirs, files in os.walk(base_dir):
+            # 只处理 evidence 目录
+            if os.path.basename(root) != "evidence":
+                continue
+
+            # 提取 mission_id（evidence 目录的上级目录名）
+            mission_dir = os.path.dirname(root)
+            mission_id = os.path.basename(mission_dir)
+
+            for fname in files:
+                if not fname.endswith(".md"):
+                    continue
+
+                fpath = os.path.join(root, fname)
+
+                # 去重：按 (mission_id, file_name) 去重
+                # 同一 evidence 可能存在于 MISSIONS_DIR 和 PROJECT_MISSIONS_DIR
+                dedup_key = (mission_id, fname)
+                if dedup_key in seen_files:
+                    continue
+                seen_files.add(dedup_key)
+
+                # 跳过 EVIDENCE-SUMMARY.md（这是索引文件，不是单条 evidence）
+                if fname.upper() == "EVIDENCE-SUMMARY.MD":
+                    continue
+
+                # 提取 evidence_id（从文件名推导）
+                evidence_id = os.path.splitext(fname)[0]
+
+                # 分类
+                classification = classify_evidence(fpath)
+
+                # 提取描述（读取文件前几行找标题或第一行有意义的内容）
+                description = _extract_evidence_description(fpath)
+
+                # 文件元数据
+                try:
+                    stat = os.stat(fpath)
+                    mtime = stat.st_mtime
+                    size = stat.st_size
+                except OSError:
+                    mtime = 0
+                    size = 0
+
+                results.append({
+                    "file_path": fpath,
+                    "file_name": fname,
+                    "mission_id": mission_id,
+                    "evidence_id": evidence_id,
+                    "classification": classification,
+                    "description": description,
+                    "mtime": mtime,
+                    "size": size,
+                })
+
+    return results
+
+
+def _extract_evidence_description(file_path: str) -> str:
+    """从 Evidence 文件中提取简短描述。
+
+    尝试从文件头部提取标题或第一行有意义的内容。
+    最大返回 80 字符。
+    """
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            lines = []
+            for i, line in enumerate(f):
+                if i >= 10:
+                    break
+                lines.append(line.strip())
+    except UnicodeDecodeError:
+        try:
+            with open(file_path, "r", encoding="gbk") as f:
+                lines = []
+                for i, line in enumerate(f):
+                    if i >= 10:
+                        break
+                    lines.append(line.strip())
+        except Exception:
+            return "(无法读取)"
+    except Exception:
+        return "(无法读取)"
+
+    # 优先找 # 标题
+    for line in lines:
+        if line.startswith("# ") and not line.startswith("## "):
+            title = line[2:].strip()
+            # 去掉 "Evidence:" 前缀
+            if title.lower().startswith("evidence:"):
+                title = title[9:].strip()
+            # 去掉 "Evidence —" 前缀
+            if "—" in title:
+                title = title.split("—", 1)[1].strip()
+            return title[:80] if title else "(无描述)"
+
+    # 其次找第一个非空非标题行
+    for line in lines:
+        if line and not line.startswith("#") and not line.startswith("-") and not line.startswith("|"):
+            return line[:80]
+
+    return "(无描述)"
+
+
+def generate_evidence_index() -> str:
+    """生成 Evidence 索引文件。
+
+    扫描所有 Evidence 文件，按 Mission 分类 + 按类型分类，
+    输出到 .missions/EVIDENCE-INDEX.md。
+    返回输出文件路径。
+    """
+    all_evidence = _collect_all_evidence()
+
+    if not all_evidence:
+        # 即使没有 evidence 也生成空索引
+        pass
+
+    # 按 Mission 分组
+    by_mission: dict[str, list[dict]] = {}
+    for ev in all_evidence:
+        mid = ev["mission_id"]
+        if mid not in by_mission:
+            by_mission[mid] = []
+        by_mission[mid].append(ev)
+
+    # 按类型分组
+    by_type: dict[str, list[dict]] = {}
+    for ev in all_evidence:
+        cls = ev["classification"]
+        if cls not in by_type:
+            by_type[cls] = []
+        by_type[cls].append(ev)
+
+    # 生成 Markdown
+    lines = []
+    lines.append("# Evidence 索引")
+    lines.append("")
+    lines.append(f"自动生成时间: {_now()}")
+    lines.append(f"总 Evidence 数量: {len(all_evidence)}")
+    lines.append("")
+
+    # 按 Mission 分类
+    lines.append("## 按 Mission 分类")
+    lines.append("")
+
+    for mid in sorted(by_mission.keys()):
+        evs = by_mission[mid]
+        lines.append(f"### {mid}")
+        lines.append("")
+        for ev in sorted(evs, key=lambda x: x["evidence_id"]):
+            desc = ev["description"]
+            cls = ev["classification"]
+            lines.append(f"- {ev['evidence_id']}: {desc} [{cls}]")
+        lines.append("")
+
+    # 按类型分类
+    lines.append("## 按类型分类")
+    lines.append("")
+
+    type_labels = {
+        "fix": "Fix (代码修复)",
+        "feat": "Feat (功能新增)",
+        "docs": "Docs (文档更新)",
+        "test": "Test (测试补充)",
+        "chore": "Chore (配置修改)",
+        "verify": "Verify (验证报告)",
+        "unknown": "Unknown (未分类)",
+    }
+
+    for cls in ["fix", "feat", "docs", "test", "chore", "verify", "unknown"]:
+        evs = by_type.get(cls, [])
+        if not evs:
+            continue
+        label = type_labels.get(cls, cls)
+        lines.append(f"### {label}")
+        lines.append("")
+        for ev in sorted(evs, key=lambda x: x["evidence_id"]):
+            desc = ev["description"]
+            mid = ev["mission_id"]
+            lines.append(f"- {ev['evidence_id']}: {desc} ({mid})")
+        lines.append("")
+
+    # 写入文件
+    output_dir = os.path.dirname(EVIDENCE_INDEX_FILE)
+    os.makedirs(output_dir, exist_ok=True)
+
+    content = "\n".join(lines)
+    with open(EVIDENCE_INDEX_FILE, "w", encoding="utf-8") as f:
+        f.write(content)
+
+    return EVIDENCE_INDEX_FILE
+
+
+def get_evidence_statistics() -> dict:
+    """获取 Evidence 统计信息。
+
+    返回 dict: {
+        total: int,
+        by_type: {fix: int, feat: int, docs: int, test: int, chore: int, verify: int, unknown: int},
+        by_mission: {mission_id: int, ...},
+        recent_7days: int,
+        recent_7days_detail: [{evidence_id, mission_id, classification, date}, ...],
+    }
+    """
+    all_evidence = _collect_all_evidence()
+
+    # 总量
+    total = len(all_evidence)
+
+    # 按类型统计
+    by_type = {"fix": 0, "feat": 0, "docs": 0, "test": 0,
+               "chore": 0, "verify": 0, "unknown": 0}
+    for ev in all_evidence:
+        cls = ev["classification"]
+        if cls in by_type:
+            by_type[cls] += 1
+        else:
+            by_type["unknown"] += 1
+
+    # 按 Mission 统计
+    by_mission: dict[str, int] = {}
+    for ev in all_evidence:
+        mid = ev["mission_id"]
+        by_mission[mid] = by_mission.get(mid, 0) + 1
+
+    # 近 7 天新增
+    now = datetime.datetime.now()
+    seven_days_ago = now - datetime.timedelta(days=7)
+    seven_days_ago_ts = seven_days_ago.timestamp()
+
+    recent_7days = 0
+    recent_7days_detail = []
+    for ev in all_evidence:
+        if ev["mtime"] >= seven_days_ago_ts:
+            recent_7days += 1
+            date_str = datetime.datetime.fromtimestamp(
+                ev["mtime"]
+            ).strftime("%Y-%m-%d")
+            recent_7days_detail.append({
+                "evidence_id": ev["evidence_id"],
+                "mission_id": ev["mission_id"],
+                "classification": ev["classification"],
+                "date": date_str,
+            })
+
+    return {
+        "total": total,
+        "by_type": by_type,
+        "by_mission": by_mission,
+        "recent_7days": recent_7days,
+        "recent_7days_detail": sorted(
+            recent_7days_detail, key=lambda x: x["date"], reverse=True
+        ),
+    }
+
+
+def format_evidence_statistics() -> str:
+    """格式化 Evidence 统计为可读字符串。"""
+    stats = get_evidence_statistics()
+
+    lines = []
+    lines.append(f"Evidence 统计:")
+    lines.append(f"  总量: {stats['total']}")
+    lines.append(f"  按类型:")
+
+    type_labels = {
+        "fix": "Fix(修复)",
+        "feat": "Feat(功能)",
+        "docs": "Docs(文档)",
+        "test": "Test(测试)",
+        "chore": "Chore(配置)",
+        "verify": "Verify(验证)",
+        "unknown": "Unknown(未分类)",
+    }
+
+    for cls in ["fix", "feat", "docs", "test", "chore", "verify", "unknown"]:
+        count = stats["by_type"].get(cls, 0)
+        if count > 0:
+            label = type_labels.get(cls, cls)
+            lines.append(f"    {label}: {count}")
+
+    lines.append(f"  按 Mission:")
+    for mid in sorted(stats["by_mission"].keys()):
+        count = stats["by_mission"][mid]
+        # 缩短 Mission ID 显示
+        short_id = mid if len(mid) <= 50 else mid[:47] + "..."
+        lines.append(f"    {short_id}: {count}")
+
+    lines.append(f"  近 7 天新增: {stats['recent_7days']}")
+    for detail in stats["recent_7days_detail"][:5]:
+        lines.append(
+            f"    {detail['date']} | {detail['evidence_id']} "
+            f"({detail['classification']}) [{detail['mission_id'][:30]}]"
+        )
+    if len(stats["recent_7days_detail"]) > 5:
+        lines.append(f"    ... 还有 {len(stats['recent_7days_detail']) - 5} 项")
+
+    return "\n".join(lines)
 
 
 def main() -> int:
@@ -2451,12 +2864,34 @@ def main() -> int:
             print(f"ERROR: Failed to generate daily report: {e}")
             return 1
 
+    # Batch 4.4 — Evidence 索引生成
+    if "--evidence-index" in args:
+        print("Generating Evidence index...")
+        try:
+            output_path = generate_evidence_index()
+            print(f"Evidence index generated: {output_path}")
+            return 0
+        except Exception as e:
+            print(f"ERROR: Failed to generate evidence index: {e}")
+            return 1
+
+    # Batch 4.4 — Evidence 统计
+    if "--evidence-stats" in args:
+        print("Evidence Statistics:")
+        try:
+            output = format_evidence_statistics()
+            print(output)
+            return 0
+        except Exception as e:
+            print(f"ERROR: Failed to get evidence statistics: {e}")
+            return 1
+
     # 清除代理
     for k in ["http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY"]:
         os.environ.pop(k, None)
 
     print("=" * 60)
-    print(f"  EOS Heartbeat Check v2.7")
+    print(f"  EOS Heartbeat Check v2.8")
     print(f"  Time:   {_now()}")
     print(f"  PID:    {os.getpid()}")
     print(f"  CWD:    {BASE_DIR}")
