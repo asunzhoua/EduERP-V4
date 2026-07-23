@@ -89,6 +89,7 @@ Page({
     } catch (err) {
       console.error('[Class Detail] 课时加载失败:', err);
       this.setData({ lessonsLoading: false });
+      wx.showToast({ title: '课时加载失败', icon: 'none' });
     }
   },
 

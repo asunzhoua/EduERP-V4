@@ -20,7 +20,7 @@
       <view class="header-top">
         <text class="class-name">{{classInfo.name}}</text>
         <text class="class-status status-{{classInfo.status}}">
-          {{classInfo.status === 'ACTIVE' ? '进行中' : classInfo.status === 'DRAFT' ? '草稿' : '已结束'}}
+          {{classInfo.status === 'ACTIVE' ? '进行中' : classInfo.status === 'COMPLETED' ? '已结束' : classInfo.status === 'DRAFT' ? '草稿' : classInfo.status === 'CANCELLED' ? '已取消' : classInfo.status}}
         </text>
       </view>
       <text class="class-schedule">{{classInfo.schedule}}</text>

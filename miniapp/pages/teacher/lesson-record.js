@@ -92,7 +92,7 @@ Page({
         this.setData({ classes: [] });
       }
     } catch (err) {
-      console.warn('[lesson-record] 加载班级列表失败，使用降级数据:', err);
+      console.error('[lesson-record] 加载班级列表失败:', err);
       wx.showToast({ title: '加载失败', icon: 'none' });
 
     } finally {
@@ -121,7 +121,7 @@ Page({
         absentCount
       });
     } catch (err) {
-      console.warn('[lesson-record] 加载学生列表失败，使用降级数据:', err);
+      console.error('[lesson-record] 加载学生列表失败:', err);
       wx.showToast({ title: '加载失败', icon: 'none' });
 
     } finally {

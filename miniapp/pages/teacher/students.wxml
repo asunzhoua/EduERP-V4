@@ -10,12 +10,18 @@
     />
   </view>
 
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
   <!-- 学生列表 -->
-  <view class="student-list">
+  <view class="student-list" wx:if="{{!loading}}">
     <block wx:for="{{students}}" wx:key="id">
       <view class="student-card" bindtap="goToStudentDetail" data-code="{{item.studentCode}}">
         <view class="student-avatar">
-          <text>{{item.name[0]}}</text>
+          <text>{{item.name[0] || '?'}}</text>
         </view>
         <view class="student-info">
           <view class="student-header">
@@ -33,7 +39,7 @@
     </block>
 
     <!-- 空状态 -->
-    <view class="empty" wx:if="{{!loading && students.length === 0}}">
+    <view class="empty" wx:if="{{students.length === 0}}">
       <text>暂无学生</text>
     </view>
   </view>

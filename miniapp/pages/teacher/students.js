@@ -58,6 +58,12 @@ Page({
 
   goToStudentDetail(e) {
     const { code } = e.currentTarget.dataset;
-    wx.navigateTo({ url: `/pages/teacher/student-detail?code=${code}` });
+    wx.navigateTo({
+      url: `/pages/teacher/student-detail?code=${code}`,
+      fail: (err) => {
+        console.error('[Navigation] 跳转学生详情失败:', err);
+        wx.showToast({ title: '跳转失败', icon: 'none' });
+      }
+    });
   }
 });
