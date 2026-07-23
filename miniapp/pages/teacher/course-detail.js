@@ -37,6 +37,10 @@ Page({
 
     try {
       const data = await get(`/courses/${code}`);
+      if (!data) {
+        this.setData({ error: '未找到该课程信息', loading: false });
+        return;
+      }
       this.setData({
         course: data,
         loading: false

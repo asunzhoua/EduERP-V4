@@ -34,6 +34,8 @@ Page({
 
   // 加载班级列表
   async loadClasses() {
+    if (this._dataLoading) return;
+    this._dataLoading = true;
     this.setData({ loading: true, error: null });
 
     try {
@@ -65,6 +67,8 @@ Page({
         error: '加载失败，请稍后重试',
         loading: false 
       });
+    } finally {
+      this._dataLoading = false;
     }
   },
 
