@@ -9,14 +9,17 @@ import { EventBusModule } from '@events/event-bus.module';
 import { ClassModule } from '../class/class.module';
 import { EnrollmentModule } from '../enrollment/enrollment.module';
 import { LessonAttendanceModule } from '../lesson-attendance/lesson-attendance.module';
+import { ReminderModule } from '@modules/reminder/reminder.module';
+import { Student } from '@modules/student/entities/student.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([LessonEntity]),
+    TypeOrmModule.forFeature([LessonEntity, Student]),
     EventBusModule,
     forwardRef(() => ClassModule),
     EnrollmentModule,
     LessonAttendanceModule,
+    ReminderModule,
   ],
   controllers: [LessonController],
   providers: [LessonService, LessonRepository, LessonEventSubscriber],

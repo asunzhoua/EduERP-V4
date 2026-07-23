@@ -644,8 +644,12 @@ def check_mission_stall() -> tuple[str, str, bool]:
                 f"Error: {last_error})"
             )
             stall_reports.append(report)
+            # 创建 MISSION_STALL 提醒（通过后端 API）
+            create_mission_stall_reminder(mission_id, stall_minutes)
         elif stall_minutes > STALE_MINUTES:
             stall_reports.append(f"{mission_id}: STALE {int(stall_minutes)}min")
+            # 创建 MISSION_STALL 提醒（通过后端 API）
+            create_mission_stall_reminder(mission_id, stall_minutes)
 
     if deep_recovery_needed:
         detail = "; ".join(stall_reports)
@@ -752,6 +756,60 @@ def _scan_error_logs() -> str:
         return "无"
     except Exception:
         return "无"
+
+
+# ──────────────────────────────────────────────
+# Mission 停滞提醒（通过后端 API 创建 Reminder）
+# ──────────────────────────────────────────────
+
+BACKEND_API_BASE = os.environ.get("EDUERP_API_URL", "http://localhost:3000")
+ADMIN_USER_ID = int(os.environ.get("ADMIN_USER_ID", "1"))  # Admin user ID for reminders
+
+
+def create_mission_stall_reminder(mission_id: str, stall_minutes: float) -> bool:
+    """通过后端 API 创建 MISSION_STALL 类型提醒。
+
+    当 Heartbeat 检测到 Mission 停滞时调用。
+    返回 True 表示创建成功，False 表示失败。
+    """
+    url = f"{BACKEND_API_BASE}/api/v1/reminders"
+    payload = {
+        "type": "MISSION_STALL",
+        "title": f"Mission 停滞告警：{mission_id}",
+        "content": (
+            f"Mission {mission_id} 已停滞 {stall_minutes:.0f} 分钟（超过 {STALE_MINUTES} 分钟阈值）。"
+            f"请检查 CC 进程状态、网络连通性、任务队列。"
+        ),
+        "targetUserId": ADMIN_USER_ID,
+        "targetType": "ADMIN",
+        "relatedEntityType": "Mission",
+    }
+
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={"Content-Type": "application/json; charset=utf-8"},
+        method="POST",
+    )
+
+    try:
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = json.loads(resp.read().decode("utf-8"))
+        ok = data.get("success", False) or data.get("code") == 0
+        if ok:
+            print(f"  [REMINDER] MISSION_STALL 提醒已创建: {mission_id}")
+        else:
+            print(f"  [REMINDER] API 返回失败: {data}", file=sys.stderr)
+        return ok
+    except urllib.error.URLError as e:
+        # 后端可能未启动，不视为严重错误
+        print(f"  [REMINDER] 后端 API 不可达: {e}", file=sys.stderr)
+        return False
+    except Exception as e:
+        safe = str(e).encode("ascii", errors="replace").decode("ascii")
+        print(f"  [REMINDER] 创建失败: {safe}", file=sys.stderr)
+        return False
 
 
 # ──────────────────────────────────────────────

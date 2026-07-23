@@ -4,6 +4,8 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { LessonRepository } from './lesson.repository';
 import { LessonEntity } from './lesson.entity';
 import { LessonStatus } from './enums/lesson-status.enum';
@@ -12,6 +14,10 @@ import { ClassRepository } from '../class/class.repository';
 import { ClassStatus } from '../class/enums/class-status.enum';
 import { EnrollmentRepository } from '../enrollment/enrollment.repository';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
+import { ReminderService } from '@modules/reminder/reminder.service';
+import { ReminderType } from '@modules/reminder/enums/reminder-type.enum';
+import { TargetType } from '@modules/reminder/enums/target-type.enum';
+import { Student } from '@modules/student/entities/student.entity';
 
 /** Allowed status transitions per LessonStateMachine */
 const VALID_TRANSITIONS: Record<LessonStatus, LessonStatus[]> = {
@@ -46,6 +52,9 @@ export class LessonService {
     private readonly eventBus: EventBusService,
     private readonly classRepo: ClassRepository,
     private readonly enrollmentRepo: EnrollmentRepository,
+    private readonly reminderService: ReminderService,
+    @InjectRepository(Student)
+    private readonly studentRepo: Repository<Student>,
   ) {}
 
   // ─── Create ───
@@ -153,6 +162,12 @@ export class LessonService {
     this.logger.log(
       `Lesson created: id=${saved.id}, class=${saved.classCode}, #${saved.lessonNumber}, date=${saved.scheduledDate}`,
     );
+
+    // ─── 8. Create class reminders for enrolled students ───
+    this.createClassReminders(saved).catch(err =>
+      this.logger.warn(`Failed to create class reminders: ${err.message}`),
+    );
+
     return saved;
   }
 
@@ -401,5 +416,58 @@ export class LessonService {
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
     return endH * 60 + endM - (startH * 60 + startM);
+  }
+
+  // ─── Reminder ───
+
+  /**
+   * Create CLASS_REMINDER for each enrolled student of a lesson.
+   * Only creates reminders for students who have a linked userId.
+   * Fire-and-forget: errors are logged but do not block lesson creation.
+   */
+  async createClassReminders(lesson: LessonEntity): Promise<number> {
+    try {
+      // 1. Find active enrollments for this class
+      const enrollments = await this.enrollmentRepo.findByClassCode(lesson.classCode);
+      const activeEnrollments = enrollments.filter(
+        e => e.status === EnrollmentStatus.ACTIVE,
+      );
+      if (activeEnrollments.length === 0) return 0;
+
+      // 2. Get studentCodes and look up userIds
+      const studentCodes = activeEnrollments.map(e => e.studentCode);
+      const students = await this.studentRepo
+        .createQueryBuilder('s')
+        .where('s.studentCode IN (:...codes)', { codes: studentCodes })
+        .andWhere('s.userId IS NOT NULL')
+        .andWhere('s.deleted = false')
+        .getMany();
+
+      if (students.length === 0) return 0;
+
+      // 3. Create a reminder for each student with a userId
+      let created = 0;
+      for (const student of students) {
+        if (!student.userId) continue; // Skip students without linked userId
+        await this.reminderService.createReminder({
+          type: ReminderType.CLASS_REMINDER,
+          title: `课程提醒：${lesson.classCode} 第${lesson.lessonNumber}节`,
+          content: `课程 ${lesson.classCode} 第${lesson.lessonNumber}节将于 ${lesson.scheduledDate} ${lesson.startTime}-${lesson.endTime} 开始，请准时上课。`,
+          targetUserId: student.userId!,
+          targetType: TargetType.STUDENT,
+          relatedEntityId: lesson.id,
+          relatedEntityType: 'Lesson',
+        });
+        created++;
+      }
+
+      this.logger.log(
+        `Created ${created} class reminders for lesson ${lesson.id} (${lesson.classCode} #${lesson.lessonNumber})`,
+      );
+      return created;
+    } catch (err) {
+      this.logger.warn(`createClassReminders failed for lesson ${lesson.id}: ${err.message}`);
+      return 0;
+    }
   }
 }

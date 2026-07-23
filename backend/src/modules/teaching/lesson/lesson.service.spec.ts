@@ -9,6 +9,9 @@ import { EnrollmentRepository } from '../enrollment/enrollment.repository';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventBusService } from '@events/event-bus.service';
+import { ReminderService } from '@modules/reminder/reminder.service';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Student } from '@modules/student/entities/student.entity';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(() => 'test-uuid'),
@@ -120,6 +123,8 @@ describe('LessonService', () => {
         { provide: ClassRepository, useValue: mockClassRepo },
         { provide: EnrollmentRepository, useValue: mockEnrollmentRepo },
         { provide: EventBusService, useValue: mockEventBus },
+        { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
+        { provide: getRepositoryToken(Student), useValue: { createQueryBuilder: jest.fn().mockReturnValue({ where: jest.fn().mockReturnThis(), andWhere: jest.fn().mockReturnThis(), getMany: jest.fn().mockResolvedValue([]) }) } },
       ],
     }).compile();
 

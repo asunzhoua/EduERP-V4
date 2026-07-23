@@ -12,6 +12,7 @@ import {
   DEDUCTIBLE_STATUSES,
 } from './enums/attendance-status.enum';
 import { AttendanceWorkflowState } from './enums/attendance-workflow-state.enum';
+import { ReminderService } from '@modules/reminder/reminder.service';
 
 describe('LessonAttendanceService', () => {
   let service: LessonAttendanceService;
@@ -29,10 +30,15 @@ describe('LessonAttendanceService', () => {
       countUnconfirmedByLessonId: jest.fn(),
     };
 
+    const mockReminderService = {
+      createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LessonAttendanceService,
         { provide: LessonAttendanceRepository, useValue: mockRepo },
+        { provide: ReminderService, useValue: mockReminderService },
       ],
     }).compile();
 
@@ -301,6 +307,7 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
+          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
         ],
       }).compile();
 
@@ -338,6 +345,7 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
+          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
         ],
       }).compile();
 
@@ -428,6 +436,7 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
+          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
         ],
       }).compile();
 
@@ -470,6 +479,7 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
+          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
         ],
       }).compile();
 
@@ -515,6 +525,7 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
+          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
         ],
       }).compile();
 
@@ -557,6 +568,7 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
+          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
         ],
       }).compile();
 
@@ -597,6 +609,7 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
+          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
         ],
       }).compile();
 
@@ -639,6 +652,7 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
+          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
         ],
       }).compile();
 
@@ -681,6 +695,7 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
+          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
         ],
       }).compile();
 
@@ -725,6 +740,7 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
+          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
         ],
       }).compile();
 

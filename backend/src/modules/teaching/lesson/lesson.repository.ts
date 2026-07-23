@@ -97,4 +97,28 @@ export class LessonRepository {
     results.forEach(r => map.set(r.classCode, r.maxDate));
     return map;
   }
+
+  // ─── Reminder Queries ───
+
+  /**
+   * Find lessons starting within the next N minutes.
+   * scheduledDate = today AND startTime between now and now+minutes.
+   */
+  async findUpcomingLessons(minutesAhead: number = 30): Promise<LessonEntity[]> {
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10); // YYYY-MM-DD
+    const currentHHMM = now.toISOString().slice(11, 16); // HH:MM (UTC — will adjust in service)
+    const future = new Date(now.getTime() + minutesAhead * 60 * 1000);
+    const futureHHMM = future.toISOString().slice(11, 16);
+
+    return this.repo
+      .createQueryBuilder('l')
+      .where('l.scheduledDate = :today', { today })
+      .andWhere('l.startTime >= :currentHHMM', { currentHHMM })
+      .andWhere('l.startTime <= :futureHHMM', { futureHHMM })
+      .andWhere('l.status IN (:...statuses)', {
+        statuses: [LessonStatus.SCHEDULED, LessonStatus.TEACHING],
+      })
+      .getMany();
+  }
 }

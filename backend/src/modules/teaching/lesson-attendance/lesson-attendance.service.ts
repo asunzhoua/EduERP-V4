@@ -4,6 +4,9 @@ import { LessonAttendanceEntity } from './lesson-attendance.entity';
 import { AttendanceStatus } from './enums/attendance-status.enum';
 import { AttendanceWorkflowState } from './enums/attendance-workflow-state.enum';
 import { AttendanceSource } from './enums/attendance-source.enum';
+import { ReminderService } from '@modules/reminder/reminder.service';
+import { ReminderType } from '@modules/reminder/enums/reminder-type.enum';
+import { TargetType } from '@modules/reminder/enums/target-type.enum';
 
 /**
  * Allowed workflow state transitions per AttendanceStateMachine.
@@ -54,7 +57,10 @@ export interface BatchRollCallInput {
 export class LessonAttendanceService {
   private readonly logger = new Logger(LessonAttendanceService.name);
 
-  constructor(private readonly attendanceRepo: LessonAttendanceRepository) {}
+  constructor(
+    private readonly attendanceRepo: LessonAttendanceRepository,
+    private readonly reminderService: ReminderService,
+  ) {}
 
   // ─── Auto-Creation ───
 
@@ -153,7 +159,14 @@ export class LessonAttendanceService {
       `Attendance recorded: lesson=${input.lessonId}, student=${input.studentCode}, status=${input.status}`,
     );
 
-    return this.attendanceRepo.save(entity);
+    const saved = await this.attendanceRepo.save(entity);
+
+    // ─── Create attendance reminder for teacher ───
+    this.createAttendanceReminders(entity.teacherId, entity.lessonId, entity.classCode).catch(err =>
+      this.logger.warn(`Failed to create attendance reminder: ${err.message}`),
+    );
+
+    return saved;
   }
 
   /**
@@ -214,7 +227,16 @@ export class LessonAttendanceService {
       `Batch roll call completed: lesson=${input.lessonId}, count=${results.length}`,
     );
 
-    return this.attendanceRepo.saveAll(results);
+    const saved = await this.attendanceRepo.saveAll(results);
+
+    // ─── Create attendance reminder for teacher ───
+    if (results.length > 0) {
+      this.createAttendanceReminders(results[0].teacherId, input.lessonId, results[0].classCode).catch(err =>
+        this.logger.warn(`Failed to create attendance reminder: ${err.message}`),
+      );
+    }
+
+    return saved;
   }
 
   // ─── Confirmation ───
@@ -338,6 +360,44 @@ export class LessonAttendanceService {
       throw new BadRequestException(
         `Invalid workflow transition: ${from} → ${to}`,
       );
+    }
+  }
+
+  // ─── Reminder ───
+
+  /**
+   * Create ATTENDANCE_REMINDER for the teacher when attendance is recorded.
+   * Reminds the teacher to confirm the attendance records.
+   * Fire-and-forget: errors are logged but do not block attendance recording.
+   */
+  async createAttendanceReminders(
+    teacherId: number,
+    lessonId: number,
+    classCode: string,
+  ): Promise<number> {
+    try {
+      // Count unconfirmed records for this lesson
+      const unconfirmedCount = await this.attendanceRepo.countUnconfirmedByLessonId(lessonId);
+
+      if (unconfirmedCount === 0) return 0;
+
+      await this.reminderService.createReminder({
+        type: ReminderType.ATTENDANCE_REMINDER,
+        title: `考勤待确认：${classCode}`,
+        content: `课程 ${classCode}（Lesson #${lessonId}）有 ${unconfirmedCount} 条考勤记录待确认，请及时处理。`,
+        targetUserId: teacherId,
+        targetType: TargetType.TEACHER,
+        relatedEntityId: lessonId,
+        relatedEntityType: 'Lesson',
+      });
+
+      this.logger.log(
+        `Created attendance reminder for teacher ${teacherId}, lesson ${lessonId} (${unconfirmedCount} unconfirmed)`,
+      );
+      return 1;
+    } catch (err) {
+      this.logger.warn(`createAttendanceReminders failed for lesson ${lessonId}: ${err.message}`);
+      return 0;
     }
   }
 }
