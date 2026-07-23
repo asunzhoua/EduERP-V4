@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### 2026-07-23
+- chore: Phase 3 — code quality improvements (README sync, test count update)
 - chore: clean console.log from miniapp pages (F-202)
 - fix: replace hardcoded operatedBy with req.user.sub in all controllers
 - fix: resolve TypeScript compilation errors (jwt.strategy, student.service, seed.service)

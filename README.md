@@ -1,65 +1,66 @@
 # EduERP V4 — Education ERP
 
 > 版本：v4.0
-> 状态：架构冻结（Architecture Freeze）
+> 状态：Backend Ready ✅ | Miniapp MVP ✅ | Build PASS ✅
 
 ---
 
 ## 项目简介
 
-EduERP V4 是新一代教育 ERP 系统。采用模块化、事件驱动架构，支持多端（微信小程序 + Web 后台）协同，统一权限管理，灵活扩展。
-
-## 项目目标
-
-- 构建稳定、可扩展的教育 ERP 系统
-- 实现前后端分离、事件驱动的现代化架构
-- 支持微信小程序与 Web 双端覆盖
-- 统一的权限与数据管理体系
+EduERP V4 是教培机构 ERP 系统。后端采用 NestJS + TypeScript + MySQL (DDD 架构)，前端为微信小程序，支持教师端和学生端核心业务流程。
 
 ## 项目结构
 
 ```
 EduERP-V4/
 ├── README.md
-├── CHANGELOG.md
-├── LICENSE
-├── .gitignore
-├── docs/          — 文档体系
-├── src/           — 源代码
-├── database/      — 数据库脚本
-├── api/           — API 定义
-├── test/          — 测试
-├── deploy/        — 部署配置
-├── assets/        — 静态资源
-├── scripts/       — 工具脚本
-└── config/        — 配置文件
+├── backend/              — NestJS 后端
+│   ├── src/              — 源代码 (DDD: kernel/modules/shared)
+│   ├── test/             — 测试 (947 tests, 76 suites)
+│   └── bot/              — 飞书 Bot Server
+├── miniapp/              — 微信小程序前端
+│   ├── pages/            — 页面 (teacher/ + student/)
+│   └── utils/            — 工具 (request.js 等)
+├── docs/                 — 文档体系
+├── .ai/                  — AI Context 体系
+└── database/             — 数据库脚本 (EduOS 19 tables)
 ```
 
-## 开发原则
+## 技术栈
 
-1. **文档驱动** — 所有开发必须严格遵循文档体系定义
-2. **架构冻结** — 当前阶段禁止修改架构、新增功能
-3. **模块化** — 各模块职责清晰，单向依赖
-4. **事件驱动** — 模块间通过 EventBus 通信
-5. **统一权限** — 所有接口必须经过权限校验
+- **后端**: NestJS + TypeScript + MySQL 8.0 (TypeORM)
+- **前端**: 微信小程序原生开发
+- **认证**: JWT + Passport + RBAC
+- **事件**: @nestjs/event-emitter
+- **API 文档**: Swagger (自动生成)
 
-## 文档入口
+## 快速开始
 
-文档统一存放于 [docs/](./docs/) 目录，阅读顺序请参照 [docs/README.md](./docs/README.md)。
+```bash
+# 后端
+cd backend
+npm install
+npm run start:dev
+npx jest --no-coverage    # 运行测试
 
-## 禁止事项
+# 小程序
+# 使用微信开发者工具打开 miniapp/ 目录
+```
 
-- 禁止绕过 Constitution（宪法）直接开发
-- 禁止直接修改数据库（必须通过 Migration + API）
-- 禁止新增未经文档定义的业务规则
-- 禁止新增未经设计的权限点
-- 禁止新增未经定义的事件
-- 禁止自由发挥命名（必须遵循 CodingConvention）
+## 核心模块
 
-## 开发流程
+- **identity** — 用户认证 (注册/登录/JWT)
+- **student** — 学生管理
+- **teaching** — 教学核心 (课程/班级/合同/报名/课时/考勤/调课)
 
-1. 阅读 docs/ 目录下全部相关文档
-2. 遵循 AIDevelopmentGuide 中的 AI 行为规范
-3. 遵循 CodingConvention 中的命名规范
-4. 修改后更新对应文档
-5. 通过测试和验收标准方可提交
+## 当前状态
+
+- 测试: 947 tests / 76 suites ALL PASS ✅
+- 构建: PASS (0 TS errors) ✅
+- 数据库: EduOS 19 tables + 6 indexes ✅
+- P1 模块: 27/27 COMPLETED ✅
+- GitHub: https://github.com/asunzhoua/EduERP-V4
+
+## 文档
+
+完整文档见 [docs/](./docs/) 目录，AI 上下文见 [.ai/AI_ENTRYPOINT.md](./.ai/AI_ENTRYPOINT.md)。
