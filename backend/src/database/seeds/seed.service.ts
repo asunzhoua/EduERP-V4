@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource, EntityManager } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from '../../modules/identity/entities/user.entity';
 import { Role } from '../../modules/identity/entities/role.entity';
@@ -63,37 +63,67 @@ export class SeedService {
     private lessonEntityRepository: Repository<LessonEntity>,
     @InjectRepository(LessonAttendanceEntity)
     private lessonAttendanceEntityRepository: Repository<LessonAttendanceEntity>,
-
+    private dataSource: DataSource,
   ) {}
 
+  /**
+   * Main seed entry point.
+   * - Guards against production environment execution.
+   * - Wraps all operations in a single transaction for atomicity.
+   * - All sub-methods are idempotent (find-or-create).
+   */
   async seed() {
-    await this.seedRoles();
-    await this.seedPermissions();
-    await this.seedAdminUser();
-    await this.seedTestUsers();
-    await this.seedTestClasses();
-    await this.seedTestStudents();
-    await this.seedTestContracts();
-    await this.seedTestCourses();
-    await this.seedTestEnrollments();
-    await this.seedTestLessons();
-    await this.seedTestAttendance();
-    await this.seedTestTeacherAssignments();
-    this.logger.log('Seed data initialization complete', 'Seed');
+    // Environment guard — prevent seed in production
+    if (process.env.NODE_ENV === 'production') {
+      this.logger.warn('Skipping seed in production environment', 'Seed');
+      return;
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const manager = queryRunner.manager;
+
+      await this.seedRoles(manager);
+      await this.seedPermissions(manager);
+      await this.seedAdminUser(manager);
+      await this.seedTestUsers(manager);
+      await this.seedTestClasses(manager);
+      await this.seedTestStudents(manager);
+      await this.seedTestContracts(manager);
+      await this.seedTestCourses(manager);
+      await this.seedTestEnrollments(manager);
+      await this.seedTestLessons(manager);
+      await this.seedTestAttendance(manager);
+      await this.seedTestTeacherAssignments(manager);
+
+      await queryRunner.commitTransaction();
+      this.logger.log('Seed data initialization complete (transaction committed)', 'Seed');
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error('Seed failed, transaction rolled back: ' + error.message, 'Seed');
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
-  private async seedRoles() {
+  private async seedRoles(manager: EntityManager) {
+    const repo = manager.getRepository(Role);
     const roles = ['SuperAdmin', 'Admin', 'Teacher', 'Parent', 'Student'];
     for (const name of roles) {
-      const exists = await this.roleRepository.findOne({ where: { name } });
+      const exists = await repo.findOne({ where: { name } });
       if (!exists) {
-        await this.roleRepository.save({ name, description: `${name} role` });
+        await repo.save({ name, description: `${name} role` });
         this.logger.log(`Role created: ${name}`, 'Seed');
       }
     }
   }
 
-  private async seedPermissions() {
+  private async seedPermissions(manager: EntityManager) {
+    const repo = manager.getRepository(Permission);
     const permissions = [
       { code: 'user:read', name: '查看用户', module: 'user', action: 'read' },
       { code: 'user:create', name: '创建用户', module: 'user', action: 'create' },
@@ -110,63 +140,74 @@ export class SeedService {
     ];
 
     for (const perm of permissions) {
-      const exists = await this.permissionRepository.findOne({ where: { code: perm.code } });
+      const exists = await repo.findOne({ where: { code: perm.code } });
       if (!exists) {
-        await this.permissionRepository.save(perm);
+        await repo.save(perm);
         this.logger.log(`Permission created: ${perm.code}`, 'Seed');
       }
     }
   }
 
-  private async seedAdminUser() {
+  private async seedAdminUser(manager: EntityManager) {
+    const userRepo = manager.getRepository(User);
+    const roleRepo = manager.getRepository(Role);
+    const userRoleRepo = manager.getRepository(UserRole);
+
     const adminUsername = 'admin';
-    const exists = await this.userRepository.findOne({ where: { username: adminUsername } });
-    if (exists) {
-      this.logger.log('Admin user already exists, skipping', 'Seed');
-      return;
-    }
+    let admin = await userRepo.findOne({ where: { username: adminUsername } });
 
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    if (!adminPassword) {
-      this.logger.error('ADMIN_PASSWORD environment variable is required for seeding');
-      throw new Error('ADMIN_PASSWORD must be set in environment variables');
-    }
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
-    const admin = this.userRepository.create({
-      username: adminUsername,
-      password: hashedPassword,
-      name: '系统管理员',
-      mobile: '13800000000',
-      role: 'SuperAdmin',
-      status: 1,
-      campusId: 1,
-    });
-    const savedAdmin = await this.userRepository.save(admin);
-
-    const superAdminRole = await this.roleRepository.findOne({ where: { name: 'SuperAdmin' } });
-    if (superAdminRole) {
-      await this.userRoleRepository.save({
-        userId: savedAdmin.id,
-        roleId: superAdminRole.id,
+    if (!admin) {
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      if (!adminPassword) {
+        this.logger.error('ADMIN_PASSWORD environment variable is required for seeding', 'Seed');
+        throw new Error('ADMIN_PASSWORD must be set in environment variables');
+      }
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+      admin = userRepo.create({
+        username: adminUsername,
+        password: hashedPassword,
+        name: '系统管理员',
+        mobile: '13800000000',
+        role: 'SuperAdmin',
+        status: 1,
+        campusId: 1,
       });
+      admin = await userRepo.save(admin);
+      this.logger.log('Admin user created (username: admin)', 'Seed');
+    } else {
+      this.logger.log('Admin user already exists, skipping creation', 'Seed');
     }
 
-    this.logger.log('Admin user created (username: admin)', 'Seed');
+    // Always ensure role association exists (fixes partial seed from previous runs)
+    const superAdminRole = await roleRepo.findOne({ where: { name: 'SuperAdmin' } });
+    if (superAdminRole) {
+      const existingRoleLink = await userRoleRepo.findOne({
+        where: { userId: Number(admin.id), roleId: superAdminRole.id },
+      });
+      if (!existingRoleLink) {
+        await userRoleRepo.save({ userId: Number(admin.id), roleId: superAdminRole.id });
+        this.logger.log('Admin SuperAdmin role association ensured', 'Seed');
+      }
+    }
   }
 
-  private async seedTestUsers() {
+  private async seedTestUsers(manager: EntityManager) {
+    const userRepo = manager.getRepository(User);
+    const roleRepo = manager.getRepository(Role);
+    const userRoleRepo = manager.getRepository(UserRole);
+
     let savedTeacher: User | null = null;
     let savedStudent: User | null = null;
     let savedParent: User | null = null;
 
-    // 1. Teacher 用户 — 用于测试课时录入流程
-    const existingTeacher = await this.userRepository.findOne({ where: { username: 'teacher1' } });
+    // 1. Teacher user
+    let existingTeacher = await userRepo.findOne({ where: { username: 'teacher1' } });
     if (existingTeacher) {
-      this.logger.log('Teacher user already exists, skipping', 'Seed');
+      this.logger.log('Teacher user already exists, skipping creation', 'Seed');
       savedTeacher = existingTeacher;
     } else {
       const teacherPassword = await bcrypt.hash('teacher123', 10);
-      const teacher = this.userRepository.create({
+      const teacher = userRepo.create({
         username: 'teacher1',
         password: teacherPassword,
         name: '张老师',
@@ -175,22 +216,30 @@ export class SeedService {
         status: 1,
         campusId: 1,
       });
-      savedTeacher = await this.userRepository.save(teacher);
-      const teacherRole = await this.roleRepository.findOne({ where: { name: 'Teacher' } });
-      if (teacherRole) {
-        await this.userRoleRepository.save({ userId: savedTeacher.id, roleId: teacherRole.id });
-      }
+      savedTeacher = await userRepo.save(teacher);
       this.logger.log('Teacher user created: teacher1', 'Seed');
     }
 
-    // 2. Student 用户 — 用于测试课时查询
-    const existingStudent = await this.userRepository.findOne({ where: { username: 'student1' } });
+    // Always ensure Teacher role association
+    const teacherRole = await roleRepo.findOne({ where: { name: 'Teacher' } });
+    if (teacherRole && savedTeacher) {
+      const existingLink = await userRoleRepo.findOne({
+        where: { userId: Number(savedTeacher.id), roleId: teacherRole.id },
+      });
+      if (!existingLink) {
+        await userRoleRepo.save({ userId: Number(savedTeacher.id), roleId: teacherRole.id });
+        this.logger.log('Teacher role association ensured for teacher1', 'Seed');
+      }
+    }
+
+    // 2. Student user
+    let existingStudent = await userRepo.findOne({ where: { username: 'student1' } });
     if (existingStudent) {
-      this.logger.log('Student user already exists, skipping', 'Seed');
+      this.logger.log('Student user already exists, skipping creation', 'Seed');
       savedStudent = existingStudent;
     } else {
       const studentPassword = await bcrypt.hash('student123', 10);
-      const student = this.userRepository.create({
+      const student = userRepo.create({
         username: 'student1',
         password: studentPassword,
         name: '李小华',
@@ -199,22 +248,30 @@ export class SeedService {
         status: 1,
         campusId: 1,
       });
-      savedStudent = await this.userRepository.save(student);
-      const studentRole = await this.roleRepository.findOne({ where: { name: 'Student' } });
-      if (studentRole) {
-        await this.userRoleRepository.save({ userId: savedStudent.id, roleId: studentRole.id });
-      }
+      savedStudent = await userRepo.save(student);
       this.logger.log('Student user created: student1', 'Seed');
     }
 
-    // 3. Parent 用户 — 用于测试家长查询
-    const existingParent = await this.userRepository.findOne({ where: { username: 'parent1' } });
+    // Always ensure Student role association
+    const studentRole = await roleRepo.findOne({ where: { name: 'Student' } });
+    if (studentRole && savedStudent) {
+      const existingLink = await userRoleRepo.findOne({
+        where: { userId: Number(savedStudent.id), roleId: studentRole.id },
+      });
+      if (!existingLink) {
+        await userRoleRepo.save({ userId: Number(savedStudent.id), roleId: studentRole.id });
+        this.logger.log('Student role association ensured for student1', 'Seed');
+      }
+    }
+
+    // 3. Parent user
+    let existingParent = await userRepo.findOne({ where: { username: 'parent1' } });
     if (existingParent) {
-      this.logger.log('Parent user already exists, skipping', 'Seed');
+      this.logger.log('Parent user already exists, skipping creation', 'Seed');
       savedParent = existingParent;
     } else {
       const parentPassword = await bcrypt.hash('parent123', 10);
-      const parent = this.userRepository.create({
+      const parent = userRepo.create({
         username: 'parent1',
         password: parentPassword,
         name: '李建国',
@@ -223,28 +280,36 @@ export class SeedService {
         status: 1,
         campusId: 1,
       });
-      savedParent = await this.userRepository.save(parent);
-      const parentRole = await this.roleRepository.findOne({ where: { name: 'Parent' } });
-      if (parentRole) {
-        await this.userRoleRepository.save({ userId: savedParent.id, roleId: parentRole.id });
-      }
+      savedParent = await userRepo.save(parent);
       this.logger.log('Parent user created: parent1', 'Seed');
+    }
+
+    // Always ensure Parent role association
+    const parentRole = await roleRepo.findOne({ where: { name: 'Parent' } });
+    if (parentRole && savedParent) {
+      const existingLink = await userRoleRepo.findOne({
+        where: { userId: Number(savedParent.id), roleId: parentRole.id },
+      });
+      if (!existingLink) {
+        await userRoleRepo.save({ userId: Number(savedParent.id), roleId: parentRole.id });
+        this.logger.log('Parent role association ensured for parent1', 'Seed');
+      }
     }
 
     this.logger.log('Test users ready (teacher1/teacher123, student1/student123, parent1/parent123)', 'Seed');
   }
 
   /** 创建测试班级 — 2 个 ACTIVE 班级 */
-  private async seedTestClasses() {
-    const admin = await this.userRepository.findOne({ where: { username: 'admin' } });
+  private async seedTestClasses(manager: EntityManager) {
+    const repo = manager.getRepository(ClassEntity);
+    const userRepo = manager.getRepository(User);
+    const admin = await userRepo.findOne({ where: { username: 'admin' } });
     const adminId = admin ? Number(admin.id) : 0;
 
     // 班级1：周六上午班 — 数学思维
-    const class1Exists = await this.classEntityRepository.findOne({
-      where: { classCode: 'CL2026070001' },
-    });
+    const class1Exists = await repo.findOne({ where: { classCode: 'CL2026070001' } });
     if (!class1Exists) {
-      const class1 = this.classEntityRepository.create({
+      const class1 = repo.create({
         classCode: 'CL2026070001',
         courseCode: 'MATH001',
         name: '周六上午班',
@@ -258,16 +323,14 @@ export class SeedService {
         maxStudents: 20,
         createdBy: adminId,
       });
-      await this.classEntityRepository.save(class1);
+      await repo.save(class1);
       this.logger.log('Test class created: 周六上午班 (CL2026070001)', 'Seed');
     }
 
     // 班级2：周日下午班 — 英语口语
-    const class2Exists = await this.classEntityRepository.findOne({
-      where: { classCode: 'CL2026070002' },
-    });
+    const class2Exists = await repo.findOne({ where: { classCode: 'CL2026070002' } });
     if (!class2Exists) {
-      const class2 = this.classEntityRepository.create({
+      const class2 = repo.create({
         classCode: 'CL2026070002',
         courseCode: 'ENG001',
         name: '周日下午班',
@@ -281,24 +344,26 @@ export class SeedService {
         maxStudents: 20,
         createdBy: adminId,
       });
-      await this.classEntityRepository.save(class2);
+      await repo.save(class2);
       this.logger.log('Test class created: 周日下午班 (CL2026070002)', 'Seed');
     }
   }
 
   /** 创建测试学生 — 3 个学生记录 */
-  private async seedTestStudents() {
-    const admin = await this.userRepository.findOne({ where: { username: 'admin' } });
+  private async seedTestStudents(manager: EntityManager) {
+    const repo = manager.getRepository(Student);
+    const userRepo = manager.getRepository(User);
+    const admin = await userRepo.findOne({ where: { username: 'admin' } });
     const adminId = admin ? Number(admin.id) : 0;
 
     const students = [
       {
         studentCode: 'STU001',
-        name: '李小华',  // Must match user "student1" name
+        name: '李小华',
         gender: Gender.MALE,
         birthDate: '2014-05-10',
         phone: '13800000001',
-        userId: 3,  // student1 user
+        userId: 3,
       },
       {
         studentCode: 'STU002',
@@ -317,25 +382,25 @@ export class SeedService {
     ];
 
     for (const data of students) {
-      const exists = await this.studentEntityRepository.findOne({
-        where: { studentCode: data.studentCode },
-      });
+      const exists = await repo.findOne({ where: { studentCode: data.studentCode } });
       if (!exists) {
-        const student = this.studentEntityRepository.create({
+        const student = repo.create({
           ...data,
           status: StudentStatus.ACTIVE,
           createdBy: adminId,
           createdSource: CreatedSource.ADMIN,
         });
-        await this.studentEntityRepository.save(student);
+        await repo.save(student);
         this.logger.log(`Test student created: ${data.name} (${data.studentCode})`, 'Seed');
       }
     }
   }
 
   /** 创建测试合同 — 3 个 ACTIVE 合同，每学生一个 */
-  private async seedTestContracts() {
-    const admin = await this.userRepository.findOne({ where: { username: 'admin' } });
+  private async seedTestContracts(manager: EntityManager) {
+    const repo = manager.getRepository(ContractEntity);
+    const userRepo = manager.getRepository(User);
+    const admin = await userRepo.findOne({ where: { username: 'admin' } });
     const adminId = admin ? Number(admin.id) : 0;
     const today = '2026-07-01';
 
@@ -370,26 +435,26 @@ export class SeedService {
     ];
 
     for (const data of contracts) {
-      const exists = await this.contractEntityRepository.findOne({
-        where: { contractCode: data.contractCode },
-      });
+      const exists = await repo.findOne({ where: { contractCode: data.contractCode } });
       if (!exists) {
-        const contract = this.contractEntityRepository.create({
+        const contract = repo.create({
           ...data,
           status: ContractStatus.ACTIVE,
           validFrom: today,
           validTo: null,
           createdBy: adminId,
         });
-        await this.contractEntityRepository.save(contract);
+        await repo.save(contract);
         this.logger.log(`Test contract created: ${data.contractCode} (${data.studentCode})`, 'Seed');
       }
     }
   }
 
   /** 创建测试课程 — 2 个 PUBLISHED 课程 */
-  private async seedTestCourses() {
-    const admin = await this.userRepository.findOne({ where: { username: 'admin' } });
+  private async seedTestCourses(manager: EntityManager) {
+    const repo = manager.getRepository(CourseEntity);
+    const userRepo = manager.getRepository(User);
+    const admin = await userRepo.findOne({ where: { username: 'admin' } });
     const adminId = admin ? Number(admin.id) : 0;
 
     const courses = [
@@ -426,23 +491,23 @@ export class SeedService {
     ];
 
     for (const data of courses) {
-      const exists = await this.courseEntityRepository.findOne({
-        where: { courseCode: data.courseCode },
-      });
+      const exists = await repo.findOne({ where: { courseCode: data.courseCode } });
       if (!exists) {
-        const course = this.courseEntityRepository.create(data);
-        await this.courseEntityRepository.save(course);
+        const course = repo.create(data);
+        await repo.save(course);
         this.logger.log('Test course created: ' + data.name + ' (' + data.courseCode + ')', 'Seed');
       }
     }
   }
 
   /** 创建测试课时 — 周六班 4 课时, 周日班 4 课时 */
-  private async seedTestLessons() {
-    const admin = await this.userRepository.findOne({ where: { username: 'admin' } });
+  private async seedTestLessons(manager: EntityManager) {
+    const repo = manager.getRepository(LessonEntity);
+    const userRepo = manager.getRepository(User);
+    const admin = await userRepo.findOne({ where: { username: 'admin' } });
     const adminId = admin ? Number(admin.id) : 0;
 
-    // CL2026070001 — 周六上午班 (dayOfWeek=6, startTime=09:00, endTime=10:30)
+    // CL2026070001 — 周六上午班
     const class1Lessons = [
       { scheduledDate: '2026-07-04', status: LessonStatus.FINISHED },
       { scheduledDate: '2026-07-11', status: LessonStatus.FINISHED },
@@ -452,11 +517,9 @@ export class SeedService {
 
     for (const [index, lesson] of class1Lessons.entries()) {
       const lessonNumber = index + 1;
-      const exists = await this.lessonEntityRepository.findOne({
-        where: { classCode: 'CL2026070001', lessonNumber },
-      });
+      const exists = await repo.findOne({ where: { classCode: 'CL2026070001', lessonNumber } });
       if (!exists) {
-        const entity = this.lessonEntityRepository.create({
+        const entity = repo.create({
           classCode: 'CL2026070001',
           courseCode: 'MATH001',
           lessonNumber,
@@ -467,12 +530,12 @@ export class SeedService {
           teacherId: 2,
           createdBy: adminId,
         });
-        await this.lessonEntityRepository.save(entity);
+        await repo.save(entity);
         this.logger.log('Test lesson created: CL2026070001 ' + lesson.scheduledDate, 'Seed');
       }
     }
 
-    // CL2026070002 — 周日下午班 (dayOfWeek=0, startTime=14:00, endTime=15:30)
+    // CL2026070002 — 周日下午班
     const class2Lessons = [
       { scheduledDate: '2026-07-05', status: LessonStatus.FINISHED },
       { scheduledDate: '2026-07-12', status: LessonStatus.FINISHED },
@@ -482,11 +545,9 @@ export class SeedService {
 
     for (const [index, lesson] of class2Lessons.entries()) {
       const lessonNumber = index + 1;
-      const exists = await this.lessonEntityRepository.findOne({
-        where: { classCode: 'CL2026070002', lessonNumber },
-      });
+      const exists = await repo.findOne({ where: { classCode: 'CL2026070002', lessonNumber } });
       if (!exists) {
-        const entity = this.lessonEntityRepository.create({
+        const entity = repo.create({
           classCode: 'CL2026070002',
           courseCode: 'ENG001',
           lessonNumber,
@@ -497,27 +558,27 @@ export class SeedService {
           teacherId: 2,
           createdBy: adminId,
         });
-        await this.lessonEntityRepository.save(entity);
+        await repo.save(entity);
         this.logger.log('Test lesson created: CL2026070002 ' + lesson.scheduledDate, 'Seed');
       }
     }
   }
 
   /** 创建测试出勤记录 — 为已结束课时创建出勤 */
-  private async seedTestAttendance() {
-    const admin = await this.userRepository.findOne({ where: { username: 'admin' } });
+  private async seedTestAttendance(manager: EntityManager) {
+    const repo = manager.getRepository(LessonAttendanceEntity);
+    const lessonRepo = manager.getRepository(LessonEntity);
+    const userRepo = manager.getRepository(User);
+    const admin = await userRepo.findOne({ where: { username: 'admin' } });
     const adminId = admin ? Number(admin.id) : 0;
 
-    // date → lessonNumber mapping (based on seedTestLessons)
+    // date → lessonNumber mapping
     const dateToLesson: Record<string, number> = {
       '2026-07-04': 1, '2026-07-11': 2, '2026-07-18': 3,
       '2026-07-05': 1, '2026-07-12': 2, '2026-07-19': 3,
     };
 
-    // CL2026070001 班级: STU001 + STU002
-    // Lesson 1 (Sat Jul 4): STU001=PRESENT, STU002=PRESENT
-    // Lesson 2 (Sat Jul 11): STU001=PRESENT, STU002=LATE
-    // Lesson 3 (Sat Jul 18): STU001=ABSENT, STU002=PRESENT
+    // CL2026070001: STU001 + STU002
     const class1Attendance = [
       { scheduledDate: '2026-07-04', studentCode: 'STU001', status: AttendanceStatus.PRESENT },
       { scheduledDate: '2026-07-04', studentCode: 'STU002', status: AttendanceStatus.PRESENT },
@@ -533,19 +594,15 @@ export class SeedService {
         this.logger.warn(`No lessonNumber mapping for date ${data.scheduledDate}, skipping attendance`, 'Seed');
         continue;
       }
-      const lesson = await this.lessonEntityRepository.findOne({
-        where: { classCode: 'CL2026070001', lessonNumber },
-      });
+      const lesson = await lessonRepo.findOne({ where: { classCode: 'CL2026070001', lessonNumber } });
       if (!lesson) {
         this.logger.warn(`Lesson not found for CL2026070001 lessonNumber=${lessonNumber}, skipping attendance`, 'Seed');
         continue;
       }
       const lessonId = Number(lesson.id);
-      const exists = await this.lessonAttendanceEntityRepository.findOne({
-        where: { lessonId, studentCode: data.studentCode },
-      });
+      const exists = await repo.findOne({ where: { lessonId, studentCode: data.studentCode } });
       if (!exists) {
-        const entity = this.lessonAttendanceEntityRepository.create({
+        const entity = repo.create({
           lessonId,
           classCode: 'CL2026070001',
           studentCode: data.studentCode,
@@ -556,15 +613,12 @@ export class SeedService {
           source: AttendanceSource.API,
           workflowState: AttendanceWorkflowState.CONFIRMED,
         });
-        await this.lessonAttendanceEntityRepository.save(entity);
+        await repo.save(entity);
         this.logger.log('Test attendance created: CL2026070001 lesson=' + lessonNumber + ' ' + data.studentCode + '=' + data.status, 'Seed');
       }
     }
 
-    // CL2026070002 班级: STU003
-    // Lesson 1 (Sun Jul 5): STU003=PRESENT
-    // Lesson 2 (Sun Jul 12): STU003=PRESENT
-    // Lesson 3 (Sun Jul 19): STU003=LEAVE
+    // CL2026070002: STU003
     const class2Attendance = [
       { scheduledDate: '2026-07-05', studentCode: 'STU003', status: AttendanceStatus.PRESENT },
       { scheduledDate: '2026-07-12', studentCode: 'STU003', status: AttendanceStatus.PRESENT },
@@ -577,19 +631,15 @@ export class SeedService {
         this.logger.warn(`No lessonNumber mapping for date ${data.scheduledDate}, skipping attendance`, 'Seed');
         continue;
       }
-      const lesson = await this.lessonEntityRepository.findOne({
-        where: { classCode: 'CL2026070002', lessonNumber },
-      });
+      const lesson = await lessonRepo.findOne({ where: { classCode: 'CL2026070002', lessonNumber } });
       if (!lesson) {
         this.logger.warn(`Lesson not found for CL2026070002 lessonNumber=${lessonNumber}, skipping attendance`, 'Seed');
         continue;
       }
       const lessonId = Number(lesson.id);
-      const exists = await this.lessonAttendanceEntityRepository.findOne({
-        where: { lessonId, studentCode: data.studentCode },
-      });
+      const exists = await repo.findOne({ where: { lessonId, studentCode: data.studentCode } });
       if (!exists) {
-        const entity = this.lessonAttendanceEntityRepository.create({
+        const entity = repo.create({
           lessonId,
           classCode: 'CL2026070002',
           studentCode: data.studentCode,
@@ -600,15 +650,17 @@ export class SeedService {
           source: AttendanceSource.API,
           workflowState: AttendanceWorkflowState.CONFIRMED,
         });
-        await this.lessonAttendanceEntityRepository.save(entity);
+        await repo.save(entity);
         this.logger.log('Test attendance created: CL2026070002 lesson=' + lessonNumber + ' ' + data.studentCode + '=' + data.status, 'Seed');
       }
     }
   }
 
-  /** 创建测试选班记录 — 将学生选入班级 */
-  private async seedTestEnrollments() {
-    const admin = await this.userRepository.findOne({ where: { username: 'admin' } });
+  /** 创建测试选班记录 */
+  private async seedTestEnrollments(manager: EntityManager) {
+    const repo = manager.getRepository(EnrollmentEntity);
+    const userRepo = manager.getRepository(User);
+    const admin = await userRepo.findOne({ where: { username: 'admin' } });
     const adminId = admin ? Number(admin.id) : 0;
 
     const enrollments = [
@@ -618,16 +670,14 @@ export class SeedService {
     ];
 
     for (const data of enrollments) {
-      const exists = await this.enrollmentEntityRepository.findOne({
-        where: { classCode: data.classCode, studentCode: data.studentCode },
-      });
+      const exists = await repo.findOne({ where: { classCode: data.classCode, studentCode: data.studentCode } });
       if (!exists) {
-        const enrollment = this.enrollmentEntityRepository.create({
+        const enrollment = repo.create({
           ...data,
           status: EnrollmentStatus.ACTIVE,
           enrolledBy: adminId,
         });
-        await this.enrollmentEntityRepository.save(enrollment);
+        await repo.save(enrollment);
         this.logger.log(
           `Test enrollment created: ${data.studentCode} → ${data.classCode}`,
           'Seed',
@@ -636,12 +686,14 @@ export class SeedService {
     }
   }
 
-  /** 创建测试教师分配 — 将张老师(teacher1)分配为两个班级的 PRIMARY 老师 */
-  private async seedTestTeacherAssignments() {
-    const admin = await this.userRepository.findOne({ where: { username: 'admin' } });
+  /** 创建测试教师分配 */
+  private async seedTestTeacherAssignments(manager: EntityManager) {
+    const repo = manager.getRepository(TeacherAssignmentEntity);
+    const userRepo = manager.getRepository(User);
+    const admin = await userRepo.findOne({ where: { username: 'admin' } });
     const adminId = admin ? Number(admin.id) : 0;
 
-    const teacher = await this.userRepository.findOne({ where: { username: 'teacher1' } });
+    const teacher = await userRepo.findOne({ where: { username: 'teacher1' } });
     if (!teacher) {
       this.logger.warn('teacher1 not found, skipping teacher assignments', 'Seed');
       return;
@@ -655,11 +707,11 @@ export class SeedService {
     ];
 
     for (const data of assignments) {
-      const exists = await this.teacherAssignmentEntityRepository.findOne({
+      const exists = await repo.findOne({
         where: { classCode: data.classCode, teacherId: data.teacherId, role: TeacherRole.PRIMARY },
       });
       if (!exists) {
-        const assignment = this.teacherAssignmentEntityRepository.create({
+        const assignment = repo.create({
           classCode: data.classCode,
           teacherId: data.teacherId,
           role: TeacherRole.PRIMARY,
@@ -667,7 +719,7 @@ export class SeedService {
           effectiveTo: null,
           assignedBy: adminId,
         });
-        await this.teacherAssignmentEntityRepository.save(assignment);
+        await repo.save(assignment);
         this.logger.log(
           `Test teacher assignment created: teacherId=${data.teacherId} → ${data.classCode}`,
           'Seed',
