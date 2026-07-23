@@ -39,7 +39,7 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.loadAttendance().then(() => {
+    this.loadAttendance().finally(() => {
       wx.stopPullDownRefresh();
     });
   }

@@ -41,7 +41,7 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.loadLessons().then(() => {
+    this.loadLessons().finally(() => {
       wx.stopPullDownRefresh();
     });
   },

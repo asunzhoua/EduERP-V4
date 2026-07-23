@@ -132,7 +132,7 @@ Page({
 
     } catch (err) {
       console.error('[Courses] 加载更多失败:', err);
-      this.setData({ page: this.data.page - 1 }); // 回退页码
+      this.setData({ page: this.data.page - 1, hasMore: true }); // 回退页码，允许重试
     } finally {
       this.setData({ loadingMore: false });
     }

@@ -16,9 +16,8 @@ Page({
   },
 
   onShow() {
-    if (this.data.contracts.length > 0) {
-      this.loadData();
-    }
+    // 每次显示页面时都刷新数据（从详情页返回时需要更新）
+    this.loadData();
   },
 
   onPullDownRefresh() {
