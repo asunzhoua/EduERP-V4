@@ -401,6 +401,9 @@ def check_runtime_state() -> tuple[str, str, bool]:
         if status == "RUNNING" and updated_str:
             try:
                 updated_dt = datetime.datetime.fromisoformat(updated_str)
+                # 统一使用 offset-naive（去除时区信息）
+                if updated_dt.tzinfo is not None:
+                    updated_dt = updated_dt.replace(tzinfo=None)
                 age_seconds = (datetime.datetime.now() - updated_dt).total_seconds()
                 if age_seconds > STALE_MINUTES * 60:
                     anomalies.append(f"{mission_id}: STALE（{int(age_seconds//60)}分无更新）")
@@ -1035,7 +1038,7 @@ def check_decision_gates() -> tuple[str, str, bool]:
         detail = f"Decision Gate 待决策: {len(all_gates)} 个 Mission\n" + "\n".join(parts)
         check_id = "decision_gate"
         # 冷却 1 小时，避免重复通知
-        if should_notify(check_id, detail, cooldown=3600):
+        if should_notify(check_id, detail):
             msg = (
                 f"[EOS] Decision Gate 待决策\n"
                 f"Mission: {', '.join(g['mission_id'] for g in all_gates)}\n"
@@ -1142,7 +1145,7 @@ def check_long_wait() -> tuple[str, str, bool]:
         detail = f"长时间等待决策: {len(long_waits)} 个 Mission\n" + "\n".join(parts)
         check_id = "long_wait"
         # 冷却 1 小时
-        if should_notify(check_id, detail, cooldown=3600):
+        if should_notify(check_id, detail):
             msg = (
                 f"[EOS] 长时间等待提醒\n"
                 f"等待决策: {', '.join(lw['mission_id'] for lw in long_waits)}\n"
