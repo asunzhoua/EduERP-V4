@@ -10,6 +10,11 @@ v2.1 变更（Batch 5.2）：
 - 新增 Mission 停滞检测（三指标综合判定：Commit / Evidence / State file）
 - 新增深度恢复机制（CC 进程检查 + 错误日志扫描 + Recovery Report）
 
+v2.2 变更（Batch 5.1）：
+- 新增 Mission 完成检测（check_mission_completion）
+- 新增 Decision Gate 检测（check_decision_gates）
+- 新增长时间等待检测（check_long_wait）
+
 由 Windows Task Scheduler 每 15 分钟调用一次。
 """
 
@@ -813,6 +818,338 @@ def create_mission_stall_reminder(mission_id: str, stall_minutes: float) -> bool
 
 
 # ──────────────────────────────────────────────
+# Check 6: Mission 完成检测
+# ──────────────────────────────────────────────
+
+
+def check_mission_completion() -> tuple[str, str, bool]:
+    """Check 6: Mission 完成检测。
+
+    扫描 .missions/ 下所有 Mission：
+    - 读取 .md 文件，检查是否所有 Phase 都是 COMPLETED
+    - 读取 mission.state，检查 status 是否为 COMPLETED
+    - 新完成的 Mission（上次非 COMPLETED，本次 COMPLETED）→ 通知
+    """
+    if not os.path.isdir(MISSIONS_DIR):
+        return ("OK", ".missions 目录不存在", False)
+
+    now = time.time()
+    prev_mission_states = _load_state(MISSION_STATE_FILE)
+    prev_status_by_id = prev_mission_states.get("status_by_id", {})
+    newly_completed: list[str] = []
+
+    # 扫描所有 mission.state 文件
+    state_files = glob.glob(
+        os.path.join(MISSIONS_DIR, "*", "mission.state"),
+        recursive=True,
+    )
+
+    for sf in state_files:
+        try:
+            with open(sf, "r", encoding="utf-8") as f:
+                state = json.load(f)
+        except Exception:
+            try:
+                with open(sf, "r", encoding="gbk") as f:
+                    state = json.load(f)
+            except Exception:
+                continue
+
+        mission_id = state.get("mission_id", os.path.basename(os.path.dirname(sf)))
+        current_status = state.get("status", "UNKNOWN")
+        prev_status = prev_status_by_id.get(mission_id, "UNKNOWN")
+
+        # 检测新完成：上次不是 COMPLETED，本次是 COMPLETED
+        if current_status == "COMPLETED" and prev_status != "COMPLETED":
+            newly_completed.append(mission_id)
+
+    # 同时扫描 .md 文件（兜底：没有 mission.state 的 Mission）
+    md_files = glob.glob(
+        os.path.join(MISSIONS_DIR, "*.md"),
+        recursive=False,
+    )
+
+    for md_file in md_files:
+        basename = os.path.basename(md_file)
+        mission_id = basename.replace(".md", "")
+
+        # 跳过非 Mission 文件
+        if mission_id in ("README", "INDEX", "TEMPLATE"):
+            continue
+
+        try:
+            with open(md_file, "r", encoding="utf-8") as f:
+                content = f.read()
+        except Exception:
+            try:
+                with open(md_file, "r", encoding="gbk") as f:
+                    content = f.read()
+            except Exception:
+                continue
+
+        # 检查是否有 **Status**: COMPLETED
+        if "**Status**" in content and "COMPLETED" in content:
+            prev_status = prev_status_by_id.get(mission_id, "UNKNOWN")
+            # 检查是否所有 Phase 都标记为 ✅ COMPLETED
+            has_in_progress = "🔄 IN PROGRESS" in content or "IN PROGRESS" in content
+            has_pending = "⏳ PENDING" in content or "PENDING" in content
+
+            if not has_in_progress and not has_pending:
+                if prev_status != "COMPLETED":
+                    if mission_id not in newly_completed:
+                        newly_completed.append(mission_id)
+
+    if newly_completed:
+        detail = f"Mission 新完成: {', '.join(newly_completed)}"
+        check_id = "mission_completed"
+        if should_notify(check_id, detail):
+            msg = (
+                f"[EOS] Mission 完成通知\n"
+                f"已完成: {', '.join(newly_completed)}\n"
+                f"时间: {_now()}\n"
+                f"下一步: 归档 / 等待新 Mission"
+            )
+            notified = send_feishu_text(msg)
+            if notified:
+                mark_notified(check_id, detail)
+        else:
+            notified = False
+        return ("INFO", detail, notified)
+
+    return ("OK", "无新完成的 Mission", False)
+
+
+# ──────────────────────────────────────────────
+# Check 7: Decision Gate 检测
+# ──────────────────────────────────────────────
+
+
+def check_decision_gates() -> tuple[str, str, bool]:
+    """Check 7: Decision Gate 检测。
+
+    扫描 RUNNING 状态的 Mission .md 文件：
+    - 搜索 "Decision Gate" 相关段落
+    - 提取待决策项列表
+    - 有待决策项 → DECISION_GATE_PENDING
+    """
+    if not os.path.isdir(MISSIONS_DIR):
+        return ("OK", ".missions 目录不存在", False)
+
+    all_gates: list[dict] = []
+
+    # 扫描所有 .md 文件
+    md_files = glob.glob(
+        os.path.join(MISSIONS_DIR, "*.md"),
+        recursive=False,
+    )
+
+    for md_file in md_files:
+        basename = os.path.basename(md_file)
+        mission_id = basename.replace(".md", "")
+
+        # 跳过非 Mission 文件
+        if mission_id in ("README", "INDEX", "TEMPLATE"):
+            continue
+
+        try:
+            with open(md_file, "r", encoding="utf-8") as f:
+                content = f.read()
+        except Exception:
+            try:
+                with open(md_file, "r", encoding="gbk") as f:
+                    content = f.read()
+            except Exception:
+                continue
+
+        # 检查 Mission 是否为 RUNNING 状态
+        is_running = "RUNNING" in content or "IN PROGRESS" in content
+        if not is_running:
+            # 也检查 mission.state
+            state_file = os.path.join(MISSIONS_DIR, mission_id, "mission.state")
+            if os.path.exists(state_file):
+                try:
+                    with open(state_file, "r", encoding="utf-8") as f:
+                        state = json.load(f)
+                    if state.get("status") not in ("RUNNING", "WAITING_DECISION"):
+                        continue
+                except Exception:
+                    pass
+
+        # 搜索 Decision Gate 段落
+        if "Decision Gate" not in content and "decision gate" not in content.lower():
+            continue
+
+        # 提取 Decision Gate 下的列表项
+        lines = content.split("\n")
+        gate_items: list[str] = []
+        in_gate_section = False
+
+        for line in lines:
+            stripped = line.strip()
+            # 检测 Decision Gate 标题
+            if "Decision Gate" in stripped or "decision gate" in stripped.lower():
+                in_gate_section = True
+                continue
+
+            # 如果在 Decision Gate 段落中
+            if in_gate_section:
+                # 遇到新的 ## 标题 → 段落结束
+                if stripped.startswith("## ") and "Decision Gate" not in stripped:
+                    in_gate_section = False
+                    continue
+
+                # 提取列表项（数字开头或 bullet 开头）
+                if stripped and (stripped[0].isdigit() or stripped.startswith("-") or stripped.startswith("*")):
+                    # 清理标记
+                    item = stripped.lstrip("0123456789.-*) ").strip()
+                    if item:
+                        gate_items.append(item)
+
+        if gate_items:
+            all_gates.append({
+                "mission_id": mission_id,
+                "items": gate_items,
+                "count": len(gate_items),
+            })
+
+    if all_gates:
+        parts = []
+        for gate in all_gates:
+            parts.append(f"  {gate['mission_id']}: {gate['count']} 项待决策")
+            for i, item in enumerate(gate["items"][:5], 1):  # 最多显示 5 项
+                parts.append(f"    {i}. {item}")
+            if gate["count"] > 5:
+                parts.append(f"    ... 还有 {gate['count'] - 5} 项")
+
+        detail = f"Decision Gate 待决策: {len(all_gates)} 个 Mission\n" + "\n".join(parts)
+        check_id = "decision_gate"
+        # 冷却 1 小时，避免重复通知
+        if should_notify(check_id, detail, cooldown=3600):
+            msg = (
+                f"[EOS] Decision Gate 待决策\n"
+                f"Mission: {', '.join(g['mission_id'] for g in all_gates)}\n"
+                f"待决策项: {sum(g['count'] for g in all_gates)} 项\n"
+                f"下一步: 等待 Owner 决策"
+            )
+            notified = send_feishu_text(msg)
+            if notified:
+                mark_notified(check_id, detail)
+        else:
+            notified = False
+        return ("WARNING", detail, notified)
+
+    return ("OK", "无待处理的 Decision Gate", False)
+
+
+# ──────────────────────────────────────────────
+# Check 8: 长时间等待检测
+# ──────────────────────────────────────────────
+
+
+def check_long_wait() -> tuple[str, str, bool]:
+    """Check 8: 长时间等待检测。
+
+    检查 WAITING_DECISION 状态的 Mission：
+    - 读取 mission.state 中 updated_at
+    - 如果 status = WAITING_DECISION 且等待 > 1 小时 → LONG_WAIT_WARNING
+    """
+    if not os.path.isdir(MISSIONS_DIR):
+        return ("OK", ".missions 目录不存在", False)
+
+    now = time.time()
+    long_waits: list[dict] = []
+
+    # 扫描所有 mission.state 文件
+    state_files = glob.glob(
+        os.path.join(MISSIONS_DIR, "*", "mission.state"),
+        recursive=True,
+    )
+
+    for sf in state_files:
+        try:
+            with open(sf, "r", encoding="utf-8") as f:
+                state = json.load(f)
+        except Exception:
+            try:
+                with open(sf, "r", encoding="gbk") as f:
+                    state = json.load(f)
+            except Exception:
+                continue
+
+        status = state.get("status", "UNKNOWN")
+        if status != "WAITING_DECISION":
+            continue
+
+        mission_id = state.get("mission_id", os.path.basename(os.path.dirname(sf)))
+        updated_at_str = state.get("updated_at", "")
+
+        # 解析 updated_at 时间
+        wait_minutes = 0.0
+        if updated_at_str:
+            try:
+                # 尝试 ISO 格式
+                updated_dt = datetime.datetime.fromisoformat(
+                    updated_at_str.replace("Z", "+00:00")
+                )
+                updated_ts = updated_dt.timestamp()
+                wait_minutes = (now - updated_ts) / 60
+            except (ValueError, TypeError):
+                # 尝试 Unix 时间戳
+                try:
+                    updated_ts = float(updated_at_str)
+                    wait_minutes = (now - updated_ts) / 60
+                except (ValueError, TypeError):
+                    # 兜底：使用文件 mtime
+                    try:
+                        updated_ts = os.path.getmtime(sf)
+                        wait_minutes = (now - updated_ts) / 60
+                    except OSError:
+                        wait_minutes = 0.0
+        else:
+            # 没有 updated_at，使用文件 mtime
+            try:
+                updated_ts = os.path.getmtime(sf)
+                wait_minutes = (now - updated_ts) / 60
+            except OSError:
+                wait_minutes = 0.0
+
+        if wait_minutes > 60:  # 超过 1 小时
+            hours = int(wait_minutes // 60)
+            mins = int(wait_minutes % 60)
+            long_waits.append({
+                "mission_id": mission_id,
+                "hours": hours,
+                "minutes": mins,
+                "total_minutes": wait_minutes,
+            })
+
+    if long_waits:
+        parts = []
+        for lw in long_waits:
+            parts.append(f"  {lw['mission_id']}: 等待 {lw['hours']} 小时 {lw['minutes']} 分钟")
+
+        detail = f"长时间等待决策: {len(long_waits)} 个 Mission\n" + "\n".join(parts)
+        check_id = "long_wait"
+        # 冷却 1 小时
+        if should_notify(check_id, detail, cooldown=3600):
+            msg = (
+                f"[EOS] 长时间等待提醒\n"
+                f"等待决策: {', '.join(lw['mission_id'] for lw in long_waits)}\n"
+                f"最长等待: {max(lw['hours'] for lw in long_waits)} 小时 "
+                f"{max(lw['minutes'] for lw in long_waits)} 分钟\n"
+                f"下一步: 请 Owner 尽快决策"
+            )
+            notified = send_feishu_text(msg)
+            if notified:
+                mark_notified(check_id, detail)
+        else:
+            notified = False
+        return ("WARNING", detail, notified)
+
+    return ("OK", "无长时间等待的 Mission", False)
+
+
+# ──────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────
 
@@ -824,7 +1161,7 @@ def main() -> int:
         os.environ.pop(k, None)
 
     print("=" * 60)
-    print(f"  EOS Heartbeat Check v2.0")
+    print(f"  EOS Heartbeat Check v2.2")
     print(f"  Time:   {_now()}")
     print(f"  PID:    {os.getpid()}")
     print(f"  CWD:    {BASE_DIR}")
@@ -836,6 +1173,9 @@ def main() -> int:
         ("Evidence", check_evidence),
         ("Liveness", check_liveness),
         ("Mission Stall", check_mission_stall),
+        ("Mission Completion", check_mission_completion),
+        ("Decision Gate", check_decision_gates),
+        ("Long Wait", check_long_wait),
     ]
 
     results: list[tuple[str, str, str, bool]] = []
