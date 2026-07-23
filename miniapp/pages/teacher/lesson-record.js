@@ -194,6 +194,49 @@ Page({
     this.setData({ students, presentCount, lateCount, absentCount });
   },
 
+  // 全部到课
+  markAllPresent() {
+    const students = this.data.students.map(s => ({
+      ...s,
+      status: 'PRESENT',
+      reason: ''
+    }));
+    this.setData({
+      students,
+      presentCount: students.length,
+      lateCount: 0,
+      absentCount: 0
+    });
+    wx.showToast({ title: '已设全部到课', icon: 'success', duration: 1000 });
+  },
+
+  // 全部缺勤
+  markAllAbsent() {
+    wx.showModal({
+      title: '全部缺勤',
+      editable: true,
+      content: '',
+      placeholderText: '请填写缺勤原因（可选）',
+      success: (res) => {
+        if (res.confirm) {
+          const reason = res.content || '';
+          const students = this.data.students.map(s => ({
+            ...s,
+            status: 'ABSENT',
+            reason
+          }));
+          this.setData({
+            students,
+            presentCount: 0,
+            lateCount: 0,
+            absentCount: students.length
+          });
+          wx.showToast({ title: '已设全部缺勤', icon: 'success', duration: 1000 });
+        }
+      }
+    });
+  },
+
   // 日期选择
   onDateChange(e) {
     this.setData({

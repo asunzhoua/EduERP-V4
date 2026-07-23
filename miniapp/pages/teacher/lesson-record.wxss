@@ -360,3 +360,22 @@
 button[disabled] {
   opacity: 0.6;
 }
+
+/* 快捷考勤按钮 */
+.quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.quick-btn {
+  font-size: 24rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 8rpx;
+  color: #fff;
+}
+.quick-btn.present {
+  background: #52c41a;
+}
+.quick-btn.absent {
+  background: #ff4d4f;
+}

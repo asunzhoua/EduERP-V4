@@ -30,6 +30,24 @@
       </view>
     </view>
 
+    <!-- 学习统计摘要 -->
+    <view class="stats-card" wx:if="{{classes.length > 0}}">
+      <view class="stats-row">
+        <view class="stats-item">
+          <text class="stats-value">{{classes.length}}</text>
+          <text class="stats-label">在读班级</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value">{{totalCompletedLessons}}</text>
+          <text class="stats-label">已完成课时</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value">{{overallProgress}}%</text>
+          <text class="stats-label">总体进度</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 联系方式 -->
     <view class="info-section">
       <view class="section-title">联系方式</view>

@@ -10,7 +10,8 @@ Page({
     error: null,
     activeTab: 'info',  // info | students | lessons
     lessons: [],
-    lessonsLoading: false
+    lessonsLoading: false,
+    attendanceRate: 0
   },
 
   onLoad(options) {
@@ -111,12 +112,31 @@ Page({
     try {
       const data = await get(`/classes/${this.data.classCode}/lessons`);
       const lessons = Array.isArray(data) ? data : (data.items || []);
-      this.setData({ lessons: lessons, lessonsLoading: false });
+      const attendanceRate = this.calculateAttendanceRate(lessons);
+      this.setData({ lessons: lessons, lessonsLoading: false, attendanceRate });
     } catch (err) {
       console.error('[Class Detail] 课时加载失败:', err);
       this.setData({ lessonsLoading: false });
       wx.showToast({ title: '课时加载失败', icon: 'none' });
     }
+  },
+
+  // 计算出勤率
+  calculateAttendanceRate(lessons) {
+    if (!lessons || lessons.length === 0) return 0;
+    let totalRecords = 0;
+    let presentRecords = 0;
+    lessons.forEach(lesson => {
+      if (lesson.attendance && Array.isArray(lesson.attendance)) {
+        lesson.attendance.forEach(record => {
+          totalRecords++;
+          if (record.status === 'PRESENT' || record.status === 'LATE') {
+            presentRecords++;
+          }
+        });
+      }
+    });
+    return totalRecords > 0 ? Math.round(presentRecords / totalRecords * 100) : 0;
   },
 
 });

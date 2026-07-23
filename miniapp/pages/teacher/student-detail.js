@@ -7,7 +7,10 @@ Page({
     student: null,
     classes: [],
     loading: true,
-    error: null
+    error: null,
+    totalCompletedLessons: 0,
+    totalLessons: 0,
+    overallProgress: 0
   },
 
   onLoad(options) {
@@ -43,10 +46,17 @@ Page({
         totalLessons: e.totalLessons || 0
       }));
 
+      const totalCompletedLessons = classes.reduce((sum, c) => sum + (c.completedLessons || 0), 0);
+      const totalLessons = classes.reduce((sum, c) => sum + (c.totalLessons || 0), 0);
+      const overallProgress = totalLessons > 0 ? Math.round(totalCompletedLessons / totalLessons * 100) : 0;
+
       this.setData({
         student,
         classes,
-        loading: false
+        loading: false,
+        totalCompletedLessons,
+        totalLessons,
+        overallProgress
       });
     } catch (err) {
       console.error('[Student Detail] 加载失败:', err);

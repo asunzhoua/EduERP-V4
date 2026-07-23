@@ -12,6 +12,7 @@ Page({
     totalStudents: 0,
     myContracts: [],
     recentLessons: [],
+    totalClasses: 0,
     loading: false,  // 加载状态
     error: null,     // 错误信息
     refreshing: false // 下拉刷新状态
@@ -86,12 +87,18 @@ Page({
     } else {
       // 教师端数据
       try {
-        const data = await get('/teacher/dashboard');
+        const [data, classesData] = await Promise.all([
+          get('/teacher/dashboard'),
+          get('/classes', { pageSize: 1 }).catch(() => null)
+        ]);
+
+        const totalClasses = data.totalClasses || (classesData && classesData.total) || 0;
         
         this.setData({
           todayLessons: data.todayLessons || 0,
           pendingAttendance: data.pendingAttendance || 0,
           totalStudents: data.totalStudents || 0,
+          totalClasses: totalClasses,
           loading: false
         });
 
@@ -103,7 +110,8 @@ Page({
           loading: false,
           todayLessons: 0,
           pendingAttendance: 0,
-          totalStudents: 0
+          totalStudents: 0,
+          totalClasses: 0
         });
 
         if (err.code !== 2002) {

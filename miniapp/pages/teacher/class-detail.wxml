@@ -82,6 +82,10 @@
               <text class="info-label">课时进度</text>
               <text class="info-value">{{classInfo.completedLessons}}/{{classInfo.totalLessons}}节</text>
             </view>
+            <view class="info-item">
+              <text class="info-label">出勤率</text>
+              <text class="info-value {{attendanceRate >= 90 ? 'rate-good' : attendanceRate >= 70 ? 'rate-warn' : 'rate-bad'}}">{{attendanceRate}}%</text>
+            </view>
           </view>
         </view>
       </view>

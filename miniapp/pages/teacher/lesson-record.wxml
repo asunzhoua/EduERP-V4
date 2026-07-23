@@ -52,7 +52,11 @@
   <view class="step-content" wx:if="{{step === 2}}">
     <view class="section-header">
       <text class="section-title">学生考勤</text>
-      <text class="hint">点击切换状态</text>
+      <view class="quick-actions">
+        <text class="quick-btn present" bindtap="markAllPresent">全部到课</text>
+        <text class="quick-btn absent" bindtap="markAllAbsent">全部缺勤</text>
+        <text class="hint">点击切换状态</text>
+      </view>
     </view>
     <view class="student-list">
       <block wx:for="{{students}}" wx:key="studentCode">

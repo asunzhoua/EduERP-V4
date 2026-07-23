@@ -91,6 +91,10 @@
         <text class="overview-value">{{totalStudents}}</text>
         <text class="overview-label">在籍学生</text>
       </view>
+      <view class="overview-item">
+        <text class="overview-value">{{totalClasses}}</text>
+        <text class="overview-label">我的班级</text>
+      </view>
     </view>
   </view>
 

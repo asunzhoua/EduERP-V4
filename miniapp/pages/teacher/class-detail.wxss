@@ -280,3 +280,8 @@
   border-radius: 12rpx;
   font-size: 30rpx;
 }
+
+/* 出勤率颜色 */
+.rate-good { color: #52c41a; font-weight: bold; }
+.rate-warn { color: #faad14; font-weight: bold; }
+.rate-bad { color: #ff4d4f; font-weight: bold; }
