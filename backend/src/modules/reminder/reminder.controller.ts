@@ -31,6 +31,7 @@ export class ReminderController {
   }
 
   @Get()
+  @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
   async findMyReminders(@Req() req: any, @Query() query: QueryReminderDto) {
     const userId = req.user.sub;
     const page = query.page ?? 1;
@@ -45,6 +46,7 @@ export class ReminderController {
   }
 
   @Patch(':id/read')
+  @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
   async markAsRead(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     const userId = req.user.sub;
     const reminder = await this.reminderService.markAsRead(id, userId);
@@ -52,6 +54,7 @@ export class ReminderController {
   }
 
   @Patch('read-all')
+  @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
   async markAllAsRead(@Req() req: any) {
     const userId = req.user.sub;
     const result = await this.reminderService.markAllAsRead(userId);
@@ -59,6 +62,7 @@ export class ReminderController {
   }
 
   @Get('unread-count')
+  @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
   async getUnreadCount(@Req() req: any) {
     const userId = req.user.sub;
     const count = await this.reminderService.getUnreadCount(userId);

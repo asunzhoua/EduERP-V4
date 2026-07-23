@@ -87,3 +87,39 @@
 3. **查询性能** — 修复 getTeacherTrend 和 getStudentTrend 的重复查询（各减少 1 次 DB 查询）✅
 4. **返回格式** — 统一 ApiResponse.success() 包装，MetricItem 结构一致 ✅
 5. **错误处理** — 添加 days 参数 NaN 防护 + 范围限制，导出 MetricItem 修复编译错误 ✅
+
+---
+
+## Phase 2 Batch 2.2 — Operation Dashboard Basic Implementation
+
+| Evidence ID | Type | Description | File | Status |
+|:------------|:-----|:------------|:-----|:-------|
+| B2.2-001 | New | Dashboard 页面逻辑（权限检查、数据加载、Tab切换、时间范围切换、趋势数据预处理） | miniapp/pages/operation/dashboard.js | ✅ PASS |
+| B2.2-002 | New | Dashboard 页面配置（导航栏标题、下拉刷新） | miniapp/pages/operation/dashboard.json | ✅ PASS |
+| B2.2-003 | New | Dashboard 页面结构（3个Tab、骨架屏、错误状态、空状态、纯CSS柱状图） | miniapp/pages/operation/dashboard.wxml | ✅ PASS |
+| B2.2-004 | New | Dashboard 页面样式（指标卡片、柱状图、骨架屏动画） | miniapp/pages/operation/dashboard.wxss | ✅ PASS |
+| B2.2-005 | Modify | 注册 pages/operation/dashboard 页面 | miniapp/app.json | ✅ PASS |
+| B2.2-006 | Modify | 教师快捷入口新增「运营看板」（仅 Admin/SuperAdmin 可见） | miniapp/pages/index/index.wxml | ✅ PASS |
+| B2.2-007 | Modify | 新增 goToDashboard() 导航方法 | miniapp/pages/index/index.js | ✅ PASS |
+
+### 实现结果摘要
+
+- 新增文件：4 个（dashboard.js/json/wxml/wxss）
+- 修改文件：3 个（app.json / index.wxml / index.js）
+- 总新增代码：775 行
+- 功能：3 个 Tab（学员概览/课程概览/趋势分析）+ 时间范围选择（7天/30天）+ 纯CSS柱状图
+- 权限控制：Admin/SuperAdmin 可见，其他角色显示无权限页面
+- 数据策略：Promise.all 并行请求，Tab 切换不重请求，时间切换仅请求 trend
+- 状态处理：骨架屏 + 错误重试 + 空状态 + 下拉刷新
+- 后端修改：0（纯前端新增）
+- 测试状态：987 tests, 80 suites ALL PASS
+- Commit SHA：278a38a
+
+### 验收结果
+
+1. **Dashboard 页面可访问** — 页面注册到 app.json，入口添加到首页 ✅
+2. **3 个 Tab 可切换** — 学员概览/课程概览/趋势分析，切换不重新请求 ✅
+3. **数据正确显示** — 对接 /analytics/institution + /analytics/institution/trend ✅
+4. **权限控制正确** — onLoad 检查 role，非 Admin 显示无权限 ✅
+5. **测试通过** — 987 tests ALL PASS ✅
+6. **Git commit + push** — 278a38a 已推送 ✅

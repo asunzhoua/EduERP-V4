@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Student } from '@modules/student/entities/student.entity';
 
 describe('AnalyticsController', () => {
   let controller: AnalyticsController;
@@ -14,11 +16,19 @@ describe('AnalyticsController', () => {
     getInstitutionTrend: jest.fn(),
   };
 
+  const mockStudentRepository = {
+    findOne: jest.fn(),
+  };
+
+  // Helper: create a mock req with a given role
+  const mockReq = (sub: number, role: string) => ({ user: { sub, role } });
+
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AnalyticsController],
       providers: [
         { provide: AnalyticsService, useValue: mockAnalyticsService },
+        { provide: getRepositoryToken(Student), useValue: mockStudentRepository },
       ],
     }).compile();
 
@@ -51,7 +61,7 @@ describe('AnalyticsController', () => {
       };
       mockAnalyticsService.getStudentMetrics.mockResolvedValue(mockMetrics);
 
-      const result = await controller.getStudentMetrics('STU-001');
+      const result = await controller.getStudentMetrics('STU-001', mockReq(1, 'Teacher'));
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('success');
@@ -121,7 +131,7 @@ describe('AnalyticsController', () => {
       };
       mockAnalyticsService.getStudentTrend.mockResolvedValue(mockTrend);
 
-      const result = await controller.getStudentTrend('STU-001', '7');
+      const result = await controller.getStudentTrend('STU-001', '7', mockReq(1, 'Teacher'));
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('success');
@@ -135,7 +145,7 @@ describe('AnalyticsController', () => {
         attendanceTrend: [],
       });
 
-      await controller.getStudentTrend('STU-001');
+      await controller.getStudentTrend('STU-001', undefined, mockReq(1, 'Teacher'));
 
       expect(mockAnalyticsService.getStudentTrend).toHaveBeenCalledWith('STU-001', 7);
     });
@@ -188,6 +198,51 @@ describe('AnalyticsController', () => {
       expect(result.message).toBe('success');
       expect(result.data).toEqual(mockTrend);
       expect(mockAnalyticsService.getInstitutionTrend).toHaveBeenCalledWith(7);
+    });
+  });
+
+  // ─── Data Permission: Student Ownership Check ───
+
+  describe('verifyStudentAccess', () => {
+    it('should allow Student to access their own data', async () => {
+      mockStudentRepository.findOne.mockResolvedValue({ userId: 42 });
+      mockAnalyticsService.getStudentMetrics.mockResolvedValue({ metrics: [] });
+
+      const result = await controller.getStudentMetrics('STU-001', mockReq(42, 'Student'));
+      expect(result.code).toBe(0);
+    });
+
+    it('should reject Student accessing another student data', async () => {
+      mockStudentRepository.findOne.mockResolvedValue({ userId: 99 });
+
+      await expect(
+        controller.getStudentMetrics('STU-001', mockReq(42, 'Student')),
+      ).rejects.toThrow('无权访问该学生数据');
+    });
+
+    it('should reject Student when studentCode not found', async () => {
+      mockStudentRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.getStudentMetrics('FAKE', mockReq(42, 'Student')),
+      ).rejects.toThrow('无权访问该学生数据');
+    });
+
+    it('should allow Parent to access their child data', async () => {
+      mockStudentRepository.findOne.mockResolvedValue({ userId: 42 });
+      mockAnalyticsService.getStudentMetrics.mockResolvedValue({ metrics: [] });
+
+      const result = await controller.getStudentMetrics('STU-001', mockReq(42, 'Parent'));
+      expect(result.code).toBe(0);
+    });
+
+    it('should allow Teacher to access any student data without ownership check', async () => {
+      mockAnalyticsService.getStudentMetrics.mockResolvedValue({ metrics: [] });
+
+      const result = await controller.getStudentMetrics('STU-001', mockReq(1, 'Teacher'));
+      expect(result.code).toBe(0);
+      // Should NOT call findOne for Teacher role
+      expect(mockStudentRepository.findOne).not.toHaveBeenCalled();
     });
   });
 });
