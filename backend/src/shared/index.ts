@@ -8,10 +8,11 @@
 export { BaseEntity, AggregateRoot, ValueObject, UniqueId, NumberId, StringId } from './entity';
 
 // Domain Event
-export { DomainEvent, DomainEventBase, DomainEventHandler } from './domain-event';
+export type { DomainEvent, DomainEventBase, DomainEventHandler } from './domain-event';
 
 // Specification
-export { ISpecification, CompositeSpecification, AndSpecification, OrSpecification, NotSpecification } from './specification';
+export type { ISpecification } from './specification';
+export { CompositeSpecification, AndSpecification, OrSpecification, NotSpecification } from './specification';
 
 // Exception
 export { DomainException, InvariantViolationException, BusinessRuleViolationException } from './exception';
@@ -23,7 +24,9 @@ export { Result } from './result';
 export { Guard } from './guard';
 
 // Clock
-export { IClock, SystemClock } from './clock';
+export type { IClock } from './clock';
+export { SystemClock } from './clock';
 
 // Identifier
-export { IUuid, SystemUuid } from './identifier';
+export type { IUuid } from './identifier';
+export { SystemUuid } from './identifier';

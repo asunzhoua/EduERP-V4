@@ -71,9 +71,9 @@ describe('TeacherDashboardController', () => {
       const result = await controller.getDashboard(mockReq);
 
       expect(result).toBeDefined();
-      expect(result.data.todayLessons).toBe(0);
-      expect(result.data.pendingAttendance).toBe(0);
-      expect(result.data.totalStudents).toBe(0);
+      expect(result.data!.todayLessons).toBe(0);
+      expect(result.data!.pendingAttendance).toBe(0);
+      expect(result.data!.totalStudents).toBe(0);
     });
 
     it('should return dashboard stats when teacher has assignments', async () => {
@@ -108,9 +108,9 @@ describe('TeacherDashboardController', () => {
       const result = await controller.getDashboard(mockReq);
 
       expect(result).toBeDefined();
-      expect(result.data.todayLessons).toBe(3);
-      expect(result.data.pendingAttendance).toBe(2); // 3 total - 1 with attendance
-      expect(result.data.totalStudents).toBe(25); // 15 + 10
+      expect(result.data!.todayLessons).toBe(3);
+      expect(result.data!.pendingAttendance).toBe(2); // 3 total - 1 with attendance
+      expect(result.data!.totalStudents).toBe(25); // 15 + 10
     });
 
     it('should handle no lessons today', async () => {
@@ -124,8 +124,8 @@ describe('TeacherDashboardController', () => {
       const mockReq = { user: { sub: 100 } };
       const result = await controller.getDashboard(mockReq);
 
-      expect(result.data.todayLessons).toBe(0);
-      expect(result.data.pendingAttendance).toBe(0);
+      expect(result.data!.todayLessons).toBe(0);
+      expect(result.data!.pendingAttendance).toBe(0);
     });
   });
 });

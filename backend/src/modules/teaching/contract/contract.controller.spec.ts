@@ -90,7 +90,7 @@ describe('ContractController', () => {
         totalAmount: 6000.0,
         note: null,
         tags: null,
-      };
+      } as any;
 
       const result = await controller.create(dto);
 
@@ -119,7 +119,7 @@ describe('ContractController', () => {
         totalAmount: undefined,
         note: undefined,
         tags: undefined,
-      };
+      } as any;
 
       await controller.create(dto);
 

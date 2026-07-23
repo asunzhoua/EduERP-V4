@@ -78,7 +78,7 @@ describe('AggregateRoot', () => {
       const aggregate = new TestAggregate(1, 100);
 
       expect(() => {
-        aggregate.invariant(false, 'INV-001', 'Test invariant');
+        (aggregate as any).invariant(false, 'INV-001', 'Test invariant');
       }).toThrow(InvariantViolationException);
     });
 
@@ -86,7 +86,7 @@ describe('AggregateRoot', () => {
       const aggregate = new TestAggregate(1, 100);
 
       expect(() => {
-        aggregate.invariant(true, 'INV-001', 'Test invariant');
+        (aggregate as any).invariant(true, 'INV-001', 'Test invariant');
       }).not.toThrow();
     });
   });

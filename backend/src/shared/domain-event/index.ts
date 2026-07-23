@@ -1,2 +1,2 @@
-export { DomainEvent, DomainEventBase } from './domain-event';
-export { DomainEventHandler } from './domain-event-handler';
+export type { DomainEvent, DomainEventBase } from './domain-event';
+export type { DomainEventHandler } from './domain-event-handler';

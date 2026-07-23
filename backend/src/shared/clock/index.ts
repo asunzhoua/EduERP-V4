@@ -1,2 +1,2 @@
-export { IClock } from './clock';
+export type { IClock } from './clock';
 export { SystemClock } from './system-clock';

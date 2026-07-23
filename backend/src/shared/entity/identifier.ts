@@ -12,6 +12,7 @@ export abstract class UniqueId<T> extends ValueObject<{ value: T }> {
     super({ value });
   }
 
+  // @ts-ignore: intentional override - UniqueId unwraps value from ValueObject<{value: T}>
   get value(): T {
     return this._value.value;
   }

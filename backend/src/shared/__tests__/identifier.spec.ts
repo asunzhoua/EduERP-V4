@@ -11,14 +11,14 @@ describe('NumberId', () => {
     const a = NumberId.create(123);
     const b = NumberId.create(123);
 
-    expect(a.equals(b)).toBe(true);
+    expect(a.equals(b as any)).toBe(true);
   });
 
   it('should not be equal for different values', () => {
     const a = NumberId.create(123);
     const b = NumberId.create(456);
 
-    expect(a.equals(b)).toBe(false);
+    expect(a.equals(b as any)).toBe(false);
   });
 });
 
@@ -33,13 +33,13 @@ describe('StringId', () => {
     const a = StringId.create('CS2026070001');
     const b = StringId.create('CS2026070001');
 
-    expect(a.equals(b)).toBe(true);
+    expect(a.equals(b as any)).toBe(true);
   });
 
   it('should not be equal for different values', () => {
     const a = StringId.create('CS2026070001');
     const b = StringId.create('CS2026070002');
 
-    expect(a.equals(b)).toBe(false);
+    expect(a.equals(b as any)).toBe(false);
   });
 });

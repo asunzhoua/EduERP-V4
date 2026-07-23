@@ -1,4 +1,4 @@
-export { ISpecification } from './specification';
+export type { ISpecification } from './specification';
 export {
   CompositeSpecification,
   AndSpecification,

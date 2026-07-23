@@ -103,8 +103,8 @@ describe('Specification', () => {
     });
 
     it('should support complex chains', () => {
-      const spec = new IsPositive()
-        .and(new IsEven())
+      const spec = (new IsPositive()
+        .and(new IsEven()) as any)
         .or(new IsGreaterThanTen());
 
       expect(spec.isSatisfiedBy(2)).toBe(true);   // positive AND even

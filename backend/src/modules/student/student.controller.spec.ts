@@ -73,20 +73,20 @@ describe('StudentController', () => {
     const dto = { name: '张三', gender: 'M', birthDate: '2015-01-01' };
     const result = await controller.create(dto as any, mockReq);
     expect(result.code).toBe(0);
-    expect(result.data).toEqual(mockStudent);
+    expect(result.data!).toEqual(mockStudent);
     expect(service.create).toHaveBeenCalledWith(dto, 1);
   });
 
   it('GET /students - findAll', async () => {
     const result = await controller.findAll({ page: 1 } as any);
     expect(result.code).toBe(0);
-    expect(result.data.items).toHaveLength(1);
+    expect(result.data!.items).toHaveLength(1);
   });
 
   it('GET /students/:id - findOne', async () => {
     const result = await controller.findOne(1);
     expect(result.code).toBe(0);
-    expect(result.data).toEqual(mockStudent);
+    expect(result.data!).toEqual(mockStudent);
     expect(service.findById).toHaveBeenCalledWith(1);
   });
 

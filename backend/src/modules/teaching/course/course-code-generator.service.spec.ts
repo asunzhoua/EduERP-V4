@@ -53,9 +53,10 @@ describe('CourseCodeGeneratorService', () => {
     it('should start from 0001 when no existing records', async () => {
       setupQueryMock(null);
       const now = new Date('2026-03-15');
+      const OriginalDate = global.Date;
       jest.spyOn(global, 'Date').mockImplementation(((...args: any[]) => {
         if (args.length === 0) return now;
-        return new (Function.prototype.bind.apply(Date.__proto__ ?? Date.prototype, [null, ...args] as any) as any)();
+        return new (OriginalDate.bind(null, ...args))();
       }) as any);
 
       const code = await service.generateCourseCode();

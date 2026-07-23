@@ -279,7 +279,7 @@ describe('LoginLog entity', () => {
       ip: '192.168.1.1',
       device: 'Chrome/120 Windows',
       detail: '登录成功',
-      success: 1,
+      success: 1 as any,
       createTime: now,
     });
 
@@ -298,7 +298,7 @@ describe('LoginLog entity', () => {
   it('should support LOGIN_FAILED action', () => {
     const log = new LoginLog();
     log.action = 'LOGIN_FAILED';
-    log.success = 0;
+    log.success = 0 as any;
     expect(log.action).toBe('LOGIN_FAILED');
     expect(log.success).toBe(0);
   });

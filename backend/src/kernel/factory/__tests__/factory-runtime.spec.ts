@@ -8,6 +8,7 @@ import { IValueObjectFactory } from '../value-object-factory';
  */
 
 class TestId extends ValueObject<{ value: number }> {
+  // @ts-ignore: intentional override for test
   get value(): number { return this._value.value; }
 
   static create(id: number): TestId {
@@ -19,7 +20,7 @@ class TestAggregate extends AggregateRoot {
   private _name: string;
 
   constructor(id: number, name: string) {
-    super(id);
+    super(id, 0);
     this._name = name;
   }
 

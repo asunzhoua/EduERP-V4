@@ -1,2 +1,2 @@
-export { IUuid } from './uuid';
+export type { IUuid } from './uuid';
 export { SystemUuid } from './system-uuid';
