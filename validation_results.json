@@ -16,10 +16,10 @@
         "status": 1,
         "campusId": "1",
         "avatar": null,
-        "lastLoginAt": "2026-07-23T23:07:01.000Z",
+        "lastLoginAt": "2026-07-23T23:26:36.000Z",
         "createTime": "2026-07-19T22:55:54.796Z",
-        "updateTime": "2026-07-23T23:07:00.000Z",
-        "version": 5,
+        "updateTime": "2026-07-23T23:26:36.000Z",
+        "version": 9,
         "deleted": 0
       }
     },
@@ -148,7 +148,35 @@
     "response": {
       "code": 0,
       "message": "success",
-      "data": []
+      "data": [
+        {
+          "id": "14",
+          "lessonDate": "2026-07-18",
+          "startTime": "09:00",
+          "endTime": "10:30",
+          "courseName": "数学基础班",
+          "className": "周六上午班",
+          "status": "ABSENT"
+        },
+        {
+          "id": "12",
+          "lessonDate": "2026-07-11",
+          "startTime": "09:00",
+          "endTime": "10:30",
+          "courseName": "数学基础班",
+          "className": "周六上午班",
+          "status": "PRESENT"
+        },
+        {
+          "id": "10",
+          "lessonDate": "2026-07-04",
+          "startTime": "09:00",
+          "endTime": "10:30",
+          "courseName": "数学基础班",
+          "className": "周六上午班",
+          "status": "PRESENT"
+        }
+      ]
     },
     "checks": [
       {
@@ -157,7 +185,7 @@
       },
       {
         "name": "has records",
-        "pass": false
+        "pass": true
       }
     ]
   },
@@ -192,15 +220,22 @@
   {
     "step": "8-Reminders",
     "api": "GET /api/v1/reminders",
-    "http_status": 404,
+    "http_status": 200,
     "response": {
-      "code": 404,
-      "message": "Cannot GET /api/v1/reminders",
-      "data": null
+      "code": 0,
+      "message": "success",
+      "data": {
+        "items": [],
+        "total": 0
+      }
     },
     "checks": [
       {
-        "name": "API exists and returns data",
+        "name": "returns data",
+        "pass": true
+      },
+      {
+        "name": "has reminders",
         "pass": false
       }
     ]

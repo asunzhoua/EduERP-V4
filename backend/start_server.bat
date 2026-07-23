@@ -1,0 +1,11 @@
+@echo off
+cd /d %~dp0
+set DB_PASSWORD=sun123456
+set DB_HOST=localhost
+set DB_PORT=3306
+set DB_USERNAME=root
+set DB_DATABASE=EduOS
+set SERVER_PORT=3000
+set JWT_SECRET=c0e1864715f16179febb4fe38abf567708474579efe74ed7858e65ca671a348ee20aeb5d105fd5c37e5bf3f06f33a77d3833f6669186b21c75539092c93dbef8
+set JWT_EXPIRES_IN=7d
+node dist\main.js
