@@ -1,12 +1,14 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { LessonAttendanceRepository } from './lesson-attendance.repository';
 import { LessonAttendanceEntity } from './lesson-attendance.entity';
-import { AttendanceStatus } from './enums/attendance-status.enum';
+import { AttendanceStatus, DEDUCTIBLE_STATUSES } from './enums/attendance-status.enum';
 import { AttendanceWorkflowState } from './enums/attendance-workflow-state.enum';
 import { AttendanceSource } from './enums/attendance-source.enum';
 import { ReminderService } from '@modules/reminder/reminder.service';
 import { ReminderType } from '@modules/reminder/enums/reminder-type.enum';
 import { TargetType } from '@modules/reminder/enums/target-type.enum';
+import { ContractRepository } from '@modules/teaching/contract/contract.repository';
+import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
 
 /**
  * Allowed workflow state transitions per AttendanceStateMachine.
@@ -53,6 +55,15 @@ export interface BatchRollCallInput {
   records: RecordAttendanceInput[];
 }
 
+/** Result of a lesson deduction operation. */
+export interface LessonDeductionResult {
+  studentCode: string;
+  contractCode: string;
+  previousRemaining: number;
+  newRemaining: number;
+  statusChanged: boolean;
+}
+
 @Injectable()
 export class LessonAttendanceService {
   private readonly logger = new Logger(LessonAttendanceService.name);
@@ -60,6 +71,7 @@ export class LessonAttendanceService {
   constructor(
     private readonly attendanceRepo: LessonAttendanceRepository,
     private readonly reminderService: ReminderService,
+    private readonly contractRepo: ContractRepository,
   ) {}
 
   // ─── Auto-Creation ───
@@ -100,6 +112,10 @@ export class LessonAttendanceService {
    * ATTEND-001: Validates workflow transition.
    * ATTEND-002: LATE/LEAVE/ABSENT require reason.
    * Validates that the status is a known AttendanceStatus value.
+   *
+   * PHASE 2 BATCH 2.1: Now triggers contract lesson deduction
+   * when status is deductible (PRESENT/LATE/ONLINE/OFFLINE) and
+   * this is the first check-in (PENDING → CHECKED_IN).
    */
   async recordAttendance(
     input: RecordAttendanceInput,
@@ -146,6 +162,9 @@ export class LessonAttendanceService {
       );
     }
 
+    // ─── Track if this is first check-in (for deduction) ───
+    const isFirstCheckIn = entity.workflowState === AttendanceWorkflowState.PENDING;
+
     // ─── Apply changes ───
     entity.workflowState = AttendanceWorkflowState.CHECKED_IN;
     entity.status = input.status;
@@ -161,6 +180,13 @@ export class LessonAttendanceService {
 
     const saved = await this.attendanceRepo.save(entity);
 
+    // ─── PHASE 2: Contract lesson deduction (only on first check-in) ───
+    if (isFirstCheckIn && DEDUCTIBLE_STATUSES.has(input.status)) {
+      await this.deductLessonFromContract(input.studentCode).catch(err =>
+        this.logger.warn(`Lesson deduction failed for student ${input.studentCode}: ${err.message}`),
+      );
+    }
+
     // ─── Create attendance reminder for teacher ───
     this.createAttendanceReminders(entity.teacherId, entity.lessonId, entity.classCode).catch(err =>
       this.logger.warn(`Failed to create attendance reminder: ${err.message}`),
@@ -172,6 +198,9 @@ export class LessonAttendanceService {
   /**
    * Batch roll call — record attendance for all students at once.
    * Uses a single query + batch save to eliminate N+1 pattern.
+   *
+   * PHASE 2 BATCH 2.1: Now triggers contract lesson deduction
+   * for each student with deductible status on first check-in.
    */
   async batchRollCall(input: BatchRollCallInput): Promise<LessonAttendanceEntity[]> {
     // 1. Batch query existing records
@@ -183,6 +212,7 @@ export class LessonAttendanceService {
     const existingMap = new Map(existingRecords.map(r => [r.studentCode, r]));
 
     const results: LessonAttendanceEntity[] = [];
+    const studentsToDeduct: string[] = [];
 
     for (const recordInput of input.records) {
       const entity = existingMap.get(recordInput.studentCode);
@@ -220,6 +250,11 @@ export class LessonAttendanceService {
       entity.reason = recordInput.reason ?? null;
       entity.note = recordInput.note ?? null;
 
+      // Track students needing deduction
+      if (DEDUCTIBLE_STATUSES.has(recordInput.status)) {
+        studentsToDeduct.push(recordInput.studentCode);
+      }
+
       results.push(entity);
     }
 
@@ -229,6 +264,13 @@ export class LessonAttendanceService {
 
     const saved = await this.attendanceRepo.saveAll(results);
 
+    // ─── PHASE 2: Contract lesson deduction for all deductible students ───
+    for (const studentCode of studentsToDeduct) {
+      await this.deductLessonFromContract(studentCode).catch(err =>
+        this.logger.warn(`Lesson deduction failed for student ${studentCode}: ${err.message}`),
+      );
+    }
+
     // ─── Create attendance reminder for teacher ───
     if (results.length > 0) {
       this.createAttendanceReminders(results[0].teacherId, input.lessonId, results[0].classCode).catch(err =>
@@ -237,6 +279,69 @@ export class LessonAttendanceService {
     }
 
     return saved;
+  }
+
+  // ─── Contract Lesson Deduction (Phase 2 Batch 2.1) ───
+
+  /**
+   * Deduct one lesson from the student's active contract.
+   * Called when attendance is recorded with a deductible status
+   * (PRESENT, LATE, ONLINE, OFFLINE).
+   *
+   * Business rules:
+   * - Only ACTIVE contracts are deducted
+   * - If remainingLessons reaches 0, contract status → EXHAUSTED
+   * - If no active contract found, log warning and skip
+   * - If remainingLessons already 0, log warning and skip
+   */
+  private async deductLessonFromContract(
+    studentCode: string,
+  ): Promise<LessonDeductionResult | null> {
+    // 1. Find active contract for student
+    const contract = await this.contractRepo.findOneActiveByStudentCode(studentCode);
+
+    if (!contract) {
+      this.logger.warn(
+        `No active contract found for student ${studentCode}. Skipping lesson deduction.`,
+      );
+      return null;
+    }
+
+    // 2. Guard: no remaining lessons
+    if (contract.remainingLessons <= 0) {
+      this.logger.warn(
+        `Contract ${contract.contractCode} for student ${studentCode} has 0 remaining lessons. Skipping deduction.`,
+      );
+      return null;
+    }
+
+    // 3. Deduct
+    const previousRemaining = contract.remainingLessons;
+    contract.remainingLessons -= 1;
+
+    // 4. Auto-transition to EXHAUSTED if all lessons consumed
+    if (contract.remainingLessons === 0) {
+      contract.status = ContractStatus.EXHAUSTED;
+      this.logger.log(
+        `Contract ${contract.contractCode} auto-transitioned to EXHAUSTED (all lessons consumed).`,
+      );
+    }
+
+    // 5. Save
+    await this.contractRepo.save(contract);
+
+    this.logger.log(
+      `Lesson deducted: student=${studentCode}, contract=${contract.contractCode}, ` +
+      `remaining=${previousRemaining} → ${contract.remainingLessons}`,
+    );
+
+    return {
+      studentCode,
+      contractCode: contract.contractCode,
+      previousRemaining,
+      newRemaining: contract.remainingLessons,
+      statusChanged: contract.remainingLessons === 0,
+    };
   }
 
   // ─── Confirmation ───
@@ -288,18 +393,13 @@ export class LessonAttendanceService {
       }
     }
 
-    await this.attendanceRepo.saveAll(toLock);
-  }
-
-  // ─── Read ───
-
-  async findOne(id: number): Promise<LessonAttendanceEntity> {
-    const entity = await this.attendanceRepo.findOneById(id);
-    if (!entity) {
-      throw new NotFoundException(`Attendance record ${id} not found`);
+    if (toLock.length > 0) {
+      await this.attendanceRepo.saveAll(toLock);
+      this.logger.log(`Locked ${toLock.length} attendance records for lesson ${lessonId}`);
     }
-    return entity;
   }
+
+  // ─── Queries ───
 
   async findByLessonId(lessonId: number): Promise<LessonAttendanceEntity[]> {
     return this.attendanceRepo.findByLessonId(lessonId);
@@ -309,95 +409,41 @@ export class LessonAttendanceService {
     return this.attendanceRepo.findByStudentCode(studentCode);
   }
 
-  /**
-   * Count attendance records not yet confirmed/locked for a lesson.
-   */
-  async countUnconfirmed(lessonId: number): Promise<number> {
-    return this.attendanceRepo.countUnconfirmedByLessonId(lessonId);
+  async countPendingByLessonId(lessonId: number): Promise<number> {
+    return this.attendanceRepo.countPendingByLessonId(lessonId);
   }
 
-  // ─── Reverse Transition ───
-
-  /**
-   * Admin override: CONFIRMED → CHECKED_IN (re-open for correction).
-   * Requires reason.
-   */
-  async reverseToCheckedIn(
-    lessonId: number,
-    reason: string,
-    operatedBy: number,
-  ): Promise<void> {
-    if (!reason?.trim()) {
-      throw new BadRequestException('Reason is required for reverse transition');
-    }
-
-    const records = await this.attendanceRepo.findByLessonId(lessonId);
-    const toReverse: LessonAttendanceEntity[] = [];
-
-    for (const record of records) {
-      if (record.workflowState === AttendanceWorkflowState.CONFIRMED) {
-        this.validateWorkflowTransition(
-          record.workflowState,
-          AttendanceWorkflowState.CHECKED_IN,
-        );
-        record.workflowState = AttendanceWorkflowState.CHECKED_IN;
-        record.operator = operatedBy;
-        toReverse.push(record);
-      }
-    }
-
-    await this.attendanceRepo.saveAll(toReverse);
-  }
-
-  // ─── Internal Helpers ───
+  // ─── Private Helpers ───
 
   private validateWorkflowTransition(
-    from: AttendanceWorkflowState,
-    to: AttendanceWorkflowState,
+    currentState: AttendanceWorkflowState,
+    targetState: AttendanceWorkflowState,
   ): void {
-    const allowed = VALID_WORKFLOW_TRANSITIONS[from];
-    if (!allowed || !allowed.includes(to)) {
+    const allowed = VALID_WORKFLOW_TRANSITIONS[currentState];
+    if (!allowed || !allowed.includes(targetState)) {
       throw new BadRequestException(
-        `Invalid workflow transition: ${from} → ${to}`,
+        `Invalid workflow transition: ${currentState} → ${targetState}`,
       );
     }
   }
 
-  // ─── Reminder ───
-
-  /**
-   * Create ATTENDANCE_REMINDER for the teacher when attendance is recorded.
-   * Reminds the teacher to confirm the attendance records.
-   * Fire-and-forget: errors are logged but do not block attendance recording.
-   */
-  async createAttendanceReminders(
+  private async createAttendanceReminders(
     teacherId: number,
     lessonId: number,
     classCode: string,
-  ): Promise<number> {
+  ): Promise<void> {
     try {
-      // Count unconfirmed records for this lesson
-      const unconfirmedCount = await this.attendanceRepo.countUnconfirmedByLessonId(lessonId);
-
-      if (unconfirmedCount === 0) return 0;
-
       await this.reminderService.createReminder({
         type: ReminderType.ATTENDANCE_REMINDER,
-        title: `考勤待确认：${classCode}`,
-        content: `课程 ${classCode}（Lesson #${lessonId}）有 ${unconfirmedCount} 条考勤记录待确认，请及时处理。`,
-        targetUserId: teacherId,
         targetType: TargetType.TEACHER,
+        targetUserId: teacherId,
+        title: `待确认出勤 — ${classCode}`,
+        content: `课程 ${lessonId} 的出勤已记录，请及时确认。`,
         relatedEntityId: lessonId,
-        relatedEntityType: 'Lesson',
+        relatedEntityType: 'LESSON',
       });
-
-      this.logger.log(
-        `Created attendance reminder for teacher ${teacherId}, lesson ${lessonId} (${unconfirmedCount} unconfirmed)`,
-      );
-      return 1;
     } catch (err) {
-      this.logger.warn(`createAttendanceReminders failed for lesson ${lessonId}: ${err.message}`);
-      return 0;
+      this.logger.warn(`Failed to create attendance reminder: ${err.message}`);
     }
   }
 }

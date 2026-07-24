@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ContractEntity } from './contract.entity';
+import { ContractStatus } from './enums/contract-status.enum';
 
 @Injectable()
 export class ContractRepository {
@@ -20,6 +21,13 @@ export class ContractRepository {
 
   async findOneByCode(contractCode: string): Promise<ContractEntity | null> {
     return this.repo.findOne({ where: { contractCode } });
+  }
+
+  async findOneActiveByStudentCode(studentCode: string): Promise<ContractEntity | null> {
+    return this.repo.findOne({
+      where: { studentCode, status: ContractStatus.ACTIVE },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findByStudentCode(studentCode: string): Promise<ContractEntity[]> {

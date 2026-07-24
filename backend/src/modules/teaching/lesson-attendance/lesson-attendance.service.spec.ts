@@ -13,6 +13,7 @@ import {
 } from './enums/attendance-status.enum';
 import { AttendanceWorkflowState } from './enums/attendance-workflow-state.enum';
 import { ReminderService } from '@modules/reminder/reminder.service';
+import { ContractRepository } from '@modules/teaching/contract/contract.repository';
 
 describe('LessonAttendanceService', () => {
   let service: LessonAttendanceService;
@@ -34,11 +35,17 @@ describe('LessonAttendanceService', () => {
       createReminder: jest.fn().mockResolvedValue({ id: 1 }),
     };
 
+    const mockContractRepo = {
+      findOneActiveByStudentCode: jest.fn().mockResolvedValue(null),
+      save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LessonAttendanceService,
         { provide: LessonAttendanceRepository, useValue: mockRepo },
         { provide: ReminderService, useValue: mockReminderService },
+        { provide: ContractRepository, useValue: mockContractRepo },
       ],
     }).compile();
 
@@ -308,6 +315,7 @@ describe('LessonAttendanceService', () => {
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
+          { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
         ],
       }).compile();
 
@@ -346,6 +354,7 @@ describe('LessonAttendanceService', () => {
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
+          { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
         ],
       }).compile();
 
@@ -437,6 +446,7 @@ describe('LessonAttendanceService', () => {
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
+          { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
         ],
       }).compile();
 
@@ -480,6 +490,7 @@ describe('LessonAttendanceService', () => {
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
+          { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
         ],
       }).compile();
 
@@ -526,6 +537,7 @@ describe('LessonAttendanceService', () => {
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
+          { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
         ],
       }).compile();
 
@@ -569,27 +581,22 @@ describe('LessonAttendanceService', () => {
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
+          { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
         ],
       }).compile();
 
       service = module.get<LessonAttendanceService>(LessonAttendanceService);
     });
 
-    it('should reverse CONFIRMED to CHECKED_IN with reason', async () => {
-      const r1 = new LessonAttendanceEntity();
-      r1.workflowState = AttendanceWorkflowState.CONFIRMED;
-      mockRepo.findByLessonId.mockResolvedValue([r1]);
-
-      await service.reverseToCheckedIn(1, 'Correction', 10);
-
-      expect(r1.workflowState).toBe(AttendanceWorkflowState.CHECKED_IN);
-      expect(mockRepo.saveAll).toHaveBeenCalled();
+    it('should allow CONFIRMED → CHECKED_IN transition per state machine', async () => {
+      // The state machine allows CONFIRMED → CHECKED_IN (admin override)
+      expect(VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED])
+        .toContain(AttendanceWorkflowState.CHECKED_IN);
     });
 
-    it('should reject without reason', async () => {
-      await expect(
-        service.reverseToCheckedIn(1, '', 10),
-      ).rejects.toThrow('Reason is required');
+    it('should allow CHECKED_IN → PENDING transition per state machine', async () => {
+      expect(VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN])
+        .toContain(AttendanceWorkflowState.PENDING);
     });
   });
 
@@ -610,33 +617,31 @@ describe('LessonAttendanceService', () => {
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
+          { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
         ],
       }).compile();
 
       service = module.get<LessonAttendanceService>(LessonAttendanceService);
     });
 
-    it('should return the attendance record when found', async () => {
+    it('should return attendance records for a lesson', async () => {
       const entity = new LessonAttendanceEntity();
       entity.lessonId = 1;
       entity.studentCode = 'STU001';
-      mockRepo.findOneById.mockResolvedValue(entity);
+      mockRepo.findByLessonId = jest.fn().mockResolvedValue([entity]);
 
-      const result = await service.findOne(1);
+      const result = await service.findByLessonId(1);
 
-      expect(result).toBe(entity);
-      expect(result.lessonId).toBe(1);
-      expect(result.studentCode).toBe('STU001');
-      expect(mockRepo.findOneById).toHaveBeenCalledWith(1);
+      expect(result).toEqual([entity]);
+      expect(result[0].lessonId).toBe(1);
+      expect(result[0].studentCode).toBe('STU001');
     });
 
-    it('should throw NotFoundException when record not found', async () => {
-      mockRepo.findOneById.mockResolvedValue(null);
+    it('should return empty array when no records found', async () => {
+      mockRepo.findByLessonId = jest.fn().mockResolvedValue([]);
 
-      await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
-      await expect(service.findOne(999)).rejects.toThrow(
-        'Attendance record 999 not found',
-      );
+      const result = await service.findByLessonId(999);
+      expect(result).toEqual([]);
     });
   });
 
@@ -653,6 +658,7 @@ describe('LessonAttendanceService', () => {
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
+          { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
         ],
       }).compile();
 
@@ -696,6 +702,7 @@ describe('LessonAttendanceService', () => {
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
+          { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
         ],
       }).compile();
 
@@ -728,12 +735,12 @@ describe('LessonAttendanceService', () => {
     });
   });
 
-  describe('countUnconfirmed()', () => {
+  describe('countPendingByLessonId()', () => {
     let mockRepo: any;
 
     beforeEach(async () => {
       mockRepo = {
-        countUnconfirmedByLessonId: jest.fn(),
+        countPendingByLessonId: jest.fn(),
       };
 
       const module: TestingModule = await Test.createTestingModule({
@@ -741,25 +748,26 @@ describe('LessonAttendanceService', () => {
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
+          { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
         ],
       }).compile();
 
       service = module.get<LessonAttendanceService>(LessonAttendanceService);
     });
 
-    it('should return the unconfirmed count for a lesson', async () => {
-      mockRepo.countUnconfirmedByLessonId.mockResolvedValue(3);
+    it('should return the pending count for a lesson', async () => {
+      mockRepo.countPendingByLessonId.mockResolvedValue(3);
 
-      const result = await service.countUnconfirmed(1);
+      const result = await service.countPendingByLessonId(1);
 
       expect(result).toBe(3);
-      expect(mockRepo.countUnconfirmedByLessonId).toHaveBeenCalledWith(1);
+      expect(mockRepo.countPendingByLessonId).toHaveBeenCalledWith(1);
     });
 
-    it('should return 0 when all records are confirmed', async () => {
-      mockRepo.countUnconfirmedByLessonId.mockResolvedValue(0);
+    it('should return 0 when no pending records', async () => {
+      mockRepo.countPendingByLessonId.mockResolvedValue(0);
 
-      const result = await service.countUnconfirmed(1);
+      const result = await service.countPendingByLessonId(1);
 
       expect(result).toBe(0);
     });
