@@ -49,7 +49,7 @@ export class AuthService {
     password: string,
     device?: string,
     ip?: string,
-  ): Promise<{ accessToken: string; refreshToken: string; user: Partial<User> }> {
+  ): Promise<{ accessToken: string; refreshToken: string; expiresIn: number; user: Partial<User> }> {
     const user = await this.validateUser(username, password);
 
     const payload = {
@@ -76,14 +76,14 @@ export class AuthService {
     await this.createLoginLog(user.id, user.username, user.role, 'LOGIN', true, ip, device);
 
     const { password: _, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safeUser } = user;
-    return { accessToken, refreshToken, user: safeUser };
+    return { accessToken, refreshToken, expiresIn: 7200, user: safeUser };
   }
 
   async refresh(
     refreshToken: string,
     ip?: string,
     device?: string,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  ): Promise<{ accessToken: string; refreshToken: string; expiresIn: number }> {
     const user = await this.userRepository.findByRefreshToken(refreshToken);
 
     if (!user) {
@@ -116,7 +116,7 @@ export class AuthService {
 
     await this.createLoginLog(user.id, user.username, user.role, 'REFRESH', true, ip, device);
 
-    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken, expiresIn: 7200 };
   }
 
   async logout(userId: number, ip?: string, device?: string): Promise<void> {
