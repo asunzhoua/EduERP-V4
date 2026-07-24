@@ -4,7 +4,7 @@ const { get } = require('../../utils/request');
 // 指标说明文案
 const METRIC_DESCRIPTIONS = {
   totalStudents: '系统中所有已注册学员的总数，包含在读和休学状态。',
-  activeStudents: '近7天内有登录记录或出勤记录的学员数量，反映实际活跃情况。',
+  activeStudents: '当前处于在读状态的学员数量，反映实际在读规模。',
   totalClasses: '系统中已创建的班级总数，包含所有状态的班级。',
   activeRate: '活跃学员占总学员的百分比，反映整体学习活跃度。',
   totalCourses: '系统中已开设的课程总数。'

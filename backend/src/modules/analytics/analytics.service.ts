@@ -455,12 +455,17 @@ export class AnalyticsService {
     }));
 
     // Enrollment trend: new students per day
+    // createTime is DATETIME, so use < nextDay to include the full end date
+    const endDateTime = new Date(endDate + 'T00:00:00');
+    const nextDay = new Date(endDateTime.getTime() + 24 * 60 * 60 * 1000);
+    const nextDayStr = this.formatDate(nextDay);
+
     const enrollRows = await this.studentRepository
       .createQueryBuilder('student')
       .select('DATE(student.createTime)', 'date')
       .addSelect('COUNT(*)', 'count')
       .where('student.createTime >= :startDate', { startDate })
-      .andWhere('student.createTime <= :endDate', { endDate })
+      .andWhere('student.createTime < :nextDay', { nextDay: nextDayStr })
       .andWhere('student.deleted = :deleted', { deleted: false })
       .groupBy('date')
       .getRawMany();
