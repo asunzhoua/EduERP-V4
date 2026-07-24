@@ -224,7 +224,7 @@ Page({
       success: function(res) {
         if (res.confirm) {
           request({
-            url: '/api/v1/reminders/read-all',
+            url: '/reminders/read-all',
             method: 'PATCH'
           }).then(function() {
             wx.showToast({ title: '已全部标记为已读', icon: 'success' });
