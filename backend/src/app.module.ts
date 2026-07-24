@@ -39,7 +39,7 @@ import { appConfig } from '@config/configuration';
         username: process.env.DB_USERNAME || 'root',
         password: process.env.DB_PASSWORD || 'root',
         database: process.env.DB_DATABASE || 'EduOS',
-        entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+        entities: [__dirname + '/**/*.entity.js'],
         synchronize: false,
         logging: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
         extra: {
@@ -47,6 +47,8 @@ import { appConfig } from '@config/configuration';
           connectTimeout: 10000,
           idleTimeout: 30000,
         },
+        retryAttempts: 1,
+        retryDelay: 1000,
       };
       },
     }),

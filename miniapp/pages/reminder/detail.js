@@ -60,7 +60,7 @@ Page({
     self.setData({ marking: true });
 
     request({
-      url: '/api/v1/reminders/' + reminder.id + '/read',
+      url: '/reminders/' + reminder.id + '/read',
       method: 'PATCH'
     }).then(function(res) {
       // 更新本地状态
@@ -92,7 +92,7 @@ Page({
           // 如果后续有 dismiss 接口可以替换
           self.setData({ marking: true });
           request({
-            url: '/api/v1/reminders/' + reminder.id + '/read',
+            url: '/reminders/' + reminder.id + '/read',
             method: 'PATCH'
           }).then(function() {
             self.setData({
