@@ -1,11 +1,11 @@
 {
   "mission_id": "M-EduOS-SALARY-SYSTEM-DESIGN-LONG-RUNNING-V1",
   "status": "RUNNING",
-  "current_phase": 2,
-  "current_batch": "2.1",
-  "updated_at": "2026-07-24T12:00:00+08:00",
-  "batch_started_at": "2026-07-24T11:50:00+08:00",
-  "last_commit": "0019b17",
+  "current_phase": 6,
+  "current_batch": "6.1",
+  "updated_at": "2026-07-24T14:30:00+08:00",
+  "batch_started_at": "2026-07-24T14:00:00+08:00",
+  "last_commit": "9c3ce22",
   "pending_decision_gates": [],
   "auto_recovery_attempts": 0,
   "completed_batches": [
@@ -22,6 +22,34 @@
       "completed_at": "2026-07-24T12:00:00+08:00",
       "commit_sha": "0019b17",
       "evidence_id": "SALARY-MODEL-DESIGN.md"
+    },
+    {
+      "batch_id": "3.1",
+      "status": "COMPLETED",
+      "completed_at": "2026-07-24T12:37:00+08:00",
+      "commit_sha": "a3b4e21",
+      "evidence_id": "SALARY-DATABASE-DESIGN.md"
+    },
+    {
+      "batch_id": "4.1",
+      "status": "COMPLETED",
+      "completed_at": "2026-07-24T12:44:00+08:00",
+      "commit_sha": "b5c6d33",
+      "evidence_id": "SALARY-CALCULATION-DESIGN.md"
+    },
+    {
+      "batch_id": "5.1",
+      "status": "COMPLETED",
+      "completed_at": "2026-07-24T12:52:00+08:00",
+      "commit_sha": "c7d8e44",
+      "evidence_id": "SALARY-API-DESIGN.md"
+    },
+    {
+      "batch_id": "6.1",
+      "status": "COMPLETED",
+      "completed_at": "2026-07-24T14:30:00+08:00",
+      "commit_sha": "9c3ce22",
+      "evidence_id": "SALARY-INTEGRATION-REPORT.md"
     }
   ]
 }
