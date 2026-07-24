@@ -179,6 +179,22 @@ export class StudentController {
         : [];
     const lessonMap = new Map(lessons.map((l) => [l.id, l]));
 
+    // Get class names
+    const classCodes = [...new Set(lessons.map((l) => l.classCode))];
+    const classes =
+      classCodes.length > 0
+        ? await this.classRepository.find({ where: { classCode: In(classCodes) } })
+        : [];
+    const classMap = new Map(classes.map((c) => [c.classCode, c.name]));
+
+    // Get course names
+    const courseCodes = [...new Set(lessons.map((l) => l.courseCode))];
+    const courses =
+      courseCodes.length > 0
+        ? await this.courseRepository.find({ where: { courseCode: In(courseCodes) } })
+        : [];
+    const courseMap = new Map(courses.map((c) => [c.courseCode, c.name]));
+
     return ApiResponse.success(
       attendanceRecords.slice(0, 20).map((a) => {
         const lesson = lessonMap.get(a.lessonId);
@@ -188,6 +204,8 @@ export class StudentController {
           endTime: lesson?.endTime || null,
           status: a.status,
           lessonStatus: lesson?.status || null,
+          className: lesson ? classMap.get(lesson.classCode) || null : null,
+          courseName: lesson ? courseMap.get(lesson.courseCode) || null : null,
         };
       }),
     );

@@ -201,6 +201,26 @@ Page({
     });
   },
 
+  // 学生/家长端 — 出勤记录
+  goToAttendance() {
+    wx.navigateTo({
+      url: '/pages/student/attendance',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 学生/家长端 — 个人中心
+  goToStudentProfile() {
+    wx.navigateTo({
+      url: '/pages/student/profile',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
   // 个人中心（教师端）
   goToProfile() {
     wx.navigateTo({

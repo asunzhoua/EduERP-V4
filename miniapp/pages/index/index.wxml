@@ -10,7 +10,7 @@
   </view>
 
   <!-- ========== 教师端快捷入口 ========== -->
-  <view class="quick-actions" wx:if="{{role !== 'Student'}}">
+  <view class="quick-actions" wx:if="{{role !== 'Student' && role !== 'Parent'}}">
     <view class="action-grid">
       <view class="action-item" bindtap="goToCourses">
         <text class="action-icon">📚</text>
@@ -44,7 +44,7 @@
   </view>
 
   <!-- ========== 学生端快捷入口 ========== -->
-  <view class="quick-actions" wx:if="{{role === 'Student'}}">
+  <view class="quick-actions" wx:if="{{role === 'Student' || role === 'Parent'}}">
     <view class="action-grid">
       <view class="action-item" bindtap="goToMyClasses">
         <text class="action-icon">🏫</text>
@@ -58,11 +58,19 @@
         <text class="action-icon">🔔</text>
         <text class="action-text">我的提醒</text>
       </view>
+      <view class="action-item" bindtap="goToAttendance">
+        <text class="action-icon">📋</text>
+        <text class="action-text">出勤记录</text>
+      </view>
+      <view class="action-item" bindtap="goToStudentProfile">
+        <text class="action-icon">👤</text>
+        <text class="action-text">个人中心</text>
+      </view>
     </view>
   </view>
 
   <!-- ========== 教师端今日概览 ========== -->
-  <view class="section" wx:if="{{role !== 'Student'}}">
+  <view class="section" wx:if="{{role !== 'Student' && role !== 'Parent'}}">
     <view class="section-header">
       <text class="section-title">今日概览</text>
       <text class="section-refresh" bindtap="retryLoad" wx:if="{{error}}">点击重试</text>
@@ -115,7 +123,7 @@
   </view>
 
   <!-- ========== 学生端学习概览 ========== -->
-  <view class="section" wx:if="{{role === 'Student'}}">
+  <view class="section" wx:if="{{role === 'Student' || role === 'Parent'}}">
     <view class="section-header">
       <text class="section-title">我的学习</text>
       <text class="section-refresh" bindtap="retryLoad" wx:if="{{error}}">点击重试</text>
@@ -166,7 +174,7 @@
               <text class="lesson-name">{{item.className || item.courseName || '课时'}}</text>
               <text class="lesson-date">{{item.lessonDate || ''}}</text>
             </view>
-            <text class="lesson-status {{item.status === 'COMPLETED' ? 'status-done' : ''}}">{{item.status === 'COMPLETED' ? '已完成' : item.status || '待上课'}}</text>
+            <text class="lesson-status {{item.status === 'PRESENT' ? 'status-done' : item.status === 'LATE' ? 'status-late' : ''}}">{{item.status === 'PRESENT' ? '已到' : item.status === 'ABSENT' ? '缺勤' : item.status === 'LATE' ? '迟到' : item.status === 'LEAVE' ? '请假' : '待上课'}}</text>
           </view>
         </view>
       </view>
@@ -179,7 +187,7 @@
   </view>
 
   <!-- 快捷操作提示（仅教师端） -->
-  <view class="tips-card" wx:if="{{role !== 'Student' && pendingAttendance > 0}}">
+  <view class="tips-card" wx:if="{{role !== 'Student' && role !== 'Parent' && pendingAttendance > 0}}">
     <view class="tips-content">
       <text class="tips-icon">💡</text>
       <text class="tips-text">您有 {{pendingAttendance}} 条待考勤记录，点击「课时记录」完成打卡</text>
