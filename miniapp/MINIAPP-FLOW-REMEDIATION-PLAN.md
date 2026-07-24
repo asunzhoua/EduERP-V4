@@ -1,4 +1,4 @@
-# MINIAPP-FLOW-REMEDIATION-PLAN.md
+﻿# MINIAPP-FLOW-REMEDIATION-PLAN.md
 
 > **Generated:** 2026-07-22 | **Agent:** EOS-Review-Agent
 > **Status:** 经独立代码审计确认的修复计划
@@ -13,14 +13,14 @@
 | K1 — import 路径错误 | **PASS** | 代码确认 `pages/student/class-detail.js:1` 和 `pages/teacher/student-detail.js:1` 均使用 `../utils/request`，正确路径应为 `../../utils/request`。`utils/request.js` 位于 `miniapp/utils/`，从 `pages/*/` 目录需要两级 `../`。 |
 | K2 — 班级数据字段缺失 | **PASS** | ClassEntity 不含 `courseName`、`endDate`、`currentStudents`、`completedLessons`、`schedule`。WXML（`teacher/classes.wxml`、`teacher/class-detail.wxml`）明确引用这些字段，后端 `class.service.ts` 的 `findAll`/`findByCode` 直接返回裸 `ClassEntity`，无 enrichment。 |
 | K3 — 课程字段不匹配 | **PASS** | CourseEntity 有 `totalLessons` 但前端 WXML 引用 `lessonCount`；`enrolledClasses` 字段在 CourseEntity 中完全不存在。`courses.wxml` 和 `course-detail.wxml` 均引用这两个字段。 |
-| K4 — 学生端 classes 页忽略 classCode | **PASS** | `student/classes.js:23` 用 `'CT' + c.contractCode` 伪造 classCode，忽略 `getSelfContracts` 已返回的真实 `classCode` 和 `teacherName`。 |
+| K4 — 家长端 classes 页忽略 classCode | **PASS** | `student/classes.js:23` 用 `'CT' + c.contractCode` 伪造 classCode，忽略 `getSelfContracts` 已返回的真实 `classCode` 和 `teacherName`。 |
 | K5 — 学生详情 enrollment 数据缺失 | **PASS** | EnrollmentEntity 仅含 `classCode/studentCode/contractCode/status/withdrawReason/enrolledBy/enrolledAt`。`student-detail.js` 期望的 `className/courseName/completedLessons/totalLessons` 均不存在。 |
 
 ---
 
 ## P0 — 致命阻塞（运行时崩溃）
 
-### REM-001: 学生端 class-detail.js require 路径错误
+### REM-001: 家长端 class-detail.js require 路径错误
 
 - **Finding:** K1
 - **确认:** ✅ 已确认
@@ -138,7 +138,7 @@
 
 ## P2 — 数据错乱
 
-### REM-008: 学生端 classes 页伪造 classCode
+### REM-008: 家长端 classes 页伪造 classCode
 
 - **Finding:** K4
 - **确认:** ✅ 已确认
@@ -209,7 +209,7 @@ P1（后端 enrichment，互相关联）
 └── REM-007: 学生详情 enrollment enrichment
 
 P2（前端修复）
-└── REM-008: 学生端 classes.js 使用真实 classCode
+└── REM-008: 家长端 classes.js 使用真实 classCode
 
 P3（清理）
 ├── REM-009: 对齐 teacher classes mock 数据

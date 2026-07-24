@@ -7,7 +7,7 @@
 
 ## 项目简介
 
-EduERP V4 是教培机构 ERP 系统。后端采用 NestJS + TypeScript + MySQL (DDD 架构)，前端为微信小程序，支持教师端和学生端核心业务流程。
+EduERP V4 是教培机构 ERP 系统。后端采用 NestJS + TypeScript + MySQL (DDD 架构)，前端为微信小程序，支持教师端和家长端核心业务流程。
 
 ## 项目结构
 

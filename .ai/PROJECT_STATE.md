@@ -53,7 +53,7 @@ EOS/ 目录包含完整治理体系：RULES、PROJECT_STATE、DECISION_LOG、EVI
 
 P0 路由分裂修复 — 已完成
 - 教师端 student-detail 合并（index.js 实现 → student-detail.js，清理硬编码 Mock）
-- 学生端 class-detail 合并（index.js 实现 → class-detail.js，清理硬编码 Mock）
+- 家长端 class-detail 合并（index.js 实现 → class-detail.js，清理硬编码 Mock）
 - 删除重复的 index.js 目录文件
 
 P1 Mock 开关关闭 — 已完成

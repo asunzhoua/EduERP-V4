@@ -1,4 +1,4 @@
-# MiniApp Real Data Scan Report
+﻿# MiniApp Real Data Scan Report
 
 **Project:** EduERP-V4 Miniapp  
 **Scan Date:** 2026-07-22  
@@ -234,7 +234,7 @@
 ### Section 10: Student Index Page — `pages/student/index.js`
 
 **F-019**
-- Conclusion: 学生端三个接口使用 `.catch()` 链式降级，API 失败时静默返回 null/[] 而非硬编码 Mock 数据
+- Conclusion: 家长端三个接口使用 `.catch()` 链式降级，API 失败时静默返回 null/[] 而非硬编码 Mock 数据
 - Evidence ID: E-2026-07-22-019
 - Source: `pages/student/index.js`, 第 30-32 行
 - Verification Method: 代码审查
@@ -259,7 +259,7 @@
 - Confidence Level: Confirmed
 
 **F-021**
-- Conclusion: `teacherName` 被硬编码为空字符串 `''`，说明学生端合同数据接口不返回教师名称
+- Conclusion: `teacherName` 被硬编码为空字符串 `''`，说明家长端合同数据接口不返回教师名称
 - Evidence ID: E-2026-07-22-021
 - Source: `pages/student/classes.js`, 第 29 行
 - Verification Method: 代码审查
@@ -368,10 +368,10 @@ WeChat 小程序路由按 `app.json` 中 `pages/teacher/student-detail` 加载 `
 - 课程详情页导航失败提示（F-008/F-012）：意味着后端路由也可能未就绪
 
 ### 4. 数据完整性问题（Finding F-020, F-021）
-- 学生端合同数据缺少 `classCode` 字段，前端人工拼接（`'CT' + contractCode`）
-- 学生端合同数据缺少 `teacherName` 字段，前端硬编码为空
+- 家长端合同数据缺少 `classCode` 字段，前端人工拼接（`'CT' + contractCode`）
+- 家长端合同数据缺少 `teacherName` 字段，前端硬编码为空
 
-这两个问题说明学生端 API 接口 `GET /students/self/contracts` 返回的数据结构不完整，无法支撑前端展示需求。
+这两个问题说明家长端 API 接口 `GET /students/self/contracts` 返回的数据结构不完整，无法支撑前端展示需求。
 
 ### 5. 基础设施问题（Finding F-025, F-026）
 - `baseUrl` 硬编码 `localhost:3000` — 需要在构建/部署时替换
@@ -384,7 +384,7 @@ WeChat 小程序路由按 `app.json` 中 `pages/teacher/student-detail` 加载 `
 | Risk ID | Description | Related Findings |
 |---------|-------------|-----------------|
 | R-001 | **Mock 数据静默降级风险** — 生产环境若忘记关闭 `ENABLE_MOCK`，后端故障时用户看到虚假数据，无任何告警 | F-005, F-011, F-014, F-017 |
-| R-002 | **页面空白阻断** — 学生详情页和学生端班级详情页在真实路由中为空的骨架页面，用户点击后将看到空白页 | F-015, F-016, F-023, F-024 |
+| R-002 | **页面空白阻断** — 学生详情页和家长端班级详情页在真实路由中为空的骨架页面，用户点击后将看到空白页 | F-015, F-016, F-023, F-024 |
 | R-003 | **Mock 数据与真实数据结构不同步** — 硬编码 Mock 数组字段结构可能与后端 API 实际返回不一致 | F-005 (courses.js), F-011 (classes.js), F-014 (students.js), F-017 (lesson-record.js) |
 | R-004 | **后端接口数据缺失** — `GET /students/self/contracts` 不返回 `classCode` 和 `teacherName`，前端需后端补充 | F-020, F-021 |
 | R-005 | **基础 URL 硬编码** — `localhost:3000` 不可用于生产环境 | F-025 |

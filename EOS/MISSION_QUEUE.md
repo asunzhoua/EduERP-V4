@@ -1,4 +1,4 @@
-# MISSION_QUEUE — EOS 任务队列
+﻿# MISSION_QUEUE — EOS 任务队列
 ## 2026-07-20
 
 ## Active Mission
@@ -17,9 +17,9 @@ Status: PAUSED（等待用户扫码登录微信开发者工具）
 ### P1
 1. 第一次编译发现的问题修复
 2. 教师端联调（班级→学生→课时录入）
-3. 学生端联调（登录→合同→课时记录）
+3. 家长端联调（登录→合同→课时记录）
 
 ### P2
 1. 字段映射修复（courseName / schedule / currentStudents / endDate）
 2. P0 安全收尾（seed 密码环境变量化）
-3. 学生端体验深化
+3. 家长端体验深化

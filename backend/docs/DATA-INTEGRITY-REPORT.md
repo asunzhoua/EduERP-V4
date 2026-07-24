@@ -219,8 +219,8 @@ Seed Runner: `backend/src/database/seed-runner.ts`
 - Severity: P2
 - Location: seed.service.ts:377
 - Description: 3 个学生中仅 STU001 (李小华) 有 userId=3 (student1)，STU002 和 STU003 无 userId
-- Impact: STU002 和 STU003 无法通过学生端小程序登录访问数据
-- Risk: 中 — 影响学生端多用户测试场景覆盖
+- Impact: STU002 和 STU003 无法通过家长端小程序登录访问数据
+- Risk: 中 — 影响家长端多用户测试场景覆盖
 - Note: 这可能是有意设计（仅 1 个 student user），但限制了测试覆盖面
 
 ### ISSUE-004: Seed 缺少 UserRole 关联（Admin）

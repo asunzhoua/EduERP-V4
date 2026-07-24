@@ -1,4 +1,4 @@
-# MINIAPP-DATA-MIGRATION-PLAN
+﻿# MINIAPP-DATA-MIGRATION-PLAN
 
 > 基于 Research Agent 扫描报告 (28 Findings) + Review Agent 审计 (4 RFs)
 > 生成：2026-07-22 | Orchestrator: ACCEPT WITH CORRECTIONS
@@ -45,7 +45,7 @@ Review 修正: RF-001（index.js 中也有硬编码 Mock，合并时需清理）
 
 ---
 
-### T-002 学生端 class-detail 合并
+### T-002 家长端 class-detail 合并
 
 参考 Finding: F-023/F-024
 Review 修正: RF-001
@@ -127,7 +127,7 @@ Review 修正: RF-001
 
 ## P2: 数据链路修复
 
-### T-007 学生端 contract 补充 classCode 和 teacherName
+### T-007 家长端 contract 补充 classCode 和 teacherName
 
 参考 Finding: F-020/F-021
 Review 修正: RF-002（不是"加字段"，而是需要 JOIN 查询）

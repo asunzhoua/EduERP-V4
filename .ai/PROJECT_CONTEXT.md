@@ -37,7 +37,7 @@ miniapp/pages/ 共 12 个页面：
 - teacher/student-detail/ — 学生详情含班级和课时记录
 - teacher/lesson-record/ — 课时录入 4 步向导（选班→选学生→输入课时→确认提交）
 
-学生端：
+家长端：
 - student/index/ — 首页（课表、合同）
 - student/classes/ — 我的班级
 - student/class-detail/ — 班级详情
@@ -54,7 +54,7 @@ miniapp/pages/ 共 12 个页面：
 一个学生可报名多个班级（Enrollment 表）。合同（Contract）记录学生购买的课时总数和已消耗课时。
 
 ### 角色与权限
-四种角色：SuperAdmin / Admin / Teacher / Student。JWT 认证，Token 有效期 2 小时，支持 refresh token。教师端和学生端根据角色跳转不同首页。
+四种角色：SuperAdmin / Admin / Teacher / Student。JWT 认证，Token 有效期 2 小时，支持 refresh token。教师端和家长端根据角色跳转不同首页。
 
 ## 关键 API 端点
 

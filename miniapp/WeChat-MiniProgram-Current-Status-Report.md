@@ -1,4 +1,4 @@
-# WeChat Mini Program Current Status Report
+﻿# WeChat Mini Program Current Status Report
 
 **Mission**: M-2026-07-26-WeChat-MiniProgram-Development-Resume
 **Date**: 2026-07-22
@@ -75,7 +75,7 @@
 - 含考勤状态切换（PRESENT/LATE/ABSENT）及原因填写
 - 每一层都有 mock 降级
 
-### 3.4 学生端
+### 3.4 家长端
 - GET /students/self — 个人信息
 - GET /students/self/contracts — 合同列表
 - GET /students/self/lessons — 课时记录
@@ -115,7 +115,7 @@
 | MP-002 | sitemap.json 不存在（app.json 引用了） | 微信搜索收录异常，不阻塞运行 | 文件不存 |
 | MP-003 | /teacher/dashboard API 端点未确认是否存在 | 首页仪表盘可能报错 | 未验证 |
 | MP-004 | 所有页面含 mock 数据降级方案 | 生产前需清理 | 代码审查 |
-| MP-005 | TabBar 只含教师端页面 | 学生端无法通过 TabBar 导航 | app.json 配置 |
+| MP-005 | TabBar 只含教师端页面 | 家长端无法通过 TabBar 导航 | app.json 配置 |
 
 ---
 
@@ -127,7 +127,7 @@
 2. **[P1] 验证 /teacher/dashboard API** — 确认仪表盘可工作
 3. **[P2] 创建 sitemap.json** — 修复 app.json 引用缺失
 4. **[P2] 清除 mock 降级数据** — 生产前清理
-5. **[P3] 学生端 TabBar 入口** — 如果学生端需要独立导航
+5. **[P3] 家长端 TabBar 入口** — 如果家长端需要独立导航
 
 ---
 

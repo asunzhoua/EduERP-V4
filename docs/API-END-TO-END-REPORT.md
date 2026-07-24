@@ -159,7 +159,7 @@
 
 ### 其他观察（非Bug）
 - 前端未调用部分后端API属于正常情况（管理端功能、调课请求等暂未在小程序实现）
-- 学生端通过 `/students/self/*` 系列端点访问数据，不直接调用 Contract/Attendance 的原始端点 — 设计合理
+- 家长端通过 `/students/self/*` 系列端点访问数据，不直接调用 Contract/Attendance 的原始端点 — 设计合理
 
 ---
 

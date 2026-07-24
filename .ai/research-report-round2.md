@@ -1,4 +1,4 @@
-# Long Running Mission — Round 2 Research Report
+﻿# Long Running Mission — Round 2 Research Report
 
 **Date**: 2026-07-23
 **Agent**: EOS-Research-Agent
@@ -24,7 +24,7 @@
 
 ### Dimension 1: 前端 UX 细节
 
-#### F-001 — 学生端无 TabBar 底部导航
+#### F-001 — 家长端无 TabBar 底部导航
 - **Conclusion**: 学生登录后通过 `wx.navigateTo` 跳转至 `/pages/student/index`，底部 TabBar 不可见。
 - **Evidence ID**: E-2026-07-23-001
 - **Source**: `miniapp/pages/login/login.js` line 39: `wx.navigateTo({ url: '/pages/student/index' })`
@@ -32,7 +32,7 @@
 - **Confidence Level**: Confirmed
 
 #### F-002 — TabBar 仅覆盖 3 个教师页面
-- **Conclusion**: `app.json` 的 TabBar list 只包含 index（首页）、teacher/courses（课程）、teacher/classes（班级），无任何学生端页面入口。
+- **Conclusion**: `app.json` 的 TabBar list 只包含 index（首页）、teacher/courses（课程）、teacher/classes（班级），无任何家长端页面入口。
 - **Evidence ID**: E-2026-07-23-002
 - **Source**: `miniapp/app.json` tabBar.list
 - **Verification Method**: 文档检查
@@ -84,8 +84,8 @@
 - **Verification Method**: 代码审查
 - **Confidence Level**: Confirmed
 
-#### F-008 — 学生端需要的 API 端点基本覆盖
-- **Conclusion**: 学生端调用的 `GET /students/self`、`/students/self/contracts`、`/students/self/lessons` 以及教师端调用的 `/courses`、`/classes`、`/classes/:code/students`、`/enrollments/students/:code/enrollments` 均有实现。但 Enrollment controller 的 `findByStudent` 返回未包裹 ApiResponse。
+#### F-008 — 家长端需要的 API 端点基本覆盖
+- **Conclusion**: 家长端调用的 `GET /students/self`、`/students/self/contracts`、`/students/self/lessons` 以及教师端调用的 `/courses`、`/classes`、`/classes/:code/students`、`/enrollments/students/:code/enrollments` 均有实现。但 Enrollment controller 的 `findByStudent` 返回未包裹 ApiResponse。
 - **Evidence ID**: E-2026-07-23-008
 - **Source**: `backend/src/modules/student/student.controller.ts` lines 50-155; `backend/src/modules/teaching/enrollment/enrollment.controller.ts` lines 79-84
 - **Verification Method**: 代码审查
@@ -163,8 +163,8 @@
 基于本次调研，按"影响面 × 修复成本"排列：
 
 **P0 — 关键阻塞**
-1. **F-003 / F-015**: 图片资源全部缺失 — 学生端从 Login 页开始即显示 broken image，TabBar 图标全部不可见。这是最小程序最直观的 Bug，也是启动后用户第一眼看到的问题。
-2. **F-001**: 学生端无 TabBar — 学生登录后无法通过底部导航切换页面，严重影响学生端可用性。
+1. **F-003 / F-015**: 图片资源全部缺失 — 家长端从 Login 页开始即显示 broken image，TabBar 图标全部不可见。这是最小程序最直观的 Bug，也是启动后用户第一眼看到的问题。
+2. **F-001**: 家长端无 TabBar — 学生登录后无法通过底部导航切换页面，严重影响家长端可用性。
 
 **P1 — 重要但不阻塞**
 3. **F-006**: 三个 findAll() 返回空数组 — 虽然前端当前可能不直接调用这些端点，但 API 契约完整性受影响。
@@ -180,14 +180,14 @@
 9. **F-005**: 页面标题一致性 — 体验优化。
 10. **F-011**: 新修复代码缺少测试 — 质量提升。
 
-### 推荐 Batch C: 前端资源补全 + 学生端 TabBar
+### 推荐 Batch C: 前端资源补全 + 家长端 TabBar
 
 这是"影响面大、改动集中、风险低"的 Batch：
 
 | 任务 | 关联 Finding |
 |------|-------------|
 | 补齐所有缺失图片资源（8 个文件）| F-003, F-015 |
-| 为学生端补充 TabBar（新建学生端 tab 并调整导航逻辑）| F-001, F-002 |
+| 为家长端补充 TabBar（新建家长端 tab 并调整导航逻辑）| F-001, F-002 |
 | 修复两处 WXML 注释路径 | F-004 |
 | 标准化页面标题 | F-005 |
 
@@ -212,7 +212,7 @@
 
 | Risk | Description | Related Finding |
 |------|-------------|-----------------|
-| R-001 | 学生端无 TabBar 导致用户无法导航，学生体验严重受损 | F-001, F-002 |
+| R-001 | 家长端无 TabBar 导致用户无法导航，学生体验严重受损 | F-001, F-002 |
 | R-002 | 图片资源缺失导致小程序启动即有视觉问题，影响专业度 | F-003, F-015 |
 | R-003 | findAll() 空数组 + 裸返回格式未对齐 ApiResponse 标准，未来接入前端可能触发解析异常 | F-006 |
 | R-004 | operator=0 硬编码使操作审计链路断裂（audit 日志中 operatedBy 全部为 0） | F-007 |
@@ -222,7 +222,7 @@
 
 ## Unknowns
 
-- 学生端 TabBar 的设计方案（哪些页面进入 TabBar，icon 风格）未经用户确认
+- 家长端 TabBar 的设计方案（哪些页面进入 TabBar，icon 风格）未经用户确认
 - 缺失图片的具体设计资源（SVG/PNG 尺寸、风格）未定义
 - findAll() 三个接口的业务需求是否当前有必要（前端当前是否调用这些端点）未验证
 - operator=0 在 lesson-attendance / lesson-change-request 中是否影响主流程（当前 seed 数据已跳过该问题）未完全验证
@@ -231,12 +231,12 @@
 
 ## Recommendation
 
-**建议优先推进 Batch C: 前端资源补全 + 学生端 TabBar**
+**建议优先推进 Batch C: 前端资源补全 + 家长端 TabBar**
 
 依据：
-1. **影响面最大** — 学生端登录后每一步都暴露在无 TabBar + 缺图的状态下
+1. **影响面最大** — 家长端登录后每一步都暴露在无 TabBar + 缺图的状态下
 2. **改动集中** — 集中在 app.json + 图片资源 + 少量 JS/WXML，低风险
 3. **无需后端配合** — 纯前端改动，可独立验证
 4. **即刻可验证** — 改完即可在微信开发者工具中看到效果
 
-**备选**: 如龙虾判断当前学生端非验收重点，可改推 Batch E (findAll 修复 + operator=0 审计修复) 作为后端完整性提升批次。
+**备选**: 如龙虾判断当前家长端非验收重点，可改推 Batch E (findAll 修复 + operator=0 审计修复) 作为后端完整性提升批次。

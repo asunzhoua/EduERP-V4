@@ -1,4 +1,4 @@
-# PROJECT_STATE — EduERP-V4 v0.1 MVP + EOS Core v1.0
+﻿# PROJECT_STATE — EduERP-V4 v0.1 MVP + EOS Core v1.0
 ## 2026-07-21
 
 ## Current Phase
@@ -9,7 +9,7 @@
 - GitHub 版本固化（Commit d3c3fdb，分支 master）
 - SSH 推送链路配置完成
 - 后端 API：Auth / Contract / Lesson / Attendance / Student self-service
-- 小程序页面：教师端（班级/学生/课时录入）+ 学生端（首页/合同/课时历史）
+- 小程序页面：教师端（班级/学生/课时录入）+ 家长端（首页/合同/课时历史）
 - 响应格式修复：request.js + app.js 的 res.data.success → res.data.code === 0
 - 测试：75 suites / 935 tests ALL PASS
 - 证据文档 docs/MVP-2026-07-20.md

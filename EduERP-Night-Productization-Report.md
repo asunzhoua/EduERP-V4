@@ -1,4 +1,4 @@
-# EduERP-V4 Night Productization Report
+﻿# EduERP-V4 Night Productization Report
 
 > **Mission**: EduERP-V4 Productization Sprint v1.0
 > **Mode**: AUTOMATIC (Low Risk Only)
@@ -37,7 +37,7 @@
 
 ### Task 2.1: API Contract
 - ✅ 输出: `docs/Miniapp-API-Contract.md`
-- 内容: 认证/教师端/学生端接口定义
+- 内容: 认证/教师端/家长端接口定义
 
 ### Task 2.2: Miniapp Architecture
 - ✅ 项目结构创建
@@ -142,7 +142,7 @@ Status:      ✅ ALL PASS
 ### Priority 2: Miniapp Development
 1. 配置微信小程序 AppID
 2. 实现教师端课程/班级页面
-3. 实现学生端首页
+3. 实现家长端首页
 
 ### Priority 3: Product Validation
 1. 端到端流程测试

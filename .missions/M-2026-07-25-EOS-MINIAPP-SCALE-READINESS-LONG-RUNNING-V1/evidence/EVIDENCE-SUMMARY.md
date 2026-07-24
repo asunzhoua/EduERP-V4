@@ -1,4 +1,4 @@
-# Evidence Summary — M-2026-07-25-EOS-MINIAPP-SCALE-READINESS-LONG-RUNNING-V1
+﻿# Evidence Summary — M-2026-07-25-EOS-MINIAPP-SCALE-READINESS-LONG-RUNNING-V1
 
 ## Phase 1 Batch 1.1 — 微信环境兼容扫描
 
@@ -31,7 +31,7 @@
 
 ---
 
-## Phase 1 Batch 1.2 — 学生端稳定性检查
+## Phase 1 Batch 1.2 — 家长端稳定性检查
 
 | Evidence ID | Type | Description | File | Status |
 |:------------|:-----|:------------|:-----|:-------|

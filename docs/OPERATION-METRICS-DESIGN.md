@@ -1,4 +1,4 @@
-# 运营指标体系设计文档
+﻿# 运营指标体系设计文档
 
 ## 1. 概述
 
@@ -7,7 +7,7 @@
 
 ### 1.2 适用范围
 - 微信小程序教师端 Dashboard
-- 微信小程序学生端 Dashboard
+- 微信小程序家长端 Dashboard
 - 管理后台运营数据看板
 - 数据导出与报表功能
 
@@ -58,7 +58,7 @@
 - 计算公式：COUNT(LessonAttendance) WHERE studentCode = 当前学生 AND status IN (PRESENT, LATE, ONLINE, MAKEUP)
 - 数据来源：LessonAttendance 表（studentCode, status）+ Lesson 表（通过 lessonId 关联，status = FINISHED）
 - 更新频率：实时
-- 展示位置：学生端首页 / 教师端学生详情
+- 展示位置：家长端首页 / 教师端学生详情
 - 优先级：P0
 
 #### 2.2.2 已完成课时数
@@ -67,7 +67,7 @@
 - 计算公式：COUNT(LessonAttendance) WHERE studentCode = 当前学生 AND Lesson.status = FINISHED AND LessonAttendance.status IN (PRESENT, LATE, ONLINE, MAKEUP)
 - 数据来源：LessonAttendance 表 + Lesson 表（通过 lessonId 关联）
 - 更新频率：实时
-- 展示位置：学生端首页 / 教师端学生详情
+- 展示位置：家长端首页 / 教师端学生详情
 - 优先级：P0
 
 ### 2.3 出勤趋势
@@ -78,7 +78,7 @@
 - 计算公式：(COUNT(status=PRESENT) + COUNT(status=LATE) + COUNT(status=ONLINE)) / COUNT(所有考勤记录) * 100%
 - 数据来源：LessonAttendance 表（studentCode, status）
 - 更新频率：实时
-- 展示位置：学生端首页 / 教师端学生详情 / 管理后台
+- 展示位置：家长端首页 / 教师端学生详情 / 管理后台
 - 优先级：P0
 
 #### 2.3.2 缺勤率
@@ -87,7 +87,7 @@
 - 计算公式：COUNT(status=ABSENT) / COUNT(所有考勤记录) * 100%
 - 数据来源：LessonAttendance 表（studentCode, status）
 - 更新频率：实时
-- 展示位置：学生端首页 / 教师端学生详情
+- 展示位置：家长端首页 / 教师端学生详情
 - 优先级：P1
 
 #### 2.3.3 迟到率
@@ -116,7 +116,7 @@
 - 计算公式：completedLessons / totalLessons * 100%（从 Contract 表直接读取）
 - 数据来源：Contract 表（completedLessons, totalLessons, studentCode）
 - 更新频率：实时
-- 展示位置：学生端首页 / 教师端学生详情
+- 展示位置：家长端首页 / 教师端学生详情
 - 优先级：P0
 
 #### 2.4.2 合同剩余课时
@@ -125,7 +125,7 @@
 - 计算公式：remainingLessons（直接读取）或 totalLessons - completedLessons
 - 数据来源：Contract 表（remainingLessons, totalLessons, completedLessons, studentCode）
 - 更新频率：实时
-- 展示位置：学生端首页 / 教师端学生详情
+- 展示位置：家长端首页 / 教师端学生详情
 - 优先级：P0
 
 ### 2.5 新增学生数
@@ -415,7 +415,7 @@
 
 ### 6.1 P0 — 必须实现（核心运营指标）
 
-**学生端 P0：**
+**家长端 P0：**
 - 课程进度（Contract.completedLessons / totalLessons）
 - 合同剩余课时（Contract.remainingLessons）
 - 总课时数（LessonAttendance COUNT）
@@ -437,7 +437,7 @@
 
 ### 6.2 P1 — 应该实现（运营分析指标）
 
-**学生端 P1：**
+**家长端 P1：**
 - 缺勤率、迟到率、请假率
 - 周活跃学生数、月活跃学生数
 
