@@ -12,7 +12,7 @@
     "4": { "status": "COMPLETED", "batch": "4.1", "commit": "8be42fe" },
     "5": { "status": "COMPLETED", "batch": "5.1", "commit": "a0d67b1" },
     "6": { "status": "COMPLETED", "batch": "6.1", "commit": "ed74cc8" },
-    "7": { "status": "COMPLETED", "batch": "7.1", "commit": "28e154a" }
+    "7": { "status": "COMPLETED", "batch": "7.1", "commit": "a9fb73f" }
   },
   "evidence_files": [
     "backend/docs/DATA-CONSISTENCY-AUDIT.md",
