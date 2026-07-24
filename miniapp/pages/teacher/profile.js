@@ -131,9 +131,9 @@ Page({
 
       if (!Array.isArray(assignments)) assignments = [];
 
-      // 统计活跃班级数
+      // 统计活跃班级数（effectiveTo 为 null 表示活跃）
       var activeAssignments = assignments.filter(function (a) {
-        return a.status === 'ACTIVE';
+        return !a.effectiveTo;
       });
       var totalClasses = activeAssignments.length;
 
@@ -184,7 +184,7 @@ Page({
 
       // 获取活跃班级的 classCode
       var activeCodes = assignments
-        .filter(function (a) { return a.status === 'ACTIVE'; })
+        .filter(function (a) { return !a.effectiveTo; })
         .map(function (a) { return a.classCode; })
         .slice(0, 3); // 最多取3个班级
 

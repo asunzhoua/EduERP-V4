@@ -1,7 +1,7 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, IsNull } from 'typeorm';
 import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
@@ -33,9 +33,9 @@ export class TeacherDashboardController {
   async getDashboard(@Req() req: any) {
     const userId = req.user.sub;
     
-    // Get teacher's assigned class codes
+    // Get teacher's active assigned class codes (effectiveTo IS NULL = active)
     const assignments = await this.teacherAssignmentRepository.find({
-      where: { teacherId: userId, status: 'ACTIVE' } as any,
+      where: { teacherId: userId, effectiveTo: IsNull() },
     });
     const classCodes = assignments.map(a => a.classCode);
 
@@ -80,6 +80,7 @@ export class TeacherDashboardController {
       todayLessons,
       pendingAttendance,
       totalStudents,
+      totalClasses: classCodes.length,
     });
   }
 }
