@@ -1,0 +1,27 @@
+{
+  "mission_id": "M-EduOS-SALARY-SYSTEM-DESIGN-LONG-RUNNING-V1",
+  "status": "RUNNING",
+  "current_phase": 2,
+  "current_batch": "2.1",
+  "updated_at": "2026-07-24T12:00:00+08:00",
+  "batch_started_at": "2026-07-24T11:50:00+08:00",
+  "last_commit": "pending",
+  "pending_decision_gates": [],
+  "auto_recovery_attempts": 0,
+  "completed_batches": [
+    {
+      "batch_id": "1.1",
+      "status": "COMPLETED",
+      "completed_at": "2026-07-24T11:00:00+08:00",
+      "commit_sha": "58dd3f2",
+      "evidence_id": "SALARY-DATA-SOURCE-ANALYSIS.md"
+    },
+    {
+      "batch_id": "2.1",
+      "status": "COMPLETED",
+      "completed_at": "2026-07-24T12:00:00+08:00",
+      "commit_sha": "pending",
+      "evidence_id": "SALARY-MODEL-DESIGN.md"
+    }
+  ]
+}
