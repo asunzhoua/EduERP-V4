@@ -54,6 +54,7 @@ describe('LessonController', () => {
   const mockLessonAttendanceService = {
     autoCreateForLesson: jest.fn(),
     batchRollCall: jest.fn(),
+    cancelByLessonId: jest.fn().mockResolvedValue({ deletedCount: 0, rollbackResults: [] }),
   };
 
   beforeEach(async () => {
@@ -208,7 +209,7 @@ describe('LessonController', () => {
         42,
         '教师请假',
       );
-      expect(result).toEqual(ApiResponse.success(updated, 'Lesson cancelled'));
+      expect(result).toEqual(ApiResponse.success({ lesson: updated, attendanceCleanup: { deletedCount: 0, rollbackResults: [] } }, 'Lesson cancelled'));
     });
 
     it('should throw if lesson is not found', async () => {

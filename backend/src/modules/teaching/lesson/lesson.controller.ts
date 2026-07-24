@@ -127,7 +127,14 @@ export class LessonController {
       operatorId,
       body.reason,
     );
-    return ApiResponse.success(result, 'Lesson cancelled');
+
+    // Phase 2 Batch 2.1: Cleanup attendance records and rollback deductions
+    const attendanceResult = await this.lessonAttendanceService.cancelByLessonId(lesson.id);
+
+    return ApiResponse.success(
+      { lesson: result, attendanceCleanup: attendanceResult },
+      'Lesson cancelled',
+    );
   }
 
   @Post('classes/:code/lessons/makeup')

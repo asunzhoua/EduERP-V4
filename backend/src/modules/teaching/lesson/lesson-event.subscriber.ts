@@ -14,6 +14,14 @@ interface LessonFinishedPayload {
   confirmedBy: number;
 }
 
+interface LessonCancelledPayload {
+  lessonId: number;
+  classCode: string;
+  teacherId: number;
+  cancelledBy: number;
+  cancelledReason: string;
+}
+
 /**
  * Subscribes to lesson lifecycle events and logs them.
  * Future subscribers (Finance, Dashboard) follow the same pattern
@@ -41,6 +49,17 @@ export class LessonEventSubscriber {
         this.logger.log(
           `[lesson.finished] Lesson ${payload.lessonId} finished. ` +
             `class=${payload.classCode}, confirmedBy=${payload.confirmedBy}`,
+        );
+      },
+    );
+
+    this.eventBus.subscribe(
+      'lesson.cancelled',
+      (payload: LessonCancelledPayload) => {
+        this.logger.log(
+          `[lesson.cancelled] Lesson ${payload.lessonId} cancelled. ` +
+            `class=${payload.classCode}, teacher=${payload.teacherId}, ` +
+            `reason=${payload.cancelledReason}, cancelledBy=${payload.cancelledBy}`,
         );
       },
     );

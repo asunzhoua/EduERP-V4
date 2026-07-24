@@ -81,4 +81,8 @@ export class LessonAttendanceRepository {
       })
       .getCount();
   }
+
+  async deleteByLessonId(lessonId: number): Promise<void> {
+    await this.repo.delete({ lessonId });
+  }
 }

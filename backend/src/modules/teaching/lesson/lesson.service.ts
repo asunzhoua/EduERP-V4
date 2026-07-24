@@ -353,6 +353,20 @@ export class LessonService {
       });
     }
 
+    // Phase 2 Batch 2.1: Publish lesson.cancelled event
+    if (targetStatus === LessonStatus.CANCELLED) {
+      this.eventBus.publish('lesson.cancelled', {
+        lessonId: saved.id,
+        classCode: saved.classCode,
+        courseCode: saved.courseCode,
+        teacherId: saved.teacherId,
+        scheduledDate: saved.scheduledDate,
+        cancelledReason: saved.cancelledReason,
+        cancelledBy: operatedBy,
+        cancelledAt: new Date().toISOString(),
+      });
+    }
+
     return saved;
   }
 

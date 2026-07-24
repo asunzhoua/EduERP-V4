@@ -399,6 +399,104 @@ export class LessonAttendanceService {
     }
   }
 
+  // ─── Cancellation Rollback ───
+
+  /**
+   * Cancel all attendance records for a lesson and rollback contract deductions.
+   * Called when Lesson → CANCELLED.
+   *
+   * Steps:
+   * 1. Find all attendance records for the lesson
+   * 2. For records with deductible status, rollback contract deduction (remainingLessons += 1)
+   * 3. Delete all attendance records
+   * 4. Return rollback results for audit
+   */
+  async cancelByLessonId(
+    lessonId: number,
+  ): Promise<{ deletedCount: number; rollbackResults: LessonDeductionResult[] }> {
+    // 1. Find all attendance records for the lesson
+    const records = await this.attendanceRepo.findByLessonId(lessonId);
+
+    if (records.length === 0) {
+      this.logger.log(`No attendance records to cancel for lesson ${lessonId}`);
+      return { deletedCount: 0, rollbackResults: [] };
+    }
+
+    // 2. Rollback contract deductions for deductible statuses
+    const rollbackResults: LessonDeductionResult[] = [];
+
+    for (const record of records) {
+      if (record.status && DEDUCTIBLE_STATUSES.has(record.status)) {
+        const result = await this.rollbackLessonDeduction(record.studentCode);
+        if (result) {
+          rollbackResults.push(result);
+        }
+      }
+    }
+
+    // 3. Delete all attendance records for this lesson
+    await this.attendanceRepo.deleteByLessonId(lessonId);
+
+    this.logger.log(
+      `Cancelled attendance for lesson ${lessonId}: ` +
+      `deleted=${records.length}, rollbacks=${rollbackResults.length}`,
+    );
+
+    return { deletedCount: records.length, rollbackResults };
+  }
+
+  /**
+   * Rollback a single lesson deduction from a student's contract.
+   * Inverse of deductLessonFromContract.
+   */
+  private async rollbackLessonDeduction(
+    studentCode: string,
+  ): Promise<LessonDeductionResult | null> {
+    // Find contract (ACTIVE or EXHAUSTED — EXHAUSTED may be restored to ACTIVE)
+    const activeContract = await this.contractRepo.findOneActiveByStudentCode(studentCode);
+    let contract = activeContract;
+
+    if (!contract) {
+      // Try EXHAUSTED contract (all lessons consumed, needs restoration)
+      const allContracts = await this.contractRepo.findByStudentCode(studentCode);
+      contract = allContracts.find(c => c.status === ContractStatus.EXHAUSTED) ?? null;
+    }
+
+    if (!contract) {
+      this.logger.warn(
+        `No active/exhausted contract found for student ${studentCode}. Skipping rollback.`,
+      );
+      return null;
+    }
+
+    // Rollback: increment remainingLessons
+    const previousRemaining = contract.remainingLessons;
+    contract.remainingLessons += 1;
+
+    // If contract was EXHAUSTED, restore to ACTIVE
+    if (contract.status === ContractStatus.EXHAUSTED) {
+      contract.status = ContractStatus.ACTIVE;
+      this.logger.log(
+        `Contract ${contract.contractCode} restored from EXHAUSTED to ACTIVE (rollback).`,
+      );
+    }
+
+    await this.contractRepo.save(contract);
+
+    this.logger.log(
+      `Lesson rollback: student=${studentCode}, contract=${contract.contractCode}, ` +
+      `remaining=${previousRemaining} → ${contract.remainingLessons}`,
+    );
+
+    return {
+      studentCode,
+      contractCode: contract.contractCode,
+      previousRemaining,
+      newRemaining: contract.remainingLessons,
+      statusChanged: contract.status === ContractStatus.ACTIVE && previousRemaining === 0,
+    };
+  }
+
   // ─── Queries ───
 
   async findByLessonId(lessonId: number): Promise<LessonAttendanceEntity[]> {
