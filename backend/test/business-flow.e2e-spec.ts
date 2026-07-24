@@ -4,24 +4,65 @@
  * 完整业务场景测试：
  * 创建学生 → 购买课时 → 生成课程 → 教师签到 → 扣除课时 → 三端读取一致
  *
- * 使用真实数据库连接（通过 AppModule），测试前后清理测试数据。
+ * 使用真实数据库连接，测试前后清理测试数据。
+ * 使用 raw SQL 进行 setup/cleanup，避免 entity metadata 问题。
+ *
+ * 注意：由于 ts-jest 编译 .ts 文件而 AppModule 的 entities glob 匹配 .js，
+ * 需要先 nest build，然后使用 dist/ 目录的实体文件。
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { DataSource, Repository } from 'typeorm';
-import { User } from '../src/modules/identity/entities/user.entity';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+
+// Import modules from source (ts-jest handles compilation)
+import { EventBusModule } from '../src/events/event-bus.module';
+import { IdentityModule } from '../src/modules/identity/identity.module';
+import { StudentModule } from '../src/modules/student/student.module';
+import { TeachingModule } from '../src/modules/teaching/teaching.module';
+import { DatabaseModule } from '../src/database/database.module';
+import { AnalyticsModule } from '../src/modules/analytics/analytics.module';
+import { ReminderModule } from '../src/modules/reminder/reminder.module';
+import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
+import { GlobalExceptionFilter } from '../src/common/filters/global-exception.filter';
+import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
+import { JwtAuthGuard } from '../src/modules/identity/auth/jwt-auth.guard';
+import { appConfig } from '../src/config/configuration';
+
+// Import ALL entity classes directly from source (same class references as modules use)
+import { User } from '../src/modules/identity/entities/user.entity';
+import { LoginLog } from '../src/modules/identity/entities/login-log.entity';
+import { Role } from '../src/modules/identity/entities/role.entity';
+import { Permission } from '../src/modules/identity/entities/permission.entity';
+import { UserRole } from '../src/modules/identity/entities/user-role.entity';
+import { RolePermission } from '../src/modules/identity/entities/role-permission.entity';
 import { Student } from '../src/modules/student/entities/student.entity';
-import { ContractEntity } from '../src/modules/teaching/contract/contract.entity';
-import { EnrollmentEntity } from '../src/modules/teaching/enrollment/enrollment.entity';
+import { StudentAuditLog } from '../src/modules/student/entities/student-audit-log.entity';
+import { StudentParent } from '../src/modules/student/entities/student-parent.entity';
 import { ClassEntity } from '../src/modules/teaching/class/class.entity';
 import { CourseEntity } from '../src/modules/teaching/course/course.entity';
+import { CourseAuditLog } from '../src/modules/teaching/course/course-audit-log.entity';
+import { ContractEntity } from '../src/modules/teaching/contract/contract.entity';
+import { EnrollmentEntity } from '../src/modules/teaching/enrollment/enrollment.entity';
 import { LessonEntity } from '../src/modules/teaching/lesson/lesson.entity';
 import { LessonAttendanceEntity } from '../src/modules/teaching/lesson-attendance/lesson-attendance.entity';
+import { LessonChangeRequestEntity } from '../src/modules/teaching/lesson-change-request/lesson-change-request.entity';
 import { TeacherAssignmentEntity } from '../src/modules/teaching/teacher-assignment/teacher-assignment.entity';
+import { Reminder } from '../src/modules/reminder/entities/reminder.entity';
+import { ImportHistory } from '../src/modules/student/entities/import-history.entity';
+
+// Collect all entities
+const ALL_ENTITIES = [
+  User, LoginLog, Role, Permission, UserRole, RolePermission,
+  Student, StudentAuditLog, StudentParent,
+  ClassEntity, CourseEntity, CourseAuditLog, ContractEntity, EnrollmentEntity,
+  LessonEntity, LessonAttendanceEntity, LessonChangeRequestEntity,
+  TeacherAssignmentEntity, Reminder, ImportHistory,
+];
 
 describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   let app: INestApplication;
@@ -44,8 +85,8 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   };
 
   // Unique test prefix to identify test data
-  const TEST_PREFIX = 'E2E_TEST_';
-  const TEST_TIMESTAMP = Date.now();
+  const TEST_PREFIX = 'E2ETEST';
+  const TEST_TS = Date.now();
 
   beforeAll(async () => {
     // Set environment variables for test
@@ -56,7 +97,58 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     process.env.DB_DATABASE = 'eduos';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          load: [appConfig],
+          envFilePath: '.env',
+        }),
+        TypeOrmModule.forRootAsync({
+          imports: [ConfigModule],
+          inject: [ConfigService],
+          useFactory: () => {
+            return {
+              type: 'mysql',
+              host: process.env.DB_HOST || 'localhost',
+              port: Number(process.env.DB_PORT) || 3306,
+              username: process.env.DB_USERNAME || 'root',
+              password: process.env.DB_PASSWORD || 'root',
+              database: process.env.DB_DATABASE || 'EduOS',
+              entities: ALL_ENTITIES,
+              synchronize: false,
+              logging: ['error'],
+              extra: {
+                connectionLimit: 10,
+                connectTimeout: 10000,
+                idleTimeout: 30000,
+              },
+              retryAttempts: 1,
+              retryDelay: 1000,
+            };
+          },
+        }),
+        EventBusModule,
+        IdentityModule,
+        StudentModule,
+        TeachingModule,
+        DatabaseModule,
+        AnalyticsModule,
+        ReminderModule,
+      ],
+      providers: [
+        {
+          provide: APP_FILTER,
+          useClass: GlobalExceptionFilter,
+        },
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: ResponseInterceptor,
+        },
+        {
+          provide: APP_GUARD,
+          useClass: JwtAuthGuard,
+        },
+      ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -64,71 +156,59 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
 
     dataSource = moduleFixture.get<DataSource>(DataSource);
 
-    // ── Step 1: Create test users with known passwords ──
-
-    const userRepo = dataSource.getRepository(User);
-
-    // Create Admin user
+    // ── Step 1: Create test users via raw SQL ──
     const adminPassword = await bcrypt.hash('TestAdmin@2026', 10);
-    const adminUser = userRepo.create({
-      username: `${TEST_PREFIX}admin_${TEST_TIMESTAMP}`,
-      password: adminPassword,
-      name: 'E2E测试管理员',
-      mobile: `138${String(TEST_TIMESTAMP).slice(-8)}`,
-      role: 'SuperAdmin',
-      status: 1,
-      campusId: 1,
-    });
-    const savedAdmin = await userRepo.save(adminUser);
-    testIds.adminUserId = Number(savedAdmin.id);
-
-    // Create Teacher user
     const teacherPassword = await bcrypt.hash('TestTeacher@2026', 10);
-    const teacherUser = userRepo.create({
-      username: `${TEST_PREFIX}teacher_${TEST_TIMESTAMP}`,
-      password: teacherPassword,
-      name: 'E2E测试教师',
-      mobile: `139${String(TEST_TIMESTAMP).slice(-8)}`,
-      role: 'Teacher',
-      status: 1,
-      campusId: 1,
-    });
-    const savedTeacher = await userRepo.save(teacherUser);
-    testIds.teacherUserId = Number(savedTeacher.id);
-
-    // Create Student user (for self-service testing)
     const studentPassword = await bcrypt.hash('TestStudent@2026', 10);
-    const studentUser = userRepo.create({
-      username: `${TEST_PREFIX}student_${TEST_TIMESTAMP}`,
-      password: studentPassword,
-      name: 'E2E测试学生用户',
-      mobile: `137${String(TEST_TIMESTAMP).slice(-8)}`,
-      role: 'Student',
-      status: 1,
-      campusId: 1,
-    });
-    const savedStudentUser = await userRepo.save(studentUser);
-    testIds.studentUserId = Number(savedStudentUser.id);
-
-    // Create Parent user (for parent self-service testing)
     const parentPassword = await bcrypt.hash('TestParent@2026', 10);
-    const parentUser = userRepo.create({
-      username: `${TEST_PREFIX}parent_${TEST_TIMESTAMP}`,
-      password: parentPassword,
-      name: 'E2E测试家长',
-      mobile: `136${String(TEST_TIMESTAMP).slice(-8)}`,
-      role: 'Parent',
-      status: 1,
-      campusId: 1,
-    });
-    const savedParent = await userRepo.save(parentUser);
-    testIds.parentUserId = Number(savedParent.id);
+
+    const adminUsername = `${TEST_PREFIX}_admin_${TEST_TS}`;
+    const teacherUsername = `${TEST_PREFIX}_teacher_${TEST_TS}`;
+    const studentUsername = `${TEST_PREFIX}_student_${TEST_TS}`;
+    const parentUsername = `${TEST_PREFIX}_parent_${TEST_TS}`;
+
+    const adminMobile = `138${String(TEST_TS).slice(-8)}`;
+    const teacherMobile = `139${String(TEST_TS).slice(-8)}`;
+    const studentMobile = `137${String(TEST_TS).slice(-8)}`;
+    const parentMobile = `136${String(TEST_TS).slice(-8)}`;
+
+    // Insert admin user
+    const adminResult: any = await dataSource.query(
+      `INSERT INTO user (username, password, name, mobile, role, status, campusId, deleted)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [adminUsername, adminPassword, 'E2E测试管理员', adminMobile, 'SuperAdmin', 1, 1, 0],
+    );
+    testIds.adminUserId = Number(adminResult.insertId);
+
+    // Insert teacher user
+    const teacherResult: any = await dataSource.query(
+      `INSERT INTO user (username, password, name, mobile, role, status, campusId, deleted)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [teacherUsername, teacherPassword, 'E2E测试教师', teacherMobile, 'Teacher', 1, 1, 0],
+    );
+    testIds.teacherUserId = Number(teacherResult.insertId);
+
+    // Insert student user
+    const studentResult: any = await dataSource.query(
+      `INSERT INTO user (username, password, name, mobile, role, status, campusId, deleted)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [studentUsername, studentPassword, 'E2E测试学生用户', studentMobile, 'Student', 1, 1, 0],
+    );
+    testIds.studentUserId = Number(studentResult.insertId);
+
+    // Insert parent user
+    const parentResult: any = await dataSource.query(
+      `INSERT INTO user (username, password, name, mobile, role, status, campusId, deleted)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [parentUsername, parentPassword, 'E2E测试家长', parentMobile, 'Parent', 1, 1, 0],
+    );
+    testIds.parentUserId = Number(parentResult.insertId);
 
     // ── Step 2: Login as Admin ──
     const adminLoginRes = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        username: `${TEST_PREFIX}admin_${TEST_TIMESTAMP}`,
+        username: adminUsername,
         password: 'TestAdmin@2026',
       })
       .expect(200);
@@ -141,7 +221,7 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     const teacherLoginRes = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        username: `${TEST_PREFIX}teacher_${TEST_TIMESTAMP}`,
+        username: teacherUsername,
         password: 'TestTeacher@2026',
       })
       .expect(200);
@@ -152,64 +232,36 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   }, 30000);
 
   afterAll(async () => {
-    // ── Cleanup: Remove all test data ──
+    // ── Cleanup: Remove all test data via raw SQL ──
     try {
-      // Delete in reverse dependency order
-      const lessonAttendanceRepo = dataSource.getRepository(LessonAttendanceEntity);
-      const lessonRepo = dataSource.getRepository(LessonEntity);
-      const enrollmentRepo = dataSource.getRepository(EnrollmentEntity);
-      const teacherAssignmentRepo = dataSource.getRepository(TeacherAssignmentEntity);
-      const classRepo = dataSource.getRepository(ClassEntity);
-      const contractRepo = dataSource.getRepository(ContractEntity);
-      const studentRepo = dataSource.getRepository(Student);
-      const courseRepo = dataSource.getRepository(CourseEntity);
-      const userRepo = dataSource.getRepository(User);
-
-      // Delete lesson attendance
       if (testIds.lessonId) {
-        await lessonAttendanceRepo.delete({ lessonId: testIds.lessonId });
+        await dataSource.query(`DELETE FROM lesson_attendance WHERE lessonId = ?`, [testIds.lessonId]);
       }
-
-      // Delete lessons
       if (testIds.classCode) {
-        await lessonRepo.delete({ classCode: testIds.classCode });
+        await dataSource.query(`DELETE FROM lesson WHERE classCode = ?`, [testIds.classCode]);
+        await dataSource.query(`DELETE FROM teacher_assignment WHERE classCode = ?`, [testIds.classCode]);
       }
-
-      // Delete teacher assignments
-      if (testIds.classCode) {
-        await teacherAssignmentRepo.delete({ classCode: testIds.classCode });
-      }
-
-      // Delete enrollments
       if (testIds.studentCode) {
-        await enrollmentRepo.delete({ studentCode: testIds.studentCode });
+        await dataSource.query(`DELETE FROM enrollment WHERE studentCode = ?`, [testIds.studentCode]);
       }
-
-      // Delete class
       if (testIds.classCode) {
-        await classRepo.delete({ classCode: testIds.classCode });
+        await dataSource.query(`DELETE FROM class WHERE classCode = ?`, [testIds.classCode]);
       }
-
-      // Delete contract
       if (testIds.contractCode) {
-        await contractRepo.delete({ contractCode: testIds.contractCode });
+        await dataSource.query(`DELETE FROM contract WHERE contractCode = ?`, [testIds.contractCode]);
       }
-
-      // Delete course
       if (testIds.courseCode) {
-        await courseRepo.delete({ courseCode: testIds.courseCode });
+        await dataSource.query(`DELETE FROM course WHERE courseCode = ?`, [testIds.courseCode]);
       }
-
-      // Delete student
       if (testIds.studentCode) {
-        await studentRepo.delete({ studentCode: testIds.studentCode });
+        await dataSource.query(`DELETE FROM student WHERE studentCode = ?`, [testIds.studentCode]);
       }
 
-      // Delete test users
-      if (testIds.adminUserId) await userRepo.delete({ id: testIds.adminUserId });
-      if (testIds.teacherUserId) await userRepo.delete({ id: testIds.teacherUserId });
-      if (testIds.studentUserId) await userRepo.delete({ id: testIds.studentUserId });
-      if (testIds.parentUserId) await userRepo.delete({ id: testIds.parentUserId });
+      for (const id of [testIds.adminUserId, testIds.teacherUserId, testIds.studentUserId, testIds.parentUserId]) {
+        if (id) {
+          await dataSource.query(`DELETE FROM user WHERE id = ?`, [id]);
+        }
+      }
     } catch (cleanupError) {
       console.warn('Cleanup warning:', (cleanupError as Error).message);
     }
@@ -430,7 +482,7 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   // Test 9: Data Consistency Verification (Three Perspectives)
   // ═══════════════════════════════════════════════════════════
   describe('Step 9: Data Consistency Verification', () => {
-    it('9.1 Admin perspective: GET /students/:code should show student with contract info', async () => {
+    it('9.1 Admin perspective: GET /students/:code should show student', async () => {
       const res = await request(app.getHttpServer())
         .get(`/students/${testIds.studentCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -516,7 +568,6 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     });
 
     it('9.7 Cross-validation: Contract remainingLessons = totalLessons - consumed', async () => {
-      // Get contract directly
       const contractRes = await request(app.getHttpServer())
         .get(`/contracts/${testIds.contractCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
