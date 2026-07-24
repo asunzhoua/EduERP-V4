@@ -40,6 +40,13 @@ export class AnalyticsController {
     return ApiResponse.success(result);
   }
 
+  @Get('attendance-statistics')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
+  async getAttendanceStatistics() {
+    const result = await this.analyticsService.getAttendanceStatistics();
+    return ApiResponse.success(result);
+  }
+
   @Get('student/:studentCode/trend')
   @Roles('SuperAdmin', 'Admin', 'Teacher', 'Parent', 'Student')
   async getStudentTrend(

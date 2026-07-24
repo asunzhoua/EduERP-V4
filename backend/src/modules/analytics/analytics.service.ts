@@ -486,4 +486,146 @@ export class AnalyticsService {
 
     return { lessonTrend, enrollmentTrend };
   }
+
+  /**
+   * Attendance statistics — institution-level attendance overview.
+   * Returns total counts, by-date breakdown, and by-course breakdown.
+   * All data comes from real database (lesson_attendance + lesson tables).
+   */
+  async getAttendanceStatistics(): Promise<{
+    totalRecords: number;
+    presentCount: number;
+    absentCount: number;
+    leaveCount: number;
+    lateCount: number;
+    attendanceRate: number;
+    byDate: Array<{ date: string; present: number; absent: number; leave: number; late: number; total: number }>;
+    byCourse: Array<{ courseCode: string; present: number; absent: number; leave: number; late: number; total: number }>;
+  }> {
+    // Present statuses: PRESENT, LATE, ONLINE, OFFLINE (these count as "attended")
+    const presentStatuses = [
+      AttendanceStatus.PRESENT,
+      AttendanceStatus.LATE,
+      AttendanceStatus.ONLINE,
+      AttendanceStatus.OFFLINE,
+    ];
+
+    // 1. Overall counts
+    const totalRecords = await this.lessonAttendanceRepository.count();
+
+    const presentCount = await this.lessonAttendanceRepository
+      .createQueryBuilder('a')
+      .where('a.status IN (:...statuses)', { statuses: presentStatuses })
+      .getCount();
+
+    const absentCount = await this.lessonAttendanceRepository
+      .createQueryBuilder('a')
+      .where('a.status = :status', { status: AttendanceStatus.ABSENT })
+      .getCount();
+
+    const leaveCount = await this.lessonAttendanceRepository
+      .createQueryBuilder('a')
+      .where('a.status = :status', { status: AttendanceStatus.LEAVE })
+      .getCount();
+
+    const lateCount = await this.lessonAttendanceRepository
+      .createQueryBuilder('a')
+      .where('a.status = :status', { status: AttendanceStatus.LATE })
+      .getCount();
+
+    const attendanceRate = totalRecords > 0
+      ? Math.round((presentCount / totalRecords) * 10000) / 100
+      : 0;
+
+    // 2. By date — join attendance with lesson to get scheduledDate
+    const byDateRaw = await this.lessonAttendanceRepository
+      .createQueryBuilder('a')
+      .innerJoin('lesson', 'l', 'l.id = a.lessonId')
+      .select('l.scheduledDate', 'date')
+      .addSelect('a.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('l.scheduledDate')
+      .addGroupBy('a.status')
+      .orderBy('l.scheduledDate', 'DESC')
+      .getRawMany();
+
+    // Aggregate by date
+    const dateMap = new Map<string, { present: number; absent: number; leave: number; late: number; total: number }>();
+    for (const row of byDateRaw) {
+      const date = typeof row.date === 'string' ? row.date : this.formatDate(row.date);
+      if (!dateMap.has(date)) {
+        dateMap.set(date, { present: 0, absent: 0, leave: 0, late: 0, total: 0 });
+      }
+      const entry = dateMap.get(date)!;
+      const count = parseInt(row.count, 10);
+      entry.total += count;
+      if (presentStatuses.includes(row.status)) {
+        entry.present += count;
+      }
+      if (row.status === AttendanceStatus.ABSENT) {
+        entry.absent += count;
+      }
+      if (row.status === AttendanceStatus.LEAVE) {
+        entry.leave += count;
+      }
+      if (row.status === AttendanceStatus.LATE) {
+        entry.late += count;
+      }
+    }
+    const byDate = Array.from(dateMap.entries()).map(([date, stats]) => ({
+      date,
+      ...stats,
+    }));
+
+    // 3. By course — join attendance with lesson to get courseCode
+    const byCourseRaw = await this.lessonAttendanceRepository
+      .createQueryBuilder('a')
+      .innerJoin('lesson', 'l', 'l.id = a.lessonId')
+      .select('l.courseCode', 'courseCode')
+      .addSelect('a.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('l.courseCode')
+      .addGroupBy('a.status')
+      .orderBy('COUNT(*)', 'DESC')
+      .getRawMany();
+
+    // Aggregate by course
+    const courseMap = new Map<string, { present: number; absent: number; leave: number; late: number; total: number }>();
+    for (const row of byCourseRaw) {
+      const courseCode = row.courseCode;
+      if (!courseMap.has(courseCode)) {
+        courseMap.set(courseCode, { present: 0, absent: 0, leave: 0, late: 0, total: 0 });
+      }
+      const entry = courseMap.get(courseCode)!;
+      const count = parseInt(row.count, 10);
+      entry.total += count;
+      if (presentStatuses.includes(row.status)) {
+        entry.present += count;
+      }
+      if (row.status === AttendanceStatus.ABSENT) {
+        entry.absent += count;
+      }
+      if (row.status === AttendanceStatus.LEAVE) {
+        entry.leave += count;
+      }
+      if (row.status === AttendanceStatus.LATE) {
+        entry.late += count;
+      }
+    }
+    const byCourse = Array.from(courseMap.entries()).map(([courseCode, stats]) => ({
+      courseCode,
+      ...stats,
+    }));
+
+    return {
+      totalRecords,
+      presentCount,
+      absentCount,
+      leaveCount,
+      lateCount,
+      attendanceRate,
+      byDate,
+      byCourse,
+    };
+  }
 }

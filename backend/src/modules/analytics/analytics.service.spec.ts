@@ -36,6 +36,7 @@ describe('AnalyticsService', () => {
 
   const mockLessonAttendanceRepo = {
     find: jest.fn(),
+    count: jest.fn(),
     createQueryBuilder: jest.fn(),
   };
 
@@ -490,6 +491,97 @@ describe('AnalyticsService', () => {
       expect(result.enrollmentTrend).toHaveLength(7);
       expect(result.lessonTrend.every(t => t.value === 0)).toBe(true);
       expect(result.enrollmentTrend.every(t => t.value === 0)).toBe(true);
+    });
+  });
+
+  describe('getAttendanceStatistics', () => {
+    it('should return attendance statistics with real data structure', async () => {
+      // Mock overall counts
+      mockLessonAttendanceRepo.count.mockResolvedValue(9);
+
+      const counts = [7, 1, 1, 1]; // present, absent, leave, late
+      let callIndex = 0;
+      mockLessonAttendanceRepo.createQueryBuilder.mockImplementation(() => {
+        const idx = callIndex++;
+        if (idx < 4) {
+          // Overall count queries
+          return {
+            where: jest.fn().mockReturnValue({ getCount: jest.fn().mockResolvedValue(counts[idx]) }),
+          };
+        }
+        // byDate query
+        if (idx === 4) {
+          return {
+            innerJoin: jest.fn().mockReturnThis(),
+            select: jest.fn().mockReturnThis(),
+            addSelect: jest.fn().mockReturnThis(),
+            groupBy: jest.fn().mockReturnThis(),
+            addGroupBy: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            getRawMany: jest.fn().mockResolvedValue([
+              { date: '2026-07-18', status: 'LEAVE', count: '1' },
+              { date: '2026-07-18', status: 'PRESENT', count: '2' },
+              { date: '2026-07-17', status: 'ABSENT', count: '1' },
+              { date: '2026-07-17', status: 'PRESENT', count: '1' },
+            ]),
+          };
+        }
+        // byCourse query
+        return {
+          innerJoin: jest.fn().mockReturnThis(),
+          select: jest.fn().mockReturnThis(),
+          addSelect: jest.fn().mockReturnThis(),
+          groupBy: jest.fn().mockReturnThis(),
+          addGroupBy: jest.fn().mockReturnThis(),
+          orderBy: jest.fn().mockReturnThis(),
+          getRawMany: jest.fn().mockResolvedValue([
+            { courseCode: 'MATH001', status: 'PRESENT', count: '3' },
+            { courseCode: 'MATH001', status: 'ABSENT', count: '1' },
+            { courseCode: 'ENG001', status: 'PRESENT', count: '2' },
+            { courseCode: 'ENG001', status: 'LEAVE', count: '1' },
+          ]),
+        };
+      });
+
+      const result = await service.getAttendanceStatistics();
+
+      expect(result.totalRecords).toBe(9);
+      expect(result.presentCount).toBe(7);
+      expect(result.absentCount).toBe(1);
+      expect(result.leaveCount).toBe(1);
+      expect(result.lateCount).toBe(1);
+      expect(result.attendanceRate).toBe(77.78);
+      expect(result.byDate).toHaveLength(2);
+      expect(result.byCourse).toHaveLength(2);
+      expect(result.byDate[0]).toHaveProperty('date');
+      expect(result.byDate[0]).toHaveProperty('present');
+      expect(result.byDate[0]).toHaveProperty('absent');
+      expect(result.byCourse[0]).toHaveProperty('courseCode');
+      expect(result.byCourse[0]).toHaveProperty('total');
+    });
+
+    it('should return zeros when no attendance data', async () => {
+      mockLessonAttendanceRepo.count.mockResolvedValue(0);
+      mockLessonAttendanceRepo.createQueryBuilder.mockImplementation(() => ({
+        where: jest.fn().mockReturnValue({ getCount: jest.fn().mockResolvedValue(0) }),
+        innerJoin: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        addGroupBy: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([]),
+        getCount: jest.fn().mockResolvedValue(0),
+      }));
+
+      const result = await service.getAttendanceStatistics();
+
+      expect(result.totalRecords).toBe(0);
+      expect(result.presentCount).toBe(0);
+      expect(result.absentCount).toBe(0);
+      expect(result.attendanceRate).toBe(0);
+      expect(result.byDate).toHaveLength(0);
+      expect(result.byCourse).toHaveLength(0);
     });
   });
 });
