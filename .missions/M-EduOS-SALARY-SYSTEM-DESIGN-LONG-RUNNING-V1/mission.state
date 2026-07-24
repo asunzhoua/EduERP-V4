@@ -5,7 +5,7 @@
   "current_batch": "2.1",
   "updated_at": "2026-07-24T12:00:00+08:00",
   "batch_started_at": "2026-07-24T11:50:00+08:00",
-  "last_commit": "pending",
+  "last_commit": "0019b17",
   "pending_decision_gates": [],
   "auto_recovery_attempts": 0,
   "completed_batches": [
@@ -20,7 +20,7 @@
       "batch_id": "2.1",
       "status": "COMPLETED",
       "completed_at": "2026-07-24T12:00:00+08:00",
-      "commit_sha": "pending",
+      "commit_sha": "0019b17",
       "evidence_id": "SALARY-MODEL-DESIGN.md"
     }
   ]
