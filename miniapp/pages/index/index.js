@@ -184,7 +184,7 @@ Page({
   // 运营看板（仅 Admin/SuperAdmin）
   goToDashboard() {
     wx.navigateTo({
-      url: '/pages/operation/dashboard/dashboard',
+      url: '/pages/operation/dashboard',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }

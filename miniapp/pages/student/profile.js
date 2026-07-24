@@ -29,6 +29,14 @@ Page({
   },
 
   onLoad: function () {
+    // 角色守卫：教师不允许访问学生专属页面
+    var app = getApp();
+    var userInfo = app.globalData.userInfo || {};
+    var role = userInfo.role;
+    if (role === 'Teacher') {
+      wx.reLaunch({ url: '/pages/index/index' });
+      return;
+    }
     this.loadData();
   },
 

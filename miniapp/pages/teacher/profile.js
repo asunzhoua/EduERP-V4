@@ -33,6 +33,14 @@ Page({
   },
 
   onLoad: function () {
+    // 角色守卫：学生不允许访问教师页面
+    var app = getApp();
+    var userInfo = app.globalData.userInfo || {};
+    var role = userInfo.role;
+    if (role === 'Student' || role === 'Parent') {
+      wx.reLaunch({ url: '/pages/index/index' });
+      return;
+    }
     this.loadData();
   },
 
