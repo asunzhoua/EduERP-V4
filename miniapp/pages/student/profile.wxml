@@ -7,15 +7,15 @@
         <text class="avatar-text">{{studentInfo.name[0] || '?'}}</text>
       </view>
     </view>
-    <view class="profile-name">{{studentInfo.name || '同学'}}</view>
-    <view class="profile-code">学号：{{studentInfo.studentCode || '--'}}</view>
+    <view class="profile-name">{{studentInfo.name || '学生'}}</view>
+    <view class="profile-code">孩子：{{studentInfo.name || '--'}}{{studentInfo.studentCode && studentInfo.studentCode !== '--' ? '（学号：' + studentInfo.studentCode + '）' : ''}}</view>
   </view>
 
   <!-- 基础信息 -->
   <view class="info-card">
     <view class="card-title">基础信息</view>
     <view class="info-row">
-      <text class="info-label">姓名</text>
+      <text class="info-label">学生姓名</text>
       <text class="info-value">{{studentInfo.name || '--'}}</text>
     </view>
     <view class="info-row">

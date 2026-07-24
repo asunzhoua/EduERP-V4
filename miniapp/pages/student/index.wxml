@@ -3,8 +3,8 @@
   <!-- 欢迎卡片 -->
   <view class="welcome-card">
     <view class="welcome-info">
-      <text class="welcome-text">你好，{{studentInfo.name || '同学'}}</text>
-      <text class="student-code">学号：{{studentInfo.studentCode || ''}}</text>
+      <text class="welcome-text">您好，{{studentInfo.name ? studentInfo.name + ' 家长' : '家长'}}</text>
+      <text class="student-code">孩子：{{studentInfo.name || ''}} {{studentInfo.studentCode ? '（' + studentInfo.studentCode + '）' : ''}}</text>
     </view>
     <view class="profile-entry" bindtap="goToProfile">
       <text class="profile-entry-text">个人中心</text>
@@ -52,7 +52,7 @@
     <!-- 合同列表 -->
     <view class="section">
       <view class="section-header">
-        <text class="section-title">我的合同</text>
+        <text class="section-title">孩子合同</text>
       </view>
       <view class="contract-card" wx:for="{{contracts}}" wx:key="contractCode">
         <view class="contract-header">

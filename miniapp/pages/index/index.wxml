@@ -125,7 +125,7 @@
   <!-- ========== 学生端学习概览 ========== -->
   <view class="section" wx:if="{{role === 'Student' || role === 'Parent'}}">
     <view class="section-header">
-      <text class="section-title">我的学习</text>
+      <text class="section-title">孩子学习</text>
       <text class="section-refresh" bindtap="retryLoad" wx:if="{{error}}">点击重试</text>
     </view>
 

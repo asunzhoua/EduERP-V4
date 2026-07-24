@@ -1,7 +1,7 @@
 <!-- pages/student/classes.wxml -->
 <view class="container">
   <view class="page-header">
-    <text class="page-title">我的课程</text>
+    <text class="page-title">孩子的课程</text>
   </view>
 
   <view class="loading-state" wx:if="{{loading}}">

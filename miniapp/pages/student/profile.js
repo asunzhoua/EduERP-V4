@@ -77,7 +77,7 @@ Page({
       else if (info.gender === 'FEMALE' || info.gender === 2) genderText = '女';
 
       var studentInfo = {
-        name: info.name || '同学',
+        name: info.name || '学生',
         studentCode: info.studentCode || '--',
         gender: genderText,
         phone: info.phone || '未绑定'
