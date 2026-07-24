@@ -14,6 +14,7 @@ describe('AnalyticsController', () => {
     getStudentTrend: jest.fn(),
     getTeacherTrend: jest.fn(),
     getInstitutionTrend: jest.fn(),
+    getConsumptionStatistics: jest.fn(),
   };
 
   const mockStudentRepository = {
@@ -243,6 +244,53 @@ describe('AnalyticsController', () => {
       expect(result.code).toBe(0);
       // Should NOT call findOne for Teacher role
       expect(mockStudentRepository.findOne).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── GET /analytics/consumption-statistics ───
+
+  describe('getConsumptionStatistics', () => {
+    it('should return ApiResponse.success with consumption statistics', async () => {
+      const mockData = {
+        totalConsumed: 80,
+        totalRemaining: 120,
+        totalLessons: 200,
+        completedLessons: 45,
+        consumptionTrend: [
+          { date: '2026-07-20', value: 5 },
+          { date: '2026-07-21', value: 3 },
+        ],
+        byStudent: [
+          { studentCode: 'STU-001', consumed: 20, remaining: 30, total: 50 },
+        ],
+        byCourse: [
+          { subject: 'MATH', consumed: 40, remaining: 60, total: 100 },
+        ],
+      };
+      mockAnalyticsService.getConsumptionStatistics.mockResolvedValue(mockData);
+
+      const result = await controller.getConsumptionStatistics('30');
+
+      expect(result.code).toBe(0);
+      expect(result.message).toBe('success');
+      expect(result.data).toEqual(mockData);
+      expect(mockAnalyticsService.getConsumptionStatistics).toHaveBeenCalledWith(30);
+    });
+
+    it('should default to 7 days when no days param', async () => {
+      mockAnalyticsService.getConsumptionStatistics.mockResolvedValue({
+        totalConsumed: 0,
+        totalRemaining: 0,
+        totalLessons: 0,
+        completedLessons: 0,
+        consumptionTrend: [],
+        byStudent: [],
+        byCourse: [],
+      });
+
+      await controller.getConsumptionStatistics();
+
+      expect(mockAnalyticsService.getConsumptionStatistics).toHaveBeenCalledWith(7);
     });
   });
 });

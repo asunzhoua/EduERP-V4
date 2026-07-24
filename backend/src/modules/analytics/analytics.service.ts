@@ -9,7 +9,10 @@ import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/less
 import { TeacherAssignmentEntity } from '@modules/teaching/teacher-assignment/teacher-assignment.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
 import { ClassEntity } from '@modules/teaching/class/class.entity';
-import { AttendanceStatus } from '@modules/teaching/lesson-attendance/enums/attendance-status.enum';
+import { ContractEntity } from '@modules/teaching/contract/contract.entity';
+import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
+import { AttendanceStatus, DEDUCTIBLE_STATUSES } from '@modules/teaching/lesson-attendance/enums/attendance-status.enum';
+import { LessonStatus } from '@modules/teaching/lesson/enums/lesson-status.enum';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 
 export interface MetricItem {
@@ -43,6 +46,8 @@ export class AnalyticsService {
     private courseRepository: Repository<CourseEntity>,
     @InjectRepository(ClassEntity)
     private classRepository: Repository<ClassEntity>,
+    @InjectRepository(ContractEntity)
+    private contractRepository: Repository<ContractEntity>,
   ) {}
 
   /**
@@ -625,6 +630,121 @@ export class AnalyticsService {
       lateCount,
       attendanceRate,
       byDate,
+      byCourse,
+    };
+  }
+
+  // ─── Consumption Statistics ───
+
+  /**
+   * 课时消耗统计：基于 Contract 真实数据 + Attendance 签到记录
+   * consumed = totalLessons - remainingLessons（从 Contract 表直接读取）
+   */
+  async getConsumptionStatistics(days: number = 30): Promise<{
+    totalConsumed: number;
+    totalRemaining: number;
+    totalLessons: number;
+    completedLessons: number;
+    consumptionTrend: TrendData[];
+    byStudent: Array<{ studentCode: string; consumed: number; remaining: number; total: number }>;
+    byCourse: Array<{ subject: string; consumed: number; remaining: number; total: number }>;
+  }> {
+    // 1. Aggregate from ACTIVE contracts
+    const contractAgg = await this.contractRepository
+      .createQueryBuilder('contract')
+      .select('COALESCE(SUM(contract.totalLessons), 0)', 'totalLessons')
+      .addSelect('COALESCE(SUM(contract.remainingLessons), 0)', 'totalRemaining')
+      .addSelect('COALESCE(SUM(contract.totalLessons - contract.remainingLessons), 0)', 'totalConsumed')
+      .where('contract.status = :status', { status: ContractStatus.ACTIVE })
+      .getRawOne();
+
+    const totalLessons = parseInt(contractAgg?.totalLessons || '0', 10);
+    const totalRemaining = parseInt(contractAgg?.totalRemaining || '0', 10);
+    const totalConsumed = parseInt(contractAgg?.totalConsumed || '0', 10);
+
+    // 2. Completed lessons count (status = FINISHED)
+    const completedLessons = await this.lessonRepository.count({
+      where: { status: LessonStatus.FINISHED },
+    });
+
+    // 3. Consumption trend: daily check-in count over date range
+    const dateRange = this.generateDateRange(days);
+    const startDate = dateRange[0];
+    const endDate = dateRange[dateRange.length - 1];
+
+    // End datetime = next day 00:00 to include full end date
+    const endDateTime = new Date(endDate + 'T00:00:00');
+    const nextDay = new Date(endDateTime.getTime() + 24 * 60 * 60 * 1000);
+    const nextDayStr = this.formatDate(nextDay);
+
+    const deductibleStatuses = Array.from(DEDUCTIBLE_STATUSES);
+
+    const trendRows = await this.lessonAttendanceRepository
+      .createQueryBuilder('attendance')
+      .select('DATE(attendance.checkInTime)', 'date')
+      .addSelect('COUNT(*)', 'count')
+      .where('attendance.checkInTime >= :startDate', { startDate })
+      .andWhere('attendance.checkInTime < :nextDay', { nextDay: nextDayStr })
+      .andWhere('attendance.status IN (:...statuses)', { statuses: deductibleStatuses })
+      .groupBy('date')
+      .getRawMany();
+
+    const trendMap = new Map<string, number>();
+    for (const row of trendRows) {
+      const dateKey = typeof row.date === 'string'
+        ? row.date.substring(0, 10)
+        : this.formatDate(row.date);
+      trendMap.set(dateKey, parseInt(row.count, 10));
+    }
+
+    const consumptionTrend: TrendData[] = dateRange.map((date) => ({
+      date,
+      value: trendMap.get(date) || 0,
+    }));
+
+    // 4. By student: group ACTIVE contracts by studentCode
+    const byStudentRows = await this.contractRepository
+      .createQueryBuilder('contract')
+      .select('contract.studentCode', 'studentCode')
+      .addSelect('SUM(contract.totalLessons)', 'total')
+      .addSelect('SUM(contract.remainingLessons)', 'remaining')
+      .addSelect('SUM(contract.totalLessons - contract.remainingLessons)', 'consumed')
+      .where('contract.status = :status', { status: ContractStatus.ACTIVE })
+      .groupBy('contract.studentCode')
+      .getRawMany();
+
+    const byStudent = byStudentRows.map((row) => ({
+      studentCode: row.studentCode,
+      consumed: parseInt(row.consumed || '0', 10),
+      remaining: parseInt(row.remaining || '0', 10),
+      total: parseInt(row.total || '0', 10),
+    }));
+
+    // 5. By course: group ACTIVE contracts by subject
+    const byCourseRows = await this.contractRepository
+      .createQueryBuilder('contract')
+      .select('contract.subject', 'subject')
+      .addSelect('SUM(contract.totalLessons)', 'total')
+      .addSelect('SUM(contract.remainingLessons)', 'remaining')
+      .addSelect('SUM(contract.totalLessons - contract.remainingLessons)', 'consumed')
+      .where('contract.status = :status', { status: ContractStatus.ACTIVE })
+      .groupBy('contract.subject')
+      .getRawMany();
+
+    const byCourse = byCourseRows.map((row) => ({
+      subject: row.subject,
+      consumed: parseInt(row.consumed || '0', 10),
+      remaining: parseInt(row.remaining || '0', 10),
+      total: parseInt(row.total || '0', 10),
+    }));
+
+    return {
+      totalConsumed,
+      totalRemaining,
+      totalLessons,
+      completedLessons,
+      consumptionTrend,
+      byStudent,
       byCourse,
     };
   }

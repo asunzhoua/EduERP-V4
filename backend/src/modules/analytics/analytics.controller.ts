@@ -81,6 +81,14 @@ export class AnalyticsController {
     return ApiResponse.success(result);
   }
 
+  @Get('consumption-statistics')
+  @Roles('SuperAdmin', 'Admin')
+  async getConsumptionStatistics(@Query('days') days?: string) {
+    const parsedDays = this.parseDays(days);
+    const result = await this.analyticsService.getConsumptionStatistics(parsedDays);
+    return ApiResponse.success(result);
+  }
+
   /**
    * Parse and validate the `days` query parameter.
    * Defaults to 7, clamped to [1, 365].

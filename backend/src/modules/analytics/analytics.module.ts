@@ -8,6 +8,7 @@ import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/less
 import { TeacherAssignmentEntity } from '@modules/teaching/teacher-assignment/teacher-assignment.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
 import { ClassEntity } from '@modules/teaching/class/class.entity';
+import { ContractEntity } from '@modules/teaching/contract/contract.entity';
 import { AnalyticsService } from './analytics.service';
 import { AnalyticsController } from './analytics.controller';
 
@@ -22,6 +23,7 @@ import { AnalyticsController } from './analytics.controller';
       TeacherAssignmentEntity,
       CourseEntity,
       ClassEntity,
+      ContractEntity,
     ]),
   ],
   controllers: [AnalyticsController],

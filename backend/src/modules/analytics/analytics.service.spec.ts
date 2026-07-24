@@ -9,6 +9,7 @@ import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/less
 import { TeacherAssignmentEntity } from '@modules/teaching/teacher-assignment/teacher-assignment.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
 import { ClassEntity } from '@modules/teaching/class/class.entity';
+import { ContractEntity } from '@modules/teaching/contract/contract.entity';
 import { AttendanceStatus } from '@modules/teaching/lesson-attendance/enums/attendance-status.enum';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 
@@ -53,6 +54,10 @@ describe('AnalyticsService', () => {
     count: jest.fn(),
   };
 
+  const mockContractRepo = {
+    createQueryBuilder: jest.fn(),
+  };
+
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -65,6 +70,7 @@ describe('AnalyticsService', () => {
         { provide: getRepositoryToken(TeacherAssignmentEntity), useValue: mockTeacherAssignmentRepo },
         { provide: getRepositoryToken(CourseEntity), useValue: mockCourseRepo },
         { provide: getRepositoryToken(ClassEntity), useValue: mockClassRepo },
+        { provide: getRepositoryToken(ContractEntity), useValue: mockContractRepo },
       ],
     }).compile();
 
@@ -87,6 +93,7 @@ describe('AnalyticsService', () => {
     mockClassRepo.find = jest.fn();
     mockClassRepo.count = jest.fn();
     mockLoginLogRepo.createQueryBuilder = jest.fn();
+    mockContractRepo.createQueryBuilder = jest.fn();
   });
 
   it('should be defined', () => {
@@ -581,6 +588,189 @@ describe('AnalyticsService', () => {
       expect(result.absentCount).toBe(0);
       expect(result.attendanceRate).toBe(0);
       expect(result.byDate).toHaveLength(0);
+      expect(result.byCourse).toHaveLength(0);
+    });
+  });
+
+  // ─── getConsumptionStatistics ───
+
+  describe('getConsumptionStatistics', () => {
+    const createContractQbChain = (overrides: Record<string, any> = {}) => ({
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      getRawOne: jest.fn().mockResolvedValue(
+        overrides.getRawOne || { totalLessons: '100', totalRemaining: '60', totalConsumed: '40' },
+      ),
+      getRawMany: jest.fn().mockResolvedValue(overrides.getRawMany || []),
+    });
+
+    const createAttendanceQbChain = (rows: any[] = []) => ({
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue(rows),
+    });
+
+    it('should return correct totalConsumed, totalRemaining, totalLessons', async () => {
+      mockContractRepo.createQueryBuilder.mockReturnValue(
+        createContractQbChain({
+          getRawOne: { totalLessons: '200', totalRemaining: '120', totalConsumed: '80' },
+          getRawMany: [],
+        }),
+      );
+      mockLessonRepo.count.mockResolvedValue(45);
+      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(createAttendanceQbChain());
+
+      const result = await service.getConsumptionStatistics(7);
+
+      expect(result.totalConsumed).toBe(80);
+      expect(result.totalRemaining).toBe(120);
+      expect(result.totalLessons).toBe(200);
+    });
+
+    it('should return correct completedLessons count', async () => {
+      mockContractRepo.createQueryBuilder.mockReturnValue(
+        createContractQbChain({ getRawOne: { totalLessons: '0', totalRemaining: '0', totalConsumed: '0' }, getRawMany: [] }),
+      );
+      mockLessonRepo.count.mockResolvedValue(123);
+      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(createAttendanceQbChain());
+
+      const result = await service.getConsumptionStatistics(7);
+
+      expect(result.completedLessons).toBe(123);
+      expect(mockLessonRepo.count).toHaveBeenCalledWith({ where: { status: 'FINISHED' } });
+    });
+
+    it('should return consumptionTrend with correct date range', async () => {
+      mockContractRepo.createQueryBuilder.mockReturnValue(
+        createContractQbChain({ getRawOne: { totalLessons: '0', totalRemaining: '0', totalConsumed: '0' }, getRawMany: [] }),
+      );
+      mockLessonRepo.count.mockResolvedValue(0);
+
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+
+      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(
+        createAttendanceQbChain([{ date: todayStr, count: '5' }]),
+      );
+
+      const result = await service.getConsumptionStatistics(3);
+
+      expect(result.consumptionTrend).toHaveLength(3);
+      expect(result.consumptionTrend[result.consumptionTrend.length - 1].date).toBe(todayStr);
+      expect(result.consumptionTrend[result.consumptionTrend.length - 1].value).toBe(5);
+    });
+
+    it('should return byStudent grouped correctly', async () => {
+      const studentRows = [
+        { studentCode: 'STU-001', total: '50', remaining: '30', consumed: '20' },
+        { studentCode: 'STU-002', total: '30', remaining: '10', consumed: '20' },
+      ];
+
+      let callCount = 0;
+      mockContractRepo.createQueryBuilder.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          // aggregate query
+          return createContractQbChain({
+            getRawOne: { totalLessons: '80', totalRemaining: '40', totalConsumed: '40' },
+            getRawMany: [],
+          });
+        }
+        if (callCount === 2) {
+          // byStudent query
+          return createContractQbChain({ getRawOne: null, getRawMany: studentRows });
+        }
+        // byCourse query
+        return createContractQbChain({ getRawOne: null, getRawMany: [] });
+      });
+
+      mockLessonRepo.count.mockResolvedValue(0);
+      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(createAttendanceQbChain());
+
+      const result = await service.getConsumptionStatistics(7);
+
+      expect(result.byStudent).toHaveLength(2);
+      expect(result.byStudent[0]).toEqual({
+        studentCode: 'STU-001',
+        consumed: 20,
+        remaining: 30,
+        total: 50,
+      });
+      expect(result.byStudent[1]).toEqual({
+        studentCode: 'STU-002',
+        consumed: 20,
+        remaining: 10,
+        total: 30,
+      });
+    });
+
+    it('should return byCourse grouped correctly', async () => {
+      const courseRows = [
+        { subject: 'MATH', total: '60', remaining: '40', consumed: '20' },
+        { subject: 'ENGLISH', total: '40', remaining: '20', consumed: '20' },
+      ];
+
+      let callCount = 0;
+      mockContractRepo.createQueryBuilder.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return createContractQbChain({
+            getRawOne: { totalLessons: '100', totalRemaining: '60', totalConsumed: '40' },
+            getRawMany: [],
+          });
+        }
+        if (callCount === 2) {
+          return createContractQbChain({ getRawOne: null, getRawMany: [] });
+        }
+        return createContractQbChain({ getRawOne: null, getRawMany: courseRows });
+      });
+
+      mockLessonRepo.count.mockResolvedValue(0);
+      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(createAttendanceQbChain());
+
+      const result = await service.getConsumptionStatistics(7);
+
+      expect(result.byCourse).toHaveLength(2);
+      expect(result.byCourse[0]).toEqual({
+        subject: 'MATH',
+        consumed: 20,
+        remaining: 40,
+        total: 60,
+      });
+      expect(result.byCourse[1]).toEqual({
+        subject: 'ENGLISH',
+        consumed: 20,
+        remaining: 20,
+        total: 40,
+      });
+    });
+
+    it('should handle empty contracts gracefully', async () => {
+      mockContractRepo.createQueryBuilder.mockReturnValue(
+        createContractQbChain({
+          getRawOne: { totalLessons: '0', totalRemaining: '0', totalConsumed: '0' },
+          getRawMany: [],
+        }),
+      );
+      mockLessonRepo.count.mockResolvedValue(0);
+      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(createAttendanceQbChain());
+
+      const result = await service.getConsumptionStatistics(7);
+
+      expect(result.totalConsumed).toBe(0);
+      expect(result.totalRemaining).toBe(0);
+      expect(result.totalLessons).toBe(0);
+      expect(result.completedLessons).toBe(0);
+      expect(result.byStudent).toHaveLength(0);
       expect(result.byCourse).toHaveLength(0);
     });
   });
