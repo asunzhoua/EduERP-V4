@@ -66,4 +66,12 @@ export class LessonChangeRequestController {
     const result = await this.service.reject(id, req.user.sub, body.reason);
     return ApiResponse.success(result, 'Change request rejected');
   }
+
+  @Patch('change-requests/:id/execute')
+  @Roles('SuperAdmin', 'Admin')
+  @ApiOperation({ summary: 'Execute an approved change request' })
+  async execute(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    const result = await this.service.execute(id, req.user.sub);
+    return ApiResponse.success(result, 'Change request executed');
+  }
 }

@@ -16,6 +16,7 @@ describe('LessonChangeRequestController', () => {
       findByLessonId: jest.fn(),
       approve: jest.fn(),
       reject: jest.fn(),
+      execute: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

@@ -121,6 +121,9 @@
       "^@database/(.*)$": "<rootDir>/database/$1",
       "^@config/(.*)$": "<rootDir>/config/$1",
       "^@utils/(.*)$": "<rootDir>/utils/$1"
-    }
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(uuid)/)"
+    ]
   }
 }

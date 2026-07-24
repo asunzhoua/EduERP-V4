@@ -1,8 +1,10 @@
-import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger, forwardRef, Inject } from '@nestjs/common';
 import { LessonChangeRequestRepository } from './lesson-change-request.repository';
 import { LessonChangeRequestEntity } from './lesson-change-request.entity';
 import { ChangeRequestType } from '@common/enums/change-request-type.enum';
 import { ChangeRequestStatus } from './enums/change-request-status.enum';
+import { LessonService } from '../lesson/lesson.service';
+import { LessonStatus } from '../lesson/enums/lesson-status.enum';
 
 /**
  * Allowed request status transitions per LessonChangeRequest lifecycle.
@@ -54,7 +56,11 @@ export interface CreateChangeRequestInput {
 export class LessonChangeRequestService {
   private readonly logger = new Logger(LessonChangeRequestService.name);
 
-  constructor(private readonly requestRepo: LessonChangeRequestRepository) {}
+  constructor(
+    private readonly requestRepo: LessonChangeRequestRepository,
+    @Inject(forwardRef(() => LessonService))
+    private readonly lessonService: LessonService,
+  ) {}
 
   // ─── Create Request ───
 
@@ -174,7 +180,14 @@ export class LessonChangeRequestService {
 
   // ─── Execute ───
 
-  /** System executes an APPROVED request. APPROVED → EXECUTED (terminal). */
+  /**
+   * System executes an APPROVED request. APPROVED → EXECUTED (terminal).
+   * Actually modifies Lesson data based on requestType:
+   * - RESCHEDULE: update scheduledDate/startTime/endTime
+   * - TEACHER_CHANGE: update teacherId
+   * - CANCEL: transition Lesson status → CANCELLED
+   * - REOPEN: transition Lesson status → SCHEDULED
+   */
   async execute(
     requestId: number,
     executedBy: number,
@@ -193,13 +206,75 @@ export class LessonChangeRequestService {
       );
     }
 
+    // ─── Apply actual changes to Lesson based on requestType ───
+    switch (entity.requestType) {
+      case ChangeRequestType.RESCHEDULE: {
+        const lesson = await this.lessonService.findOne(entity.lessonId);
+        if (entity.newDate) lesson.scheduledDate = entity.newDate;
+        if (entity.newStartTime) lesson.startTime = entity.newStartTime;
+        if (entity.newEndTime) lesson.endTime = entity.newEndTime;
+        await this.lessonService['lessonRepo'].save(lesson);
+        this.logger.log(
+          `RESCHEDULE executed: lesson=${entity.lessonId}, newDate=${entity.newDate}`,
+        );
+        break;
+      }
+
+      case ChangeRequestType.TEACHER_CHANGE: {
+        if (!entity.newTeacherId) {
+          throw new BadRequestException(
+            'newTeacherId is required for TEACHER_CHANGE',
+          );
+        }
+        const lesson = await this.lessonService.findOne(entity.lessonId);
+        lesson.teacherId = entity.newTeacherId;
+        await this.lessonService['lessonRepo'].save(lesson);
+        this.logger.log(
+          `TEACHER_CHANGE executed: lesson=${entity.lessonId}, newTeacherId=${entity.newTeacherId}`,
+        );
+        break;
+      }
+
+      case ChangeRequestType.CANCEL: {
+        await this.lessonService.updateStatus(
+          entity.lessonId,
+          LessonStatus.CANCELLED,
+          executedBy,
+          entity.reason,
+        );
+        this.logger.log(
+          `CANCEL executed: lesson=${entity.lessonId}`,
+        );
+        break;
+      }
+
+      case ChangeRequestType.REOPEN: {
+        await this.lessonService.updateStatus(
+          entity.lessonId,
+          LessonStatus.SCHEDULED,
+          executedBy,
+          entity.reason,
+        );
+        this.logger.log(
+          `REOPEN executed: lesson=${entity.lessonId}`,
+        );
+        break;
+      }
+
+      default:
+        throw new BadRequestException(
+          `Unknown request type: ${entity.requestType}`,
+        );
+    }
+
+    // ─── Mark request as EXECUTED ───
     entity.status = ChangeRequestStatus.EXECUTED;
     entity.executedAt = new Date();
     entity.executedBy = executedBy;
 
     const saved = await this.requestRepo.save(entity);
     this.logger.log(
-      `Change request executed: id=${saved.id}, executedBy=${executedBy}`,
+      `Change request executed: id=${saved.id}, type=${entity.requestType}, executedBy=${executedBy}`,
     );
     return saved;
   }

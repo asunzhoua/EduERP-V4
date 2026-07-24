@@ -11,6 +11,7 @@ import { LessonChangeRequestRepository } from './lesson-change-request.repositor
 import { LessonChangeRequestEntity } from './lesson-change-request.entity';
 import { ChangeRequestType } from '@common/enums/change-request-type.enum';
 import { ChangeRequestStatus } from './enums/change-request-status.enum';
+import { LessonService } from '../lesson/lesson.service';
 
 describe('LessonChangeRequestService', () => {
   let service: LessonChangeRequestService;
@@ -24,10 +25,19 @@ describe('LessonChangeRequestService', () => {
       countRescheduleByLessonId: jest.fn(),
     };
 
+    const mockLessonService = {
+      findOne: jest.fn(),
+      updateStatus: jest.fn(),
+      lessonRepo: {
+        save: jest.fn(),
+      },
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LessonChangeRequestService,
         { provide: LessonChangeRequestRepository, useValue: mockRepo },
+        { provide: LessonService, useValue: mockLessonService },
       ],
     }).compile();
 
@@ -363,18 +373,49 @@ describe('LessonChangeRequestService', () => {
   });
 
   describe('execute', () => {
-    it('should execute an APPROVED request', async () => {
+    it('should execute an APPROVED RESCHEDULE request', async () => {
       const mockRepo = (service as any).requestRepo;
+      const mockLessonService = (service as any).lessonService;
       const entity = new LessonChangeRequestEntity();
       entity.id = 1;
       entity.status = ChangeRequestStatus.APPROVED;
+      entity.requestType = ChangeRequestType.RESCHEDULE;
+      entity.lessonId = 10;
+      entity.newDate = '2026-07-25';
+      entity.newStartTime = '10:00';
+      entity.newEndTime = '11:00';
       mockRepo.findOneById.mockResolvedValue(entity);
       mockRepo.save.mockImplementation(async (e) => e);
+
+      const mockLesson = { id: 10, scheduledDate: '2026-07-20', startTime: '09:00', endTime: '10:00' };
+      mockLessonService.findOne.mockResolvedValue(mockLesson);
+      mockLessonService.lessonRepo.save.mockResolvedValue(mockLesson);
 
       const result = await service.execute(1, 5);
       expect(result.status).toBe(ChangeRequestStatus.EXECUTED);
       expect(result.executedBy).toBe(5);
       expect(result.executedAt).toBeInstanceOf(Date);
+      expect(mockLesson.scheduledDate).toBe('2026-07-25');
+      expect(mockLesson.startTime).toBe('10:00');
+      expect(mockLesson.endTime).toBe('11:00');
+    });
+
+    it('should execute an APPROVED CANCEL request', async () => {
+      const mockRepo = (service as any).requestRepo;
+      const mockLessonService = (service as any).lessonService;
+      const entity = new LessonChangeRequestEntity();
+      entity.id = 2;
+      entity.status = ChangeRequestStatus.APPROVED;
+      entity.requestType = ChangeRequestType.CANCEL;
+      entity.lessonId = 10;
+      entity.reason = '测试取消';
+      mockRepo.findOneById.mockResolvedValue(entity);
+      mockRepo.save.mockImplementation(async (e) => e);
+      mockLessonService.updateStatus.mockResolvedValue({ id: 10 });
+
+      const result = await service.execute(2, 5);
+      expect(result.status).toBe(ChangeRequestStatus.EXECUTED);
+      expect(mockLessonService.updateStatus).toHaveBeenCalledWith(10, 'CANCELLED', 5, '测试取消');
     });
 
     it('should throw BadRequestException when not approved', async () => {
