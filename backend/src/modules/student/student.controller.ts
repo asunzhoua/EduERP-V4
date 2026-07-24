@@ -199,6 +199,7 @@ export class StudentController {
       attendanceRecords.slice(0, 20).map((a) => {
         const lesson = lessonMap.get(a.lessonId);
         return {
+          lessonId: a.lessonId,
           lessonDate: lesson?.scheduledDate || null,
           startTime: lesson?.startTime || null,
           endTime: lesson?.endTime || null,
