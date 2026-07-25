@@ -10,6 +10,7 @@ import { AnalyticsModule } from '@modules/analytics/analytics.module';
 import { ReminderModule } from '@modules/reminder/reminder.module';
 import { SalaryModule } from '@modules/salary/salary.module';
 import { DashboardModule } from '@modules/dashboard/dashboard.module';
+import { ExportModule } from '@modules/export/export.module';
 import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
 import { ResponseInterceptor } from '@common/interceptors/response.interceptor';
@@ -63,6 +64,7 @@ import { appConfig } from '@config/configuration';
     ReminderModule,
     SalaryModule,
     DashboardModule,
+    ExportModule,
   ],
   providers: [
     {
