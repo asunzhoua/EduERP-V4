@@ -950,19 +950,21 @@ describe('Core Business Consistency Audit', () => {
       expect(source).not.toContain('LessonService');
     });
 
-    it('教学模块内 LessonAttendanceService 对 salary 的跨模块依赖应当只通过事件', () => {
+    it('教学模块内 LessonAttendanceService 对 salary 无跨模块依赖（已移除事件发射）', () => {
       const fs = require('fs');
       const path = require('path');
       const source = fs.readFileSync(
         path.join(__dirname, '../lesson-attendance/lesson-attendance.service.ts'),
         'utf-8',
       );
-      // It should NOT import salary service directly
+      // Should NOT import salary service directly
       expect(source).not.toContain('SalaryService');
-      // It imports event class from salary module (type coupling, less critical)
-      // The key finding is: it emits lesson.completed via eventEmitter directly
-      expect(source).toContain("'lesson.completed'");
-      expect(source).toContain('LessonCompletedEvent');
+      // Should NOT import salary event class anymore (event emission removed)
+      expect(source).not.toContain('LessonCompletedEvent');
+      // Should NOT emit lesson.completed directly (now only LessonService emits it)
+      expect(source).not.toContain("'lesson.completed'");
+      // EventEmitter2 import should also be removed
+      expect(source).not.toContain('EventEmitter2');
     });
   });
 
