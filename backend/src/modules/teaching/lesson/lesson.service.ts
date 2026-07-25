@@ -22,11 +22,15 @@ import { Student } from '@modules/student/entities/student.entity';
 /** Allowed status transitions per LessonStateMachine */
 const VALID_TRANSITIONS: Record<LessonStatus, LessonStatus[]> = {
   [LessonStatus.DRAFT]: [LessonStatus.SCHEDULED, LessonStatus.CANCELLED],
-  [LessonStatus.SCHEDULED]: [LessonStatus.TEACHING, LessonStatus.CANCELLED],
+  [LessonStatus.SCHEDULED]: [LessonStatus.TEACHING, LessonStatus.CANCELLED, LessonStatus.SUSPENDED],
   [LessonStatus.TEACHING]: [LessonStatus.FINISHED, LessonStatus.CANCELLED],
   [LessonStatus.FINISHED]: [LessonStatus.ARCHIVED, LessonStatus.SCHEDULED],
   [LessonStatus.ARCHIVED]: [LessonStatus.FINISHED], // Reopen (requires reason, may need financial rollback)
-  [LessonStatus.CANCELLED]: [LessonStatus.SCHEDULED], // Reopen
+  [LessonStatus.CANCELLED]: [LessonStatus.SCHEDULED, LessonStatus.MAKEUP_PENDING],
+  [LessonStatus.SUSPENDED]: [LessonStatus.SCHEDULED, LessonStatus.RESCHEDULED, LessonStatus.MAKEUP_PENDING],
+  [LessonStatus.RESCHEDULED]: [LessonStatus.TEACHING],
+  [LessonStatus.MAKEUP_PENDING]: [LessonStatus.RESCHEDULED],
+  [LessonStatus.MAKEUP_COMPLETED]: [],
 };
 
 /** Input for creating a single Lesson. */

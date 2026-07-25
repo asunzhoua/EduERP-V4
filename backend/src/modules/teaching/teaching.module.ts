@@ -14,11 +14,24 @@ import { ClassEntity } from './class/class.entity';
 import { LessonEntity } from './lesson/lesson.entity';
 import { LessonAttendanceEntity } from './lesson-attendance/lesson-attendance.entity';
 import { TeacherAssignmentEntity } from './teacher-assignment/teacher-assignment.entity';
+import { LessonExceptionEntity } from './lesson/lesson-exception/lesson-exception.entity';
+import { LessonExceptionLogEntity } from './lesson/lesson-exception/lesson-exception-log.entity';
+import { LessonRescheduleEntity } from './lesson/lesson-exception/lesson-reschedule.entity';
+import { LessonExceptionAttachmentEntity } from './lesson/lesson-exception/lesson-exception-attachment.entity';
 import { TeacherDashboardController } from './teacher-dashboard/teacher-dashboard.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ClassEntity, LessonEntity, LessonAttendanceEntity, TeacherAssignmentEntity]),
+    TypeOrmModule.forFeature([
+      ClassEntity,
+      LessonEntity,
+      LessonAttendanceEntity,
+      TeacherAssignmentEntity,
+      LessonExceptionEntity,
+      LessonExceptionLogEntity,
+      LessonRescheduleEntity,
+      LessonExceptionAttachmentEntity,
+    ]),
     CourseModule,
     ClassModule,
     ContractModule,

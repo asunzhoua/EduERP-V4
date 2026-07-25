@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddReminderTable20260724 implements MigrationInterface {
-  name = 'AddReminderTable20260724';
+export class AddReminderTable202607241784934000000 implements MigrationInterface {
+  name = 'AddReminderTable202607241784934000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`

@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner, TableIndex } from 'typeorm';
 
-export class AddQueryIndexes20260719 implements MigrationInterface {
-  name = 'AddQueryIndexes20260719';
+export class AddQueryIndexes202607191784443337671 implements MigrationInterface {
+  name = 'AddQueryIndexes202607191784443337671';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // student.status

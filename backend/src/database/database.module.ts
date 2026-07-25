@@ -15,6 +15,10 @@ import { TeacherAssignmentEntity } from '../modules/teaching/teacher-assignment/
 import { CourseEntity } from '../modules/teaching/course/course.entity';
 import { LessonEntity } from '../modules/teaching/lesson/lesson.entity';
 import { LessonAttendanceEntity } from '../modules/teaching/lesson-attendance/lesson-attendance.entity';
+import { LessonExceptionEntity } from '../modules/teaching/lesson/lesson-exception/lesson-exception.entity';
+import { LessonExceptionLogEntity } from '../modules/teaching/lesson/lesson-exception/lesson-exception-log.entity';
+import { LessonRescheduleEntity } from '../modules/teaching/lesson/lesson-exception/lesson-reschedule.entity';
+import { LessonExceptionAttachmentEntity } from '../modules/teaching/lesson/lesson-exception/lesson-exception-attachment.entity';
 
 @Module({
   imports: [
@@ -22,6 +26,7 @@ import { LessonAttendanceEntity } from '../modules/teaching/lesson-attendance/le
       User, Role, Permission, UserRole, RolePermission, LoginLog,
       ClassEntity, Student, ContractEntity, EnrollmentEntity, TeacherAssignmentEntity,
       CourseEntity, LessonEntity, LessonAttendanceEntity,
+      LessonExceptionEntity, LessonExceptionLogEntity, LessonRescheduleEntity, LessonExceptionAttachmentEntity,
     ]),
   ],
   providers: [SeedService],
