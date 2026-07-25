@@ -65,12 +65,14 @@ function handleTokenExpired() {
  * @param {Object} options 请求配置
  * @param {number} [options.timeout] 超时时间（毫秒），默认 15000
  * @param {number} [options.retry] 重试次数，默认 1（仅网络错误重试）
+ * @param {string} [options.responseType] 响应类型：text | arraybuffer（默认 text）
  * @returns {Promise}
  */
 function request(options) {
   var app = getApp();
   var timeout = options.timeout || 15000;
   var maxRetry = options.retry !== undefined ? options.retry : 1;
+  var responseType = options.responseType || 'text';
   var attempt = 0;
 
   function doRequest() {
@@ -86,16 +88,28 @@ function request(options) {
       var token = (app && app.globalData && app.globalData.token) || wx.getStorageSync('token');
       var baseUrl = (app && app.globalData && app.globalData.baseUrl) || '';
 
+      // 构建 header：arraybuffer 时不需要 Content-Type
+      var header = {
+        'Authorization': token ? 'Bearer ' + token : '',
+      };
+      if (responseType !== 'arraybuffer') {
+        header['Content-Type'] = 'application/json';
+      }
+
       wx.request({
         url: baseUrl + options.url,
         method: options.method || 'GET',
         data: options.data,
         timeout: timeout,
-        header: {
-          'Authorization': token ? 'Bearer ' + token : '',
-          'Content-Type': 'application/json'
-        },
+        responseType: responseType,
+        header: header,
         success: function(res) {
+          // arraybuffer 类型 — 直接返回原始响应（用于文件下载）
+          if (responseType === 'arraybuffer') {
+            resolve(res);
+            return;
+          }
+
           if (res.data && res.data.code === 0) {
             resolve(res.data.data);
           } else if (res.data && res.data.code === 2002) {
@@ -136,9 +150,9 @@ function get(url, data) {
   return request({ url, method: 'GET', data });
 }
 
-// POST 请求
-function post(url, data) {
-  return request({ url, method: 'POST', data });
+// POST 请求（支持额外选项，如 responseType）
+function post(url, data, extraOptions) {
+  return request(Object.assign({ url: url, method: 'POST', data: data }, extraOptions || {}));
 }
 
 // PUT 请求

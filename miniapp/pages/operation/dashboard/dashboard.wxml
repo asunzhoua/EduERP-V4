@@ -83,5 +83,17 @@
         </view>
       </view>
     </view>
+
+    <!-- 数据导出（仅管理员可见） -->
+    <view class="export-section" wx:if="{{showExport}}">
+      <view class="section-title">数据导出</view>
+      <view class="export-buttons">
+        <button class="export-btn" bindtap="exportStudents">导出学生数据</button>
+        <button class="export-btn" bindtap="exportLessons">导出课程记录</button>
+        <button class="export-btn" bindtap="exportConsumption">导出课时消耗</button>
+        <button class="export-btn" bindtap="exportSalary">导出工资记录</button>
+        <button class="export-btn" bindtap="exportFinance">导出财务记录</button>
+      </view>
+    </view>
   </view>
 </view>
