@@ -126,6 +126,33 @@
   color: #1890ff;
 }
 
+/* 菜单网格 */
+.menu-grid {
+  display: flex;
+  gap: 16rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 20rpx;
+}
+
+.menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  padding: 20rpx;
+}
+
+.menu-icon {
+  font-size: 48rpx;
+  margin-bottom: 12rpx;
+}
+
+.menu-text {
+  font-size: 26rpx;
+  color: #333;
+}
+
 /* 学习概览卡片 */
 .overview-card {
   background: #fff;
@@ -319,6 +346,33 @@
 .section-action {
   font-size: 26rpx;
   color: #1890ff;
+}
+
+/* 菜单网格 */
+.menu-grid {
+  display: flex;
+  gap: 16rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 20rpx;
+}
+
+.menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  padding: 20rpx;
+}
+
+.menu-icon {
+  font-size: 48rpx;
+  margin-bottom: 12rpx;
+}
+
+.menu-text {
+  font-size: 26rpx;
+  color: #333;
 }
 
 /* 学习概览卡片 */

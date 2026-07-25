@@ -1,0 +1,87 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error-state" wx:elif="{{error}}">
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadDetail">点击重试</view>
+  </view>
+
+  <!-- 详情内容 -->
+  <block wx:else>
+    <!-- 基本信息卡片 -->
+    <view class="info-card">
+      <view class="card-header">
+        <text class="card-title">异常信息</text>
+        <text class="status-tag status-{{detail.status}}">{{detail.statusText}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">类型</text>
+        <text class="info-value">{{detail.typeText}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">课程</text>
+        <text class="info-value">{{detail.courseName || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">日期</text>
+        <text class="info-value">{{detail.date || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">原因</text>
+        <text class="info-value">{{detail.reason || '--'}}</text>
+      </view>
+      <view class="info-row" wx:if="{{detail.remark}}">
+        <text class="info-label">审批意见</text>
+        <text class="info-value">{{detail.remark}}</text>
+      </view>
+    </view>
+
+    <!-- 审批记录卡片 -->
+    <view class="info-card">
+      <view class="card-header">
+        <text class="card-title">审批记录</text>
+      </view>
+      <view class="approval-item" wx:for="{{approvals}}" wx:key="id">
+        <view class="approval-top">
+          <text class="approval-operator">{{item.operatorName || '系统'}}</text>
+          <text class="approval-result {{item.action === 'APPROVE' ? 'result-pass' : 'result-reject'}}">
+            {{item.action === 'APPROVE' ? '通过' : '拒绝'}}
+          </text>
+        </view>
+        <text class="approval-opinion" wx:if="{{item.remark}}">{{item.remark}}</text>
+        <text class="approval-time">{{item.createdAt || '--'}}</text>
+      </view>
+      <view class="empty-block" wx:if="{{approvals.length === 0}}">
+        <text>暂无审批记录</text>
+      </view>
+    </view>
+
+    <!-- 补课安排卡片 -->
+    <view class="info-card" wx:if="{{reschedule}}">
+      <view class="card-header">
+        <text class="card-title">补课安排</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">补课日期</text>
+        <text class="info-value">{{reschedule.date || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">补课时间</text>
+        <text class="info-value">{{reschedule.startTime || '--'}} - {{reschedule.endTime || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">教师</text>
+        <text class="info-value">{{reschedule.teacherName || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">教室</text>
+        <text class="info-value">{{reschedule.room || '--'}}</text>
+      </view>
+    </view>
+  </block>
+</view>

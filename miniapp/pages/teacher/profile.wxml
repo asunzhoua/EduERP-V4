@@ -129,6 +129,18 @@
       </view>
     </view>
 
+    <!-- 异常入口 -->
+    <view class="quick-nav" style="margin-top: 20rpx;">
+      <view class="nav-item" bindtap="goToMyExceptions">
+        <text class="nav-icon">⚠️</text>
+        <text class="nav-text">我的课程异常</text>
+      </view>
+      <view class="nav-item" bindtap="goToLeaveApply">
+        <text class="nav-icon">📝</text>
+        <text class="nav-text">教师请假</text>
+      </view>
+    </view>
+
     <!-- 退出登录 -->
     <view class="logout-section">
       <button class="logout-btn" bindtap="handleLogout">退出登录</button>

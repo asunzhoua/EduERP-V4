@@ -309,5 +309,15 @@ Page({
   // 重试趋势加载
   retryTrend() {
     this.loadTrendData();
+  },
+
+  // 跳转异常管理
+  goToExceptionList() {
+    wx.navigateTo({
+      url: '/pages/operation/exception-list/exception-list',
+      fail: function() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   }
 });

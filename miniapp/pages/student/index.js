@@ -61,6 +61,24 @@ Page({
     });
   },
 
+  goToLeaveApply() {
+    wx.navigateTo({
+      url: '/pages/student/leave-apply/leave-apply',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  goToLeaveRecords() {
+    wx.navigateTo({
+      url: '/pages/student/leave-records/leave-records',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
   async loadData() {
     if (this._dataLoading) return;
     this._dataLoading = true;

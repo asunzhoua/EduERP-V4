@@ -1,0 +1,95 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error-state" wx:elif="{{error}}">
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadDetail">点击重试</view>
+  </view>
+
+  <!-- 详情内容 -->
+  <block wx:else>
+    <!-- 异常信息卡片 -->
+    <view class="info-card">
+      <view class="card-header">
+        <text class="card-title">异常信息</text>
+        <text class="status-tag status-{{detail.status}}">{{detail.statusText}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">类型</text>
+        <text class="info-value">{{detail.typeText}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">申请人</text>
+        <text class="info-value">{{detail.applicantName || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">角色</text>
+        <text class="info-value">{{detail.applicantRoleText || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">课程</text>
+        <text class="info-value">{{detail.courseName || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">日期</text>
+        <text class="info-value">{{detail.date || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">原因</text>
+        <text class="info-value info-reason">{{detail.reason || '--'}}</text>
+      </view>
+    </view>
+
+    <!-- 附件列表 -->
+    <view class="info-card" wx:if="{{detail.attachments && detail.attachments.length > 0}}">
+      <view class="card-header">
+        <text class="card-title">附件</text>
+      </view>
+      <view class="file-item" wx:for="{{detail.attachments}}" wx:key="id">
+        <text class="file-name">{{item.name || '附件'}}</text>
+      </view>
+    </view>
+
+    <!-- 审批记录卡片 -->
+    <view class="info-card" wx:if="{{approvals.length > 0}}">
+      <view class="card-header">
+        <text class="card-title">审批记录</text>
+      </view>
+      <view class="approval-item" wx:for="{{approvals}}" wx:key="id">
+        <view class="approval-top">
+          <text class="approval-operator">{{item.operatorName || '系统'}}</text>
+          <text class="approval-result {{item.action === 'APPROVE' ? 'result-pass' : 'result-reject'}}">
+            {{item.action === 'APPROVE' ? '通过' : '拒绝'}}
+          </text>
+        </view>
+        <text class="approval-opinion" wx:if="{{item.remark}}">{{item.remark}}</text>
+        <text class="approval-time">{{item.createdAt || '--'}}</text>
+      </view>
+    </view>
+
+    <!-- 审批表单 -->
+    <view class="approve-form" wx:if="{{detail.status === 'PENDING'}}">
+      <view class="form-section">
+        <view class="form-label">审批意见</view>
+        <textarea class="form-textarea" placeholder="请填写审批意见..." value="{{remark}}" bindinput="onInputRemark" maxlength="300" />
+        <text class="char-count">{{remark.length}}/300</text>
+      </view>
+
+      <view class="btn-group">
+        <button class="btn-reject" bindtap="onReject" disabled="{{submitting}}">
+          <text wx:if="{{!submitting}}">拒绝</text>
+          <text wx:else>处理中...</text>
+        </button>
+        <button class="btn-approve" bindtap="onApprove" disabled="{{submitting}}">
+          <text wx:if="{{!submitting}}">通过</text>
+          <text wx:else>处理中...</text>
+        </button>
+      </view>
+    </view>
+  </block>
+</view>

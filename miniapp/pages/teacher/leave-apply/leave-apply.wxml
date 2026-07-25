@@ -1,0 +1,66 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 表单内容 -->
+  <block wx:else>
+    <!-- 选择课程 -->
+    <view class="form-section">
+      <view class="form-label">课程 <text class="required">*</text></view>
+      <view class="picker-wrapper" bindtap="onSelectCourse">
+        <text class="picker-text {{selectedCourse ? '' : 'placeholder'}}">
+          {{selectedCourse ? selectedCourse.className + ' - ' + selectedCourse.courseName : '请选择课程'}}
+        </text>
+        <text class="picker-arrow">></text>
+      </view>
+    </view>
+
+    <!-- 异常类型 -->
+    <view class="form-section">
+      <view class="form-label">请假类型 <text class="required">*</text></view>
+      <view class="radio-group">
+        <view class="radio-item {{leaveType === 'SICK' ? 'radio-active' : ''}}" bindtap="onSelectType" data-type="SICK">
+          <text class="radio-dot {{leaveType === 'SICK' ? 'radio-dot-active' : ''}}"></text>
+          <text class="radio-text">病假</text>
+        </view>
+        <view class="radio-item {{leaveType === 'PERSONAL' ? 'radio-active' : ''}}" bindtap="onSelectType" data-type="PERSONAL">
+          <text class="radio-dot {{leaveType === 'PERSONAL' ? 'radio-dot-active' : ''}}"></text>
+          <text class="radio-text">事假</text>
+        </view>
+        <view class="radio-item {{leaveType === 'TRAINING' ? 'radio-active' : ''}}" bindtap="onSelectType" data-type="TRAINING">
+          <text class="radio-dot {{leaveType === 'TRAINING' ? 'radio-dot-active' : ''}}"></text>
+          <text class="radio-text">培训假</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 请假日期 -->
+    <view class="form-section">
+      <view class="form-label">请假日期 <text class="required">*</text></view>
+      <view class="picker-wrapper" bindtap="onSelectDate">
+        <text class="picker-text {{selectedDate ? '' : 'placeholder'}}">
+          {{selectedDate || '请选择日期'}}
+        </text>
+        <text class="picker-arrow">></text>
+      </view>
+    </view>
+
+    <!-- 原因 -->
+    <view class="form-section">
+      <view class="form-label">请假原因 <text class="required">*</text></view>
+      <textarea class="form-textarea" placeholder="请详细描述请假原因..." value="{{reason}}" bindinput="onInputReason" maxlength="500" />
+      <text class="char-count">{{reason.length}}/500</text>
+    </view>
+
+    <!-- 提交按钮 -->
+    <view class="submit-section">
+      <button class="submit-btn" bindtap="onSubmit" disabled="{{submitting}}">
+        <text wx:if="{{!submitting}}">提交申请</text>
+        <text wx:else>提交中...</text>
+      </button>
+    </view>
+  </block>
+</view>

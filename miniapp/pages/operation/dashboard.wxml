@@ -357,5 +357,17 @@
       </block>
     </scroll-view>
 
+    <!-- 异常管理入口 -->
+    <view class="content-area" style="padding-top: 0;">
+      <view class="entry-card" bindtap="goToExceptionList">
+        <text class="entry-icon">⚠️</text>
+        <view class="entry-info">
+          <text class="entry-title">异常管理</text>
+          <text class="entry-desc">审批请假、停课、补课申请</text>
+        </view>
+        <text class="entry-arrow">></text>
+      </view>
+    </view>
+
   </block>
 </view>

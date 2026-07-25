@@ -1,0 +1,86 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error-state" wx:elif="{{error}}">
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadData">点击重试</view>
+  </view>
+
+  <block wx:else>
+    <!-- 过滤栏 -->
+    <view class="filter-section">
+      <!-- 状态过滤 -->
+      <view class="filter-row">
+        <view class="filter-item {{filter.status === '' ? 'filter-active' : ''}}" bindtap="onFilterStatus" data-value="">
+          <text>全部</text>
+        </view>
+        <view class="filter-item {{filter.status === 'PENDING' ? 'filter-active' : ''}}" bindtap="onFilterStatus" data-value="PENDING">
+          <text>待审批</text>
+        </view>
+        <view class="filter-item {{filter.status === 'APPROVED' ? 'filter-active' : ''}}" bindtap="onFilterStatus" data-value="APPROVED">
+          <text>已通过</text>
+        </view>
+        <view class="filter-item {{filter.status === 'REJECTED' ? 'filter-active' : ''}}" bindtap="onFilterStatus" data-value="REJECTED">
+          <text>已拒绝</text>
+        </view>
+      </view>
+      <!-- 类型过滤 -->
+      <view class="filter-row">
+        <view class="filter-item {{filter.type === '' ? 'filter-active' : ''}}" bindtap="onFilterType" data-value="">
+          <text>全部类型</text>
+        </view>
+        <view class="filter-item {{filter.type === 'LEAVE' ? 'filter-active' : ''}}" bindtap="onFilterType" data-value="LEAVE">
+          <text>请假</text>
+        </view>
+        <view class="filter-item {{filter.type === 'SUSPEND' ? 'filter-active' : ''}}" bindtap="onFilterType" data-value="SUSPEND">
+          <text>停课</text>
+        </view>
+        <view class="filter-item {{filter.type === 'MAKEUP' ? 'filter-active' : ''}}" bindtap="onFilterType" data-value="MAKEUP">
+          <text>补课</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{exceptions.length === 0}}">
+      <text class="empty-icon">📋</text>
+      <text class="empty-text">暂无异常申请</text>
+    </view>
+
+    <!-- 列表 -->
+    <view class="exception-list" wx:else>
+      <view class="exception-card" wx:for="{{exceptions}}" wx:key="id" bindtap="goToApprove" data-id="{{item.id}}">
+        <view class="card-header">
+          <view class="header-left">
+            <text class="card-type">{{item.typeText}}</text>
+            <text class="card-date">{{item.date || '--'}}</text>
+          </view>
+          <text class="status-tag status-{{item.status}}">{{item.statusText}}</text>
+        </view>
+        <view class="card-body">
+          <view class="card-row">
+            <text class="row-label">申请人</text>
+            <text class="row-value">{{item.applicantName || '--'}}</text>
+          </view>
+          <view class="card-row">
+            <text class="row-label">课程</text>
+            <text class="row-value">{{item.courseName || '--'}}</text>
+          </view>
+          <view class="card-row">
+            <text class="row-label">原因</text>
+            <text class="row-value reason">{{item.reason || '--'}}</text>
+          </view>
+        </view>
+        <view class="card-footer">
+          <text class="card-time">{{item.createdAt || '--'}}</text>
+          <text class="card-arrow">查看详情 ></text>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

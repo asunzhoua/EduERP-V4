@@ -18,7 +18,15 @@
     "pages/teacher/profile",
     "pages/operation/dashboard",
     "pages/reminder/list",
-    "pages/reminder/detail"
+    "pages/reminder/detail",
+    "pages/student/leave-apply/leave-apply",
+    "pages/student/leave-records/leave-records",
+    "pages/student/exception-detail/exception-detail",
+    "pages/teacher/my-exceptions/my-exceptions",
+    "pages/teacher/leave-apply/leave-apply",
+    "pages/operation/exception-list/exception-list",
+    "pages/operation/exception-approve/exception-approve",
+    "pages/operation/reschedule-view/reschedule-view"
   ],
   "window": {
     "navigationBarTitleText": "EduERP",

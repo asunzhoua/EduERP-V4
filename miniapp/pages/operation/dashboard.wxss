@@ -536,6 +536,44 @@
   pointer-events: none;
 }
 
+/* 入口卡片 */
+.entry-card {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 30rpx 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.entry-icon {
+  font-size: 48rpx;
+  margin-right: 20rpx;
+}
+
+.entry-info {
+  flex: 1;
+}
+
+.entry-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 6rpx;
+}
+
+.entry-desc {
+  display: block;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.entry-arrow {
+  font-size: 28rpx;
+  color: #ccc;
+}
+
 /* ========== 柱状图交互增强 ========== */
 .bar-item-selected {
   background: rgba(24, 144, 255, 0.05);

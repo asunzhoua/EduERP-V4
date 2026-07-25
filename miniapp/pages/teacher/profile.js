@@ -259,5 +259,15 @@ Page({
   // 跳转我的学生
   goToStudents: function () {
     wx.navigateTo({ url: '/pages/teacher/students' });
+  },
+
+  // 跳转课程异常
+  goToMyExceptions: function () {
+    wx.navigateTo({ url: '/pages/teacher/my-exceptions/my-exceptions' });
+  },
+
+  // 跳转教师请假
+  goToLeaveApply: function () {
+    wx.navigateTo({ url: '/pages/teacher/leave-apply/leave-apply' });
   }
 });

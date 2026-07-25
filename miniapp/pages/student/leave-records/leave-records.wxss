@@ -1,0 +1,200 @@
+.container {
+  padding: 20rpx;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+/* 加载中 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #ddd;
+  border-top-color: #1890ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 错误状态 */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 40rpx;
+}
+
+.error-text {
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 20rpx;
+}
+
+.retry-btn {
+  font-size: 28rpx;
+  color: #1890ff;
+  padding: 12rpx 40rpx;
+  border: 2rpx solid #1890ff;
+  border-radius: 8rpx;
+}
+
+/* 过滤栏 */
+.filter-bar {
+  display: flex;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.filter-item {
+  flex: 1;
+  text-align: center;
+  padding: 8rpx 0;
+  border-radius: 6rpx;
+}
+
+.filter-active {
+  background: #1890ff;
+}
+
+.filter-active .filter-text {
+  color: #fff;
+}
+
+.filter-text {
+  font-size: 26rpx;
+  color: #666;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 记录列表 */
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.record-card {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 24rpx;
+}
+
+.record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+
+.record-type {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.record-status {
+  font-size: 24rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 6rpx;
+}
+
+.status-PENDING {
+  background: #fff7e6;
+  color: #fa8c16;
+  border: 2rpx solid #ffd591;
+}
+
+.status-APPROVED {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 2rpx solid #b7eb8f;
+}
+
+.status-REJECTED {
+  background: #fff2f0;
+  color: #ff4d4f;
+  border: 2rpx solid #ffccc7;
+}
+
+.record-body {
+  margin-bottom: 12rpx;
+}
+
+.record-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 8rpx 0;
+}
+
+.record-label {
+  font-size: 26rpx;
+  color: #999;
+  width: 80rpx;
+  flex-shrink: 0;
+}
+
+.record-value {
+  font-size: 26rpx;
+  color: #333;
+  flex: 1;
+}
+
+.record-value.reason {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12rpx;
+  border-top: 2rpx solid #f0f0f0;
+}
+
+.record-time {
+  font-size: 22rpx;
+  color: #bbb;
+}
+
+.record-arrow {
+  font-size: 28rpx;
+  color: #ccc;
+}

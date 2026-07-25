@@ -1,0 +1,99 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error-state" wx:elif="{{error}}">
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadData">点击重试</view>
+  </view>
+
+  <block wx:else>
+    <!-- 异常信息 -->
+    <view class="info-card">
+      <view class="card-header">
+        <text class="card-title">异常信息</text>
+        <text class="status-tag status-{{exception.status}}">{{exception.statusText}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">类型</text>
+        <text class="info-value">{{exception.typeText}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">申请人</text>
+        <text class="info-value">{{exception.applicantName || '--'}}</text>
+      </view>
+    </view>
+
+    <!-- 原课程信息 -->
+    <view class="info-card">
+      <view class="card-header">
+        <text class="card-title">原课程信息</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">课程</text>
+        <text class="info-value">{{original.courseName || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">日期</text>
+        <text class="info-value">{{original.date || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">时间</text>
+        <text class="info-value">{{original.startTime || '--'}} - {{original.endTime || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">教师</text>
+        <text class="info-value">{{original.teacherName || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">教室</text>
+        <text class="info-value">{{original.room || '--'}}</text>
+      </view>
+    </view>
+
+    <!-- 补课课程信息 -->
+    <view class="info-card" wx:if="{{reschedule}}">
+      <view class="card-header">
+        <text class="card-title">补课信息</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">补课日期</text>
+        <text class="info-value">{{reschedule.date || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">补课时间</text>
+        <text class="info-value">{{reschedule.startTime || '--'}} - {{reschedule.endTime || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">教师</text>
+        <text class="info-value">{{reschedule.teacherName || '--'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">教室</text>
+        <text class="info-value">{{reschedule.room || '--'}}</text>
+      </view>
+    </view>
+
+    <!-- 关联关系 -->
+    <view class="relation-card" wx:if="{{reschedule}}">
+      <view class="relation-header">
+        <text class="relation-title">关联关系</text>
+      </view>
+      <view class="relation-body">
+        <view class="relation-node">
+          <text class="node-label">原课程</text>
+          <text class="node-value">{{original.courseName || '--'}}</text>
+        </view>
+        <view class="relation-arrow">↓</view>
+        <view class="relation-node relation-node-makeup">
+          <text class="node-label">补课</text>
+          <text class="node-value">{{reschedule.courseName || reschedule.date || '--'}}</text>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

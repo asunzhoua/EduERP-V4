@@ -1,0 +1,88 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error-state" wx:elif="{{error}}">
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadData">点击重试</view>
+  </view>
+
+  <block wx:else>
+    <!-- Tab 切换 -->
+    <view class="tab-bar">
+      <view class="tab-item {{activeTab === 0 ? 'tab-active' : ''}}" bindtap="switchTab" data-index="0">
+        <text class="tab-text">今日异常</text>
+      </view>
+      <view class="tab-item {{activeTab === 1 ? 'tab-active' : ''}}" bindtap="switchTab" data-index="1">
+        <text class="tab-text">历史异常</text>
+      </view>
+      <view class="tab-item {{activeTab === 2 ? 'tab-active' : ''}}" bindtap="switchTab" data-index="2">
+        <text class="tab-text">补课安排</text>
+      </view>
+    </view>
+
+    <!-- Tab 1: 今日异常 -->
+    <view class="content-area" wx:if="{{activeTab === 0}}">
+      <view class="empty-state" wx:if="{{todayExceptions.length === 0}}">
+        <text class="empty-icon">✅</text>
+        <text class="empty-text">今日暂无异常</text>
+      </view>
+      <view class="exception-card" wx:for="{{todayExceptions}}" wx:key="id" bindtap="goToDetail" data-id="{{item.id}}">
+        <view class="card-header">
+          <text class="card-title">{{item.typeText}}</text>
+          <text class="status-tag status-{{item.status}}">{{item.statusText}}</text>
+        </view>
+        <view class="card-body">
+          <text class="card-info">课程：{{item.courseName || '--'}}</text>
+          <text class="card-info">学生：{{item.studentName || '--'}}</text>
+          <text class="card-info">原因：{{item.reason || '--'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- Tab 2: 历史异常 -->
+    <view class="content-area" wx:if="{{activeTab === 1}}">
+      <view class="empty-state" wx:if="{{historyExceptions.length === 0}}">
+        <text class="empty-icon">📋</text>
+        <text class="empty-text">暂无历史异常</text>
+      </view>
+      <view class="exception-card" wx:for="{{historyExceptions}}" wx:key="id" bindtap="goToDetail" data-id="{{item.id}}">
+        <view class="card-header">
+          <text class="card-title">{{item.typeText}}</text>
+          <text class="status-tag status-{{item.status}}">{{item.statusText}}</text>
+        </view>
+        <view class="card-body">
+          <text class="card-info">日期：{{item.date || '--'}}</text>
+          <text class="card-info">课程：{{item.courseName || '--'}}</text>
+          <text class="card-info">学生：{{item.studentName || '--'}}</text>
+        </view>
+        <view class="card-footer">
+          <text class="card-time">{{item.createdAt || '--'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- Tab 3: 补课安排 -->
+    <view class="content-area" wx:if="{{activeTab === 2}}">
+      <view class="empty-state" wx:if="{{makeups.length === 0}}">
+        <text class="empty-icon">📅</text>
+        <text class="empty-text">暂无补课安排</text>
+      </view>
+      <view class="makeup-card" wx:for="{{makeups}}" wx:key="id">
+        <view class="card-header">
+          <text class="card-title">补课</text>
+        </view>
+        <view class="card-body">
+          <text class="card-info">原课程：{{item.originalCourse || '--'}}</text>
+          <text class="card-info">补课日期：{{item.date || '--'}}</text>
+          <text class="card-info">时间：{{item.startTime || '--'}} - {{item.endTime || '--'}}</text>
+          <text class="card-info">学生：{{item.studentName || '--'}}</text>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>
