@@ -158,6 +158,7 @@ function createAttendanceService(
     mockAttendanceRepo as any,
     (mockReminderService || createMockReminderService()) as any,
     mockContractRepo as any,
+    { emit: jest.fn() } as any,
   );
 }
 

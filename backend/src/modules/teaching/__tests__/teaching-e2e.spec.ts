@@ -34,6 +34,7 @@ describe('Teaching E2E: Happy Path', () => {
       mockAttendanceRepo as any,
       { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } as any,
       { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } as any,
+      { emit: jest.fn() } as any,
     );
 
     // ── Step 1: Course created (DRAFT) ──
@@ -183,6 +184,7 @@ describe('Teaching E2E: ATTEND-002 Violation', () => {
       mockRepo as any,
       { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } as any,
       { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } as any,
+      { emit: jest.fn() } as any,
     );
 
     await expect(

@@ -62,10 +62,8 @@ describe('LessonAttendanceService', () => {
     expect(service).toBeDefined();
   });
 
-  // ═══════════════════════════════════════════════════════════════
-  // State Machine Tests
-  // ═══════════════════════════════════════════════════════════════
-
+  // ══════════════════════════════════════════════════════════════�?  // State Machine Tests
+  // ══════════════════════════════════════════════════════════════�?
   describe('Workflow State Machine', () => {
     describe('VALID_WORKFLOW_TRANSITIONS definition', () => {
       it('should define transitions for all 4 workflow states', () => {
@@ -114,19 +112,19 @@ describe('LessonAttendanceService', () => {
     });
 
     describe('Forward transitions', () => {
-      it('should allow PENDING → CHECKED_IN', () => {
+      it('should allow PENDING �?CHECKED_IN', () => {
         expect(
           VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.PENDING],
         ).toContain(AttendanceWorkflowState.CHECKED_IN);
       });
 
-      it('should allow CHECKED_IN → CONFIRMED', () => {
+      it('should allow CHECKED_IN �?CONFIRMED', () => {
         expect(
           VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN],
         ).toContain(AttendanceWorkflowState.CONFIRMED);
       });
 
-      it('should allow CONFIRMED → LOCKED', () => {
+      it('should allow CONFIRMED �?LOCKED', () => {
         expect(
           VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED],
         ).toContain(AttendanceWorkflowState.LOCKED);
@@ -134,13 +132,13 @@ describe('LessonAttendanceService', () => {
     });
 
     describe('Reverse transitions (admin override)', () => {
-      it('should allow CONFIRMED → CHECKED_IN (reverse)', () => {
+      it('should allow CONFIRMED �?CHECKED_IN (reverse)', () => {
         expect(
           VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED],
         ).toContain(AttendanceWorkflowState.CHECKED_IN);
       });
 
-      it('should allow CHECKED_IN → PENDING (reverse)', () => {
+      it('should allow CHECKED_IN �?PENDING (reverse)', () => {
         expect(
           VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN],
         ).toContain(AttendanceWorkflowState.PENDING);
@@ -148,31 +146,31 @@ describe('LessonAttendanceService', () => {
     });
 
     describe('Forbidden transitions', () => {
-      it('should NOT allow PENDING → CONFIRMED (skip CHECKED_IN)', () => {
+      it('should NOT allow PENDING �?CONFIRMED (skip CHECKED_IN)', () => {
         expect(
           VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.PENDING],
         ).not.toContain(AttendanceWorkflowState.CONFIRMED);
       });
 
-      it('should NOT allow PENDING → LOCKED (skip CHECKED_IN and CONFIRMED)', () => {
+      it('should NOT allow PENDING �?LOCKED (skip CHECKED_IN and CONFIRMED)', () => {
         expect(
           VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.PENDING],
         ).not.toContain(AttendanceWorkflowState.LOCKED);
       });
 
-      it('should NOT allow CHECKED_IN → LOCKED (skip CONFIRMED)', () => {
+      it('should NOT allow CHECKED_IN �?LOCKED (skip CONFIRMED)', () => {
         expect(
           VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN],
         ).not.toContain(AttendanceWorkflowState.LOCKED);
       });
 
-      it('should NOT allow CONFIRMED → PENDING (must go through CHECKED_IN)', () => {
+      it('should NOT allow CONFIRMED �?PENDING (must go through CHECKED_IN)', () => {
         expect(
           VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED],
         ).not.toContain(AttendanceWorkflowState.PENDING);
       });
 
-      it('should NOT allow LOCKED → anything (terminal)', () => {
+      it('should NOT allow LOCKED �?anything (terminal)', () => {
         expect(
           VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.LOCKED],
         ).toHaveLength(0);
@@ -180,10 +178,8 @@ describe('LessonAttendanceService', () => {
     });
   });
 
-  // ═══════════════════════════════════════════════════════════════
-  // Domain Invariant Tests
-  // ═══════════════════════════════════════════════════════════════
-
+  // ══════════════════════════════════════════════════════════════�?  // Domain Invariant Tests
+  // ══════════════════════════════════════════════════════════════�?
   describe('Domain Invariants', () => {
     describe('Invariant-A002: Status must be set before confirmation', () => {
       it('REASON_REQUIRED_STATUSES should include LATE, LEAVE, ABSENT', () => {
@@ -301,10 +297,8 @@ describe('LessonAttendanceService', () => {
     });
   });
 
-  // ═══════════════════════════════════════════════════════════════
-  // Service Behavior Tests (Phase 2a Implementation)
-  // ═══════════════════════════════════════════════════════════════
-
+  // ══════════════════════════════════════════════════════════════�?  // Service Behavior Tests (Phase 2a Implementation)
+  // ══════════════════════════════════════════════════════════════�?
   describe('autoCreateForLesson()', () => {
     let mockRepo: any;
 
@@ -323,6 +317,7 @@ describe('LessonAttendanceService', () => {
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
           { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
 
@@ -362,6 +357,7 @@ describe('LessonAttendanceService', () => {
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
           { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
 
@@ -454,6 +450,7 @@ describe('LessonAttendanceService', () => {
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
           { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
 
@@ -498,6 +495,7 @@ describe('LessonAttendanceService', () => {
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
           { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
 
@@ -545,6 +543,7 @@ describe('LessonAttendanceService', () => {
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
           { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
 
@@ -589,28 +588,27 @@ describe('LessonAttendanceService', () => {
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
           { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
 
       service = module.get<LessonAttendanceService>(LessonAttendanceService);
     });
 
-    it('should allow CONFIRMED → CHECKED_IN transition per state machine', async () => {
-      // The state machine allows CONFIRMED → CHECKED_IN (admin override)
+    it('should allow CONFIRMED �?CHECKED_IN transition per state machine', async () => {
+      // The state machine allows CONFIRMED �?CHECKED_IN (admin override)
       expect(VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED])
         .toContain(AttendanceWorkflowState.CHECKED_IN);
     });
 
-    it('should allow CHECKED_IN → PENDING transition per state machine', async () => {
+    it('should allow CHECKED_IN �?PENDING transition per state machine', async () => {
       expect(VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN])
         .toContain(AttendanceWorkflowState.PENDING);
     });
   });
 
-  // ═══════════════════════════════════════════════════════════════
-  // Read Method Tests
-  // ═══════════════════════════════════════════════════════════════
-
+  // ══════════════════════════════════════════════════════════════�?  // Read Method Tests
+  // ══════════════════════════════════════════════════════════════�?
   describe('findOne()', () => {
     let mockRepo: any;
 
@@ -625,6 +623,7 @@ describe('LessonAttendanceService', () => {
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
           { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
 
@@ -666,6 +665,7 @@ describe('LessonAttendanceService', () => {
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
           { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
 
@@ -710,6 +710,7 @@ describe('LessonAttendanceService', () => {
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
           { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
 
@@ -756,6 +757,7 @@ describe('LessonAttendanceService', () => {
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
           { provide: ContractRepository, useValue: { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
 
