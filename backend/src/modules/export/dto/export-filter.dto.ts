@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsDateString, IsIn } from 'class-validator';
 
 export class ExportFilterDto {
   @IsOptional()
@@ -12,4 +12,8 @@ export class ExportFilterDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @IsOptional()
+  @IsIn(['csv', 'excel'])
+  format?: 'csv' | 'excel' = 'csv';
 }
