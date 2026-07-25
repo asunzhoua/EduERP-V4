@@ -9,8 +9,8 @@ import { LessonStatus } from '../enums/lesson-status.enum';
 import { LessonService } from '../lesson.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventBusService } from '@events/event-bus.service';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { getRepositoryToken, getEntityManagerToken } from '@nestjs/typeorm';
+import { Repository, EntityManager } from 'typeorm';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(() => 'test-uuid'),
@@ -116,6 +116,11 @@ describe('LessonExceptionService', () => {
       subscribe: jest.fn(),
     };
 
+    const mockEntityManager = {
+      createQueryBuilder: jest.fn(),
+      query: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LessonExceptionService,
@@ -141,6 +146,7 @@ describe('LessonExceptionService', () => {
         },
         { provide: LessonService, useValue: mockLessonService },
         { provide: EventBusService, useValue: mockEventBus },
+        { provide: getEntityManagerToken(), useValue: mockEntityManager },
       ],
     }).compile();
 

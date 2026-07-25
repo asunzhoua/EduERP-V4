@@ -2,10 +2,11 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, LessThan } from 'typeorm';
+import { InjectRepository, InjectEntityManager } from '@nestjs/typeorm';
+import { Repository, In, LessThan, EntityManager } from 'typeorm';
 import { LessonExceptionEntity } from './lesson-exception.entity';
 import { LessonExceptionLogEntity } from './lesson-exception-log.entity';
 import { LessonRescheduleEntity } from './lesson-reschedule.entity';
@@ -14,6 +15,7 @@ import { LessonEntity } from '../lesson.entity';
 import { LessonStatus } from '../enums/lesson-status.enum';
 import { LessonService } from '../lesson.service';
 import { EventBusService } from '@events/event-bus.service';
+import { QueryExceptionDto } from './dto/query-exception.dto';
 
 /** Valid status transitions for Lesson */
 const VALID_TRANSITIONS: Record<LessonStatus, LessonStatus[]> = {
@@ -56,6 +58,8 @@ export class LessonExceptionService {
     private readonly attachmentRepo: Repository<LessonExceptionAttachmentEntity>,
     @InjectRepository(LessonEntity)
     private readonly lessonRepo: Repository<LessonEntity>,
+    @InjectEntityManager()
+    private readonly entityManager: EntityManager,
     private readonly lessonService: LessonService,
     private readonly eventBus: EventBusService,
   ) {}
@@ -616,6 +620,148 @@ export class LessonExceptionService {
     return this.rescheduleRepo.find({
       where: { exceptionId },
       order: { createdAt: 'DESC' },
+    });
+  }
+
+  // ═══════════════════════════════════════════════════
+  // 4. Query Methods with Data Isolation v2
+  // ═══════════════════════════════════════════════════
+
+  /**
+   * Query exceptions with role-based data isolation and optional filter criteria.
+   *
+   * - SuperAdmin / Admin: see ALL exceptions
+   * - Teacher: only exceptions for lessons where teacherId === user.sub
+   * - Parent: only exceptions for lessons whose class has students linked to this parent
+   */
+  async findAllExceptionsWithQuery(
+    query: QueryExceptionDto,
+    user: any,
+  ): Promise<LessonExceptionEntity[]> {
+    const qb = this.exceptionRepo.createQueryBuilder('e')
+      .leftJoinAndSelect('e.lesson', 'lesson')
+      .orderBy('e.createdAt', 'DESC');
+
+    const userId = Number(user.sub);
+    const role = user.role;
+
+    // ── Data isolation ──
+    if (role === 'Teacher') {
+      // Teacher: only exceptions for lessons they teach
+      qb.andWhere('lesson.teacherId = :teacherId', { teacherId: userId });
+    } else if (role === 'Parent') {
+      // Parent: only exceptions for lessons in classes where their children are enrolled
+      // Find all classCodes that have students linked to this parent
+      const classCodes = await this.entityManager
+        .createQueryBuilder()
+        .select('DISTINCT enr.classCode', 'classCode')
+        .from('enrollment', 'enr')
+        .innerJoin('student', 's', 's.studentCode = enr.studentCode')
+        .innerJoin('student_parent', 'sp', 'sp.studentId = s.id')
+        .where('sp.parentId = :parentId', { parentId: userId })
+        .getRawMany()
+        .then((rows) => rows.map((r) => r.classCode));
+
+      if (classCodes.length === 0) {
+        return [];
+      }
+
+      qb.andWhere('lesson.classCode IN (:...classCodes)', { classCodes });
+    }
+
+    // ── Filter criteria ──
+    if (query.status) {
+      qb.andWhere('e.status = :status', { status: query.status });
+    }
+    if (query.exceptionType) {
+      qb.andWhere('e.exceptionType = :exceptionType', { exceptionType: query.exceptionType });
+    }
+    if (query.startDate) {
+      qb.andWhere('e.startTime >= :startDate', { startDate: query.startDate });
+    }
+    if (query.endDate) {
+      qb.andWhere('e.endTime <= :endDate', { endDate: query.endDate });
+    }
+
+    return qb.getMany();
+  }
+
+  /**
+   * Find a single exception by id, with full relations loaded:
+   * lesson, approval logs, and reschedule records.
+   */
+  async findExceptionByIdWithRelations(id: number): Promise<LessonExceptionEntity> {
+    const exception = await this.exceptionRepo.findOne({
+      where: { id },
+      relations: { lesson: true } as any,
+    });
+    if (!exception) {
+      throw new NotFoundException(`异常记录不存在: id=${id}`);
+    }
+    return exception;
+  }
+
+  /**
+   * Check whether the given user is permitted to access an exception's data.
+   */
+  async canAccessException(exceptionId: number, user: any): Promise<boolean> {
+    const role = user.role;
+    if (role === 'SuperAdmin' || role === 'Admin') {
+      return true;
+    }
+
+    const exception = await this.exceptionRepo.findOne({
+      where: { id: exceptionId },
+      relations: { lesson: true } as any,
+    });
+    if (!exception || !exception.lesson) {
+      return false;
+    }
+
+    if (role === 'Teacher') {
+      return exception.lesson.teacherId === Number(user.sub);
+    }
+
+    if (role === 'Parent') {
+      // Check if the parent has a child in the lesson's class
+      const count = await this.entityManager
+        .createQueryBuilder()
+        .from('enrollment', 'enr')
+        .innerJoin('student', 's', 's.studentCode = enr.studentCode')
+        .innerJoin('student_parent', 'sp', 'sp.studentId = s.id')
+        .where('enr.classCode = :classCode', { classCode: exception.lesson.classCode })
+        .andWhere('sp.parentId = :parentId', { parentId: Number(user.sub) })
+        .getCount();
+      return count > 0;
+    }
+
+    return false;
+  }
+
+  /**
+   * Find a single reschedule record by exception id, with lesson info loaded.
+   */
+  async findRescheduleByExceptionId(
+    exceptionId: number,
+  ): Promise<LessonRescheduleEntity | null> {
+    const reschedules = await this.rescheduleRepo.find({
+      where: { exceptionId },
+      relations: { originalLesson: true, newLesson: true, exception: true } as any,
+      order: { createdAt: 'DESC' },
+      take: 1,
+    });
+    return reschedules.length > 0 ? reschedules[0] : null;
+  }
+
+  /**
+   * Find all status-change logs for a given exception.
+   */
+  async findExceptionsLogsByException(
+    exceptionId: number,
+  ): Promise<LessonExceptionLogEntity[]> {
+    return this.exceptionLogRepo.find({
+      where: { exceptionId },
+      order: { operatedAt: 'ASC' },
     });
   }
 
