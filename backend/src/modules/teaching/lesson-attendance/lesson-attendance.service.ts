@@ -35,6 +35,7 @@ export const VALID_WORKFLOW_TRANSITIONS: Record<
 export const REASON_REQUIRED_STATUSES: ReadonlySet<AttendanceStatus> = new Set([
   AttendanceStatus.LATE,
   AttendanceStatus.LEAVE,
+  AttendanceStatus.SICK,
   AttendanceStatus.ABSENT,
 ]);
 

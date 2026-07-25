@@ -6,12 +6,16 @@ import { LessonAttendanceRepository } from './lesson-attendance.repository';
 import { LessonAttendanceEntity } from './lesson-attendance.entity';
 import { ReminderModule } from '@modules/reminder/reminder.module';
 import { ContractModule } from '@modules/teaching/contract/contract.module';
+import { LessonModule } from '@modules/teaching/lesson/lesson.module';
+import { EnrollmentModule } from '@modules/teaching/enrollment/enrollment.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([LessonAttendanceEntity]),
     ReminderModule,
     ContractModule,
+    LessonModule,
+    EnrollmentModule,
   ],
   controllers: [LessonAttendanceController],
   providers: [LessonAttendanceService, LessonAttendanceRepository],

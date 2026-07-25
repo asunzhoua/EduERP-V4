@@ -13,6 +13,7 @@ export enum AttendanceStatus {
   ABSENT = 'ABSENT',
   LATE = 'LATE',
   LEAVE = 'LEAVE',
+  SICK = 'SICK',
   MAKEUP = 'MAKEUP',
   ONLINE = 'ONLINE',
   OFFLINE = 'OFFLINE',

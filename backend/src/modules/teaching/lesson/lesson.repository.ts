@@ -50,6 +50,20 @@ export class LessonRepository {
     return result?.maxLessonNumber ?? null;
   }
 
+  /**
+   * Find lessons for a class on a specific date.
+   * Returns lessons where scheduledDate matches.
+   */
+  async findByClassCodeAndDate(
+    classCode: string,
+    date: string,
+  ): Promise<LessonEntity[]> {
+    return this.repo.find({
+      where: { classCode, scheduledDate: date },
+      order: { startTime: 'ASC' },
+    });
+  }
+
   // ─── Data Enrichment ───
 
   async countByClassCodeAndStatus(classCode: string, status: LessonStatus): Promise<number> {

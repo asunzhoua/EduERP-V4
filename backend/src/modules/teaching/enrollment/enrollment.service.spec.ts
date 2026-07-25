@@ -333,21 +333,127 @@ describe('EnrollmentService', () => {
     });
   });
 
+  // ─── Suspend ───
+
+  describe('suspend', () => {
+    it('should allow ACTIVE -> SUSPEND with reason', async () => {
+      enrollmentRepo.findOneById.mockResolvedValue({ ...mockEnrollment });
+      enrollmentRepo.save.mockResolvedValue({
+        ...mockEnrollment,
+        status: EnrollmentStatus.SUSPEND,
+        withdrawReason: '因事请假一个月',
+      });
+
+      const result = await service.suspend(1, '因事请假一个月', 1);
+      expect(result.status).toBe(EnrollmentStatus.SUSPEND);
+      expect(result.withdrawReason).toBe('因事请假一个月');
+    });
+
+    it('should block suspension without reason', async () => {
+      enrollmentRepo.findOneById.mockResolvedValue({ ...mockEnrollment });
+
+      await expect(service.suspend(1, '', 1)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should block suspension with empty reason', async () => {
+      enrollmentRepo.findOneById.mockResolvedValue({ ...mockEnrollment });
+
+      await expect(service.suspend(1, '  ', 1)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should block suspension of non-ACTIVE enrollment', async () => {
+      const suspended = {
+        ...mockEnrollment,
+        status: EnrollmentStatus.SUSPEND,
+      };
+      enrollmentRepo.findOneById.mockResolvedValue(suspended);
+
+      await expect(service.suspend(1, 'reason', 1)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should block suspension of WITHDRAWN enrollment', async () => {
+      const withdrawn = {
+        ...mockEnrollment,
+        status: EnrollmentStatus.WITHDRAWN,
+      };
+      enrollmentRepo.findOneById.mockResolvedValue(withdrawn);
+
+      await expect(service.suspend(1, 'reason', 1)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  // ─── Resume ───
+
+  describe('resume', () => {
+    it('should allow SUSPEND -> ACTIVE', async () => {
+      const suspended = {
+        ...mockEnrollment,
+        status: EnrollmentStatus.SUSPEND,
+        withdrawReason: '因事请假',
+      };
+      enrollmentRepo.findOneById.mockResolvedValue(suspended);
+      enrollmentRepo.save.mockResolvedValue({
+        ...mockEnrollment,
+        status: EnrollmentStatus.ACTIVE,
+        withdrawReason: null,
+      });
+
+      const result = await service.resume(1, 1);
+      expect(result.status).toBe(EnrollmentStatus.ACTIVE);
+      expect(result.withdrawReason).toBeNull();
+    });
+
+    it('should block resume of ACTIVE enrollment', async () => {
+      enrollmentRepo.findOneById.mockResolvedValue({ ...mockEnrollment });
+
+      await expect(service.resume(1, 1)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should block resume of WITHDRAWN enrollment', async () => {
+      const withdrawn = {
+        ...mockEnrollment,
+        status: EnrollmentStatus.WITHDRAWN,
+      };
+      enrollmentRepo.findOneById.mockResolvedValue(withdrawn);
+
+      await expect(service.resume(1, 1)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
   // ─── State Transition Table ───
 
   describe('VALID_ENROLLMENT_TRANSITIONS', () => {
-    it('should have transitions for all 3 statuses', () => {
-      expect(Object.keys(VALID_ENROLLMENT_TRANSITIONS)).toHaveLength(3);
+    it('should have transitions for all 4 statuses', () => {
+      expect(Object.keys(VALID_ENROLLMENT_TRANSITIONS)).toHaveLength(4);
     });
 
-    it('ACTIVE should transition to WITHDRAWN only', () => {
+    it('ACTIVE should transition to WITHDRAWN and SUSPEND', () => {
       expect(VALID_ENROLLMENT_TRANSITIONS[EnrollmentStatus.ACTIVE]).toEqual([
         EnrollmentStatus.WITHDRAWN,
+        EnrollmentStatus.SUSPEND,
       ]);
     });
 
     it('WITHDRAWN should be terminal', () => {
       expect(VALID_ENROLLMENT_TRANSITIONS[EnrollmentStatus.WITHDRAWN]).toEqual([]);
+    });
+
+    it('SUSPEND should transition to ACTIVE only', () => {
+      expect(VALID_ENROLLMENT_TRANSITIONS[EnrollmentStatus.SUSPEND]).toEqual([
+        EnrollmentStatus.ACTIVE,
+      ]);
     });
 
     it('COMPLETED should be terminal (not activated)', () => {

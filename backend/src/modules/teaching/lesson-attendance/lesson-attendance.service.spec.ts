@@ -232,10 +232,10 @@ describe('LessonAttendanceService', () => {
       });
     });
 
-    describe('All 7 attendance statuses are defined', () => {
-      it('should have exactly 7 status values', () => {
+    describe('All 8 attendance statuses are defined', () => {
+      it('should have exactly 8 status values', () => {
         const values = Object.values(AttendanceStatus);
-        expect(values).toHaveLength(7);
+        expect(values).toHaveLength(8);
       });
 
       it('should include all required statuses', () => {
@@ -245,6 +245,7 @@ describe('LessonAttendanceService', () => {
             'ABSENT',
             'LATE',
             'LEAVE',
+            'SICK',
             'MAKEUP',
             'ONLINE',
             'OFFLINE',

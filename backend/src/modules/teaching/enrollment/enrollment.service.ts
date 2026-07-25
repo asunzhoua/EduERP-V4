@@ -26,8 +26,9 @@ export const VALID_ENROLLMENT_TRANSITIONS: Record<
   EnrollmentStatus,
   EnrollmentStatus[]
 > = {
-  [EnrollmentStatus.ACTIVE]: [EnrollmentStatus.WITHDRAWN],
+  [EnrollmentStatus.ACTIVE]: [EnrollmentStatus.WITHDRAWN, EnrollmentStatus.SUSPEND],
   [EnrollmentStatus.WITHDRAWN]: [], // ENROLL-005: terminal
+  [EnrollmentStatus.SUSPEND]: [EnrollmentStatus.ACTIVE], // ENROLL-006: can resume
   [EnrollmentStatus.COMPLETED]: [], // ENROLL-004: terminal (not activated)
 };
 
@@ -220,6 +221,67 @@ export class EnrollmentService {
         enrolledAt: e.enrolledAt,
       };
     });
+  }
+
+  // ─── State transition guard ───
+
+  private assertTransition(
+    from: EnrollmentStatus,
+    to: EnrollmentStatus,
+  ): void {
+    const allowed = VALID_ENROLLMENT_TRANSITIONS[from];
+    if (!allowed || !allowed.includes(to)) {
+      throw new BadRequestException(
+        `Invalid state transition: ${from} -> ${to}`,
+      );
+    }
+  }
+
+  // ─── Suspend ───
+
+  async suspend(
+    id: number,
+    reason: string,
+    _operatedBy: number,
+  ): Promise<EnrollmentEntity> {
+    const enrollment = await this.findOne(id);
+
+    if (!reason || reason.trim().length === 0) {
+      throw new BadRequestException('Reason required to suspend enrollment');
+    }
+
+    this.assertTransition(enrollment.status, EnrollmentStatus.SUSPEND);
+
+    enrollment.status = EnrollmentStatus.SUSPEND;
+    enrollment.withdrawReason = reason;
+
+    const saved = await this.enrollmentRepo.save(enrollment);
+
+    this.logger.log(
+      `Enrollment suspended: id=${id}, class=${enrollment.classCode}, student=${enrollment.studentCode}`,
+    );
+    return saved;
+  }
+
+  // ─── Resume ───
+
+  async resume(
+    id: number,
+    _operatedBy: number,
+  ): Promise<EnrollmentEntity> {
+    const enrollment = await this.findOne(id);
+
+    this.assertTransition(enrollment.status, EnrollmentStatus.ACTIVE);
+
+    enrollment.status = EnrollmentStatus.ACTIVE;
+    enrollment.withdrawReason = null;
+
+    const saved = await this.enrollmentRepo.save(enrollment);
+
+    this.logger.log(
+      `Enrollment resumed: id=${id}, class=${enrollment.classCode}, student=${enrollment.studentCode}`,
+    );
+    return saved;
   }
 
   // ─── Withdraw ───

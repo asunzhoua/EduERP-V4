@@ -5,6 +5,8 @@ import { AttendanceStatus } from './enums/attendance-status.enum';
 import { BatchRollCallDto } from './dto/batch-roll-call.dto';
 import { RecordAttendanceDto } from './dto/record-attendance.dto';
 import { ApiResponse } from '@common/dto/api-response';
+import { LessonRepository } from '../lesson/lesson.repository';
+import { EnrollmentRepository } from '../enrollment/enrollment.repository';
 
 describe('LessonAttendanceController', () => {
   let controller: LessonAttendanceController;
@@ -43,11 +45,21 @@ describe('LessonAttendanceController', () => {
     findByStudentCode: jest.fn().mockResolvedValue(mockAttendanceList),
   };
 
+  const mockLessonRepo = {
+    findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+  };
+
+  const mockEnrollmentRepo = {
+    findActiveByClassAndStudentCodes: jest.fn().mockResolvedValue([]),
+  };
+
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LessonAttendanceController],
       providers: [
         { provide: LessonAttendanceService, useValue: mockService },
+        { provide: LessonRepository, useValue: mockLessonRepo },
+        { provide: EnrollmentRepository, useValue: mockEnrollmentRepo },
       ],
     }).compile();
 

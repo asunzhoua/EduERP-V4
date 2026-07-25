@@ -165,10 +165,10 @@ describe('LessonChangeRequestService', () => {
   // ═══════════════════════════════════════════════════════════════
 
   describe('Domain Invariants', () => {
-    describe('All 4 request types are defined', () => {
-      it('should have exactly 4 request type values', () => {
+    describe('All 5 request types are defined', () => {
+      it('should have exactly 5 request type values', () => {
         const values = Object.values(ChangeRequestType);
-        expect(values).toHaveLength(4);
+        expect(values).toHaveLength(5);
       });
 
       it('should include all required request types', () => {
@@ -178,6 +178,7 @@ describe('LessonChangeRequestService', () => {
             'TEACHER_CHANGE',
             'CANCEL',
             'REOPEN',
+            'LEAVE',
           ]),
         );
       });

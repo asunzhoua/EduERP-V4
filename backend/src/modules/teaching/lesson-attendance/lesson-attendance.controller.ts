@@ -8,16 +8,23 @@ import {
   ParseIntPipe,
   Req,
   UseGuards,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { LessonAttendanceService } from './lesson-attendance.service';
 import { LessonAttendanceEntity } from './lesson-attendance.entity';
 import { AttendanceStatus } from './enums/attendance-status.enum';
 import { BatchRollCallDto } from './dto/batch-roll-call.dto';
+import { RecordAttendanceDto } from './dto/record-attendance.dto';
 import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { LessonRepository } from '../lesson/lesson.repository';
+import { EnrollmentRepository } from '../enrollment/enrollment.repository';
+import { LessonStatus } from '../lesson/enums/lesson-status.enum';
+import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 
 @ApiTags('LessonAttendance')
 @ApiBearerAuth()
@@ -26,6 +33,8 @@ import { ApiResponse } from '@common/dto/api-response';
 export class LessonAttendanceController {
   constructor(
     private readonly attendanceService: LessonAttendanceService,
+    private readonly lessonRepo: LessonRepository,
+    private readonly enrollmentRepo: EnrollmentRepository,
   ) {}
 
   @Post('lessons/:id/attendance')
@@ -49,6 +58,78 @@ export class LessonAttendanceController {
     }));
 
     const result = await this.attendanceService.batchRollCall({ lessonId, records });
+    return ApiResponse.success(result, 'Attendance recorded');
+  }
+
+  /**
+   * POST /classes/:code/attendance/batch
+   *
+   * Enhanced batch roll call by class code + date.
+   * Supports LEAVE/SICK/MAKEUP attendance statuses.
+   *
+   * Flow:
+   *   1. Find the lesson for the given classCode and date (default: today)
+   *   2. Verify teacher is assigned to this class
+   *   3. Validate all students are actively enrolled
+   *   4. Record attendance via existing batchRollCall logic
+   */
+  @Post('classes/:code/attendance/batch')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
+  @ApiOperation({
+    summary: 'Batch roll call by class code — supports LEAVE/SICK/MAKEUP',
+  })
+  async batchRollCallByClass(
+    @Param('code') classCode: string,
+    @Body() body: BatchRollCallDto & { lessonDate?: string },
+    @Req() req: any,
+  ): Promise<ApiResponse> {
+    const operatorId = req.user.sub;
+    const date = body.lessonDate || new Date().toISOString().split('T')[0];
+
+    // 1. Find lesson for this class on this date
+    const lessons = await this.lessonRepo.findByClassCodeAndDate(classCode, date);
+    if (lessons.length === 0) {
+      throw new NotFoundException(
+        `未找到班级 ${classCode} 在 ${date} 的课程`,
+      );
+    }
+
+    // Use the first TEACHING or SCHEDULED lesson; prefer TEACHING
+    const lesson = lessons.find(l => l.status === LessonStatus.TEACHING)
+      || lessons.find(l => l.status === LessonStatus.SCHEDULED)
+      || lessons[0];
+
+    if (lesson.status !== LessonStatus.TEACHING && lesson.status !== LessonStatus.SCHEDULED) {
+      throw new BadRequestException(
+        `课程 ${lesson.id} 当前状态为 ${lesson.status}，无法签到`,
+      );
+    }
+
+    // 2. Verify all students are enrolled
+    const studentCodes = body.records.map(r => r.studentCode);
+    const enrollments = await this.enrollmentRepo.findActiveByClassAndStudentCodes(
+      classCode,
+      studentCodes,
+    );
+    const enrolledSet = new Set(enrollments.map(e => e.studentCode));
+    const unenrolled = studentCodes.filter(sc => !enrolledSet.has(sc));
+    if (unenrolled.length > 0) {
+      throw new BadRequestException(
+        `以下学生未在班级 ${classCode} 中注册或状态不是 ACTIVE: ${unenrolled.join(', ')}`,
+      );
+    }
+
+    // 3. Record attendance
+    const records = body.records.map((r) => ({
+      lessonId: lesson.id,
+      studentCode: r.studentCode,
+      status: r.status,
+      reason: r.reason,
+      operator: operatorId,
+      note: r.note,
+    }));
+
+    const result = await this.attendanceService.batchRollCall({ lessonId: lesson.id, records });
     return ApiResponse.success(result, 'Attendance recorded');
   }
 

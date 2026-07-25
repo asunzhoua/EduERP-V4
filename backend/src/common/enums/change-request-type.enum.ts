@@ -8,4 +8,5 @@ export enum ChangeRequestType {
   TEACHER_CHANGE = 'TEACHER_CHANGE',
   CANCEL = 'CANCEL',
   REOPEN = 'REOPEN',
+  LEAVE = 'LEAVE',
 }

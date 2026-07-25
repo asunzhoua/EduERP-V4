@@ -8,6 +8,8 @@ import { LessonModule } from './lesson/lesson.module';
 import { TeacherAssignmentModule } from './teacher-assignment/teacher-assignment.module';
 import { LessonAttendanceModule } from './lesson-attendance/lesson-attendance.module';
 import { LessonChangeRequestModule } from './lesson-change-request/lesson-change-request.module';
+import { LeaveRequestModule } from './leave-request/leave-request.module';
+import { SuspendRequestModule } from './suspend-request/suspend-request.module';
 import { ClassEntity } from './class/class.entity';
 import { LessonEntity } from './lesson/lesson.entity';
 import { LessonAttendanceEntity } from './lesson-attendance/lesson-attendance.entity';
@@ -25,6 +27,8 @@ import { TeacherDashboardController } from './teacher-dashboard/teacher-dashboar
     TeacherAssignmentModule,
     LessonAttendanceModule,
     LessonChangeRequestModule,
+    LeaveRequestModule,
+    SuspendRequestModule,
   ],
   controllers: [TeacherDashboardController],
   exports: [
@@ -36,6 +40,8 @@ import { TeacherDashboardController } from './teacher-dashboard/teacher-dashboar
     TeacherAssignmentModule,
     LessonAttendanceModule,
     LessonChangeRequestModule,
+    LeaveRequestModule,
+    SuspendRequestModule,
   ],
 })
 export class TeachingModule {}

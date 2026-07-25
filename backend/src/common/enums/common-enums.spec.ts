@@ -22,8 +22,8 @@ describe('Common Enums', () => {
   });
 
   describe('ChangeRequestType', () => {
-    it('should contain 4 members', () => {
-      expect(Object.keys(ChangeRequestType)).toHaveLength(4);
+    it('should contain 5 members', () => {
+      expect(Object.keys(ChangeRequestType)).toHaveLength(5);
     });
 
     it('should have string values matching keys', () => {
@@ -33,6 +33,10 @@ describe('Common Enums', () => {
 
     it('should include REOPEN', () => {
       expect(ChangeRequestType.REOPEN).toBeDefined();
+    });
+
+    it('should include LEAVE', () => {
+      expect(ChangeRequestType.LEAVE).toBeDefined();
     });
   });
 
@@ -52,8 +56,8 @@ describe('Common Enums', () => {
   });
 
   describe('EnrollmentStatus', () => {
-    it('should contain 3 members', () => {
-      expect(Object.keys(EnrollmentStatus)).toHaveLength(3);
+    it('should contain 4 members', () => {
+      expect(Object.keys(EnrollmentStatus)).toHaveLength(4);
     });
 
     it('should have string values matching keys', () => {
@@ -63,6 +67,10 @@ describe('Common Enums', () => {
 
     it('should include COMPLETED', () => {
       expect(EnrollmentStatus.COMPLETED).toBeDefined();
+    });
+
+    it('should include SUSPEND', () => {
+      expect(EnrollmentStatus.SUSPEND).toBeDefined();
     });
   });
 

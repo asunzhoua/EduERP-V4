@@ -247,6 +247,57 @@ describe('AnalyticsController', () => {
     });
   });
 
+  // ─── Data Permission: Teacher Ownership Check (Phase 6 Scenario 1) ───
+
+  describe('verifyTeacherAccess', () => {
+    it('should allow Teacher to access their own metrics', async () => {
+      mockAnalyticsService.getTeacherMetrics.mockResolvedValue({ metrics: [] });
+
+      const result = await controller.getTeacherMetrics(100, mockReq(100, 'Teacher'));
+      expect(result.code).toBe(0);
+    });
+
+    it('should reject Teacher accessing another teacher metrics', async () => {
+      await expect(
+        controller.getTeacherMetrics(200, mockReq(100, 'Teacher')),
+      ).rejects.toThrow('无权访问其他教师数据');
+    });
+
+    it('should allow Admin to access any teacher metrics', async () => {
+      mockAnalyticsService.getTeacherMetrics.mockResolvedValue({ metrics: [] });
+
+      const result = await controller.getTeacherMetrics(200, mockReq(1, 'Admin'));
+      expect(result.code).toBe(0);
+    });
+
+    it('should allow SuperAdmin to access any teacher metrics', async () => {
+      mockAnalyticsService.getTeacherMetrics.mockResolvedValue({ metrics: [] });
+
+      const result = await controller.getTeacherMetrics(999, mockReq(1, 'SuperAdmin'));
+      expect(result.code).toBe(0);
+    });
+  });
+
+  // ─── Parent accessing another student's data (Phase 6 Scenario 2 isolation) ───
+
+  describe('Parent data isolation', () => {
+    it('should reject Parent accessing non-bound student via getStudentMetrics', async () => {
+      mockStudentRepository.findOne.mockResolvedValue({ userId: 99 });
+
+      await expect(
+        controller.getStudentMetrics('OTHER-STU', mockReq(42, 'Parent')),
+      ).rejects.toThrow('无权访问该学生数据');
+    });
+
+    it('should reject Parent accessing non-bound student via getStudentTrend', async () => {
+      mockStudentRepository.findOne.mockResolvedValue({ userId: 99 });
+
+      await expect(
+        controller.getStudentTrend('OTHER-STU', '7', mockReq(42, 'Parent')),
+      ).rejects.toThrow('无权访问该学生数据');
+    });
+  });
+
   // ─── GET /analytics/consumption-statistics ───
 
   describe('getConsumptionStatistics', () => {
