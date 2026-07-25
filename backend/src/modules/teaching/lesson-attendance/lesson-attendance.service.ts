@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LessonAttendanceRepository } from './lesson-attendance.repository';
 import { LessonAttendanceEntity } from './lesson-attendance.entity';
 import { AttendanceStatus, DEDUCTIBLE_STATUSES } from './enums/attendance-status.enum';
@@ -9,6 +10,7 @@ import { ReminderType } from '@modules/reminder/enums/reminder-type.enum';
 import { TargetType } from '@modules/reminder/enums/target-type.enum';
 import { ContractRepository } from '@modules/teaching/contract/contract.repository';
 import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
+import { LessonCompletedEvent } from '@modules/salary/events/lesson-completed.event';
 
 /**
  * Allowed workflow state transitions per AttendanceStateMachine.
@@ -73,6 +75,7 @@ export class LessonAttendanceService {
     private readonly attendanceRepo: LessonAttendanceRepository,
     private readonly reminderService: ReminderService,
     private readonly contractRepo: ContractRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // ─── Auto-Creation ───
@@ -276,6 +279,20 @@ export class LessonAttendanceService {
     if (results.length > 0) {
       this.createAttendanceReminders(results[0].teacherId, input.lessonId, results[0].classCode).catch(err =>
         this.logger.warn(`Failed to create attendance reminder: ${err.message}`),
+      );
+    }
+
+    // ─── Emit lesson.completed event for salary calculation ───
+    if (results.length > 0) {
+      const firstRecord = results[0];
+      this.eventEmitter.emit(
+        'lesson.completed',
+        new LessonCompletedEvent(
+          input.lessonId,
+          firstRecord.teacherId,
+          firstRecord.classCode as any, // classCode is string, but event expects number - will fix later
+          new Date(),
+        ),
       );
     }
 

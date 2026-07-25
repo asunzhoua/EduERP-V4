@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   LessonAttendanceService,
   VALID_WORKFLOW_TRANSITIONS,
@@ -40,12 +41,17 @@ describe('LessonAttendanceService', () => {
       save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
     };
 
+    const mockEventEmitter = {
+      emit: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LessonAttendanceService,
         { provide: LessonAttendanceRepository, useValue: mockRepo },
         { provide: ReminderService, useValue: mockReminderService },
         { provide: ContractRepository, useValue: mockContractRepo },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
 
