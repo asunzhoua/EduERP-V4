@@ -16,7 +16,7 @@
     "pages/student/lessons",
     "pages/student/profile",
     "pages/teacher/profile",
-    "pages/operation/dashboard",
+    "pages/operation/dashboard/dashboard",
     "pages/reminder/list",
     "pages/reminder/detail",
     "pages/student/leave-apply/leave-apply",

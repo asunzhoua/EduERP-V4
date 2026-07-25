@@ -1,0 +1,87 @@
+<view class="dashboard">
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view wx:elif="{{error}}" class="error">
+    <text>{{error}}</text>
+    <button bindtap="loadDashboard">重试</button>
+  </view>
+
+  <!-- 正常展示 -->
+  <view wx:else>
+    <!-- 今日运营 -->
+    <view class="section">
+      <view class="section-title">今日运营</view>
+      <view class="stats-grid">
+        <view class="stat-card">
+          <view class="stat-value">{{overview.today.totalLessons}}</view>
+          <view class="stat-label">今日课程</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">{{overview.today.completedLessons}}</view>
+          <view class="stat-label">已完成</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">{{overview.today.leaveCount}}</view>
+          <view class="stat-label">请假数</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">{{overview.today.consumedLessons}}</view>
+          <view class="stat-label">消耗课时</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 学员情况 -->
+    <view class="section">
+      <view class="section-title">学员情况</view>
+      <view class="stats-grid">
+        <view class="stat-card">
+          <view class="stat-value">{{overview.students.total}}</view>
+          <view class="stat-label">学员总数</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">{{overview.students.newToday}}</view>
+          <view class="stat-label">今日新增</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">{{overview.students.remainingLessons}}</view>
+          <view class="stat-label">剩余课时</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 教师情况 -->
+    <view class="section">
+      <view class="section-title">教师情况</view>
+      <view class="stats-grid">
+        <view class="stat-card">
+          <view class="stat-value">{{overview.teachers.teachingCount}}</view>
+          <view class="stat-label">今日授课</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">¥{{overview.teachers.monthlySalary}}</view>
+          <view class="stat-label">本月工资</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 财务情况 -->
+    <view class="section">
+      <view class="section-title">财务情况</view>
+      <view class="stats-grid">
+        <view class="stat-card">
+          <view class="stat-value">¥{{overview.finance.todayIncome}}</view>
+          <view class="stat-label">今日收入</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">¥{{overview.finance.consumedValue}}</view>
+          <view class="stat-label">课时消耗价值</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
