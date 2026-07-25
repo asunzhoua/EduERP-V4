@@ -1,0 +1,347 @@
+// ---------------------------------------------------------------------------
+// DashboardService
+// Phase 2 — Backend capability implementation
+// Aggregates business data from existing modules only.
+// No new business truth, no intermediate statistics tables.
+// ---------------------------------------------------------------------------
+
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Between, In } from 'typeorm';
+
+// Entities
+import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
+import { LessonStatus } from '@modules/teaching/lesson/enums/lesson-status.enum';
+import { Student } from '@modules/student/entities/student.entity';
+import { StudentStatus } from '@modules/student/enums/student-status.enum';
+import { ContractEntity } from '@modules/teaching/contract/contract.entity';
+import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
+import { LessonExceptionEntity } from '@modules/teaching/lesson/lesson-exception/lesson-exception.entity';
+import { SalaryRecordEntity } from '@modules/salary/entities/salary-record.entity';
+import { User } from '@modules/identity/entities/user.entity';
+import { UserStatus } from '@modules/identity/entities/user.entity';
+
+// DTOs
+import {
+  DashboardOverviewDto,
+  LessonStatsDto,
+  StudentStatsDto,
+  TeacherStatsDto,
+  FinanceStatsDto,
+} from './dto/dashboard-response.dto';
+
+@Injectable()
+export class DashboardService {
+  constructor(
+    @InjectRepository(LessonEntity)
+    private readonly lessonRepo: Repository<LessonEntity>,
+
+    @InjectRepository(Student)
+    private readonly studentRepo: Repository<Student>,
+
+    @InjectRepository(ContractEntity)
+    private readonly contractRepo: Repository<ContractEntity>,
+
+    @InjectRepository(LessonExceptionEntity)
+    private readonly exceptionRepo: Repository<LessonExceptionEntity>,
+
+    @InjectRepository(SalaryRecordEntity)
+    private readonly salaryRepo: Repository<SalaryRecordEntity>,
+
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+  ) {}
+
+  // ------------------------------------------------------------------
+  // 2.1 getOverview
+  // ------------------------------------------------------------------
+
+  async getOverview(): Promise<DashboardOverviewDto> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // ── 今日运营 ──
+
+    const todayLessons = await this.lessonRepo.count({
+      where: {
+        scheduledDate: Between(
+          this.toDateStr(today),
+          this.toDateStr(tomorrow),
+        ),
+      },
+    });
+
+    const completedLessons = await this.lessonRepo.count({
+      where: {
+        scheduledDate: Between(
+          this.toDateStr(today),
+          this.toDateStr(tomorrow),
+        ),
+        status: LessonStatus.FINISHED,
+      },
+    });
+
+    const leaveCount = await this.exceptionRepo.count({
+      where: {
+        exceptionType: In(['LEAVE_SICK', 'LEAVE_PERSONAL']),
+        startTime: Between(today, tomorrow),
+      },
+    });
+
+    // ── 学员情况 ──
+
+    const totalStudents = await this.studentRepo.count({
+      where: { status: StudentStatus.ACTIVE },
+    });
+
+    const newStudents = await this.studentRepo.count({
+      where: {
+        status: StudentStatus.ACTIVE,
+        createTime: Between(today, tomorrow),
+      },
+    });
+
+    const activeContracts = await this.contractRepo.find({
+      where: { status: ContractStatus.ACTIVE },
+    });
+    const remainingLessons = activeContracts.reduce(
+      (sum, c) => sum + c.remainingLessons,
+      0,
+    );
+    const consumedLessons = activeContracts.reduce(
+      (sum, c) => sum + (c.totalLessons - c.remainingLessons),
+      0,
+    );
+
+    // ── 教师情况 ──
+
+    const teachingCount = await this.lessonRepo.count({
+      where: {
+        scheduledDate: Between(
+          this.toDateStr(today),
+          this.toDateStr(tomorrow),
+        ),
+        status: LessonStatus.FINISHED,
+      },
+    });
+
+    // ── 本月工资 ──
+
+    const currentMonth = new Date();
+    currentMonth.setDate(1);
+    currentMonth.setHours(0, 0, 0, 0);
+
+    const nextMonth = new Date(currentMonth);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    const salaryRecords = await this.salaryRepo.find({
+      where: {
+        createTime: Between(currentMonth, nextMonth),
+      },
+    });
+    const monthlySalary = salaryRecords.reduce(
+      (sum, r) => sum + Number(r.amount),
+      0,
+    );
+
+    // ── 财务情况 ──
+    // Payment / Ledger entities 尚未实现，todayIncome 保留为占位 0
+    const todayIncome = 0;
+
+    // 课时消耗价值
+    const consumedValue = activeContracts.reduce((sum, c) => {
+      const consumed = c.totalLessons - c.remainingLessons;
+      return sum + consumed * Number(c.unitPrice || 0);
+    }, 0);
+
+    return {
+      today: {
+        totalLessons: todayLessons,
+        completedLessons,
+        leaveCount,
+        consumedLessons,
+      },
+      students: {
+        total: totalStudents,
+        newToday: newStudents,
+        remainingLessons,
+      },
+      teachers: {
+        teachingCount,
+        monthlySalary,
+      },
+      finance: {
+        todayIncome,
+        consumedValue,
+      },
+    };
+  }
+
+  // ------------------------------------------------------------------
+  // 2.2 getLessons
+  // ------------------------------------------------------------------
+
+  async getLessons(): Promise<LessonStatsDto> {
+    const totalLessons = await this.lessonRepo.count();
+
+    const completedLessons = await this.lessonRepo.count({
+      where: { status: LessonStatus.FINISHED },
+    });
+
+    const cancelledLessons = await this.lessonRepo.count({
+      where: { status: LessonStatus.CANCELLED },
+    });
+
+    const suspendedLessons = await this.lessonRepo.count({
+      where: { status: LessonStatus.SUSPENDED },
+    });
+
+    return {
+      totalLessons,
+      completedLessons,
+      cancelledLessons,
+      suspendedLessons,
+    };
+  }
+
+  // ------------------------------------------------------------------
+  // 2.3 getStudents
+  // ------------------------------------------------------------------
+
+  async getStudents(): Promise<StudentStatsDto> {
+    const totalStudents = await this.studentRepo.count({
+      where: { deleted: false },
+    });
+
+    const activeStudents = await this.studentRepo.count({
+      where: { status: StudentStatus.ACTIVE, deleted: false },
+    });
+
+    // 本月新增学员
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const newStudentsThisMonth = await this.studentRepo.count({
+      where: {
+        deleted: false,
+        createTime: Between(monthStart, now),
+      },
+    });
+
+    // 剩余课时（ACTIVE contracts）
+    const activeContracts = await this.contractRepo.find({
+      where: { status: ContractStatus.ACTIVE },
+    });
+    const totalRemainingLessons = activeContracts.reduce(
+      (sum, c) => sum + c.remainingLessons,
+      0,
+    );
+
+    return {
+      totalStudents,
+      activeStudents,
+      newStudentsThisMonth,
+      totalRemainingLessons,
+    };
+  }
+
+  // ------------------------------------------------------------------
+  // 2.4 getTeachers
+  // ------------------------------------------------------------------
+
+  async getTeachers(): Promise<TeacherStatsDto> {
+    const totalTeachers = await this.userRepo.count({
+      where: { role: 'Teacher' },
+    });
+
+    const activeTeachers = await this.userRepo.count({
+      where: { role: 'Teacher', status: UserStatus.ACTIVE },
+    });
+
+    // 本月课时数
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const totalLessonsThisMonth = await this.lessonRepo.count({
+      where: {
+        scheduledDate: Between(
+          this.toDateStr(monthStart),
+          this.toDateStr(monthEnd),
+        ),
+      },
+    });
+
+    // 本月工资（SalaryRecord 按 createTime 聚合）
+    const salaryRecords = await this.salaryRepo.find({
+      where: {
+        createTime: Between(monthStart, monthEnd),
+      },
+    });
+    const totalSalaryThisMonth = salaryRecords.reduce(
+      (sum, r) => sum + Number(r.amount),
+      0,
+    );
+
+    return {
+      totalTeachers,
+      activeTeachers,
+      totalLessonsThisMonth,
+      totalSalaryThisMonth,
+    };
+  }
+
+  // ------------------------------------------------------------------
+  // 2.5 getFinance
+  // ------------------------------------------------------------------
+
+  async getFinance(): Promise<FinanceStatsDto> {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    todayStart.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(todayStart);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    monthStart.setHours(0, 0, 0, 0);
+    const nextMonth = new Date(monthStart);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    // Payment / Ledger 尚未实现, income 字段保留为 0
+    const totalIncome = 0;
+    const todayIncome = 0;
+    const monthIncome = 0;
+
+    // 课时消耗价值
+    const activeContracts = await this.contractRepo.find({
+      where: { status: ContractStatus.ACTIVE },
+    });
+    const consumedValue = activeContracts.reduce((sum, c) => {
+      const consumed = c.totalLessons - c.remainingLessons;
+      return sum + consumed * Number(c.unitPrice || 0);
+    }, 0);
+
+    return {
+      totalIncome,
+      todayIncome,
+      monthIncome,
+      consumedValue,
+    };
+  }
+
+  // ─── Helpers ────────────────────────────────────────────────────────
+
+  /**
+   * Format a Date to YYYY-MM-DD string (matching LessonEntity.scheduledDate type).
+   */
+  private toDateStr(d: Date): string {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+}
