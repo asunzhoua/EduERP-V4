@@ -20,12 +20,11 @@
 **系统状态**: PUBLIC 8443 VALIDATION COMPLETE
 
 **架构确认**:
-- Backend: REDACTED:3000
-- 公网访问: http://REDACTED:8443/api/v1
-- 路由器配置: 公网 8443/TCP → REDACTED:3000
-- DDNS: REDACTED → REDACTED（路由器真实 WAN IP）
+- Backend: 本地服务运行正常
+- 公网访问: 已配置域名访问
+- 路由器配置: 端口转发已配置
 - Database: MySQL
-- Miniapp: 已配置本地 API 地址
+- Miniapp: 已配置 API 地址
 
 ---
 
@@ -55,9 +54,9 @@
 
 ### Key Findings
 
-1. **公网链路修复完成** — 8443 端口转发已配置并验证通过
-2. **DDNS 记录正确** — REDACTED = 路由器真实 WAN IP
-3. **上轮误判已修正** — 代理出口 IP (REDACTED) 被误判为公网 IP
+1. **公网链路修复完成** — 端口转发已配置并验证通过
+2. **DDNS 记录正确** — 域名解析正常
+3. **上轮误判已修正** — 代理配置导致的误判已排除
 4. **TD-001 无回归** — Teacher 课程端点保持 200
 5. **权限隔离有效** — RBAC 守卫正常
 
