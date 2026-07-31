@@ -62,3 +62,6 @@ check_cc.py
 wechat_devtools_setup.exe 
 _compile_verify*.png 
 _compile_verify*.py
+
+# Miniapp local config (contains local network info)
+miniapp/config.js
