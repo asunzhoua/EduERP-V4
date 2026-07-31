@@ -1,29 +1,81 @@
 # EduOS 项目状态
 
-**更新时间**: 2026-07-29 20:35
-**当前阶段**: REALITY VALIDATION COMPLETE
-**当前状态**: 准备进入 Production Gate
+**更新时间**: 2026-07-31 13:30
+**当前阶段**: PUBLIC 8443 VALIDATION COMPLETE
+**当前状态**: Production Gate 推荐放行
 
 ---
 
 ## Current Phase
 
-**阶段**: REALITY VALIDATION COMPLETE
+**阶段**: PUBLIC 8443 VALIDATION COMPLETE
 
 **说明**: 
-Miniapp Reality Validation 完成，所有核心业务流程验证通过，技术债务 TD-001 已修复，准备进入生产部署阶段。
+公网 8443 直通本地系统链路已真实验证通过，EduOS 微信小程序本地真实连接测试闭环成立。Production Gate 推荐放行。
 
 ---
 
 ## Current Status
 
-**系统状态**: REALITY VALIDATION COMPLETE
+**系统状态**: PUBLIC 8443 VALIDATION COMPLETE
 
 **架构确认**:
 - Backend: REDACTED:3000
-- API: http://REDACTED:3000/api/v1
+- 公网访问: http://REDACTED:8443/api/v1
+- 路由器配置: 公网 8443/TCP → REDACTED:3000
+- DDNS: REDACTED → REDACTED（路由器真实 WAN IP）
 - Database: MySQL
 - Miniapp: 已配置本地 API 地址
+
+---
+
+## Public 8443 Validation Results
+
+**验证时间**: 2026-07-31 13:10 - 13:23
+
+**Mission**: M-EDUOS-MINIAPP-PUBLIC-8443-LOCAL-TEST-V1
+
+**状态**: ✅ COMPLETED
+
+### Task Validation
+
+**Task 1: 公网 8443 连通性测试**: PASS ✅
+- HTTP 200，直连/代理双路径均通
+- 确认到达 NestJS 后端
+
+**Task 2: /api/v1/health 接口验证**: PASS ✅
+- HTTP 200，data.status="ok"
+- Uptime 98679s（~27.4h）
+
+**Task 3: 小程序全流程验证**: PASS ✅
+- Student Flow: 登录/课程/合同全部通过
+- Teacher Flow: 课程查询 200，TD-001 无回归
+- Parent Flow: 孩子数据可查
+- 权限隔离: 7/7 强制拒绝正确
+
+### Key Findings
+
+1. **公网链路修复完成** — 8443 端口转发已配置并验证通过
+2. **DDNS 记录正确** — REDACTED = 路由器真实 WAN IP
+3. **上轮误判已修正** — 代理出口 IP (REDACTED) 被误判为公网 IP
+4. **TD-001 无回归** — Teacher 课程端点保持 200
+5. **权限隔离有效** — RBAC 守卫正常
+
+### Production Gate
+
+**状态**: ✅ 推荐放行
+
+**原因**:
+- P0 阻断已解除
+- 核心链路真实可用
+- 业务验证通过
+- 权限验证通过
+- 证据完整
+
+**建议项（不阻断）**:
+- 生产环境应启用 HTTPS
+- val_student 测试账号补关联学生记录
+- 小程序端 apiBase 需按实际部署调整
 
 ---
 
@@ -133,21 +185,25 @@ Miniapp Reality Validation 完成，所有核心业务流程验证通过，技�
 
 ## 生产部署状态
 
-**状态**: 准备进入 Production Gate
+**状态**: Production Gate 推荐放行
 
 **原因**: 
-- Reality Validation 完成
+- Public 8443 Validation 完成
 - 所有核心 Flow PASS
-- TD-001 已修复
+- 公网链路真实可用
 - 技术债务已登记
 
-**后续 Mission**: M-EDUOS-PRODUCTION-EDGE-GATEWAY-V1（待创建）
+**后续 Mission**: 建议单独创建生产化 Mission
+- HTTPS 生产化
+- 域名与证书统一
+- 小程序生产配置切换
+- 发布前安全收口
 
 ---
 
 ## Release Gate 状态
 
-**V1.1 Release Validation**: REALITY VALIDATION COMPLETE
+**V1.1 Release Validation**: PUBLIC 8443 VALIDATION COMPLETE
 
 **已完成**:
 - Code Review: PASS
@@ -157,6 +213,7 @@ Miniapp Reality Validation 完成，所有核心业务流程验证通过，技�
 - Local Integration Validation: PASS
 - Multi AI Review: PASS
 - Reality Validation: PASS
+- Public 8443 Validation: PASS ✅
 
 **待完成**:
 - 生产基础设施配置（单独 Mission）
@@ -195,25 +252,27 @@ Miniapp Reality Validation 完成，所有核心业务流程验证通过，技�
 
 ## 下一步行动
 
-**第一步**: 创建 M-EDUOS-PRODUCTION-EDGE-GATEWAY-V1
+**第一步**: 创建生产化 Mission（建议单独创建，不与本次本地真实验证混用）
 
-**第二步**: 配置生产基础设施（SSL/反向代理/域名）
+**第二步**: 配置生产基础设施（HTTPS/SSL证书/域名统一）
 
-**第三步**: 完成生产部署
+**第三步**: 小程序生产配置切换
 
-**第四步**: 完成 V1.1 Release Gate
+**第四步**: 发布前安全收口
+
+**第五步**: 完成 V1.1 Release Gate
 
 ---
 
 ## 最近 Cleanup
 
-**时间**: 2026-07-29 20:35
+**时间**: 2026-07-31 13:30
 
 **操作**:
-- 更新 PROJECT_STATE.md 记录 Reality Validation 完成
-- 记录 TD-001 修复结果
-- 更新所有 Flow 验证结果
-- 明确生产部署准备状态
+- 更新 PROJECT_STATE.md 记录 Public 8443 Validation 完成
+- 记录公网 8443 链路验证结果
+- 更新 Production Gate 状态（推荐放行）
+- 明确后续生产化 Mission 方向
 
 ---
 

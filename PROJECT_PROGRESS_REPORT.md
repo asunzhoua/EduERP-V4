@@ -1,8 +1,8 @@
 # EduERP-V4 小程序项目进度报告
 
 **项目**: EduERP-V4 教培机构管理系统  
-**报告日期**: 2026-07-29  
-**当前阶段**: Reality Validation Complete - 准备进入 Production Gate
+**报告日期**: 2026-07-31  
+**当前阶段**: Public 8443 Validation Complete - Production Gate 推荐放行
 
 ---
 
@@ -26,6 +26,9 @@ EduERP-V4 是一个面向教育培训机构的综合管理系统，包含后端 
 - **平台**: 微信小程序
 - **框架**: 原生小程序开发
 - **API 地址**: http://REDACTED:3000/api/v1
+- **公网访问**: http://REDACTED:8443/api/v1
+- **路由器配置**: 公网 8443/TCP → REDACTED:3000
+- **DDNS**: REDACTED → REDACTED
 
 ### 系统规模
 - **后端 Controller**: 19 个
@@ -210,6 +213,56 @@ EduERP-V4 是一个面向教育培训机构的综合管理系统，包含后端 
 
 ---
 
+## Public 8443 Validation 结果
+
+**验证时间**: 2026-07-31 13:10 - 13:23
+
+**Mission**: M-EDUOS-MINIAPP-PUBLIC-8443-LOCAL-TEST-V1
+
+**状态**: ✅ COMPLETED
+
+### Task Validation
+
+**Task 1: 公网 8443 连通性测试**: PASS ✅
+- HTTP 200，直连/代理双路径均通
+- 确认到达 NestJS 后端
+
+**Task 2: /api/v1/health 接口验证**: PASS ✅
+- HTTP 200，data.status="ok"
+- Uptime 98679s（~27.4h）
+
+**Task 3: 小程序全流程验证**: PASS ✅
+- Student Flow: 登录/课程/合同全部通过
+- Teacher Flow: 课程查询 200，TD-001 无回归
+- Parent Flow: 孩子数据可查
+- 权限隔离: 7/7 强制拒绝正确
+
+### Key Findings
+
+1. **公网链路修复完成** — 8443 端口转发已配置并验证通过
+2. **DDNS 记录正确** — REDACTED = 路由器真实 WAN IP
+3. **上轮误判已修正** — 代理出口 IP (REDACTED) 被误判为公网 IP
+4. **TD-001 无回归** — Teacher 课程端点保持 200
+5. **权限隔离有效** — RBAC 守卫正常
+
+### Production Gate
+
+**状态**: ✅ 推荐放行
+
+**原因**:
+- P0 阻断已解除
+- 核心链路真实可用
+- 业务验证通过
+- 权限验证通过
+- 证据完整
+
+**建议项（不阻断）**:
+- 生产环境应启用 HTTPS
+- val_student 测试账号补关联学生记录
+- 小程序端 apiBase 需按实际部署调整
+
+---
+
 ## 技术债务清单
 
 ### 已修复
@@ -272,19 +325,20 @@ EduERP-V4 是一个面向教育培训机构的综合管理系统，包含后端 
 ## 生产部署准备
 
 ### 当前状态
-- 阶段: REALITY VALIDATION COMPLETE
-- 状态: 准备进入 Production Gate
+- 阶段: PUBLIC 8443 VALIDATION COMPLETE
+- 状态: Production Gate 推荐放行
 - 核心功能: 全部正常
+- 公网链路: 真实可用
 - 技术债务: TD-001 已修复，其他已登记
 
 ### 下一步
-创建 M-EDUOS-PRODUCTION-EDGE-GATEWAY-V1 Mission
+创建生产化 Mission（建议单独创建，不与本次本地真实验证混用）
 
 任务:
-- 配置 SSL 证书
-- 配置反向代理
-- 配置域名
-- 完成生产部署
+- HTTPS 生产化
+- 域名与证书统一
+- 小程序生产配置切换
+- 发布前安全收口
 
 ---
 
@@ -377,14 +431,22 @@ miniapp/
 - TD-001 技术债务修复
 - 所有 Flow 验证 PASS
 
+**2026-07-31**:
+- Public 8443 Validation 完成
+- 公网 8443 连通性测试 PASS
+- Health API 验证 PASS
+- 小程序全流程验证 PASS
+- Production Gate 推荐放行
+
 ### 当前阶段
-- 阶段: REALITY VALIDATION COMPLETE
-- 状态: 准备进入 Production Gate
+- 阶段: PUBLIC 8443 VALIDATION COMPLETE
+- 状态: Production Gate 推荐放行
 
 ### 下一阶段
-- 创建生产部署 Mission
-- 配置生产基础设施
-- 完成生产部署
+- 创建生产化 Mission
+- 配置 HTTPS/SSL 证书
+- 小程序生产配置切换
+- 发布前安全收口
 
 ---
 
