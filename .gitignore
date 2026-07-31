@@ -30,7 +30,9 @@ venv/
 .env.prod
 .env.test
 .env.local
+.env.*
 .env.*.local
+!.env.example
 
 ## Build
 dist/
@@ -54,14 +56,59 @@ temp/
 
 ## Sensitive file types
 *.bak
-*.log
- 
-# Test/dev artifacts 
-devtools_*.png 
-check_cc.py 
-wechat_devtools_setup.exe 
-_compile_verify*.png 
+
+## Test/dev artifacts
+devtools_*.png
+check_cc.py
+wechat_devtools_setup.exe
+_compile_verify*.png
 _compile_verify*.py
 
-# Miniapp local config (contains local network info)
+## ============================================================
+## Security: sensitive files — DO NOT COMMIT (Commit Guard V1)
+## ============================================================
+
+## Private keys & certificates
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.secret
+
+## Tokens / credential dumps
+*_token.json
+*_token.txt
+*.token
+token*.env
+tokens.env
+*_cookies*.txt
+cookies*.txt
+dsm_cookies*.txt
+
+## Local debug/test artifacts (may embed live responses/tokens)
+backend/_*.js
+backend/_*.json
+backend/_*.txt
+backend/step*_login*.json
+
+## Legacy evidence containing pre-cleanup sensitive data
+## (must be sanitized before committing; use `git add -f` only after review)
+backend/docs/evidence/
+docs/evidence/M-EDUOS-INFRASTRUCTURE-BASELINE-AUDIT-V1.md
+docs/evidence/M-EDUOS-INFRASTRUCTURE-FIX-V2.md
+docs/evidence/M-EDUOS-INFRASTRUCTURE-HTTPS-VALIDATION-V1.md
+docs/evidence/M-EDUOS-INFRASTRUCTURE-HTTPS-REVERSE-PROXY-VALIDATION-V1.md
+docs/evidence/M-EDUOS-MINIAPP-LOCAL-INTEGRATION-VALIDATION-V1.md
+docs/evidence/M-EDUOS-MINIAPP-PUBLIC-8443-LOCAL-TEST-V1-FINAL.md
+docs/evidence/M-EDUOS-MULTI-AI-REVIEW-GATE-V1-REPORT.md
+docs/evidence/M-EDUOS-PILOT-ADMIN-FLOW-VALIDATION-V2.md
+docs/evidence/M-EDUOS-PILOT-PARENT-FLOW-VALIDATION-V1.md
+docs/evidence/M-EDUOS-PILOT-TEACHER-FLOW-VALIDATION-V1.md
+docs/evidence/M-EDUOS-PRODUCTION-DEPLOYMENT-EXECUTION-V1.md
+docs/M-EDUERP-V4-PRODUCTION-DEPLOYMENT-V1.md
+
+## Miniapp local config (contains local network info)
 miniapp/config.js

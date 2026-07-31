@@ -117,6 +117,29 @@ npm run start:prod
 - P1 模块: 27/27 COMPLETED ✅
 - GitHub: https://github.com/asunzhoua/EduERP-V4
 
+## ⚠️ 安全提示
+
+本仓库为**公开仓库**，提交前必须遵守以下约束（详见 [docs/SECURITY-COMMIT-RULES.md](./docs/SECURITY-COMMIT-RULES.md)）：
+
+**禁止提交：**
+- 本地服务器真实 IP（192.168.x.x 等）、公网 IP
+- DDNS 域名（`*.ddns.*`、`*.f3322.net` 等）
+- 端口转发 / 反向代理配置细节、路由器 / 群晖管理地址
+- SSL 证书私钥、Token / 密码 / 密钥、真实生产环境变量
+
+**配置分离：**
+- 后端环境变量：复制 `backend/.env.example` 为本地 `.env` 使用（`.env*` 已 gitignore）
+- 小程序配置：复制 `miniapp/config.example.js` 为本地 `miniapp/config.js` 使用（已 gitignore）
+
+**提交前检查：**
+```bash
+# Windows
+scripts\pre-commit-check.bat
+# Git Bash / CI
+sh scripts/pre-commit-check.sh
+```
+安装 Git 钩子（自动拦截）：`sh scripts/install-pre-commit-hook.sh`（详见脚本头部说明）。
+
 ## 文档
 
 完整文档见 [docs/](./docs/) 目录，AI 上下文见 [.ai/AI_ENTRYPOINT.md](./.ai/AI_ENTRYPOINT.md)。
