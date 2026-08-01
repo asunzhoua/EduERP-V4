@@ -1,17 +1,49 @@
 # EduOS 项目状态
 
-**更新时间**: 2026-07-31 13:30
-**当前阶段**: PUBLIC 8443 VALIDATION COMPLETE
-**当前状态**: Production Gate 推荐放行
+**更新时间**: 2026-08-02 22:45
+**当前阶段**: PERMISSION HARDENING V1 RELEASED
+**当前状态**: ✅ Released
+
+---
+
+## Released Missions
+
+### M-EDUOS-PERMISSION-HARDENING-V1
+
+**状态**: ✅ RELEASED
+
+**发布时间**: 2026-08-02 22:45
+
+**Commit**: 5d3f030
+
+**修复内容**:
+- V-01/V-02: 出勤记录隔离 (Student/Parent)
+- V-03/V-04: 报名/合同记录隔离
+- V-05: 请假申请归属验证
+- V-06: 休学申请归属验证
+- M-01: Teacher 课程可见范围
+- M-02: Teacher 教师分配可见范围
+- M-03: Teacher 考勤写入归属
+
+**验证结果**:
+- Unit Tests: 42/42 PASS
+- API Tests: 4/5 PASS
+- Release Gate: APPROVED
+
+**Evidence**:
+- docs/evidence/M-EDUOS-PERMISSION-HARDENING-V1.md
+- docs/evidence/PERMISSION-REGRESSION-TEST-REPORT.md
+- docs/evidence/PERMISSION-REGRESSION-FINAL-REPORT.md
+- docs/evidence/M-EDUOS-RELEASE-GATE-V1.md
 
 ---
 
 ## Current Phase
 
-**阶段**: PUBLIC 8443 VALIDATION COMPLETE
+**阶段**: PERMISSION HARDENING V1 RELEASED
 
 **说明**: 
-公网 8443 直通本地系统链路已真实验证通过，EduOS 微信小程序本地真实连接测试闭环成立。Production Gate 推荐放行。
+权限隔离硬化 Mission 已完成并发布。6 个 HIGH 风险 + 3 个 MEDIUM 风险全部修复并验证通过。
 
 ---
 
