@@ -92,7 +92,11 @@ export class TeacherAssignmentRepository {
   }
 
   /** Find all assignments ordered by createTime DESC. */
-  async findAll(): Promise<TeacherAssignmentEntity[]> {
-    return this.repo.find({ order: { createTime: 'DESC' } });
+  async findAll(teacherId?: number): Promise<TeacherAssignmentEntity[]> {
+    const where: any = {};
+    if (teacherId) {
+      where.teacherId = teacherId;
+    }
+    return this.repo.find({ where, order: { createTime: 'DESC' } });
   }
 }

@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { DataScopeService } from '@common/services/data-scope.service';
 
 @ApiTags('Contract')
 @ApiBearerAuth()
@@ -27,7 +28,10 @@ import { ApiResponse } from '@common/dto/api-response';
 export class ContractController {
   private readonly logger = new Logger(ContractController.name);
 
-  constructor(private readonly contractService: ContractService) {}
+  constructor(
+    private readonly contractService: ContractService,
+    private readonly dataScopeService: DataScopeService,
+  ) {}
 
   @Post()
   @Roles('SuperAdmin', 'Admin')
@@ -69,7 +73,13 @@ export class ContractController {
   @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
   @ApiParam({ name: 'studentCode', description: '学生编号' })
   @ApiOperation({ summary: 'Get all contracts for a student' })
-  async findByStudentCode(@Param('studentCode') studentCode: string) {
+  async findByStudentCode(
+    @Param('studentCode') studentCode: string,
+    @Req() req: any,
+  ) {
+    // V-04 修复: 验证当前用户是否有权访问该学生的合同记录
+    await this.dataScopeService.verifyStudentAccess(req.user, studentCode);
+
     const result = await this.contractService.findByStudentCode(studentCode);
     return ApiResponse.success(result);
   }

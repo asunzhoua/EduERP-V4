@@ -1,0 +1,99 @@
+<!-- pages/parent/child-detail.wxml -->
+<view class="container">
+  <!-- Loading -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- Error -->
+  <view wx:elif="{{error}}" class="error">
+    <text>{{error}}</text>
+    <button class="retry-btn" bindtap="loadData" data-childId="{{childId}}">重试</button>
+  </view>
+
+  <!-- Content -->
+  <view wx:else>
+    <!-- Child Info Card -->
+    <view class="info-card">
+      <text class="child-name">{{childInfo.name || '未知'}}</text>
+      <text class="child-code">学号: {{childInfo.studentCode || '-'}}</text>
+      <text class="child-school">学校: {{childInfo.school || '-'}}</text>
+      <text class="child-grade">年级: {{childInfo.grade || '-'}}</text>
+    </view>
+
+    <!-- Tabs -->
+    <view class="tabs">
+      <view 
+        class="tab {{activeTab === 'overview' ? 'active' : ''}}"
+        bindtap="onTabChange"
+        data-tab="overview"
+      >
+        <text>概览</text>
+      </view>
+      <view 
+        class="tab {{activeTab === 'contracts' ? 'active' : ''}}"
+        bindtap="onTabChange"
+        data-tab="contracts"
+      >
+        <text>合同</text>
+      </view>
+      <view 
+        class="tab {{activeTab === 'attendance' ? 'active' : ''}}"
+        bindtap="onTabChange"
+        data-tab="attendance"
+      >
+        <text>出勤</text>
+      </view>
+    </view>
+
+    <!-- Overview Tab -->
+    <view wx:if="{{activeTab === 'overview'}}" class="tab-content">
+      <view class="stats-row">
+        <view class="stat-item">
+          <text class="stat-value">{{contracts.length}}</text>
+          <text class="stat-label">合同数</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-value">{{attendance.length}}</text>
+          <text class="stat-label">出勤记录</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- Contracts Tab -->
+    <view wx:if="{{activeTab === 'contracts'}}" class="tab-content">
+      <view wx:if="{{contracts.length === 0}}" class="empty-tab">
+        <text>暂无合同信息</text>
+      </view>
+      <view wx:else class="list">
+        <view wx:for="{{contracts}}" wx:key="contractCode" class="list-item">
+          <view class="item-main">
+            <text class="item-title">{{item.subject || '课程'}}</text>
+            <text class="item-sub">剩余: {{item.remainingLessons}}/{{item.totalLessons}} 课时</text>
+          </view>
+          <view class="item-status">
+            <text>{{item.status || '有效'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- Attendance Tab -->
+    <view wx:if="{{activeTab === 'attendance'}}" class="tab-content">
+      <view wx:if="{{attendance.length === 0}}" class="empty-tab">
+        <text>暂无出勤记录</text>
+      </view>
+      <view wx:else class="list">
+        <view wx:for="{{attendance}}" wx:key="id" class="list-item">
+          <view class="item-main">
+            <text class="item-title">{{item.lessonDate || '-'}}</text>
+            <text class="item-sub">{{item.className || ''}} {{item.courseName || ''}}</text>
+          </view>
+          <view class="item-status">
+            <text class="status-{{item.status}}">{{item.status || '-'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

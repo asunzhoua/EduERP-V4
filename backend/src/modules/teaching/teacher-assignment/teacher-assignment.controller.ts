@@ -49,18 +49,24 @@ export class TeacherAssignmentController {
   @Get()
   @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'List all teacher assignments' })
-  async findAll() {
-    const result = await this.service.findAll();
+  async findAll(@Req() req: any) {
+    // M-02 修复: Teacher 只能看到自己的分配记录
+    const teacherId = req.user.role === 'Teacher' ? Number(req.user.sub) : undefined;
+    const result = await this.service.findAll(teacherId);
     return ApiResponse.success(result);
   }
 
   @Get(':id')
   @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Get teacher assignment by ID' })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
+  async findOne(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     const assignment = await this.assignmentRepo.findOneBy({ id });
     if (!assignment) {
       throw new NotFoundException(`Teacher assignment #${id} not found`);
+    }
+    // M-02 修复: Teacher 只能看到自己的分配记录
+    if (req.user.role === 'Teacher' && assignment.teacherId !== Number(req.user.sub)) {
+      return ApiResponse.success(null);
     }
     return ApiResponse.success(assignment);
   }

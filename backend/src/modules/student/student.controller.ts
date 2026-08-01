@@ -15,6 +15,7 @@ import {
   UploadedFile,
   UseInterceptors,
   ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { StudentService } from './services/student.service';
@@ -36,7 +37,9 @@ import { QueryStudentDto } from './dto/query-student.dto';
 import { JwtAuthGuard } from '../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { CreateParentLeaveRequestDto } from './dto/create-parent-leave-request.dto';
 
 @Controller('students')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -272,10 +275,64 @@ export class StudentController {
     return ApiResponse.success(result);
   }
 
+  // --- Parent Child-Scoped API (GAP-001) ---
+
+  @Get(':childId/courses')
+  @Roles('Parent')
+  async getChildCourses(
+    @Param('childId', ParseIntPipe) childId: number,
+    @CurrentUser() parent: any,
+  ) {
+    const result = await this.studentService.getChildCourses(parent.sub, childId);
+    return ApiResponse.success(result);
+  }
+
+  @Get(':childId/attendance')
+  @Roles('Parent')
+  async getChildAttendance(
+    @Param('childId', ParseIntPipe) childId: number,
+    @CurrentUser() parent: any,
+  ) {
+    const result = await this.studentService.getChildAttendance(parent.sub, childId);
+    return ApiResponse.success(result);
+  }
+
+  @Get(':childId/contracts')
+  @Roles('Parent')
+  async getChildContracts(
+    @Param('childId', ParseIntPipe) childId: number,
+    @CurrentUser() parent: any,
+  ) {
+    const result = await this.studentService.getChildContracts(parent.sub, childId);
+    return ApiResponse.success(result);
+  }
+
+  // --- Parent Leave Request (GAP-002) ---
+
+  @Post('leave-requests')
+  @Roles('Parent')
+  async createLeaveRequest(
+    @CurrentUser() parent: any,
+    @Body() dto: CreateParentLeaveRequestDto,
+  ) {
+    const result = await this.studentService.createLeaveRequest(parent.sub, dto);
+    return ApiResponse.success(result, 'Leave request submitted');
+  }
+
+  @Get('my-children')
+  @Roles('Parent')
+  async getMyChildren(@Req() req: any) {
+    const userId = req.user.sub;
+    const students = await this.studentService.getChildrenByUserId(userId);
+    return ApiResponse.success(students);
+  }
+
   @Get()
   @Roles('SuperAdmin', 'Admin', 'Teacher')
-  async findAll(@Query() query: QueryStudentDto) {
-    const result = await this.studentService.findAll(query);
+  async findAll(@Query() query: QueryStudentDto, @Req() req: any) {
+    // Teacher 只能看到自己负责的班级里的学生
+    const teacherId = req.user.role === 'Teacher' ? Number(req.user.sub) : undefined;
+    const result = await this.studentService.findAll(query, teacherId);
     return ApiResponse.success(result);
   }
 

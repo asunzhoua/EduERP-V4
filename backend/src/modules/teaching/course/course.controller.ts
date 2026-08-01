@@ -49,8 +49,10 @@ export class CourseController {
   @Get()
   @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'List all courses (paginated, filterable, enriched)' })
-  async findAll(@Query() query: QueryCourseDto): Promise<ApiResponse> {
-    const result = await this.courseService.findAll(query);
+  async findAll(@Query() query: QueryCourseDto, @Req() req: any): Promise<ApiResponse> {
+    // M-01 修复: Teacher 只能看到自己负责的课程
+    const teacherId = req.user.role === 'Teacher' ? Number(req.user.sub) : undefined;
+    const result = await this.courseService.findAll(query, teacherId);
     const enrichedItems = await this.courseService.enrichCourses(result.items);
     return ApiResponse.success({ items: enrichedItems, total: result.total });
   }

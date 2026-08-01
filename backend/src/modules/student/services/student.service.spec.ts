@@ -11,6 +11,12 @@ import { ImportService } from '@utils/services/import.service';
 import { StudentStatus } from '../enums/student-status.enum';
 import { CreatedSource } from '@common/enums/created-source.enum';
 import { AuditAction } from '@common/enums/audit-action.enum';
+import { ContractRepository } from '@modules/teaching/contract/contract.repository';
+import { LessonAttendanceRepository } from '@modules/teaching/lesson-attendance/lesson-attendance.repository';
+import { LeaveRequestEntity } from '@modules/teaching/leave-request/leave-request.entity';
+import { EnrollmentEntity } from '@modules/teaching/enrollment/enrollment.entity';
+import { CourseEntity } from '@modules/teaching/course/course.entity';
+import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
 
 describe('StudentService', () => {
   let service: StudentService;
@@ -71,6 +77,32 @@ describe('StudentService', () => {
       validateRows: jest.fn(),
     };
 
+    const mockContractRepo = {
+      findByStudentCode: jest.fn().mockResolvedValue([]),
+    };
+
+    const mockAttendanceRepo = {
+      findByStudentCode: jest.fn().mockResolvedValue([]),
+    };
+
+    const mockLeaveRequestRepo = {
+      save: jest.fn(),
+      create: jest.fn(),
+    };
+
+    const mockEnrollmentRepo = {
+      find: jest.fn().mockResolvedValue([]),
+      findOne: jest.fn().mockResolvedValue(null),
+    };
+
+    const mockCourseRepo = {
+      find: jest.fn().mockResolvedValue([]),
+    };
+
+    const mockLessonRepo = {
+      find: jest.fn().mockResolvedValue([]),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StudentService,
@@ -79,6 +111,12 @@ describe('StudentService', () => {
         { provide: getRepositoryToken(StudentAuditLog), useValue: mockAuditLogRepo },
         { provide: StudentCodeGeneratorService, useValue: mockCodeGenerator },
         { provide: ImportService, useValue: mockImportService },
+        { provide: ContractRepository, useValue: mockContractRepo },
+        { provide: LessonAttendanceRepository, useValue: mockAttendanceRepo },
+        { provide: getRepositoryToken(LeaveRequestEntity), useValue: mockLeaveRequestRepo },
+        { provide: getRepositoryToken(EnrollmentEntity), useValue: mockEnrollmentRepo },
+        { provide: getRepositoryToken(CourseEntity), useValue: mockCourseRepo },
+        { provide: getRepositoryToken(LessonEntity), useValue: mockLessonRepo },
       ],
     }).compile();
 

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LessonAttendanceController } from './lesson-attendance.controller';
 import { LessonAttendanceService } from './lesson-attendance.service';
@@ -14,7 +14,7 @@ import { EnrollmentModule } from '@modules/teaching/enrollment/enrollment.module
     TypeOrmModule.forFeature([LessonAttendanceEntity]),
     ReminderModule,
     ContractModule,
-    LessonModule,
+    forwardRef(() => LessonModule),
     EnrollmentModule,
   ],
   controllers: [LessonAttendanceController],

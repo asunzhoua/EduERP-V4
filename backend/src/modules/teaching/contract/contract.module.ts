@@ -5,9 +5,10 @@ import { ContractService } from './contract.service';
 import { ContractRepository } from './contract.repository';
 import { ContractCodeGeneratorService } from './contract-code-generator.service';
 import { ContractEntity } from './contract.entity';
+import { DataScopeModule } from '@common/services/data-scope.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ContractEntity])],
+  imports: [TypeOrmModule.forFeature([ContractEntity]), DataScopeModule],
   controllers: [ContractController],
   providers: [
     ContractService,

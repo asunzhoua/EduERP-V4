@@ -7,6 +7,7 @@ import {
 import { SuspendRequestRepository } from './suspend-request.repository';
 import { SuspendRequestEntity, SuspendRequestStatus } from './suspend-request.entity';
 import { StudentRepository } from '@modules/student/student.repository';
+import { StudentService } from '@modules/student/services/student.service';
 import { EnrollmentRepository } from '../enrollment/enrollment.repository';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { ContractService } from '../contract/contract.service';
@@ -26,6 +27,8 @@ export interface CreateSuspendRequestInput {
   suspendTo: string;
   reason: string;
   createdBy: number;
+  userId: number;
+  userRole: string;
 }
 
 @Injectable()
@@ -35,6 +38,7 @@ export class SuspendRequestService {
   constructor(
     private readonly requestRepo: SuspendRequestRepository,
     private readonly studentRepo: StudentRepository,
+    private readonly studentService: StudentService,
     private readonly enrollmentRepo: EnrollmentRepository,
     private readonly contractService: ContractService,
   ) {}
@@ -78,6 +82,10 @@ export class SuspendRequestService {
     if (!student) {
       throw new NotFoundException(`学生不存在: ${input.studentCode}`);
     }
+
+    // ── V-06: Ownership validation ──
+    // Ensure the requesting user has the right to create a suspend request for this student.
+    await this.validateOwnership(input.userId, input.userRole, student);
 
     // Verify student is currently enrolled and ACTIVE in the class
     const enrollment = await this.enrollmentRepo.findByClassAndStudent(
@@ -289,6 +297,47 @@ export class SuspendRequestService {
   }
 
   // ─── Private Helpers ───
+
+  /**
+   * V-06: Verify that the requesting user has the right to create
+   * a suspend request for the given student.
+   *
+   * - Student: the student record must be linked to the same userId.
+   * - Parent:  the student must be among the user's children (student_parent table).
+   * - Admin / SuperAdmin: no restriction.
+   */
+  private async validateOwnership(
+    userId: number,
+    userRole: string,
+    student: { id: number; userId: number | null; studentCode: string },
+  ): Promise<void> {
+    if (userRole === 'Admin' || userRole === 'SuperAdmin') {
+      return; // admins may act on any student
+    }
+
+    if (userRole === 'Student') {
+      if (student.userId !== userId) {
+        throw new BadRequestException(
+          `无权为学生 ${student.studentCode} 提交停课申请：该学生不属于当前用户`,
+        );
+      }
+      return;
+    }
+
+    if (userRole === 'Parent') {
+      const children = await this.studentService.getChildrenByUserId(userId);
+      const isLinked = children.some(c => c.studentCode === student.studentCode);
+      if (!isLinked) {
+        throw new BadRequestException(
+          `无权为学生 ${student.studentCode} 提交停课申请：该学生不是当前家长的子女`,
+        );
+      }
+      return;
+    }
+
+    // Unknown role — deny by default
+    throw new BadRequestException(`未知用户角色: ${userRole}`);
+  }
 
   private validateTransition(
     current: SuspendRequestStatus,

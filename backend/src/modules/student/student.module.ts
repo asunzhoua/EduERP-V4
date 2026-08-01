@@ -18,10 +18,11 @@ import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
 import { TeacherAssignmentEntity } from '../teaching/teacher-assignment/teacher-assignment.entity';
 import { ClassEntity } from '../teaching/class/class.entity';
 import { CourseEntity } from '../teaching/course/course.entity';
+import { LeaveRequestEntity } from '../teaching/leave-request/leave-request.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Student, StudentParent, StudentAuditLog, ImportHistory, LessonEntity, User, EnrollmentEntity, TeacherAssignmentEntity, ClassEntity, CourseEntity]),
+    TypeOrmModule.forFeature([Student, StudentParent, StudentAuditLog, ImportHistory, LessonEntity, User, EnrollmentEntity, TeacherAssignmentEntity, ClassEntity, CourseEntity, LeaveRequestEntity]),
     MulterModule.register({
       limits: {
         fileSize: 10 * 1024 * 1024, // 10MB

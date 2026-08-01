@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, Brackets } from 'typeorm';
+import { Repository, Like, Brackets, In } from 'typeorm';
 import { Student } from '../entities/student.entity';
 import { StudentParent } from '../entities/student-parent.entity';
 import { StudentAuditLog } from '../entities/student-audit-log.entity';
@@ -15,6 +15,13 @@ import { CreatedSource } from '@common/enums/created-source.enum';
 import { AuditAction } from '@common/enums/audit-action.enum';
 import { ImportService, ImportReport } from '@utils/services/import.service';
 import { Gender } from '../enums/gender.enum';
+import { ContractRepository } from '@modules/teaching/contract/contract.repository';
+import { LessonAttendanceRepository } from '@modules/teaching/lesson-attendance/lesson-attendance.repository';
+import { LeaveRequestEntity, LeaveRequestStatus, LeaveType } from '@modules/teaching/leave-request/leave-request.entity';
+import { CreateParentLeaveRequestDto } from '../dto/create-parent-leave-request.dto';
+import { EnrollmentEntity } from '@modules/teaching/enrollment/enrollment.entity';
+import { CourseEntity } from '@modules/teaching/course/course.entity';
+import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
 
 @Injectable()
 export class StudentService {
@@ -26,6 +33,16 @@ export class StudentService {
     private studentAuditLogRepository: Repository<StudentAuditLog>,
     private studentCodeGenerator: StudentCodeGeneratorService,
     private importService: ImportService,
+    private contractRepository: ContractRepository,
+    private lessonAttendanceRepository: LessonAttendanceRepository,
+    @InjectRepository(LeaveRequestEntity)
+    private leaveRequestRepository: Repository<LeaveRequestEntity>,
+    @InjectRepository(EnrollmentEntity)
+    private enrollmentRepository: Repository<EnrollmentEntity>,
+    @InjectRepository(CourseEntity)
+    private courseRepository: Repository<CourseEntity>,
+    @InjectRepository(LessonEntity)
+    private lessonRepository: Repository<LessonEntity>,
   ) {}
 
   async create(dto: CreateStudentDto, operatorId: number, source: CreatedSource = CreatedSource.API): Promise<Student> {
@@ -75,7 +92,7 @@ export class StudentService {
     return saved;
   }
 
-  async findAll(query: QueryStudentDto): Promise<{ items: Student[]; total: number; page: number; pageSize: number }> {
+  async findAll(query: QueryStudentDto, teacherId?: number): Promise<{ items: Student[]; total: number; page: number; pageSize: number }> {
     const page = query.page || 1;
     const pageSize = query.pageSize || 20;
     const skip = (page - 1) * pageSize;
@@ -110,6 +127,19 @@ export class StudentService {
     const [items, total] = await this.studentRepository.findAndCount({
       where: ((qb: any) => {
         qb.where(where);
+        // Teacher 范围过滤：只返回该教师负责的 class 里的学生
+        if (teacherId) {
+          qb.andWhere(
+            `student.studentCode IN (
+              SELECT e."studentCode" FROM enrollment e
+              WHERE e."classCode" IN (
+                SELECT ta."classCode" FROM teacher_assignment ta
+                WHERE ta."teacherId" = :teacherId AND ta."effectiveTo" IS NULL AND ta."deleted" = false
+              ) AND e."deleted" = false
+            )`,
+            { teacherId }
+          );
+        }
         if (keyword) {
           qb.andWhere(
             new Brackets((subQb) => {
@@ -278,6 +308,183 @@ export class StudentService {
       where: { parentId } as any,
       relations: { student: true } as any,
     });
+  }
+
+  /**
+   * Get children students by parent user ID (via student_parent association table).
+   * This is the correct query path: User → student_parent → Student.
+   */
+  async getChildrenByUserId(userId: number): Promise<Student[]> {
+    const studentParents = await this.studentParentRepository.find({
+      where: { parentId: userId } as any,
+    });
+    const studentIds = studentParents.map(sp => sp.studentId);
+    if (studentIds.length === 0) {
+      return [];
+    }
+    return this.studentRepository.raw.find({
+      where: { id: In(studentIds), deleted: false },
+    });
+  }
+
+  // --- Parent-Child Scoped API (GAP-001) ---
+
+  /**
+   * Get courses for a child student, verifying parent-child relationship.
+   * Returns contract/course info linked to the child.
+   */
+  async getChildCourses(parentId: number, childId: number) {
+    // Verify Parent-Child relationship
+    const relation = await this.studentParentRepository.findOne({
+      where: { parentId, studentId: childId } as any,
+    });
+
+    if (!relation) {
+      throw new ForbiddenException('No parent-child relationship');
+    }
+
+    // Get child student to resolve studentCode
+    const student = await this.studentRepository.findById(childId);
+    if (!student) {
+      throw new NotFoundException(`Student not found (ID: ${childId})`);
+    }
+
+    // Find contracts for this student (represents their enrolled courses)
+    const contracts = await this.contractRepository.findByStudentCode(student.studentCode);
+
+    if (contracts.length === 0) {
+      return [];
+    }
+
+    // Find enrollments to get class info
+    const contractCodes = contracts.map((c) => c.contractCode);
+    const enrollments = await this.enrollmentRepository.find({
+      where: { contractCode: In(contractCodes) },
+    });
+    const enrollmentMap = new Map(enrollments.map((e) => [e.contractCode, e]));
+
+    return contracts.map((c) => {
+      const enrollment = enrollmentMap.get(c.contractCode);
+      return {
+        contractCode: c.contractCode,
+        classCode: enrollment?.classCode || null,
+        subject: c.subject,
+        totalLessons: c.totalLessons,
+        remainingLessons: c.remainingLessons,
+        status: c.status,
+        validFrom: c.validFrom,
+        validTo: c.validTo,
+      };
+    });
+  }
+
+  /**
+   * Get attendance records for a child student, verifying parent-child relationship.
+   */
+  async getChildAttendance(parentId: number, childId: number) {
+    // Verify Parent-Child relationship
+    const relation = await this.studentParentRepository.findOne({
+      where: { parentId, studentId: childId } as any,
+    });
+
+    if (!relation) {
+      throw new ForbiddenException('No parent-child relationship');
+    }
+
+    // Get child student to resolve studentCode
+    const student = await this.studentRepository.findById(childId);
+    if (!student) {
+      throw new NotFoundException(`Student not found (ID: ${childId})`);
+    }
+
+    // Find attendance records for this student
+    const attendances = await this.lessonAttendanceRepository.findByStudentCode(student.studentCode);
+
+    if (attendances.length === 0) {
+      return [];
+    }
+
+    // Get lesson details
+    const lessonIds = [...new Set(attendances.map((a) => a.lessonId))];
+    const lessons = lessonIds.length > 0
+      ? await this.lessonRepository.find({ where: { id: In(lessonIds) } as any })
+      : [];
+    const lessonMap = new Map(lessons.map((l) => [l.id, l]));
+
+    return attendances.map((a) => {
+      const lesson = lessonMap.get(a.lessonId);
+      return {
+        id: a.id,
+        lessonId: a.lessonId,
+        lessonDate: lesson?.scheduledDate || null,
+        startTime: lesson?.startTime || null,
+        endTime: lesson?.endTime || null,
+        status: a.status,
+      };
+    });
+  }
+
+  /**
+   * Get contracts for a child student, verifying parent-child relationship.
+   */
+  async getChildContracts(parentId: number, childId: number) {
+    // Verify Parent-Child relationship
+    const relation = await this.studentParentRepository.findOne({
+      where: { parentId, studentId: childId } as any,
+    });
+
+    if (!relation) {
+      throw new ForbiddenException('No parent-child relationship');
+    }
+
+    // Get child student to resolve studentCode
+    const student = await this.studentRepository.findById(childId);
+    if (!student) {
+      throw new NotFoundException(`Student not found (ID: ${childId})`);
+    }
+
+    // Find contracts for this student
+    return this.contractRepository.findByStudentCode(student.studentCode);
+  }
+
+  // --- Parent Leave Request (GAP-002) ---
+
+  /**
+   * Create a leave request for a child, verifying parent-child relationship.
+   */
+  async createLeaveRequest(parentId: number, dto: CreateParentLeaveRequestDto) {
+    // Verify Parent-Child relationship
+    const relation = await this.studentParentRepository.findOne({
+      where: { parentId, studentId: dto.studentId } as any,
+    });
+
+    if (!relation) {
+      throw new ForbiddenException('No parent-child relationship');
+    }
+
+    // Get child student to resolve studentCode
+    const student = await this.studentRepository.findById(dto.studentId);
+    if (!student) {
+      throw new NotFoundException(`Student not found (ID: ${dto.studentId})`);
+    }
+
+    // Resolve classCode from active enrollment
+    const enrollment = await this.enrollmentRepository.findOne({
+      where: { studentCode: student.studentCode } as any,
+      order: { enrolledAt: 'DESC' } as any,
+    });
+
+    // Create leave request entity
+    const leaveRequest = new LeaveRequestEntity();
+    leaveRequest.studentCode = student.studentCode;
+    leaveRequest.classCode = enrollment?.classCode || '';
+    leaveRequest.leaveType = dto.leaveType;
+    leaveRequest.leaveDate = dto.leaveDate;
+    leaveRequest.reason = dto.reason;
+    leaveRequest.status = LeaveRequestStatus.PENDING;
+    leaveRequest.createdBy = parentId;
+
+    return this.leaveRequestRepository.save(leaveRequest);
   }
 
   // --- Import ---

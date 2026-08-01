@@ -10,8 +10,11 @@ import {
   UseGuards,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { InjectEntityManager } from '@nestjs/typeorm';
+import { EntityManager } from 'typeorm';
 import { LessonAttendanceService } from './lesson-attendance.service';
 import { LessonAttendanceEntity } from './lesson-attendance.entity';
 import { AttendanceStatus } from './enums/attendance-status.enum';
@@ -35,6 +38,8 @@ export class LessonAttendanceController {
     private readonly attendanceService: LessonAttendanceService,
     private readonly lessonRepo: LessonRepository,
     private readonly enrollmentRepo: EnrollmentRepository,
+    @InjectEntityManager()
+    private readonly entityManager: EntityManager,
   ) {}
 
   @Post('lessons/:id/attendance')
@@ -47,6 +52,17 @@ export class LessonAttendanceController {
     @Body() body: BatchRollCallDto,
     @Req() req: any,
   ): Promise<ApiResponse> {
+    // M-03 修复: Teacher 只能为自己负责的课程签到
+    if (req.user.role === 'Teacher') {
+      const lesson = await this.lessonRepo.findOneById(lessonId);
+      if (!lesson) {
+        throw new NotFoundException(`Lesson #${lessonId} not found`);
+      }
+      if (lesson.teacherId !== Number(req.user.sub)) {
+        throw new ForbiddenException('You are not assigned to this lesson');
+      }
+    }
+
     const operatorId = req.user.sub;
     const records = body.records.map((r) => ({
       lessonId,
@@ -83,6 +99,22 @@ export class LessonAttendanceController {
     @Body() body: BatchRollCallDto & { lessonDate?: string },
     @Req() req: any,
   ): Promise<ApiResponse> {
+    // M-03 修复: Teacher 只能为自己负责的班级签到
+    if (req.user.role === 'Teacher') {
+      const assignment = await this.entityManager
+        .createQueryBuilder()
+        .select('ta')
+        .from('teacher_assignment', 'ta')
+        .where('ta."classCode" = :classCode', { classCode })
+        .andWhere('ta."teacherId" = :teacherId', { teacherId: Number(req.user.sub) })
+        .andWhere('ta."effectiveTo" IS NULL')
+        .andWhere('ta."deleted" = false')
+        .getOne();
+      if (!assignment) {
+        throw new ForbiddenException('You are not assigned to this class');
+      }
+    }
+
     const operatorId = req.user.sub;
     const date = body.lessonDate || new Date().toISOString().split('T')[0];
 
@@ -177,7 +209,15 @@ export class LessonAttendanceController {
   @ApiOperation({ summary: 'List attendance records for a lesson' })
   async findByLesson(
     @Param('id', ParseIntPipe) lessonId: number,
+    @Req() req: any,
   ): Promise<ApiResponse> {
+    // ── V-01: Lesson attendance isolation ──
+    const lesson = await this.lessonRepo.findOneById(lessonId);
+    if (!lesson) {
+      throw new NotFoundException(`课程 ${lessonId} 不存在`);
+    }
+    await this.assertLessonAccess(req.user, lesson.classCode, lesson.teacherId);
+
     const result = await this.attendanceService.findByLessonId(lessonId);
     return ApiResponse.success(result);
   }
@@ -187,8 +227,138 @@ export class LessonAttendanceController {
   @ApiOperation({ summary: 'Student attendance history' })
   async findByStudent(
     @Param('studentCode') studentCode: string,
+    @Req() req: any,
   ): Promise<ApiResponse> {
+    // ── V-02: Student attendance isolation ──
+    await this.assertStudentAccess(req.user, studentCode);
+
     const result = await this.attendanceService.findByStudentCode(studentCode);
     return ApiResponse.success(result);
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  Data Isolation Helpers
+  // ═══════════════════════════════════════════════════
+
+  /**
+   * V-01: Verify the current user is allowed to view attendance for a given lesson.
+   *
+   * - Admin / SuperAdmin: unrestricted.
+   * - Teacher: the lesson must belong to a class they are assigned to.
+   * - Student: the student (linked via userId) must be enrolled in the lesson's class.
+   * - Parent: at least one of their children must be enrolled in the lesson's class.
+   */
+  private async assertLessonAccess(
+    user: { sub: number; role: string },
+    classCode: string,
+    teacherId: number,
+  ): Promise<void> {
+    if (user.role === 'Admin' || user.role === 'SuperAdmin') return;
+
+    if (user.role === 'Teacher') {
+      if (teacherId !== Number(user.sub)) {
+        throw new ForbiddenException('无权访问该课程的出勤记录');
+      }
+      return;
+    }
+
+    if (user.role === 'Student') {
+      const student = await this.entityManager
+        .createQueryBuilder()
+        .from('student', 's')
+        .where('s.userId = :userId AND s.deleted = 0', { userId: user.sub })
+        .getOne();
+      if (!student) {
+        throw new ForbiddenException('未找到关联的学生信息');
+      }
+
+      const enrolled = await this.enrollmentRepo.findByClassAndStudent(
+        classCode,
+        student.studentCode,
+      );
+      if (!enrolled || enrolled.status !== EnrollmentStatus.ACTIVE) {
+        throw new ForbiddenException('无权访问该课程的出勤记录');
+      }
+      return;
+    }
+
+    if (user.role === 'Parent') {
+      const count = await this.entityManager
+        .createQueryBuilder()
+        .from('enrollment', 'enr')
+        .innerJoin('student', 's', 's.studentCode = enr.studentCode')
+        .innerJoin('student_parent', 'sp', 'sp.studentId = s.id')
+        .where('enr.classCode = :classCode', { classCode })
+        .andWhere('enr.status = :status', { status: EnrollmentStatus.ACTIVE })
+        .andWhere('sp.parentId = :parentId', { parentId: Number(user.sub) })
+        .getCount();
+      if (count === 0) {
+        throw new ForbiddenException('无权访问该课程的出勤记录');
+      }
+      return;
+    }
+
+    throw new ForbiddenException('无权访问该课程的出勤记录');
+  }
+
+  /**
+   * V-02: Verify the current user is allowed to view attendance for a given student.
+   *
+   * - Admin / SuperAdmin: unrestricted.
+   * - Student: the studentCode must match the user's own linked student record.
+   * - Parent: the student must be one of their children.
+   * - Teacher: the student must be enrolled in at least one class the teacher is assigned to.
+   */
+  private async assertStudentAccess(
+    user: { sub: number; role: string },
+    studentCode: string,
+  ): Promise<void> {
+    if (user.role === 'Admin' || user.role === 'SuperAdmin') return;
+
+    if (user.role === 'Student') {
+      const student = await this.entityManager
+        .createQueryBuilder()
+        .from('student', 's')
+        .where('s.userId = :userId AND s.deleted = 0', { userId: user.sub })
+        .getOne();
+      if (!student || student.studentCode !== studentCode) {
+        throw new ForbiddenException('无权访问该学生的出勤记录');
+      }
+      return;
+    }
+
+    if (user.role === 'Parent') {
+      const count = await this.entityManager
+        .createQueryBuilder()
+        .from('student', 's')
+        .innerJoin('student_parent', 'sp', 'sp.studentId = s.id')
+        .where('s.studentCode = :studentCode', { studentCode })
+        .andWhere('sp.parentId = :parentId', { parentId: Number(user.sub) })
+        .getCount();
+      if (count === 0) {
+        throw new ForbiddenException('无权访问该学生的出勤记录');
+      }
+      return;
+    }
+
+    if (user.role === 'Teacher') {
+      const count = await this.entityManager
+        .createQueryBuilder()
+        .from('enrollment', 'enr')
+        .innerJoin('teacher_assignment', 'ta', 'ta.classCode = enr.classCode')
+        .where('enr.studentCode = :studentCode', { studentCode })
+        .andWhere('enr.status = :enrollmentStatus', {
+          enrollmentStatus: EnrollmentStatus.ACTIVE,
+        })
+        .andWhere('ta.teacherId = :teacherId', { teacherId: Number(user.sub) })
+        .andWhere('ta.effectiveTo IS NULL')
+        .getCount();
+      if (count === 0) {
+        throw new ForbiddenException('无权访问该学生的出勤记录');
+      }
+      return;
+    }
+
+    throw new ForbiddenException('无权访问该学生的出勤记录');
   }
 }

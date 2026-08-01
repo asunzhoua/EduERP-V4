@@ -100,7 +100,7 @@ describe('CourseCodeGeneratorService', () => {
       await service.generateCourseCode();
 
       expect(qb.where).toHaveBeenCalledWith(
-        'course.course_code LIKE :prefix',
+        'course.courseCode LIKE :prefix',
         { prefix: `${expectedPrefix}%` },
       );
     });
@@ -121,7 +121,7 @@ describe('CourseCodeGeneratorService', () => {
 
       await service.generateCourseCode();
 
-      expect(qb.orderBy).toHaveBeenCalledWith('course.course_code', 'DESC');
+      expect(qb.orderBy).toHaveBeenCalledWith('course.courseCode', 'DESC');
     });
   });
 });

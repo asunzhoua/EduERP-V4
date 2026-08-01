@@ -19,9 +19,9 @@ export class CourseCodeGeneratorService {
     // Find the latest course code with this prefix
     const latest = await this.courseRepository
       .createQueryBuilder('course')
-      .where('course.course_code LIKE :prefix', { prefix: `${prefix}%` })
+      .where('course.courseCode LIKE :prefix', { prefix: `${prefix}%` })
       .andWhere('course.deleted = :deleted', { deleted: false })
-      .orderBy('course.course_code', 'DESC')
+      .orderBy('course.courseCode', 'DESC')
       .getOne();
 
     let sequence = 1;

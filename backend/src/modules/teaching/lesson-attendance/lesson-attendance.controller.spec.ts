@@ -7,6 +7,7 @@ import { RecordAttendanceDto } from './dto/record-attendance.dto';
 import { ApiResponse } from '@common/dto/api-response';
 import { LessonRepository } from '../lesson/lesson.repository';
 import { EnrollmentRepository } from '../enrollment/enrollment.repository';
+import { EntityManager } from 'typeorm';
 
 describe('LessonAttendanceController', () => {
   let controller: LessonAttendanceController;
@@ -35,7 +36,8 @@ describe('LessonAttendanceController', () => {
     { ...mockAttendanceRecord, id: 2, studentCode: 'STU002' },
   ];
 
-  const mockReq = { user: { sub: 42 } };
+  // Admin user — bypasses V-01/V-02 isolation checks in tests
+  const mockReq = { user: { sub: 42, role: 'Admin' } };
 
   const mockService = {
     batchRollCall: jest.fn().mockResolvedValue(mockAttendanceList),
@@ -47,10 +49,22 @@ describe('LessonAttendanceController', () => {
 
   const mockLessonRepo = {
     findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+    findOneById: jest.fn().mockResolvedValue({ id: 1, classCode: 'CLS001', teacherId: 1 }),
   };
 
   const mockEnrollmentRepo = {
     findActiveByClassAndStudentCodes: jest.fn().mockResolvedValue([]),
+    findByClassAndStudent: jest.fn().mockResolvedValue(null),
+  };
+
+  const mockEntityManager = {
+    createQueryBuilder: jest.fn().mockReturnThis(),
+    from: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    innerJoin: jest.fn().mockReturnThis(),
+    getOne: jest.fn().mockResolvedValue(null),
+    getCount: jest.fn().mockResolvedValue(0),
   };
 
   beforeAll(async () => {
@@ -60,6 +74,7 @@ describe('LessonAttendanceController', () => {
         { provide: LessonAttendanceService, useValue: mockService },
         { provide: LessonRepository, useValue: mockLessonRepo },
         { provide: EnrollmentRepository, useValue: mockEnrollmentRepo },
+        { provide: EntityManager, useValue: mockEntityManager },
       ],
     }).compile();
 
@@ -166,7 +181,7 @@ describe('LessonAttendanceController', () => {
 
   describe('findByLesson', () => {
     it('should call service.findByLessonId with correct param', async () => {
-      const result = await controller.findByLesson(1);
+      const result = await controller.findByLesson(1, mockReq);
 
       expect(result).toEqual(ApiResponse.success(mockAttendanceList));
       expect(service.findByLessonId).toHaveBeenCalledWith(1);
@@ -184,7 +199,7 @@ describe('LessonAttendanceController', () => {
 
   describe('findByStudent', () => {
     it('should call service.findByStudentCode with correct param', async () => {
-      const result = await controller.findByStudent('STU001');
+      const result = await controller.findByStudent('STU001', mockReq);
 
       expect(result).toEqual(ApiResponse.success(mockAttendanceList));
       expect(service.findByStudentCode).toHaveBeenCalledWith('STU001');

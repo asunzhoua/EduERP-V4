@@ -1,11 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EnrollmentController } from './enrollment.controller';
 import { EnrollmentService } from './enrollment.service';
+import { DataScopeService } from '@common/services/data-scope.service';
 import { ApiResponse } from '@common/dto/api-response';
 
 describe('EnrollmentController', () => {
   let controller: EnrollmentController;
   let service: EnrollmentService;
+  let dataScopeService: DataScopeService;
 
   const mockEnrollment = {
     id: 1,
@@ -30,16 +32,22 @@ describe('EnrollmentController', () => {
     findByStudentCode: jest.fn().mockResolvedValue([mockEnrollment]),
   };
 
+  const mockDataScopeService = {
+    verifyStudentAccess: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EnrollmentController],
       providers: [
         { provide: EnrollmentService, useValue: mockEnrollmentService },
+        { provide: DataScopeService, useValue: mockDataScopeService },
       ],
     }).compile();
 
     controller = module.get(EnrollmentController);
     service = module.get(EnrollmentService);
+    dataScopeService = module.get(DataScopeService);
   });
 
   beforeEach(() => {
@@ -127,10 +135,22 @@ describe('EnrollmentController', () => {
   // 5. findByStudentCode - GET students/:studentCode/enrollments
   describe('findByStudent', () => {
     it('should return enrollments for a student', async () => {
-      const result = await controller.findByStudent('STU001');
+      const mockReq = { user: { sub: 1, role: 'Admin' } };
 
+      const result = await controller.findByStudent('STU001', mockReq);
+
+      expect(dataScopeService.verifyStudentAccess).toHaveBeenCalledWith(mockReq.user, 'STU001');
       expect(result).toEqual(ApiResponse.success([mockEnrollment]));
       expect(service.findByStudentCode).toHaveBeenCalledWith('STU001');
+    });
+
+    it('should deny access for unauthorized student', async () => {
+      mockDataScopeService.verifyStudentAccess.mockRejectedValueOnce(
+        new Error('Forbidden'),
+      );
+      const mockReq = { user: { sub: 2, role: 'Student' } };
+
+      await expect(controller.findByStudent('STU001', mockReq)).rejects.toThrow('Forbidden');
     });
   });
 });

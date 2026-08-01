@@ -93,15 +93,26 @@ describe('CourseController', () => {
   describe('GET /courses', () => {
     it('should return paginated courses', async () => {
       const query: QueryCourseDto = { page: 1, pageSize: 20 };
+      const mockReq = { user: { sub: 42, role: 'Admin' } };
 
-      const result = await controller.findAll(query);
+      const result = await controller.findAll(query, mockReq);
 
       expect(result.code).toBe(0);
       expect(result.data.items).toHaveLength(1);
       expect(result.data.items[0].lessonCount).toBe(mockCourse.totalLessons);
       expect(result.data.items[0].enrolledClasses).toBe(0);
       expect(result.data.total).toBe(1);
-      expect(service.findAll).toHaveBeenCalledWith(query);
+      expect(service.findAll).toHaveBeenCalledWith(query, undefined);
+    });
+
+    it('should filter courses by teacherId when user is Teacher', async () => {
+      const query: QueryCourseDto = { page: 1, pageSize: 20 };
+      const mockReq = { user: { sub: 100, role: 'Teacher' } };
+
+      const result = await controller.findAll(query, mockReq);
+
+      expect(result.code).toBe(0);
+      expect(service.findAll).toHaveBeenCalledWith(query, 100);
     });
   });
 

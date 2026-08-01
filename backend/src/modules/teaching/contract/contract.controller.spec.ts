@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContractController } from './contract.controller';
 import { ContractService } from './contract.service';
+import { DataScopeService } from '@common/services/data-scope.service';
 import { NotFoundException } from '@nestjs/common';
 import { ApiResponse } from '@common/dto/api-response';
 
@@ -41,6 +42,10 @@ describe('ContractController', () => {
     }),
   };
 
+  const mockDataScopeService = {
+    verifyStudentAccess: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ContractController],
@@ -48,6 +53,10 @@ describe('ContractController', () => {
         {
           provide: ContractService,
           useValue: mockService,
+        },
+        {
+          provide: DataScopeService,
+          useValue: mockDataScopeService,
         },
       ],
     }).compile();
@@ -208,10 +217,15 @@ describe('ContractController', () => {
 
   describe('findByStudentCode', () => {
     it('should return contracts for a student', async () => {
-      const result = await controller.findByStudentCode('STU20260001');
+      const mockReq = { user: { sub: 42, role: 'Admin' } };
+      const result = await controller.findByStudentCode('STU20260001', mockReq);
 
       expect(result).toEqual(ApiResponse.success([mockContract]));
       expect(mockService.findByStudentCode).toHaveBeenCalledWith(
+        'STU20260001',
+      );
+      expect(mockDataScopeService.verifyStudentAccess).toHaveBeenCalledWith(
+        mockReq.user,
         'STU20260001',
       );
     });

@@ -118,19 +118,29 @@ describe('TeacherAssignmentController', () => {
 
   describe('findAll', () => {
     it('should return all teacher assignments', async () => {
-      const result = await controller.findAll();
+      const mockReq = { user: { sub: 42, role: 'Admin' } };
+      const result = await controller.findAll(mockReq);
 
       expect(result).toEqual(ApiResponse.success([mockAssignment]));
-      expect(service.findAll).toHaveBeenCalled();
+      expect(service.findAll).toHaveBeenCalledWith(undefined);
     });
 
     it('should return empty array when no assignments exist', async () => {
       mockService.findAll.mockResolvedValue([]);
+      const mockReq = { user: { sub: 42, role: 'Admin' } };
 
-      const result = await controller.findAll();
+      const result = await controller.findAll(mockReq);
 
       expect(result).toEqual(ApiResponse.success([]));
-      expect(service.findAll).toHaveBeenCalled();
+      expect(service.findAll).toHaveBeenCalledWith(undefined);
+    });
+
+    it('should filter by teacherId when user is Teacher', async () => {
+      const mockReq = { user: { sub: 100, role: 'Teacher' } };
+      const result = await controller.findAll(mockReq);
+
+      expect(result).toEqual(ApiResponse.success([mockAssignment]));
+      expect(service.findAll).toHaveBeenCalledWith(100);
     });
   });
 
@@ -138,19 +148,35 @@ describe('TeacherAssignmentController', () => {
 
   describe('findOne', () => {
     it('should return a teacher assignment by id', async () => {
-      const result = await controller.findOne(1);
+      const mockReq = { user: { sub: 42, role: 'Admin' } };
+      const result = await controller.findOne(1, mockReq);
 
       expect(result).toEqual(ApiResponse.success(mockAssignment));
       expect(repo.findOneBy).toHaveBeenCalledWith({ id: 1 });
     });
 
     it('should throw NotFoundException when assignment does not exist', async () => {
+      const mockReq = { user: { sub: 42, role: 'Admin' } };
       mockRepo.findOneBy.mockResolvedValue(null);
 
-      await expect(controller.findOne(999)).rejects.toThrow(NotFoundException);
-      await expect(controller.findOne(999)).rejects.toThrow(
+      await expect(controller.findOne(999, mockReq)).rejects.toThrow(NotFoundException);
+      await expect(controller.findOne(999, mockReq)).rejects.toThrow(
         'Teacher assignment #999 not found',
       );
+    });
+
+    it('should return null when Teacher accesses another teacher assignment', async () => {
+      const mockReq = { user: { sub: 200, role: 'Teacher' } };
+      const result = await controller.findOne(1, mockReq);
+
+      expect(result).toEqual(ApiResponse.success(null));
+    });
+
+    it('should return assignment when Teacher accesses own assignment', async () => {
+      const mockReq = { user: { sub: 100, role: 'Teacher' } };
+      const result = await controller.findOne(1, mockReq);
+
+      expect(result).toEqual(ApiResponse.success(mockAssignment));
     });
   });
 

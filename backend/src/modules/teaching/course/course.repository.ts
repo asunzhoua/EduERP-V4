@@ -28,6 +28,7 @@ export class CourseRepository {
     subject?: string;
     type?: string;
     status?: string;
+    teacherId?: number;
     page: number;
     pageSize: number;
   }): Promise<{ items: CourseEntity[]; total: number }> {
@@ -46,6 +47,22 @@ export class CourseRepository {
     }
     if (options.status) {
       qb.andWhere('c.status = :status', { status: options.status });
+    }
+    // M-01 修复: Teacher 只能看到自己负责的课程
+    if (options.teacherId) {
+      qb.andWhere(
+        `c.courseCode IN (
+          SELECT cl."courseCode" FROM class cl
+          WHERE cl."deleted" = false
+          AND cl."classCode" IN (
+            SELECT ta."classCode" FROM teacher_assignment ta
+            WHERE ta."teacherId" = :teacherId
+            AND ta."effectiveTo" IS NULL
+            AND ta."deleted" = false
+          )
+        )`,
+        { teacherId: options.teacherId },
+      );
     }
 
     qb.orderBy('c.createTime', 'DESC');

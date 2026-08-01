@@ -42,6 +42,8 @@ export class SuspendRequestController {
       suspendTo: body.suspendTo,
       reason: body.reason,
       createdBy: req.user.sub,
+      userId: req.user.sub,
+      userRole: req.user.role,
     });
     return ApiResponse.success(result, 'Suspend request submitted');
   }

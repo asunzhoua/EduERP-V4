@@ -16,6 +16,8 @@
     "pages/student/lessons",
     "pages/student/profile",
     "pages/teacher/profile",
+    "pages/parent/index",
+    "pages/parent/child-detail",
     "pages/operation/dashboard/dashboard",
     "pages/reminder/list",
     "pages/reminder/detail",
@@ -56,6 +58,12 @@
         "text": "班级",
         "iconPath": "images/class.png",
         "selectedIconPath": "images/class-active.png"
+      },
+      {
+        "pagePath": "pages/student/index",
+        "text": "学习",
+        "iconPath": "images/home.png",
+        "selectedIconPath": "images/home-active.png"
       }
     ]
   },

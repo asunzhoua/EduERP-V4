@@ -1,0 +1,41 @@
+<!-- pages/parent/index.wxml -->
+<view class="container">
+  <!-- Loading -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- Error -->
+  <view wx:elif="{{error}}" class="error">
+    <text>{{error}}</text>
+    <button class="retry-btn" bindtap="loadChildren">重试</button>
+  </view>
+
+  <!-- Empty -->
+  <view wx:elif="{{children.length === 0}}" class="empty">
+    <text>暂无关联的孩子信息</text>
+  </view>
+
+  <!-- Children List -->
+  <view wx:else class="children-list">
+    <view 
+      wx:for="{{children}}" 
+      wx:key="id" 
+      class="child-card"
+      bindtap="goToChildDetail"
+      data-id="{{item.id}}"
+      data-name="{{item.name}}"
+      data-studentcode="{{item.studentCode}}"
+      data-school="{{item.school}}"
+      data-grade="{{item.grade}}"
+    >
+      <view class="child-info">
+        <text class="child-name">{{item.name}}</text>
+        <text class="child-code">{{item.studentCode}}</text>
+      </view>
+      <view class="child-status">
+        <text class="status-text">{{item.status || '在读'}}</text>
+      </view>
+    </view>
+  </view>
+</view>

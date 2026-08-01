@@ -99,8 +99,8 @@ export class TeacherAssignmentService {
   }
 
   /** All assignments (global list). */
-  async findAll(): Promise<TeacherAssignmentEntity[]> {
-    return this.repo.findAll();
+  async findAll(teacherId?: number): Promise<TeacherAssignmentEntity[]> {
+    return this.repo.findAll(teacherId);
   }
 
   /**

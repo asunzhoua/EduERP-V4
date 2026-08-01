@@ -90,12 +90,14 @@ export class CourseService {
 
   async findAll(
     query: QueryCourseDto,
+    teacherId?: number,
   ): Promise<{ items: CourseEntity[]; total: number }> {
     return this.courseRepo.findMany({
       name: query.name,
       subject: query.subject,
       type: query.type,
       status: query.status,
+      teacherId,
       page: query.page ?? 1,
       pageSize: query.pageSize ?? 20,
     });

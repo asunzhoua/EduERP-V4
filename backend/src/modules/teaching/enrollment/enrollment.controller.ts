@@ -18,13 +18,17 @@ import { ApiResponse } from '@common/dto/api-response';
 import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { DataScopeService } from '@common/services/data-scope.service';
 
 @ApiTags('Enrollment')
 @ApiBearerAuth()
 @Controller('enrollments')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class EnrollmentController {
-  constructor(private readonly enrollmentService: EnrollmentService) {}
+  constructor(
+    private readonly enrollmentService: EnrollmentService,
+    private readonly dataScopeService: DataScopeService,
+  ) {}
 
   @Post()
   @Roles('SuperAdmin', 'Admin')
@@ -84,7 +88,13 @@ export class EnrollmentController {
   @Get('students/:studentCode/enrollments')
   @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
   @ApiOperation({ summary: 'List enrollments for a student (enriched)' })
-  async findByStudent(@Param('studentCode') studentCode: string) {
+  async findByStudent(
+    @Param('studentCode') studentCode: string,
+    @Req() req: any,
+  ) {
+    // V-03 修复: 验证当前用户是否有权访问该学生的报名记录
+    await this.dataScopeService.verifyStudentAccess(req.user, studentCode);
+
     const result = await this.enrollmentService.findByStudentCode(studentCode);
     return ApiResponse.success(result);
   }

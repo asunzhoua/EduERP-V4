@@ -88,7 +88,7 @@ describe('StudentController', () => {
   });
 
   it('GET /students - findAll', async () => {
-    const result = await controller.findAll({ page: 1 } as any);
+    const result = await controller.findAll({ page: 1 } as any, { user: { role: 'Admin', sub: 1 } });
     expect(result.code).toBe(0);
     expect(result.data!.items).toHaveLength(1);
   });
