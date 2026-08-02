@@ -152,7 +152,7 @@ async function runTests() {
     password: 'Parent@Dev2026'
   })).data.data.accessToken;
 
-  const parentAccessAdmin = await request('GET', '/dashboard/stats', parentToken);
+  const parentAccessAdmin = await request('GET', '/dashboard/overview', parentToken);
   log('Parent Access Admin Dashboard', parentAccessAdmin.status === 403 ? 'PASS' : 'FAIL', `Status ${parentAccessAdmin.status} (expected 403)`);
 
   console.log();

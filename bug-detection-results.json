@@ -3,90 +3,90 @@
     "test": "Student Login",
     "status": "PASS",
     "detail": "Status 200",
-    "time": "2026-08-02T08:06:56.291Z"
+    "time": "2026-08-02T13:26:48.965Z"
   },
   {
     "test": "Student Self",
     "status": "PASS",
     "detail": "Status 200",
-    "time": "2026-08-02T08:06:56.305Z"
+    "time": "2026-08-02T13:26:48.977Z"
   },
   {
     "test": "Student Contracts",
     "status": "PASS",
     "detail": "Status 200",
-    "time": "2026-08-02T08:06:56.328Z"
+    "time": "2026-08-02T13:26:48.994Z"
   },
   {
     "test": "Student Lessons",
     "status": "PASS",
     "detail": "Status 200",
-    "time": "2026-08-02T08:06:56.349Z"
+    "time": "2026-08-02T13:26:49.100Z"
   },
   {
     "test": "Student Attendance",
     "status": "PASS",
     "detail": "Status 200",
-    "time": "2026-08-02T08:06:56.371Z"
+    "time": "2026-08-02T13:26:49.117Z"
   },
   {
     "test": "Teacher Login",
     "status": "PASS",
     "detail": "Status 200",
-    "time": "2026-08-02T08:06:57.049Z"
+    "time": "2026-08-02T13:26:49.842Z"
   },
   {
     "test": "Teacher Dashboard",
     "status": "PASS",
     "detail": "Status 200",
-    "time": "2026-08-02T08:06:57.067Z"
+    "time": "2026-08-02T13:26:49.944Z"
   },
   {
     "test": "Teacher Courses",
     "status": "PASS",
     "detail": "Status 200, Count: 8",
-    "time": "2026-08-02T08:06:57.082Z"
+    "time": "2026-08-02T13:26:49.957Z"
   },
   {
     "test": "Teacher Assignments",
     "status": "PASS",
     "detail": "Status 200, Count: 3",
-    "time": "2026-08-02T08:06:57.092Z"
+    "time": "2026-08-02T13:26:49.967Z"
   },
   {
     "test": "Parent Login",
     "status": "PASS",
     "detail": "Status 200",
-    "time": "2026-08-02T08:06:57.584Z"
+    "time": "2026-08-02T13:26:50.419Z"
   },
   {
     "test": "Parent My Children",
     "status": "PASS",
     "detail": "Status 200, Count: 1",
-    "time": "2026-08-02T08:06:57.596Z"
+    "time": "2026-08-02T13:26:50.429Z"
   },
   {
     "test": "Parent Child Contracts",
     "status": "PASS",
     "detail": "Status 200",
-    "time": "2026-08-02T08:06:57.610Z"
+    "time": "2026-08-02T13:26:50.442Z"
   },
   {
     "test": "Parent Child Attendance",
     "status": "PASS",
     "detail": "Status 200",
-    "time": "2026-08-02T08:06:57.629Z"
+    "time": "2026-08-02T13:26:50.456Z"
   },
   {
     "test": "Student Access Teacher Dashboard",
     "status": "PASS",
     "detail": "Status 403 (expected 403)",
-    "time": "2026-08-02T08:06:58.287Z"
+    "time": "2026-08-02T13:26:51.077Z"
   },
   {
     "test": "Parent Access Admin Dashboard",
-    "status": "FAIL",
-    "detail": "Status 404 (expected 403)",
-    "time": "2026-08-02T08:06:58.940Z"
+    "status": "PASS",
+    "detail": "Status 403 (expected 403)",
+    "time": "2026-08-02T13:26:51.585Z"
   }
 ]

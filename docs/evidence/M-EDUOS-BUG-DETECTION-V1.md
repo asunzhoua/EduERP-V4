@@ -183,23 +183,92 @@ curl -X GET http://localhost:3000/api/v1/dashboard/stats \
 
 ---
 
+## BUG-001 确认与关闭
+
+**Mission**: M-EDUOS-BUG-001-CONFIRM-V1  
+**确认日期**: 2026-08-02  
+**状态**: ✅ CLOSED
+
+### 确认过程
+
+**Step 1: 查接口是否存在**
+- 搜索后端代码中的 `/dashboard/stats` 路径
+- 结果：**接口不存在**
+- 发现 `dashboard.controller.ts` 中的实际路由：
+  - `GET /dashboard/overview`
+  - `GET /dashboard/lessons`
+  - `GET /dashboard/students`
+  - `GET /dashboard/teachers`
+  - `GET /dashboard/finance`
+
+**Step 2: 判断 404 原因**
+- 结论：**测试用例路径写错**
+- `/dashboard/stats` 不存在，返回 404 是正确行为
+- 正确的 Admin 接口是 `/dashboard/overview`
+
+**Step 3: 修正测试用例**
+- 文件：`bug-detection-test.js`
+- 修改：`/dashboard/stats` → `/dashboard/overview`
+- 其他代码：未修改
+
+**Step 4: 重新验证**
+- 运行修正后的测试脚本
+- Parent 访问 `/dashboard/overview` 返回 **403**（符合预期）
+- 全部 15/15 测试通过
+
+### 真实归属
+
+| 项目 | 内容 |
+|------|------|
+| **原始问题** | Parent 访问 Admin 接口返回 404 |
+| **真实原因** | 测试用例使用了不存在的路径 `/dashboard/stats` |
+| **归属** | 测试用例错误，非业务问题 |
+| **业务影响** | 无 |
+
+### 修复内容
+
+| 文件 | 修改 | 说明 |
+|------|------|------|
+| `bug-detection-test.js` | `/dashboard/stats` → `/dashboard/overview` | 修正测试路径 |
+
+### 验证结果
+
+| 测试项 | 预期 | 实际 | 状态 |
+|--------|------|------|------|
+| Parent Access Admin Dashboard | 403 | 403 | ✅ PASS |
+| 全部测试 | 15/15 | 15/15 | ✅ PASS |
+
+### 最终状态
+
+**BUG-001**: ✅ CLOSED
+
+**原因**: 测试用例路径错误，非业务 Bug
+
+**修复**: 已修正测试路径
+
+**验证**: 已重新验证通过
+
+---
+
 ## 结论
 
 **Bug 检测 Mission**: COMPLETED
 
-**测试结果**: 14/15 通过 (93.3%)
+**测试结果**: 15/15 通过 (100%)
 
 **主要发现**:
 - 三类角色完整流程正常
-- 权限隔离基本生效
+- 权限隔离完全生效
 - 数据过滤和隔离正确
-- 1 项权限测试需要确认（可能是路径问题）
+- BUG-001 已确认关闭（测试用例错误）
 
-**剩余风险**: 低级别，不影响核心功能
+**剩余风险**: 无
 
 **建议**: 可以进入下一阶段（补充测试或生产准备）
 
 ---
 
 *报告生成时间: 2026-08-02*  
+*BUG-001 关闭时间: 2026-08-02*  
 *Mission 状态: COMPLETED*
+
