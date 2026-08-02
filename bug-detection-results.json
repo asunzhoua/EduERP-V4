@@ -1,0 +1,92 @@
+[
+  {
+    "test": "Student Login",
+    "status": "PASS",
+    "detail": "Status 200",
+    "time": "2026-08-02T08:06:56.291Z"
+  },
+  {
+    "test": "Student Self",
+    "status": "PASS",
+    "detail": "Status 200",
+    "time": "2026-08-02T08:06:56.305Z"
+  },
+  {
+    "test": "Student Contracts",
+    "status": "PASS",
+    "detail": "Status 200",
+    "time": "2026-08-02T08:06:56.328Z"
+  },
+  {
+    "test": "Student Lessons",
+    "status": "PASS",
+    "detail": "Status 200",
+    "time": "2026-08-02T08:06:56.349Z"
+  },
+  {
+    "test": "Student Attendance",
+    "status": "PASS",
+    "detail": "Status 200",
+    "time": "2026-08-02T08:06:56.371Z"
+  },
+  {
+    "test": "Teacher Login",
+    "status": "PASS",
+    "detail": "Status 200",
+    "time": "2026-08-02T08:06:57.049Z"
+  },
+  {
+    "test": "Teacher Dashboard",
+    "status": "PASS",
+    "detail": "Status 200",
+    "time": "2026-08-02T08:06:57.067Z"
+  },
+  {
+    "test": "Teacher Courses",
+    "status": "PASS",
+    "detail": "Status 200, Count: 8",
+    "time": "2026-08-02T08:06:57.082Z"
+  },
+  {
+    "test": "Teacher Assignments",
+    "status": "PASS",
+    "detail": "Status 200, Count: 3",
+    "time": "2026-08-02T08:06:57.092Z"
+  },
+  {
+    "test": "Parent Login",
+    "status": "PASS",
+    "detail": "Status 200",
+    "time": "2026-08-02T08:06:57.584Z"
+  },
+  {
+    "test": "Parent My Children",
+    "status": "PASS",
+    "detail": "Status 200, Count: 1",
+    "time": "2026-08-02T08:06:57.596Z"
+  },
+  {
+    "test": "Parent Child Contracts",
+    "status": "PASS",
+    "detail": "Status 200",
+    "time": "2026-08-02T08:06:57.610Z"
+  },
+  {
+    "test": "Parent Child Attendance",
+    "status": "PASS",
+    "detail": "Status 200",
+    "time": "2026-08-02T08:06:57.629Z"
+  },
+  {
+    "test": "Student Access Teacher Dashboard",
+    "status": "PASS",
+    "detail": "Status 403 (expected 403)",
+    "time": "2026-08-02T08:06:58.287Z"
+  },
+  {
+    "test": "Parent Access Admin Dashboard",
+    "status": "FAIL",
+    "detail": "Status 404 (expected 403)",
+    "time": "2026-08-02T08:06:58.940Z"
+  }
+]
