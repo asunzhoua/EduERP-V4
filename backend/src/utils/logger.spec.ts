@@ -1,10 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+const mockLogDir = path.resolve(__dirname, '../../logs');
+
 // Mock specific fs functions used by AppLogger, not the entire fs module
-// to avoid interference with winston's internal fs usage
+// to avoid interference with winston's internal fs usage.
+// existsSync must return true ONLY for the exact log dir so the
+// file-stream-rotator size-rotation probe (which calls existsSync in a loop
+// while creating numbered rotated files) terminates instead of looping forever.
 const mockFs = {
-  existsSync: jest.fn().mockReturnValue(true),
+  existsSync: jest.fn().mockImplementation((p) => p === mockLogDir),
   mkdirSync: jest.fn(),
   appendFileSync: jest.fn(),
 };
@@ -21,7 +26,6 @@ import { AppLogger } from './logger';
 describe('AppLogger', () => {
   let logger: AppLogger;
 
-  const mockLogDir = path.resolve(__dirname, '../../logs');
   const mockSystemLog = path.join(mockLogDir, 'system.log');
   const mockErrorLog = path.join(mockLogDir, 'error.log');
   const mockApiLog = path.join(mockLogDir, 'api.log');
@@ -29,7 +33,7 @@ describe('AppLogger', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFs.existsSync.mockReturnValue(true);
+    mockFs.existsSync.mockImplementation((p) => p === mockLogDir);
     mockFs.mkdirSync.mockImplementation(() => undefined);
     mockFs.appendFileSync.mockImplementation(() => undefined);
 
