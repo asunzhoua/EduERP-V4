@@ -5,6 +5,37 @@ import * as util from 'util';
 import * as winston from 'winston';
 import 'winston-daily-rotate-file';
 
+const LOG_DIR = path.resolve(__dirname, '../../logs');
+
+const sharedWinstonLogger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.printf(({ timestamp, level, message, context, ...meta }) => {
+      const ctx = context ? ` [${context}]` : '';
+      const metaStr = Object.keys(meta).length ? ` ${util.inspect(meta)}` : '';
+      return `[${timestamp}] [${level.toUpperCase()}]${ctx} ${message}${metaStr}`;
+    }),
+  ),
+  transports: [
+    new winston.transports.DailyRotateFile({
+      filename: path.join(LOG_DIR, 'application-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxSize: '20m',
+      maxFiles: '30d',
+    }),
+    new winston.transports.DailyRotateFile({
+      filename: path.join(LOG_DIR, 'error-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxSize: '20m',
+      maxFiles: '30d',
+      level: 'error',
+    }),
+  ],
+});
+
 @Injectable()
 export class AppLogger implements LoggerService {
   private logDir: string;
@@ -23,36 +54,7 @@ export class AppLogger implements LoggerService {
     this.systemLog = path.join(this.logDir, 'system.log');
 
     // Initialize Winston with daily rotation
-    this.winstonLogger = winston.createLogger({
-      level: 'info',
-      format: winston.format.combine(
-        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-        winston.format.printf(({ timestamp, level, message, context, ...meta }) => {
-          const ctx = context ? ` [${context}]` : '';
-          const metaStr = Object.keys(meta).length ? ` ${util.inspect(meta)}` : '';
-          return `[${timestamp}] [${level.toUpperCase()}]${ctx} ${message}${metaStr}`;
-        }),
-      ),
-      transports: [
-        // Daily rotate file for all application logs
-        new winston.transports.DailyRotateFile({
-          filename: path.join(this.logDir, 'application-%DATE%.log'),
-          datePattern: 'YYYY-MM-DD',
-          zippedArchive: true,
-          maxSize: '20m',
-          maxFiles: '30d',
-        }),
-        // Error-specific daily rotate file
-        new winston.transports.DailyRotateFile({
-          filename: path.join(this.logDir, 'error-%DATE%.log'),
-          datePattern: 'YYYY-MM-DD',
-          zippedArchive: true,
-          maxSize: '20m',
-          maxFiles: '30d',
-          level: 'error',
-        }),
-      ],
-    });
+    this.winstonLogger = sharedWinstonLogger;
   }
 
   private ensureLogDir() {
