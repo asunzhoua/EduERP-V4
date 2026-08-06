@@ -63,6 +63,20 @@ export class EnrollmentRepository {
     return map;
   }
 
+  async findActiveStudentCodesByClassCodes(classCodes: string[]): Promise<string[]> {
+    if (!classCodes.length) return [];
+
+    const results = await this.repo
+      .createQueryBuilder('e')
+      .select('e.studentCode', 'studentCode')
+      .distinct(true)
+      .where('e.classCode IN (:...classCodes)', { classCodes })
+      .andWhere('e.status = :status', { status: EnrollmentStatus.ACTIVE })
+      .getRawMany();
+
+    return results.map(r => r.studentCode);
+  }
+
   async findActiveByClassAndStudentCodes(
     classCode: string,
     studentCodes: string[],

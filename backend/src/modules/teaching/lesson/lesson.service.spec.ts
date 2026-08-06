@@ -163,6 +163,12 @@ describe('LessonService', () => {
       expect(savedLesson.status).toBe(LessonStatus.SCHEDULED);
     });
 
+    it('should reject creation with a non-whitelisted status (state machine bypass)', async () => {
+      await expect(
+        service.create({ ...mockLessonInput, status: LessonStatus.FINISHED }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('should throw BadRequestException when endTime <= startTime', async () => {
       const input = { ...mockLessonInput, endTime: '09:00' };
 
@@ -767,6 +773,7 @@ describe('LessonService', () => {
         expect(payload).toHaveProperty('actualStartTime');
         expect(payload).toHaveProperty('actualEndTime');
         expect(payload).toHaveProperty('durationMinutes');
+        expect(payload).toHaveProperty('completedAt');
       });
 
       it('lesson.finished payload should have all EventSchema fields', async () => {

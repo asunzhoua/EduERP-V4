@@ -88,6 +88,13 @@ export class LessonService {
       );
     }
 
+    // ─── 1.5. Status whitelist: lessons may only be created as DRAFT or SCHEDULED ───
+    if (input.status && input.status !== LessonStatus.DRAFT && input.status !== LessonStatus.SCHEDULED) {
+      throw new BadRequestException(
+        `Invalid lesson status for creation: ${input.status}. Allowed: DRAFT, SCHEDULED`,
+      );
+    }
+
     // ─── 2. Lesson number validation ───
     if (!Number.isInteger(input.lessonNumber) || input.lessonNumber < 1) {
       throw new BadRequestException(

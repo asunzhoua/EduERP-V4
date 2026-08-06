@@ -6,12 +6,10 @@ import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
-import { ClassEntity } from '../class/class.entity';
 import { LessonEntity } from '../lesson/lesson.entity';
 import { LessonAttendanceEntity } from '../lesson-attendance/lesson-attendance.entity';
 import { TeacherAssignmentEntity } from '../teacher-assignment/teacher-assignment.entity';
 import { EnrollmentRepository } from '../enrollment/enrollment.repository';
-import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { LessonStatus } from '../lesson/enums/lesson-status.enum';
 
 @ApiTags('Teacher Dashboard')
@@ -22,8 +20,6 @@ export class TeacherDashboardController {
   constructor(
     @InjectRepository(TeacherAssignmentEntity)
     private teacherAssignmentRepository: Repository<TeacherAssignmentEntity>,
-    @InjectRepository(ClassEntity)
-    private classRepository: Repository<ClassEntity>,
     @InjectRepository(LessonEntity)
     private lessonRepository: Repository<LessonEntity>,
     @InjectRepository(LessonAttendanceEntity)
@@ -74,16 +70,8 @@ export class TeacherDashboardController {
       }
 
       // Count distinct students with ACTIVE enrollments in the teacher's classes
-      const activeStudentCodes = new Set<string>();
-      for (const classCode of classCodes) {
-        const enrollments = await this.enrollmentRepository.findByClassCode(classCode);
-        for (const e of enrollments) {
-          if (e.status === EnrollmentStatus.ACTIVE) {
-            activeStudentCodes.add(e.studentCode);
-          }
-        }
-      }
-      totalStudents = activeStudentCodes.size;
+      const activeStudentCodes = await this.enrollmentRepository.findActiveStudentCodesByClassCodes(classCodes);
+      totalStudents = activeStudentCodes.length;
     }
 
     // Count FINISHED lessons in the teacher's classes

@@ -53,7 +53,9 @@ export class AppLogger implements LoggerService {
     this.eventLog = path.join(this.logDir, 'event.log');
     this.systemLog = path.join(this.logDir, 'system.log');
 
-    // Initialize Winston with daily rotation
+    // Share one module-level winston instance: reusing the same transports
+    // instead of creating a new set per AppLogger prevents handle/timer
+    // accumulation across multiple instances.
     this.winstonLogger = sharedWinstonLogger;
   }
 
