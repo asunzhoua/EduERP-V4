@@ -80,21 +80,6 @@ function createMockEventBus() {
   };
 }
 
-function createMockEventEmitter2() {
-  const handlers = new Map<string, (...args: any[]) => void>();
-  return {
-    _handlers: handlers,
-    emit: jest.fn((eventName: string, ...args: any[]) => {
-      const handler = handlers.get(eventName);
-      if (handler) handler(...args);
-      return true;
-    }),
-    on: jest.fn((eventName: string, handler: (...args: any[]) => void) => {
-      handlers.set(eventName, handler);
-    }),
-  };
-}
-
 function createMockLessonRepo() {
   const store: Map<number, LessonEntity> = new Map();
   let nextId = 1;

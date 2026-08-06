@@ -16,6 +16,7 @@ import {
 import { AttendanceWorkflowState } from './enums/attendance-workflow-state.enum';
 import { ReminderService } from '@modules/reminder/reminder.service';
 import { ContractRepository } from '@modules/teaching/contract/contract.repository';
+import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
 import { ClassEntity } from '../class/class.entity';
 import { CourseEntity } from '../course/course.entity';
 import { Subject } from '@common/enums/subject.enum';
@@ -43,6 +44,7 @@ describe('LessonAttendanceService', () => {
 
     mockContractRepo = {
       findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null),
+      findByStudentCode: jest.fn().mockResolvedValue([]),
       save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
     };
 
@@ -850,6 +852,129 @@ describe('LessonAttendanceService', () => {
 
       expect(mockContractRepo.save).not.toHaveBeenCalled();
       expect(result).toBeNull();
+    });
+  });
+
+  describe('rollbackLessonDeduction', () => {
+    it('should add 1 lesson back to an ACTIVE contract', async () => {
+      const contract = {
+        contractCode: 'CT-MATH-001',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 5,
+        status: ContractStatus.ACTIVE,
+      };
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(contract);
+
+      const result = await (service as any).rollbackLessonDeduction(
+        'STU001',
+        Subject.MATH,
+      );
+
+      expect(
+        mockContractRepo.findActiveByStudentCodeAndSubject,
+      ).toHaveBeenCalledWith('STU001', Subject.MATH);
+      expect(contract.remainingLessons).toBe(6);
+      expect(contract.status).toBe(ContractStatus.ACTIVE);
+      expect(result).toEqual(
+        expect.objectContaining({
+          contractCode: 'CT-MATH-001',
+          previousRemaining: 5,
+          newRemaining: 6,
+          statusChanged: false,
+        }),
+      );
+    });
+
+    it('should restore an EXHAUSTED contract to ACTIVE and +1', async () => {
+      const contract = {
+        contractCode: 'CT-MATH-001',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 0,
+        status: ContractStatus.EXHAUSTED,
+      };
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(null);
+      mockContractRepo.findByStudentCode.mockResolvedValue([contract]);
+
+      const result = await (service as any).rollbackLessonDeduction(
+        'STU001',
+        Subject.MATH,
+      );
+
+      expect(mockContractRepo.findByStudentCode).toHaveBeenCalledWith('STU001');
+      expect(contract.remainingLessons).toBe(1);
+      expect(contract.status).toBe(ContractStatus.ACTIVE);
+      expect(result!.statusChanged).toBe(true);
+    });
+
+    it('should pick only the matching-subject EXHAUSTED contract in fallback', async () => {
+      const english = {
+        contractCode: 'CT-ENG-001',
+        studentCode: 'STU001',
+        subject: Subject.ENGLISH,
+        remainingLessons: 0,
+        status: ContractStatus.EXHAUSTED,
+        validFrom: '2026-01-01',
+      };
+      const math = {
+        contractCode: 'CT-MATH-001',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 0,
+        status: ContractStatus.EXHAUSTED,
+        validFrom: '2026-01-01',
+      };
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(null);
+      mockContractRepo.findByStudentCode.mockResolvedValue([english, math]);
+
+      const result = await (service as any).rollbackLessonDeduction(
+        'STU001',
+        Subject.MATH,
+      );
+
+      expect(result!.contractCode).toBe('CT-MATH-001');
+    });
+
+    it('should pick the most recent (validFrom DESC) EXHAUSTED contract in fallback', async () => {
+      const older = {
+        contractCode: 'CT-MATH-001',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 0,
+        status: ContractStatus.EXHAUSTED,
+        validFrom: '2026-01-01',
+      };
+      const newer = {
+        contractCode: 'CT-MATH-002',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 0,
+        status: ContractStatus.EXHAUSTED,
+        validFrom: '2026-06-01',
+      };
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(null);
+      mockContractRepo.findByStudentCode.mockResolvedValue([older, newer]);
+
+      const result = await (service as any).rollbackLessonDeduction(
+        'STU001',
+        Subject.MATH,
+      );
+
+      expect(result!.contractCode).toBe('CT-MATH-002');
+    });
+
+    it('should return null without saving when no contract to roll back', async () => {
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(null);
+      mockContractRepo.findByStudentCode.mockResolvedValue([]);
+
+      const result = await (service as any).rollbackLessonDeduction(
+        'STU001',
+        Subject.MATH,
+      );
+
+      expect(result).toBeNull();
+      expect(mockContractRepo.save).not.toHaveBeenCalled();
     });
   });
 });

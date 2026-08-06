@@ -370,6 +370,75 @@ describe('AuthService', () => {
         NotFoundException,
       );
     });
+
+    it('should record an ADMIN_REVOKE audit log entry', async () => {
+      const admin = { ...mockUser, id: 1, role: 'SuperAdmin' };
+      const target = { ...mockUser, id: 3, role: 'Teacher' };
+      userRepo.findById
+        .mockResolvedValueOnce(admin)
+        .mockResolvedValueOnce(target);
+      userRepo.update.mockResolvedValue(undefined as any);
+      loginLogRepo.create.mockReturnValue({} as LoginLog);
+      loginLogRepo.save.mockResolvedValue({} as LoginLog);
+
+      await service.revokeUserSessions(1, 3);
+
+      expect(loginLogRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 1,
+          username: 'admin',
+          role: 'SuperAdmin',
+          action: 'ADMIN_REVOKE',
+          success: true,
+        }),
+      );
+      expect(loginLogRepo.save).toHaveBeenCalled();
+    });
+
+    it('should allow Admin to revoke a Teacher (role pass branch)', async () => {
+      const admin = { ...mockUser, id: 1, role: 'Admin' };
+      const target = { ...mockUser, id: 3, role: 'Teacher' };
+      userRepo.findById
+        .mockResolvedValueOnce(admin)
+        .mockResolvedValueOnce(target);
+      userRepo.update.mockResolvedValue(undefined as any);
+      loginLogRepo.create.mockReturnValue({} as LoginLog);
+      loginLogRepo.save.mockResolvedValue({} as LoginLog);
+
+      await service.revokeUserSessions(1, 3);
+
+      expect(userRepo.update).toHaveBeenCalledWith(3, {
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+      });
+    });
+
+    it('should throw UnauthorizedException when operator does not exist', async () => {
+      userRepo.findById.mockResolvedValueOnce(null);
+
+      await expect(service.revokeUserSessions(1, 3)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should succeed idempotently when target has no refresh token', async () => {
+      const admin = { ...mockUser, id: 1, role: 'SuperAdmin' };
+      const target = {
+        ...mockUser,
+        id: 3,
+        role: 'Teacher',
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+      };
+      userRepo.findById
+        .mockResolvedValueOnce(admin)
+        .mockResolvedValueOnce(target);
+      userRepo.update.mockResolvedValue(undefined as any);
+      loginLogRepo.create.mockReturnValue({} as LoginLog);
+      loginLogRepo.save.mockResolvedValue({} as LoginLog);
+
+      await expect(service.revokeUserSessions(1, 3)).resolves.toBeUndefined();
+    });
   });
 
   // ─── getCurrentUser ───
