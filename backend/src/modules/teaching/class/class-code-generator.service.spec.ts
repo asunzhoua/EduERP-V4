@@ -92,7 +92,7 @@ describe('ClassCodeGeneratorService', () => {
       await service.generateClassCode();
 
       expect(qb.where).toHaveBeenCalledWith(
-        'cls.class_code LIKE :prefix',
+        'cls.classCode LIKE :prefix',
         { prefix: `${expectedPrefix}%` },
       );
     });
@@ -113,7 +113,7 @@ describe('ClassCodeGeneratorService', () => {
 
       await service.generateClassCode();
 
-      expect(qb.orderBy).toHaveBeenCalledWith('cls.class_code', 'DESC');
+      expect(qb.orderBy).toHaveBeenCalledWith('cls.classCode', 'DESC');
     });
   });
 });

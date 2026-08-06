@@ -11,7 +11,7 @@
 - src/modules/teaching/teaching.module.ts
 
 ## Git Commit
-- Hash: c2dd672a2aef474f240b47680b6a99750f7c18ca
+- Hash: 3857791d0a1dfbc2785a11605b4bbc6ae29a28ac
 - Message: feat: implement lesson exception business logic
 
 ## 测试结果

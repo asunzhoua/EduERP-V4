@@ -18,9 +18,9 @@ export class ClassCodeGeneratorService {
 
     const latest = await this.classRepository
       .createQueryBuilder('cls')
-      .where('cls.class_code LIKE :prefix', { prefix: `${prefix}%` })
+      .where('cls.classCode LIKE :prefix', { prefix: `${prefix}%` })
       .andWhere('cls.deleted = :deleted', { deleted: false })
-      .orderBy('cls.class_code', 'DESC')
+      .orderBy('cls.classCode', 'DESC')
       .getOne();
 
     let sequence = 1;

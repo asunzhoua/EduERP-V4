@@ -84,11 +84,13 @@ export class ClassService {
 
   async findAll(
     query: QueryClassDto,
+    teacherId?: number,
   ): Promise<{ items: ClassEntity[]; total: number }> {
     return this.classRepo.findMany({
       name: query.name,
       courseCode: query.courseCode,
       status: query.status,
+      teacherId,
       page: query.page ?? 1,
       pageSize: query.pageSize ?? 20,
     });

@@ -33,25 +33,27 @@ export class SalaryController {
   // ==================== 教师接口 ====================
 
   @Get('my-records')
+  @Roles('Teacher')
   @ApiOperation({ summary: '教师查询自己的工资记录' })
   @ApiResponse({ status: 200, description: '成功返回工资记录列表' })
   async getMyRecords(@Request() req, @Query() query: QuerySalaryRecordDto) {
-    const teacherId = req.user.id;
+    const teacherId = req.user.sub;
     return this.salaryService.getRecords({ ...query, teacherId });
   }
 
   @Get('my-statistics')
+  @Roles('Teacher')
   @ApiOperation({ summary: '教师查询自己的工资统计' })
   @ApiResponse({ status: 200, description: '成功返回工资统计' })
   async getMyStatistics(@Request() req, @Query() query: SalaryStatisticsQueryDto) {
-    const teacherId = req.user.id;
+    const teacherId = req.user.sub;
     return this.salaryService.getStatistics({ ...query, teacherId });
   }
 
   // ==================== 管理员接口 ====================
 
   @Get('records')
-  @Roles('admin', 'super_admin')
+  @Roles('Admin', 'SuperAdmin')
   @ApiOperation({ summary: '管理员查询所有工资记录' })
   @ApiResponse({ status: 200, description: '成功返回工资记录列表' })
   async getAllRecords(@Query() query: QuerySalaryRecordDto) {
@@ -59,7 +61,7 @@ export class SalaryController {
   }
 
   @Put('records/:id/status')
-  @Roles('admin', 'super_admin')
+  @Roles('Admin', 'SuperAdmin')
   @ApiOperation({ summary: '管理员更新工资记录状态' })
   @ApiResponse({ status: 200, description: '成功更新状态' })
   async updateRecordStatus(
@@ -70,7 +72,7 @@ export class SalaryController {
   }
 
   @Get('statistics')
-  @Roles('admin', 'super_admin')
+  @Roles('Admin', 'SuperAdmin')
   @ApiOperation({ summary: '管理员查询工资统计' })
   @ApiResponse({ status: 200, description: '成功返回工资统计' })
   async getStatistics(@Query() query: SalaryStatisticsQueryDto) {
@@ -80,7 +82,7 @@ export class SalaryController {
   // ==================== 规则管理接口 ====================
 
   @Post('rules')
-  @Roles('admin', 'super_admin')
+  @Roles('Admin', 'SuperAdmin')
   @ApiOperation({ summary: '管理员创建工资规则' })
   @ApiResponse({ status: 201, description: '成功创建规则' })
   async createRule(@Body() dto: CreateSalaryRuleDto) {
@@ -88,7 +90,7 @@ export class SalaryController {
   }
 
   @Put('rules/:id')
-  @Roles('admin', 'super_admin')
+  @Roles('Admin', 'SuperAdmin')
   @ApiOperation({ summary: '管理员更新工资规则' })
   @ApiResponse({ status: 200, description: '成功更新规则' })
   async updateRule(@Param('id') id: number, @Body() dto: UpdateSalaryRuleDto) {
@@ -96,7 +98,7 @@ export class SalaryController {
   }
 
   @Delete('rules/:id')
-  @Roles('admin', 'super_admin')
+  @Roles('Admin', 'SuperAdmin')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: '管理员删除工资规则（软删除）' })
   @ApiResponse({ status: 204, description: '成功删除规则' })

@@ -56,8 +56,10 @@ export class ClassController {
   @Get()
   @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'List all classes (paginated, filterable)' })
-  async findAll(@Query() query: QueryClassDto): Promise<ApiResponse> {
-    const result = await this.classService.findAll(query);
+  async findAll(@Query() query: QueryClassDto, @Req() req: any): Promise<ApiResponse> {
+    // Teacher 只能看到自己负责的班级
+    const teacherId = req.user.role === 'Teacher' ? Number(req.user.sub) : undefined;
+    const result = await this.classService.findAll(query, teacherId);
     const enrichedItems = await this.classService.enrichClasses(result.items);
     return ApiResponse.success({ items: enrichedItems, total: result.total });
   }

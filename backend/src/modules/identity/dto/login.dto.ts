@@ -13,3 +13,9 @@ export class LoginDto {
   @IsString()
   device?: string;
 }
+
+export class WechatLoginDto {
+  @IsString()
+  @IsNotEmpty()
+  code: string;
+}

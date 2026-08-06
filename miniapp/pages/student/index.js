@@ -24,6 +24,14 @@ Page({
   },
 
   onShow() {
+    // 角色守卫（TabBar 页面 onLoad 仅执行一次，onShow 每次切换都会触发）
+    const app = getApp();
+    var userInfo = app.globalData.userInfo || {};
+    const role = userInfo.role;
+    if (role === 'Teacher') {
+      wx.reLaunch({ url: '/pages/index/index' });
+      return;
+    }
     // 每次显示页面时都刷新数据（从详情页返回时需要更新）
     this.loadData();
   },

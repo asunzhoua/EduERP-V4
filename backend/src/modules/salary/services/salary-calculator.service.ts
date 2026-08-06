@@ -32,9 +32,9 @@ export class SalaryCalculator {
       teacherId: event.teacherId,
       lessonId: event.lessonId,
       salaryRuleId: rule.id,
-      ruleVersion: rule.updatedAt?.toISOString() || new Date().toISOString(),
+      ruleVersion: rule.updateTime?.toISOString() || new Date().toISOString(),
       amount,
-      lessonDate: event.completedAt,
+      lessonDate: event.completedAt.toISOString().split('T')[0],
       duration: 60, // 默认 60 分钟，可从 Lesson 获取
       status: SalaryRecordStatus.PENDING,
     });

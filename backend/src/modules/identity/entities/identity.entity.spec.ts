@@ -108,7 +108,7 @@ describe('UserRole enum', () => {
     const keys = Object.keys(UserRoles).filter(
       (k) => typeof UserRoles[k] === 'string',
     );
-    expect(keys).toHaveLength(4);
+    expect(keys).toHaveLength(5);
   });
 });
 

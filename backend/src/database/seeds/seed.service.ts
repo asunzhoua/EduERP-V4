@@ -19,6 +19,7 @@ import { ContractStatus } from '../../modules/teaching/contract/enums/contract-s
 import { Subject } from '../../common/enums/subject.enum';
 import { EnrollmentEntity } from '../../modules/teaching/enrollment/enrollment.entity';
 import { EnrollmentStatus } from '../../common/enums/enrollment-status.enum';
+import { StudentParent } from '../../modules/student/entities/student-parent.entity';
 import { TeacherAssignmentEntity } from '../../modules/teaching/teacher-assignment/teacher-assignment.entity';
 import { TeacherRole } from '../../common/enums/teacher-role.enum';
 import { CourseEntity } from '../../modules/teaching/course/course.entity';
@@ -51,6 +52,8 @@ export class SeedService {
     private classEntityRepository: Repository<ClassEntity>,
     @InjectRepository(Student)
     private studentEntityRepository: Repository<Student>,
+    @InjectRepository(StudentParent)
+    private studentParentRepository: Repository<StudentParent>,
     @InjectRepository(ContractEntity)
     private contractEntityRepository: Repository<ContractEntity>,
     @InjectRepository(EnrollmentEntity)
@@ -92,6 +95,7 @@ export class SeedService {
       await this.seedTestUsers(manager);
       await this.seedTestClasses(manager);
       await this.seedTestStudents(manager);
+      await this.seedTestParentStudentLinks(manager);
       await this.seedTestContracts(manager);
       await this.seedTestCourses(manager);
       await this.seedTestEnrollments(manager);
@@ -356,6 +360,10 @@ export class SeedService {
     const admin = await userRepo.findOne({ where: { username: 'admin' } });
     const adminId = admin ? Number(admin.id) : 0;
 
+    // 动态查找 student1 用户的实际 ID（避免硬编码）
+    const student1User = await userRepo.findOne({ where: { username: 'student1' } });
+    const student1UserId = student1User ? Number(student1User.id) : null;
+
     const students = [
       {
         studentCode: 'STU001',
@@ -363,7 +371,7 @@ export class SeedService {
         gender: Gender.MALE,
         birthDate: '2014-05-10',
         phone: '13800000001',
-        userId: 3,
+        userId: student1UserId,
       },
       {
         studentCode: 'STU002',
@@ -393,6 +401,41 @@ export class SeedService {
         await repo.save(student);
         this.logger.log(`Test student created: ${data.name} (${data.studentCode})`, 'Seed');
       }
+    }
+  }
+
+  /** 创建测试家长-学生关联 — parent1 关联到 STU001 */
+  private async seedTestParentStudentLinks(manager: EntityManager) {
+    const repo = manager.getRepository(StudentParent);
+    const userRepo = manager.getRepository(User);
+    const studentRepo = manager.getRepository(Student);
+
+    const parent1User = await userRepo.findOne({ where: { username: 'parent1' } });
+    if (!parent1User) {
+      this.logger.warn('parent1 user not found, skipping parent-student links', 'Seed');
+      return;
+    }
+    const parentId = Number(parent1User.id);
+
+    const student = await studentRepo.findOne({ where: { studentCode: 'STU001' } });
+    if (!student) {
+      this.logger.warn('STU001 not found, skipping parent-student links', 'Seed');
+      return;
+    }
+    const studentId = Number(student.id);
+
+    const exists = await repo.findOne({ where: { studentId, parentId } });
+    if (!exists) {
+      const link = repo.create({
+        studentId,
+        parentId,
+        relation: 'father',
+        isPrimary: true,
+      });
+      await repo.save(link);
+      this.logger.log(`Parent-student link created: parent1 → STU001 (father)`, 'Seed');
+    } else {
+      this.logger.log('Parent-student link already exists, skipping', 'Seed');
     }
   }
 

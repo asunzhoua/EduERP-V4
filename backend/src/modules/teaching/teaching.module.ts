@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EventBusModule } from '@events/event-bus.module';
 import { CourseModule } from './course/course.module';
 import { ClassModule } from './class/class.module';
 import { ContractModule } from './contract/contract.module';
@@ -10,6 +11,7 @@ import { LessonAttendanceModule } from './lesson-attendance/lesson-attendance.mo
 import { LessonChangeRequestModule } from './lesson-change-request/lesson-change-request.module';
 import { LeaveRequestModule } from './leave-request/leave-request.module';
 import { SuspendRequestModule } from './suspend-request/suspend-request.module';
+import { TeacherModule } from './teacher/teacher.module';
 import { LessonExceptionService } from './lesson/lesson-exception/lesson-exception.service';
 import { LessonExceptionController } from './lesson/lesson-exception/lesson-exception.controller';
 import { ClassEntity } from './class/class.entity';
@@ -34,6 +36,7 @@ import { TeacherDashboardController } from './teacher-dashboard/teacher-dashboar
       LessonRescheduleEntity,
       LessonExceptionAttachmentEntity,
     ]),
+    EventBusModule,
     CourseModule,
     ClassModule,
     ContractModule,
@@ -44,6 +47,7 @@ import { TeacherDashboardController } from './teacher-dashboard/teacher-dashboar
     LessonChangeRequestModule,
     LeaveRequestModule,
     SuspendRequestModule,
+    TeacherModule,
   ],
   controllers: [
     TeacherDashboardController,

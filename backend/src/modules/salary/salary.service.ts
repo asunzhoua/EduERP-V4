@@ -121,6 +121,7 @@ export class SalaryService {
   async createRule(dto: CreateSalaryRuleDto) {
     const rule = this.salaryRuleRepo.create({
       ...dto,
+      type: dto.type as any,
       multiplier: dto.multiplier || 1.0,
       isActive: dto.isActive !== false,
     });
@@ -151,7 +152,7 @@ export class SalaryService {
 
   async getRules(activeOnly: boolean = true) {
     const where = activeOnly ? { isActive: true } : {};
-    return this.salaryRuleRepo.find({ where, order: { createdAt: 'DESC' } });
+    return this.salaryRuleRepo.find({ where, order: { createTime: 'DESC' } });
   }
 
   async getRule(id: number) {

@@ -36,12 +36,14 @@
     <!-- 请假日期 -->
     <view class="form-section">
       <view class="form-label">请假日期 <text class="required">*</text></view>
-      <view class="picker-wrapper" bindtap="onSelectDate">
-        <text class="picker-text {{selectedDate ? '' : 'placeholder'}}">
-          {{selectedDate || '请选择日期'}}
-        </text>
-        <text class="picker-arrow">></text>
-      </view>
+      <picker mode="date" value="{{selectedDate}}" bindchange="onDateChange" start="2020-01-01" end="2035-12-31">
+        <view class="picker-wrapper">
+          <text class="picker-text {{selectedDate ? '' : 'placeholder'}}">
+            {{selectedDate || '请选择日期'}}
+          </text>
+          <text class="picker-arrow">></text>
+        </view>
+      </picker>
     </view>
 
     <!-- 原因 -->

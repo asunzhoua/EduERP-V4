@@ -1,0 +1,592 @@
+{
+  "timestamp": "2026-08-02T08:04:27.427Z",
+  "baseUrl": "http://localhost:3000",
+  "student": [
+    {
+      "label": "S-1: Login",
+      "statusCode": 200,
+      "time": "0.581",
+      "body": {
+        "code": 0,
+        "message": "success",
+        "data": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzIiwidXNlcm5hbWUiOiJzdHVkZW50MSIsInJvbGUiOiJTdHVkZW50IiwibmFtZSI6IuadjuWwj-WNjiIsImlhdCI6MTc4NTY1Nzg1OSwiZXhwIjoxNzg1NjY1MDU5fQ.sjZn9c5ymkx6Q8IKvJR9SllczzYNKJhkvMagqMswiUQ",
+          "refreshToken": "a1992805-762e-4b12-b37e-cc176b71e25c",
+          "expiresIn": 7200,
+          "user": {
+            "id": "3",
+            "username": "student1",
+            "mobile": "13900000002",
+            "openid": null,
+            "unionid": null,
+            "name": "李小华",
+            "role": "Student",
+            "status": 1,
+            "campusId": "1",
+            "avatar": null,
+            "lastLoginAt": "2026-08-02T08:03:20.000Z",
+            "createTime": "2026-07-19T22:55:54.796Z",
+            "updateTime": "2026-08-02T08:03:19.000Z",
+            "version": 18,
+            "deleted": 0
+          }
+        }
+      },
+      "raw": "{\"code\":0,\"message\":\"success\",\"data\":{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzIiwidXNlcm5hbWUiOiJzdHVkZW50MSIsInJvbGUiOiJTdHVkZW50IiwibmFtZSI6IuadjuWwj-WNjiIsImlhdCI6MTc4NTY1Nzg1OSwiZXhwIjoxNzg1NjY1MDU5fQ.sjZn9c5ymkx6Q8IKvJR9SllczzYNKJhkvMagqMswiUQ\",\"refreshToken\":\"a1992805-762e-4b12-b37e-cc176b71e25c\",\"expiresIn\":7200,\"user\":{\"id\":\"3\",\"username\":\"student1\",\"mobile\":\"13900000002\",\"openid\":null,\"unionid\":null,\"name\":\"李小华\",\"role\":\"Student\",\"status\":1,\"campusId\":\"1\",\"avatar\":null,\"lastLoginAt\":\"2026-08-02T08:03:20.000Z\",\"createTime\":\"2026-07-19T22:55:54.796Z\",\"updateTime\":\"2026-08-02T08:03:19.000Z\",\"version\":18,\"deleted\":0}}}"
+    },
+    {
+      "label": "S-2: GET /students/self",
+      "statusCode": 200,
+      "time": "0.009",
+      "body": {
+        "code": 0,
+        "message": "success",
+        "data": {
+          "studentCode": "STU001",
+          "name": "李小华",
+          "gender": "MALE",
+          "phone": "13800000001"
+        }
+      },
+      "raw": "{\"code\":0,\"message\":\"success\",\"data\":{\"studentCode\":\"STU001\",\"name\":\"李小华\",\"gender\":\"MALE\",\"phone\":\"13800000001\"}}"
+    },
+    {
+      "label": "S-3: GET /students/self/contracts",
+      "statusCode": 200,
+      "time": "0.022",
+      "body": {
+        "code": 0,
+        "message": "success",
+        "data": [
+          {
+            "contractCode": "CT2026070001",
+            "classCode": "CL2026070001",
+            "teacherName": "张老师",
+            "subject": "MATH",
+            "totalLessons": 50,
+            "remainingLessons": 49,
+            "status": "ACTIVE",
+            "validFrom": "2026-07-01",
+            "validTo": null
+          }
+        ]
+      },
+      "raw": "{\"code\":0,\"message\":\"success\",\"data\":[{\"contractCode\":\"CT2026070001\",\"classCode\":\"CL2026070001\",\"teacherName\":\"张老师\",\"subject\":\"MATH\",\"totalLessons\":50,\"remainingLessons\":49,\"status\":\"ACTIVE\",\"validFrom\":\"2026-07-01\",\"validTo\":null}]}"
+    },
+    {
+      "label": "S-4: GET /students/self/lessons",
+      "statusCode": 200,
+      "time": "0.025",
+      "body": {
+        "code": 0,
+        "message": "success",
+        "data": [
+          {
+            "lessonId": "13",
+            "lessonDate": "2026-07-27",
+            "startTime": "09:00",
+            "endTime": "10:30",
+            "status": "PRESENT",
+            "lessonStatus": "DRAFT",
+            "className": "周六上午班",
+            "courseName": "数学基础班"
+          },
+          {
+            "lessonId": "12",
+            "lessonDate": "2026-07-18",
+            "startTime": "09:00",
+            "endTime": "10:30",
+            "status": "ABSENT",
+            "lessonStatus": "FINISHED",
+            "className": "周六上午班",
+            "courseName": "数学基础班"
+          },
+          {
+            "lessonId": "11",
+            "lessonDate": "2026-07-11",
+            "startTime": "09:00",
+            "endTime": "10:30",
+            "status": "PRESENT",
+            "lessonStatus": "FINISHED",
+            "className": "周六上午班",
+            "courseName": "数学基础班"
+          },
+          {
+            "lessonId": "10",
+            "lessonDate": "2026-07-04",
+            "startTime": "09:00",
+            "endTime": "10:30",
+            "status": "PRESENT",
+            "lessonStatus": "FINISHED",
+            "className": "周六上午班",
+            "courseName": "数学基础班"
+          }
+        ]
+      },
+      "raw": "{\"code\":0,\"message\":\"success\",\"data\":[{\"lessonId\":\"13\",\"lessonDate\":\"2026-07-27\",\"startTime\":\"09:00\",\"endTime\":\"10:30\",\"status\":\"PRESENT\",\"lessonStatus\":\"DRAFT\",\"className\":\"周六上午班\",\"courseName\":\"数学基础班\"},{\"lessonId\":\"12\",\"lessonDate\":\"2026-07-18\",\"startTime\":\"09:00\",\"endTime\":\"10:30\",\"status\":\"ABSENT\",\"lessonStatus\":\"FINISHED\",\"className\":\"周六上午班\",\"courseName\":\"数学基础班\"},{\"lessonId\":\"11\",\"lessonDate\":\"2026-07-11\",\"startTime\":\"09:00\",\"endTime\":\"10:30\",\"status\":\"PRESENT\",\"lessonStatus\":\"FINISHED\",\"className\":\"周六上午班\",\"courseName\":\"数学基础班\"},{\"lessonId\":\"10\",\"lessonDate\":\"2026-07-04\",\"startTime\":\"09:00\",\"endTime\":\"10:30\",\"status\":\"PRESENT\",\"lessonStatus\":\"FINISHED\",\"className\":\"周六上午班\",\"courseName\":\"数学基础班\"}]}"
+    },
+    {
+      "label": "S-5: GET /students/self/attendance",
+      "statusCode": 200,
+      "time": "0.019",
+      "body": {
+        "code": 0,
+        "message": "success",
+        "data": [
+          {
+            "id": "16",
+            "lessonDate": "2026-07-27",
+            "startTime": "09:00",
+            "endTime": "10:30",
+            "courseName": "数学基础班",
+            "className": "周六上午班",
+            "status": "PRESENT"
+          },
+          {
+            "id": "14",
+            "lessonDate": "2026-07-18",
+            "startTime": "09:00",
+            "endTime": "10:30",
+            "courseName": "数学基础班",
+            "className": "周六上午班",
+            "status": "ABSENT"
+          },
+          {
+            "id": "12",
+            "lessonDate": "2026-07-11",
+            "startTime": "09:00",
+            "endTime": "10:30",
+            "courseName": "数学基础班",
+            "className": "周六上午班",
+            "status": "PRESENT"
+          },
+          {
+            "id": "10",
+            "lessonDate": "2026-07-04",
+            "startTime": "09:00",
+            "endTime": "10:30",
+            "courseName": "数学基础班",
+            "className": "周六上午班",
+            "status": "PRESENT"
+          }
+        ]
+      },
+      "raw": "{\"code\":0,\"message\":\"success\",\"data\":[{\"id\":\"16\",\"lessonDate\":\"2026-07-27\",\"startTime\":\"09:00\",\"endTime\":\"10:30\",\"courseName\":\"数学基础班\",\"className\":\"周六上午班\",\"status\":\"PRESENT\"},{\"id\":\"14\",\"lessonDate\":\"2026-07-18\",\"startTime\":\"09:00\",\"endTime\":\"10:30\",\"courseName\":\"数学基础班\",\"className\":\"周六上午班\",\"status\":\"ABSENT\"},{\"id\":\"12\",\"lessonDate\":\"2026-07-11\",\"startTime\":\"09:00\",\"endTime\":\"10:30\",\"courseName\":\"数学基础班\",\"className\":\"周六上午班\",\"status\":\"PRESENT\"},{\"id\":\"10\",\"lessonDate\":\"2026-07-04\",\"startTime\":\"09:00\",\"endTime\":\"10:30\",\"courseName\":\"数学基础班\",\"className\":\"周六上午班\",\"status\":\"PRESENT\"}]}"
+    }
+  ],
+  "teacher": [
+    {
+      "label": "T-1: Login",
+      "statusCode": 200,
+      "time": "0.633",
+      "body": {
+        "code": 0,
+        "message": "success",
+        "data": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwidXNlcm5hbWUiOiJ0ZWFjaGVyMSIsInJvbGUiOiJUZWFjaGVyIiwibmFtZSI6IuW8oOiAgeW4iCIsImlhdCI6MTc4NTY1Nzg2MiwiZXhwIjoxNzg1NjY1MDYyfQ.cEgzA14PQ4Skzaah0UXqcdmtV3QVNQI0bhd3nzwxCMY",
+          "refreshToken": "b9229510-d645-4a49-972c-9adb9ee12205",
+          "expiresIn": 7200,
+          "user": {
+            "id": "2",
+            "username": "teacher1",
+            "mobile": "13900000001",
+            "openid": null,
+            "unionid": null,
+            "name": "张老师",
+            "role": "Teacher",
+            "status": 1,
+            "campusId": "1",
+            "avatar": null,
+            "lastLoginAt": "2026-08-02T08:02:51.000Z",
+            "createTime": "2026-07-19T22:55:54.200Z",
+            "updateTime": "2026-08-02T08:02:50.000Z",
+            "version": 18,
+            "deleted": 0
+          }
+        }
+      },
+      "raw": "{\"code\":0,\"message\":\"success\",\"data\":{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwidXNlcm5hbWUiOiJ0ZWFjaGVyMSIsInJvbGUiOiJUZWFjaGVyIiwibmFtZSI6IuW8oOiAgeW4iCIsImlhdCI6MTc4NTY1Nzg2MiwiZXhwIjoxNzg1NjY1MDYyfQ.cEgzA14PQ4Skzaah0UXqcdmtV3QVNQI0bhd3nzwxCMY\",\"refreshToken\":\"b9229510-d645-4a49-972c-9adb9ee12205\",\"expiresIn\":7200,\"user\":{\"id\":\"2\",\"username\":\"teacher1\",\"mobile\":\"13900000001\",\"openid\":null,\"unionid\":null,\"name\":\"张老师\",\"role\":\"Teacher\",\"status\":1,\"campusId\":\"1\",\"avatar\":null,\"lastLoginAt\":\"2026-08-02T08:02:51.000Z\",\"createTime\":\"2026-07-19T22:55:54.200Z\",\"updateTime\":\"2026-08-02T08:02:50.000Z\",\"version\":18,\"deleted\":0}}}"
+    },
+    {
+      "label": "T-2: GET /teacher/dashboard",
+      "statusCode": 200,
+      "time": "0.018",
+      "body": {
+        "code": 0,
+        "message": "success",
+        "data": {
+          "todayLessons": 0,
+          "pendingAttendance": 0,
+          "totalStudents": 0,
+          "totalClasses": 2
+        }
+      },
+      "raw": "{\"code\":0,\"message\":\"success\",\"data\":{\"todayLessons\":0,\"pendingAttendance\":0,\"totalStudents\":0,\"totalClasses\":2}}"
+    },
+    {
+      "label": "T-3: GET /courses",
+      "statusCode": 200,
+      "time": "0.020",
+      "body": {
+        "code": 0,
+        "message": "success",
+        "data": {
+          "items": [
+            {
+              "id": "8",
+              "courseCode": "CS2026070006",
+              "name": "?????????",
+              "subject": "MATH",
+              "type": "GROUP",
+              "description": null,
+              "totalHours": "30.0",
+              "totalLessons": 15,
+              "defaultDuration": 45,
+              "status": "DRAFT",
+              "tags": null,
+              "coverImage": null,
+              "note": null,
+              "createdBy": "8",
+              "createTime": "2026-07-30T04:34:18.990Z",
+              "updatedBy": null,
+              "updateTime": "2026-07-30T04:34:18.990Z",
+              "version": 1,
+              "deleted": false,
+              "lessonCount": 15,
+              "enrolledClasses": 0
+            },
+            {
+              "id": "7",
+              "courseCode": "CS2026070005",
+              "name": "?????????",
+              "subject": "MATH",
+              "type": "GROUP",
+              "description": null,
+              "totalHours": "30.0",
+              "totalLessons": 15,
+              "defaultDuration": 45,
+              "status": "DRAFT",
+              "tags": null,
+              "coverImage": null,
+              "note": null,
+              "createdBy": "8",
+              "createTime": "2026-07-29T21:49:51.674Z",
+              "updatedBy": null,
+              "updateTime": "2026-07-29T21:49:51.674Z",
+              "version": 1,
+              "deleted": false,
+              "lessonCount": 15,
+              "enrolledClasses": 0
+            },
+            {
+              "id": "6",
+              "courseCode": "CS2026070004",
+              "name": "V2验证课程",
+              "subject": "CHINESE",
+              "type": "GROUP",
+              "description": null,
+              "totalHours": "30.0",
+              "totalLessons": 15,
+              "defaultDuration": 45,
+              "status": "PUBLISHED",
+              "tags": null,
+              "coverImage": null,
+              "note": null,
+              "createdBy": "8",
+              "createTime": "2026-07-27T00:37:25.182Z",
+              "updatedBy": null,
+              "updateTime": "2026-07-27T08:21:55.043Z",
+              "version": 1,
+              "deleted": false,
+              "lessonCount": 15,
+              "enrolledClasses": 1
+            },
+            {
+              "id": "5",
+              "courseCode": "CS2026070003",
+              "name": "��֤�γ�",
+              "subject": "MATH",
+              "type": "INDIVIDUAL",
+              "description": null,
+              "totalHours": "20.0",
+              "totalLessons": 10,
+              "defaultDuration": 60,
+              "status": "DRAFT",
+              "tags": null,
+              "coverImage": null,
+              "note": null,
+              "createdBy": "8",
+              "createTime": "2026-07-26T23:35:30.562Z",
+              "updatedBy": null,
+              "updateTime": "2026-07-26T23:35:30.562Z",
+              "version": 1,
+              "deleted": false,
+              "lessonCount": 10,
+              "enrolledClasses": 0
+            },
+            {
+              "id": "4",
+              "courseCode": "CS2026070002",
+              "name": "��֤�γ�",
+              "subject": "MATH",
+              "type": "GROUP",
+              "description": null,
+              "totalHours": "20.0",
+              "totalLessons": 10,
+              "defaultDuration": 45,
+              "status": "DRAFT",
+              "tags": null,
+              "coverImage": null,
+              "note": null,
+              "createdBy": "7",
+              "createTime": "2026-07-26T22:50:43.804Z",
+              "updatedBy": null,
+              "updateTime": "2026-07-26T22:50:43.804Z",
+              "version": 1,
+              "deleted": false,
+              "lessonCount": 10,
+              "enrolledClasses": 0
+            },
+            {
+              "id": "3",
+              "courseCode": "CS2026070001",
+              "name": "������ѧ3",
+              "subject": "MATH",
+              "type": "GROUP",
+              "description": "test",
+              "totalHours": "20.0",
+              "totalLessons": 20,
+              "defaultDuration": 60,
+              "status": "DRAFT",
+              "tags": [
+                "test"
+              ],
+              "coverImage": null,
+              "note": null,
+              "createdBy": "8",
+              "createTime": "2026-07-25T23:24:23.469Z",
+              "updatedBy": null,
+              "updateTime": "2026-07-25T23:24:23.469Z",
+              "version": 1,
+              "deleted": false,
+              "lessonCount": 20,
+              "enrolledClasses": 0
+            },
+            {
+              "id": "2",
+              "courseCode": "ENG001",
+              "name": "英语启蒙班",
+              "subject": "ENGLISH",
+              "type": "GROUP",
+              "description": "少儿英语启蒙课程",
+              "totalHours": "40.0",
+              "totalLessons": 20,
+              "defaultDuration": 45,
+              "status": "PUBLISHED",
+              "tags": null,
+              "coverImage": null,
+              "note": null,
+              "createdBy": "1",
+              "createTime": "2026-07-22T21:10:31.450Z",
+              "updatedBy": null,
+              "updateTime": "2026-07-22T21:10:31.450Z",
+              "version": 1,
+              "deleted": false,
+              "lessonCount": 20,
+              "enrolledClasses": 1
+            },
+            {
+              "id": "1",
+              "courseCode": "MATH001",
+              "name": "数学基础班",
+              "subject": "MATH",
+              "type": "GROUP",
+              "description": "小学数学基础课程",
+              "totalHours": "40.0",
+              "totalLessons": 20,
+              "defaultDuration": 45,
+              "status": "PUBLISHED",
+              "tags": null,
+              "coverImage": null,
+              "note": null,
+              "createdBy": "1",
+              "createTime": "2026-07-22T21:10:30.784Z",
+              "updatedBy": null,
+              "updateTime": "2026-07-22T21:10:30.784Z",
+              "version": 1,
+              "deleted": false,
+              "lessonCount": 20,
+              "enrolledClasses": 1
+            }
+          ],
+          "total": 8
+        }
+      },
+      "raw": "{\"code\":0,\"message\":\"success\",\"data\":{\"items\":[{\"id\":\"8\",\"courseCode\":\"CS2026070006\",\"name\":\"?????????\",\"subject\":\"MATH\",\"type\":\"GROUP\",\"description\":null,\"totalHours\":\"30.0\",\"totalLessons\":15,\"defaultDuration\":45,\"status\":\"DRAFT\",\"tags\":null,\"coverImage\":null,\"note\":null,\"createdBy\":\"8\",\"createTime\":\"2026-07-30T04:34:18.990Z\",\"updatedBy\":null,\"updateTime\":\"2026-07-30T04:34:18.990Z\",\"version\":1,\"deleted\":false,\"lessonCount\":15,\"enrolledClasses\":0},{\"id\":\"7\",\"courseCode\":\"CS2026070005\",\"name\":\"?????????\",\"subject\":\"MATH\",\"type\":\"GROUP\",\"description\":null,\"totalHours\":\"30.0\",\"totalLessons\":15,\"defaultDuration\":45,\"status\":\"DRAFT\",\"tags\":null,\"coverImage\":null,\"note\":null,\"createdBy\":\"8\",\"createTime\":\"2026-07-29T21:49:51.674Z\",\"updatedBy\":null,\"updateTime\":\"2026-07-29T21:49:51.674Z\",\"version\":1,\"deleted\":false,\"lessonCount\":15,\"enrolledClasses\":0},{\"id\":\"6\",\"courseCode\":\"CS2026070004\",\"name\":\"V2验证课程\",\"subject\":\"CHINESE\",\"type\":\"GROUP\",\"description\":null,\"totalHours\":\"30.0\",\"totalLessons\":15,\"defaultDuration\":45,\"status\":\"PUBLISHED\",\"tags\":null,\"coverImage\":null,\"note\":null,\"createdBy\":\"8\",\"createTime\":\"2026-07-27T00:37:25.182Z\",\"updatedBy\":null,\"updateTime\":\"2026-07-27T08:21:55.043Z\",\"version\":1,\"deleted\":false,\"lessonCount\":15,\"enrolledClasses\":1},{\"id\":\"5\",\"courseCode\":\"CS2026070003\",\"name\":\"��֤�γ�\",\"subject\":\"MATH\",\"type\":\"INDIVIDUAL\",\"description\":null,\"totalHours\":\"20.0\",\"totalLessons\":10,\"defaultDuration\":60,\"status\":\"DRAFT\",\"tags\":null,\"coverImage\":null,\"note\":null,\"createdBy\":\"8\",\"createTime\":\"2026-07-26T23:35:30.562Z\",\"updatedBy\":null,\"updateTime\":\"2026-07-26T23:35:30.562Z\",\"version\":1,\"deleted\":false,\"lessonCount\":10,\"enrolledClasses\":0},{\"id\":\"4\",\"courseCode\":\"CS2026070002\",\"name\":\"��֤�γ�\",\"subject\":\"MATH\",\"type\":\"GROUP\",\"description\":null,\"totalHours\":\"20.0\",\"totalLessons\":10,\"defaultDuration\":45,\"status\":\"DRAFT\",\"tags\":null,\"coverImage\":null,\"note\":null,\"createdBy\":\"7\",\"createTime\":\"2026-07-26T22:50:43.804Z\",\"updatedBy\":null,\"updateTime\":\"2026-07-26T22:50:43.804Z\",\"version\":1,\"deleted\":false,\"lessonCount\":10,\"enrolledClasses\":0},{\"id\":\"3\",\"courseCode\":\"CS2026070001\",\"name\":\"������ѧ3\",\"subject\":\"MATH\",\"type\":\"GROUP\",\"description\":\"test\",\"totalHours\":\"20.0\",\"totalLessons\":20,\"defaultDuration\":60,\"status\":\"DRAFT\",\"tags\":[\"test\"],\"coverImage\":null,\"note\":null,\"createdBy\":\"8\",\"createTime\":\"2026-07-25T23:24:23.469Z\",\"updatedBy\":null,\"updateTime\":\"2026-07-25T23:24:23.469Z\",\"version\":1,\"deleted\":false,\"lessonCount\":20,\"enrolledClasses\":0},{\"id\":\"2\",\"courseCode\":\"ENG001\",\"name\":\"英语启蒙班\",\"subject\":\"ENGLISH\",\"type\":\"GROUP\",\"description\":\"少儿英语启蒙课程\",\"totalHours\":\"40.0\",\"totalLessons\":20,\"defaultDuration\":45,\"status\":\"PUBLISHED\",\"tags\":null,\"coverImage\":null,\"note\":null,\"createdBy\":\"1\",\"createTime\":\"2026-07-22T21:10:31.450Z\",\"updatedBy\":null,\"updateTime\":\"2026-07-22T21:10:31.450Z\",\"version\":1,\"deleted\":false,\"lessonCount\":20,\"enrolledClasses\":1},{\"id\":\"1\",\"courseCode\":\"MATH001\",\"name\":\"数学基础班\",\"subject\":\"MATH\",\"type\":\"GROUP\",\"description\":\"小学数学基础课程\",\"totalHours\":\"40.0\",\"totalLessons\":20,\"defaultDuration\":45,\"status\":\"PUBLISHED\",\"tags\":null,\"coverImage\":null,\"note\":null,\"createdBy\":\"1\",\"createTime\":\"2026-07-22T21:10:30.784Z\",\"updatedBy\":null,\"updateTime\":\"2026-07-22T21:10:30.784Z\",\"version\":1,\"deleted\":false,\"lessonCount\":20,\"enrolledClasses\":1}],\"total\":8}}"
+    },
+    {
+      "label": "T-4: GET /teacher-assignments",
+      "statusCode": 200,
+      "time": "0.009",
+      "body": {
+        "code": 0,
+        "message": "success",
+        "data": [
+          {
+            "id": "3",
+            "classCode": "CL2026070004",
+            "teacherId": "1",
+            "role": "PRIMARY",
+            "effectiveFrom": "2026-07-26",
+            "effectiveTo": null,
+            "assignedBy": "8",
+            "reason": null,
+            "createTime": "2026-07-26T23:36:34.795Z"
+          },
+          {
+            "id": "2",
+            "classCode": "CL2026070002",
+            "teacherId": "2",
+            "role": "PRIMARY",
+            "effectiveFrom": "2026-07-01",
+            "effectiveTo": null,
+            "assignedBy": "1",
+            "reason": null,
+            "createTime": "2026-07-19T22:55:59.441Z"
+          },
+          {
+            "id": "1",
+            "classCode": "CL2026070001",
+            "teacherId": "2",
+            "role": "PRIMARY",
+            "effectiveFrom": "2026-07-01",
+            "effectiveTo": null,
+            "assignedBy": "1",
+            "reason": null,
+            "createTime": "2026-07-19T22:55:59.230Z"
+          }
+        ]
+      },
+      "raw": "{\"code\":0,\"message\":\"success\",\"data\":[{\"id\":\"3\",\"classCode\":\"CL2026070004\",\"teacherId\":\"1\",\"role\":\"PRIMARY\",\"effectiveFrom\":\"2026-07-26\",\"effectiveTo\":null,\"assignedBy\":\"8\",\"reason\":null,\"createTime\":\"2026-07-26T23:36:34.795Z\"},{\"id\":\"2\",\"classCode\":\"CL2026070002\",\"teacherId\":\"2\",\"role\":\"PRIMARY\",\"effectiveFrom\":\"2026-07-01\",\"effectiveTo\":null,\"assignedBy\":\"1\",\"reason\":null,\"createTime\":\"2026-07-19T22:55:59.441Z\"},{\"id\":\"1\",\"classCode\":\"CL2026070001\",\"teacherId\":\"2\",\"role\":\"PRIMARY\",\"effectiveFrom\":\"2026-07-01\",\"effectiveTo\":null,\"assignedBy\":\"1\",\"reason\":null,\"createTime\":\"2026-07-19T22:55:59.230Z\"}]}"
+    }
+  ],
+  "parent": [
+    {
+      "label": "P-1: Login",
+      "statusCode": 200,
+      "time": "1.068",
+      "body": {
+        "code": 0,
+        "message": "success",
+        "data": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwidXNlcm5hbWUiOiJwYXJlbnQxIiwicm9sZSI6IlBhcmVudCIsIm5hbWUiOiLmnY7lu7rlm70iLCJpYXQiOjE3ODU2NTc4NjYsImV4cCI6MTc4NTY2NTA2Nn0.rOSFUN_s6zfJzXIKqxFvtl3O1e9frbcKZNKITHZy5Bc",
+          "refreshToken": "baf0fb25-6b38-493f-9905-ce40131de9f0",
+          "expiresIn": 7200,
+          "user": {
+            "id": "4",
+            "username": "parent1",
+            "mobile": "13900000003",
+            "openid": null,
+            "unionid": null,
+            "name": "李建国",
+            "role": "Parent",
+            "status": 1,
+            "campusId": "1",
+            "avatar": null,
+            "lastLoginAt": "2026-08-02T08:02:52.000Z",
+            "createTime": "2026-07-19T22:55:55.397Z",
+            "updateTime": "2026-08-02T08:02:51.000Z",
+            "version": 15,
+            "deleted": 0
+          }
+        }
+      },
+      "raw": "{\"code\":0,\"message\":\"success\",\"data\":{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwidXNlcm5hbWUiOiJwYXJlbnQxIiwicm9sZSI6IlBhcmVudCIsIm5hbWUiOiLmnY7lu7rlm70iLCJpYXQiOjE3ODU2NTc4NjYsImV4cCI6MTc4NTY2NTA2Nn0.rOSFUN_s6zfJzXIKqxFvtl3O1e9frbcKZNKITHZy5Bc\",\"refreshToken\":\"baf0fb25-6b38-493f-9905-ce40131de9f0\",\"expiresIn\":7200,\"user\":{\"id\":\"4\",\"username\":\"parent1\",\"mobile\":\"13900000003\",\"openid\":null,\"unionid\":null,\"name\":\"李建国\",\"role\":\"Parent\",\"status\":1,\"campusId\":\"1\",\"avatar\":null,\"lastLoginAt\":\"2026-08-02T08:02:52.000Z\",\"createTime\":\"2026-07-19T22:55:55.397Z\",\"updateTime\":\"2026-08-02T08:02:51.000Z\",\"version\":15,\"deleted\":0}}}"
+    },
+    {
+      "label": "P-2: GET /students/my-children",
+      "statusCode": 200,
+      "time": "0.013",
+      "body": {
+        "code": 0,
+        "message": "success",
+        "data": [
+          {
+            "id": "8",
+            "studentCode": "ST2026070003",
+            "name": "V2验证学生",
+            "gender": "MALE",
+            "birthDate": "2015-06-15",
+            "phone": null,
+            "userId": null,
+            "email": null,
+            "school": "验证小学",
+            "grade": "四年级",
+            "tags": null,
+            "status": "ACTIVE",
+            "note": null,
+            "mergedToStudentId": null,
+            "createdBy": "8",
+            "createdSource": "API",
+            "createTime": "2026-07-27T00:37:24.587Z",
+            "updatedBy": "8",
+            "updateTime": "2026-07-27T00:37:24.587Z",
+            "version": 1,
+            "deleted": false
+          }
+        ]
+      },
+      "raw": "{\"code\":0,\"message\":\"success\",\"data\":[{\"id\":\"8\",\"studentCode\":\"ST2026070003\",\"name\":\"V2验证学生\",\"gender\":\"MALE\",\"birthDate\":\"2015-06-15\",\"phone\":null,\"userId\":null,\"email\":null,\"school\":\"验证小学\",\"grade\":\"四年级\",\"tags\":null,\"status\":\"ACTIVE\",\"note\":null,\"mergedToStudentId\":null,\"createdBy\":\"8\",\"createdSource\":\"API\",\"createTime\":\"2026-07-27T00:37:24.587Z\",\"updatedBy\":\"8\",\"updateTime\":\"2026-07-27T00:37:24.587Z\",\"version\":1,\"deleted\":false}]}"
+    },
+    {
+      "label": "P-3: GET /students/:childId/contracts",
+      "statusCode": 200,
+      "time": "0.014",
+      "body": {
+        "code": 0,
+        "message": "success",
+        "data": [
+          {
+            "id": "5",
+            "contractCode": "CT2026070008",
+            "studentCode": "ST2026070003",
+            "subject": "CHINESE",
+            "totalLessons": 50,
+            "remainingLessons": 48,
+            "status": "ACTIVE",
+            "validFrom": "2026-07-01",
+            "validTo": null,
+            "unitPrice": null,
+            "totalAmount": null,
+            "note": null,
+            "tags": null,
+            "createdBy": "8",
+            "createdAt": "2026-07-27T08:23:12.778Z"
+          }
+        ]
+      },
+      "raw": "{\"code\":0,\"message\":\"success\",\"data\":[{\"id\":\"5\",\"contractCode\":\"CT2026070008\",\"studentCode\":\"ST2026070003\",\"subject\":\"CHINESE\",\"totalLessons\":50,\"remainingLessons\":48,\"status\":\"ACTIVE\",\"validFrom\":\"2026-07-01\",\"validTo\":null,\"unitPrice\":null,\"totalAmount\":null,\"note\":null,\"tags\":null,\"createdBy\":\"8\",\"createdAt\":\"2026-07-27T08:23:12.778Z\"}]}"
+    },
+    {
+      "label": "P-4: GET /students/:childId/attendance",
+      "statusCode": 200,
+      "time": "0.019",
+      "body": {
+        "code": 0,
+        "message": "success",
+        "data": [
+          {
+            "id": "18",
+            "lessonId": "14",
+            "lessonDate": "2026-07-27",
+            "startTime": "09:00",
+            "endTime": "10:30",
+            "status": "PRESENT"
+          }
+        ]
+      },
+      "raw": "{\"code\":0,\"message\":\"success\",\"data\":[{\"id\":\"18\",\"lessonId\":\"14\",\"lessonDate\":\"2026-07-27\",\"startTime\":\"09:00\",\"endTime\":\"10:30\",\"status\":\"PRESENT\"}]}"
+    }
+  ],
+  "anomalies": []
+}

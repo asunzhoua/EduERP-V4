@@ -1,5 +1,6 @@
 // pages/login/login.js
 const { post } = require('../../utils/request');
+const { getHomePage, setupTabBarByRole } = require('../../utils/role');
 const app = getApp();
 
 Page({
@@ -33,15 +34,13 @@ Page({
       // 保存 token（使用统一的 saveLoginInfo 方法）
       app.saveLoginInfo(data.accessToken, data.user, data.expiresIn);
 
-      // 根据角色跳转
+      // 根据角色配置 TabBar 文字和图标
       const role = data.user.role;
-      if (role === 'Teacher') {
-        wx.switchTab({ url: '/pages/index/index' });
-      } else if (role === 'Student' || role === 'Parent') {
-        wx.switchTab({ url: '/pages/index/index' });
-      } else {
-        wx.switchTab({ url: '/pages/index/index' });
-      }
+      setupTabBarByRole(role);
+
+      // 根据角色跳转到对应首页
+      const homePage = getHomePage(role);
+      wx.switchTab({ url: homePage });
     } catch (err) {
       wx.showToast({ title: err.message || '登录失败', icon: 'none' });
     } finally {
@@ -50,7 +49,39 @@ Page({
   },
 
   onWechatLogin() {
-    // 微信授权登录（待实现）
-    wx.showToast({ title: '微信授权登录待实现', icon: 'none' });
+    var self = this;
+    self.setData({ loading: true });
+
+    wx.login({
+      success: function(loginRes) {
+        if (!loginRes.code) {
+          wx.showToast({ title: '微信授权失败，请重试', icon: 'none' });
+          self.setData({ loading: false });
+          return;
+        }
+
+        // 调用后端微信登录接口
+        post('/auth/wechat-login', { code: loginRes.code }).then(function(data) {
+          // 保存 token 和用户信息
+          app.saveLoginInfo(data.accessToken, data.user, data.expiresIn);
+
+          // 配置 TabBar
+          var role = data.user.role;
+          setupTabBarByRole(role);
+
+          // 跳转首页
+          var homePage = getHomePage(role);
+          wx.switchTab({ url: homePage });
+        }).catch(function(err) {
+          wx.showToast({ title: (err && err.message) || '微信登录失败', icon: 'none' });
+        }).finally(function() {
+          self.setData({ loading: false });
+        });
+      },
+      fail: function() {
+        wx.showToast({ title: '微信授权失败', icon: 'none' });
+        self.setData({ loading: false });
+      }
+    });
   }
 });

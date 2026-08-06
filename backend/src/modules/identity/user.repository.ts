@@ -48,6 +48,10 @@ export class UserRepository {
     return this.repo.findOne({ where: { refreshToken, deleted: false } });
   }
 
+  async findByOpenid(openid: string): Promise<User | null> {
+    return this.repo.findOne({ where: { openid, deleted: false } });
+  }
+
   async update(id: number, partial: Partial<User>): Promise<void> {
     await this.repo.update(id, partial);
   }

@@ -48,6 +48,7 @@ export class ClassRepository {
     name?: string;
     courseCode?: string;
     status?: string;
+    teacherId?: number;
     page: number;
     pageSize: number;
   }): Promise<{ items: ClassEntity[]; total: number }> {
@@ -65,6 +66,12 @@ export class ClassRepository {
     }
     if (options.status) {
       qb.andWhere('c.status = :status', { status: options.status });
+    }
+    if (options.teacherId) {
+      qb.andWhere(
+        `c.classCode IN (SELECT ta."classCode" FROM teacher_assignment ta WHERE ta."teacherId" = :teacherId AND ta."effectiveTo" IS NULL AND ta."deleted" = false)`,
+        { teacherId: options.teacherId },
+      );
     }
 
     qb.orderBy('c.createTime', 'DESC');

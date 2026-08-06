@@ -89,11 +89,11 @@ describe('ClassController', () => {
       mockClassService.findAll.mockResolvedValue({ items: rawItems, total: 1 });
       mockClassService.enrichClasses.mockResolvedValue(enrichedItems);
 
-      const result = await controller.findAll(query as any);
+      const result = await controller.findAll(query as any, { user: { role: 'Admin', sub: 1 } });
 
       expect(result.code).toBe(0);
       expect(result.data).toEqual({ items: enrichedItems, total: 1 });
-      expect(mockClassService.findAll).toHaveBeenCalledWith(query);
+      expect(mockClassService.findAll).toHaveBeenCalledWith(query, undefined);
       expect(mockClassService.enrichClasses).toHaveBeenCalledWith(rawItems);
     });
   });

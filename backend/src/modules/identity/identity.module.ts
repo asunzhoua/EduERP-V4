@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -13,6 +13,7 @@ import { UserRole } from './entities/user-role.entity';
 import { RolePermission } from './entities/role-permission.entity';
 import { LoginLog } from './entities/login-log.entity';
 import { appConfig } from '@config/configuration';
+import { LoginRateLimitMiddleware } from '@common/middleware/rate-limit.middleware';
 
 @Module({
   imports: [
@@ -32,4 +33,10 @@ import { appConfig } from '@config/configuration';
   providers: [AuthService, JwtStrategy, UserRepository],
   exports: [AuthService, JwtModule, PassportModule, UserRepository],
 })
-export class IdentityModule {}
+export class IdentityModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoginRateLimitMiddleware)
+      .forRoutes({ path: 'auth/login', method: RequestMethod.POST });
+  }
+}

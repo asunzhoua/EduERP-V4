@@ -56,20 +56,8 @@ Page({
   },
 
   // 选择日期
-  onSelectDate() {
-    wx.showModal({
-      title: '提示',
-      content: '请选择请假日期（示例功能：实际接入日期选择器）',
-      success: (res) => {
-        if (res.confirm) {
-          const now = new Date();
-          const dateStr = now.getFullYear() + '-' +
-            String(now.getMonth() + 1).padStart(2, '0') + '-' +
-            String(now.getDate()).padStart(2, '0');
-          this.setData({ selectedDate: dateStr });
-        }
-      }
-    });
+  onDateChange(e) {
+    this.setData({ selectedDate: e.detail.value });
   },
 
   // 输入原因

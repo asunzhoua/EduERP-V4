@@ -19,7 +19,7 @@
 - Excel
 
 ## Git Commit
-- Hash: xxx
+- Hash: 756e23b5ee520e4b005d24e83839f3ad2283e826
 
 ## 结论
 Phase 1 导出能力设计完成。

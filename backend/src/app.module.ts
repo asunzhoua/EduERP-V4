@@ -11,9 +11,12 @@ import { ReminderModule } from '@modules/reminder/reminder.module';
 import { SalaryModule } from '@modules/salary/salary.module';
 import { DashboardModule } from '@modules/dashboard/dashboard.module';
 import { ExportModule } from '@modules/export/export.module';
+import { HealthModule } from '@modules/health/health.module';
+import { SentryModule } from '@common/sentry/sentry.module';
 import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
-import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
+import { OptimizedExceptionFilter } from '@common/filters/optimized-exception.filter';
 import { ResponseInterceptor } from '@common/interceptors/response.interceptor';
+import { PerformanceInterceptor } from '@common/interceptors/performance.interceptor';
 import { JwtAuthGuard } from '@modules/identity/auth/jwt-auth.guard';
 import { appConfig } from '@config/configuration';
 
@@ -65,15 +68,21 @@ import { appConfig } from '@config/configuration';
     SalaryModule,
     DashboardModule,
     ExportModule,
+    HealthModule,
+    SentryModule,
   ],
   providers: [
     {
       provide: APP_FILTER,
-      useClass: GlobalExceptionFilter,
+      useClass: OptimizedExceptionFilter,
     },
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: PerformanceInterceptor,
     },
     {
       provide: APP_GUARD,

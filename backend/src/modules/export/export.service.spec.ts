@@ -9,6 +9,7 @@ import { LessonAttendanceEntity } from '../teaching/lesson-attendance/lesson-att
 import { ContractEntity } from '../teaching/contract/contract.entity';
 import { SalaryRecordEntity } from '../salary/entities/salary-record.entity';
 import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
+import { User } from '../identity/entities/user.entity';
 
 describe('ExportService', () => {
   let service: ExportService;
@@ -40,6 +41,7 @@ describe('ExportService', () => {
         { provide: getRepositoryToken(ContractEntity), useValue: { ...mockRepo } },
         { provide: getRepositoryToken(SalaryRecordEntity), useValue: { ...mockRepo } },
         { provide: getRepositoryToken(EnrollmentEntity), useValue: { ...mockRepo } },
+        { provide: getRepositoryToken(User), useValue: { ...mockRepo } },
       ],
     }).compile();
 
@@ -228,6 +230,49 @@ describe('ExportService', () => {
 
       const result = await service.exportSalary({}, 'csv');
       expect(result).toBeInstanceOf(Buffer);
+    });
+
+    it('should include teacherName in export', async () => {
+      const mockRecords = [
+        { id: 1, teacherId: 101, lessonId: 1, lessonDate: '2026-07-01', duration: 2, amount: 100, salaryRuleId: 1, ruleVersion: 'v1', status: 'PAID', notes: null, createdBy: 1, createTime: new Date() },
+        { id: 2, teacherId: 102, lessonId: 2, lessonDate: '2026-07-02', duration: 1, amount: 150, salaryRuleId: 2, ruleVersion: 'v1', status: 'PAID', notes: null, createdBy: 2, createTime: new Date() },
+      ];
+
+      const mockTeachers = [
+        { id: 101, name: '张老师' },
+        { id: 102, name: '李老师' },
+      ];
+
+      mockFind.mockResolvedValue(mockRecords);
+      mockCreateQueryBuilder.mockReturnValue({
+        where: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(mockTeachers),
+      });
+
+      const result = await service.exportSalary({}, 'csv');
+      expect(result).toBeInstanceOf(Buffer);
+      const content = result.toString('utf-8');
+      expect(content).toContain('teacherName');
+      expect(content).toContain('张老师');
+      expect(content).toContain('李老师');
+    });
+
+    it('should handle missing teacher gracefully', async () => {
+      const mockRecords = [
+        { id: 1, teacherId: 999, lessonId: 1, lessonDate: '2026-07-01', duration: 2, amount: 100, salaryRuleId: 1, ruleVersion: 'v1', status: 'PAID', notes: null, createdBy: 1, createTime: new Date() },
+      ];
+
+      mockFind.mockResolvedValue(mockRecords);
+      mockCreateQueryBuilder.mockReturnValue({
+        where: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      });
+
+      const result = await service.exportSalary({}, 'csv');
+      expect(result).toBeInstanceOf(Buffer);
+      const content = result.toString('utf-8');
+      expect(content).toContain('999');
+      expect(content).toContain('Unknown');
     });
   });
 

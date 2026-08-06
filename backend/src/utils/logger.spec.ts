@@ -1,9 +1,20 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-jest.mock('fs');
+// Mock specific fs functions used by AppLogger, not the entire fs module
+// to avoid interference with winston's internal fs usage
+const mockFs = {
+  existsSync: jest.fn().mockReturnValue(true),
+  mkdirSync: jest.fn(),
+  appendFileSync: jest.fn(),
+};
 
-const mockedFs = jest.mocked(fs);
+jest.mock('fs', () => ({
+  ...jest.requireActual('fs'),
+  existsSync: mockFs.existsSync,
+  mkdirSync: mockFs.mkdirSync,
+  appendFileSync: mockFs.appendFileSync,
+}));
 
 import { AppLogger } from './logger';
 
@@ -18,29 +29,29 @@ describe('AppLogger', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedFs.existsSync.mockReturnValue(true); // skip mkdirSync for most tests
-    mockedFs.mkdirSync.mockImplementation(() => undefined as any);
-    mockedFs.appendFileSync.mockImplementation(() => undefined);
+    mockFs.existsSync.mockReturnValue(true);
+    mockFs.mkdirSync.mockImplementation(() => undefined);
+    mockFs.appendFileSync.mockImplementation(() => undefined);
 
     logger = new AppLogger();
   });
 
   describe('constructor', () => {
     it('should create log directory when it does not exist', () => {
-      mockedFs.existsSync.mockReturnValue(false);
+      mockFs.existsSync.mockReturnValue(false);
 
       const newLogger = new AppLogger();
 
-      expect(mockedFs.mkdirSync).toHaveBeenCalledWith(mockLogDir, { recursive: true });
+      expect(mockFs.mkdirSync).toHaveBeenCalledWith(mockLogDir, { recursive: true });
       expect(newLogger).toBeDefined();
     });
 
     it('should not create log directory when it already exists', () => {
-      mockedFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockReturnValue(true);
 
       const newLogger = new AppLogger();
 
-      expect(mockedFs.mkdirSync).not.toHaveBeenCalled();
+      expect(mockFs.mkdirSync).not.toHaveBeenCalled();
       expect(newLogger).toBeDefined();
     });
   });
@@ -51,7 +62,7 @@ describe('AppLogger', () => {
 
       logger.log('test message', 'TestCtx');
 
-      expect(mockedFs.appendFileSync).toHaveBeenCalledWith(
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
         mockSystemLog,
         expect.stringContaining('[LOG] [TestCtx] test message'),
       );
@@ -66,7 +77,7 @@ describe('AppLogger', () => {
       logger.log('hello');
 
       expect(consoleSpy).toHaveBeenCalledWith('[System] hello');
-      expect(mockedFs.appendFileSync).toHaveBeenCalledWith(
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
         mockSystemLog,
         expect.stringContaining('[LOG] hello'),
       );
@@ -81,7 +92,7 @@ describe('AppLogger', () => {
 
       logger.error('fail', undefined, 'ErrorCtx');
 
-      expect(mockedFs.appendFileSync).toHaveBeenCalledWith(
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
         mockErrorLog,
         expect.stringContaining('[ERROR] [ErrorCtx] fail'),
       );
@@ -95,7 +106,7 @@ describe('AppLogger', () => {
 
       logger.error('fail', 'stack-trace', 'Ctx');
 
-      const calls = mockedFs.appendFileSync.mock.calls;
+      const calls = mockFs.appendFileSync.mock.calls;
       expect(calls.length).toBe(2);
       expect(calls[1][1]).toContain('stack-trace');
     });
@@ -105,7 +116,7 @@ describe('AppLogger', () => {
 
       logger.error('fail');
 
-      const calls = mockedFs.appendFileSync.mock.calls;
+      const calls = mockFs.appendFileSync.mock.calls;
       expect(calls.length).toBe(1);
     });
   });
@@ -116,7 +127,7 @@ describe('AppLogger', () => {
 
       logger.warn('caution', 'WarnCtx');
 
-      expect(mockedFs.appendFileSync).toHaveBeenCalledWith(
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
         mockSystemLog,
         expect.stringContaining('[WARN] [WarnCtx] caution'),
       );
@@ -132,7 +143,7 @@ describe('AppLogger', () => {
 
       logger.debug('detail', 'DebugCtx');
 
-      expect(mockedFs.appendFileSync).toHaveBeenCalledWith(
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
         mockSystemLog,
         expect.stringContaining('[DEBUG] [DebugCtx] detail'),
       );
@@ -153,7 +164,7 @@ describe('AppLogger', () => {
 
       logger.verbose('verbose msg', 'VerboseCtx');
 
-      expect(mockedFs.appendFileSync).toHaveBeenCalledWith(
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
         mockSystemLog,
         expect.stringContaining('[VERBOSE] [VerboseCtx] verbose msg'),
       );
@@ -170,7 +181,7 @@ describe('AppLogger', () => {
     it('should write to api.log with method, url, status, and duration', () => {
       logger.logApi('GET', '/api/users', 200, 42);
 
-      expect(mockedFs.appendFileSync).toHaveBeenCalledWith(
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
         mockApiLog,
         expect.stringContaining('[API] GET /api/users → 200 (42ms)'),
       );
@@ -181,7 +192,7 @@ describe('AppLogger', () => {
     it('should write to event.log with event name, id, and status', () => {
       logger.logEvent('UserCreated', 'evt-123', 'SUCCESS');
 
-      expect(mockedFs.appendFileSync).toHaveBeenCalledWith(
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
         mockEventLog,
         expect.stringContaining('[EVENT] Event: UserCreated [evt-123] → SUCCESS'),
       );

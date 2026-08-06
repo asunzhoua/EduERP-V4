@@ -18,7 +18,7 @@ import { ExportFilterDto } from './dto/export-filter.dto';
 @ApiBearerAuth()
 @Controller('export')
 @UseGuards(RolesGuard)
-@Roles('ADMIN')
+@Roles('SuperAdmin', 'Admin')
 export class ExportController {
   constructor(private readonly exportService: ExportService) {}
 

@@ -1,9 +1,11 @@
 import {
   Injectable,
   UnauthorizedException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import * as https from 'https';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -140,6 +142,113 @@ export class AuthService {
 
     const { password, refreshToken, refreshTokenExpiresAt, ...safeUser } = user;
     return safeUser;
+  }
+
+  async wechatLogin(
+    code: string,
+    ip?: string,
+    device?: string,
+  ): Promise<{ accessToken: string; refreshToken: string; expiresIn: number; user: Partial<User> }> {
+    // 1. 调用微信 jscode2session 获取 openid
+    const session = await this.getWxSession(code);
+    const { openid } = session;
+
+    if (!openid) {
+      throw new InternalServerErrorException('微信登录失败：未获取到 openid');
+    }
+
+    // 2. 查找用户（通过 openid 关联）
+    let user = await this.userRepository.findByOpenid(openid);
+
+    if (!user) {
+      throw new UnauthorizedException('微信用户未绑定系统账号，请联系管理员');
+    }
+
+    if (user.status !== 1) {
+      throw new UnauthorizedException('用户已被禁用');
+    }
+
+    // 3. 更新 unionid（如果返回了且用户没有）
+    const unionid = (session as any).unionid;
+    if (unionid && !user.unionid) {
+      await this.userRepository.update(user.id, { unionid } as Partial<User>);
+    }
+
+    // 4. 生成 JWT
+    const payload = {
+      sub: user.id,
+      username: user.username,
+      role: user.role,
+      name: user.name,
+    };
+
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: '2h',
+    });
+
+    const refreshToken = uuidv4();
+    const refreshTokenExpiresAt = new Date();
+    refreshTokenExpiresAt.setDate(refreshTokenExpiresAt.getDate() + 7);
+
+    await this.userRepository.update(user.id, {
+      refreshToken,
+      refreshTokenExpiresAt,
+      lastLoginAt: new Date(),
+    } as Partial<User>);
+
+    await this.createLoginLog(user.id, user.username, user.role, 'WECHAT_LOGIN', true, ip, device);
+
+    const { password: _, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safeUser } = user;
+    return { accessToken, refreshToken, expiresIn: 7200, user: safeUser };
+  }
+
+  /**
+   * 调用微信 jscode2session 接口换取 openid / session_key
+   * POST https://api.weixin.qq.com/sns/jscode2session
+   *    ?appid=APPID&secret=SECRET&js_code=CODE&grant_type=authorization_code
+   */
+  private getWxSession(code: string): Promise<{ openid: string; session_key: string; unionid?: string }> {
+    const config = this.config.wechat;
+
+    if (!config.appid || !config.secret) {
+      throw new InternalServerErrorException('微信登录未配置：请设置 WECHAT_APPID 和 WECHAT_SECRET');
+    }
+
+    const url = new URL('https://api.weixin.qq.com/sns/jscode2session');
+    url.searchParams.set('appid', config.appid);
+    url.searchParams.set('secret', config.secret);
+    url.searchParams.set('js_code', code);
+    url.searchParams.set('grant_type', 'authorization_code');
+
+    return new Promise((resolve, reject) => {
+      https.get(url.toString(), (res) => {
+        let data = '';
+        res.on('data', (chunk: string) => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const result = JSON.parse(data);
+
+            // 微信返回错误
+            if (result.errcode) {
+              this.logger.error(`[WeChatLogin] jscode2session failed: ${result.errmsg} (code=${result.errcode})`);
+              reject(new InternalServerErrorException('微信服务器验证失败'));
+              return;
+            }
+
+            resolve({
+              openid: result.openid,
+              session_key: result.session_key,
+              unionid: result.unionid,
+            });
+          } catch (e) {
+            reject(new InternalServerErrorException('微信登录响应解析失败'));
+          }
+        });
+      }).on('error', (err) => {
+        this.logger.error(`[WeChatLogin] HTTP request failed: ${err.message}`);
+        reject(new InternalServerErrorException('微信登录网络请求失败'));
+      });
+    });
   }
 
   private async createLoginLog(

@@ -9,7 +9,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto } from '../dto/login.dto';
+import { LoginDto, WechatLoginDto } from '../dto/login.dto';
 import { RefreshDto } from '../dto/refresh.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from '@common/decorators/public.decorator';
@@ -30,6 +30,20 @@ export class AuthController {
       loginDto.password,
       device,
       ip,
+    );
+    return ApiResponse.success(result);
+  }
+
+  @Public()
+  @Post('wechat-login')
+  @HttpCode(HttpStatus.OK)
+  async wechatLogin(@Body() wechatLoginDto: WechatLoginDto, @Req() req: any) {
+    const ip = req.ip;
+    const device = req.headers['user-agent'];
+    const result = await this.authService.wechatLogin(
+      wechatLoginDto.code,
+      ip,
+      device,
     );
     return ApiResponse.success(result);
   }

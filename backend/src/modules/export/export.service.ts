@@ -10,6 +10,7 @@ import { LessonAttendanceEntity } from '../teaching/lesson-attendance/lesson-att
 import { ContractEntity } from '../teaching/contract/contract.entity';
 import { SalaryRecordEntity } from '../salary/entities/salary-record.entity';
 import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
+import { User } from '../identity/entities/user.entity';
 
 @Injectable()
 export class ExportService {
@@ -26,6 +27,8 @@ export class ExportService {
     private readonly salaryRepo: Repository<SalaryRecordEntity>,
     @InjectRepository(EnrollmentEntity)
     private readonly enrollmentRepo: Repository<EnrollmentEntity>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
     private readonly csvWriter: CsvWriter,
     private readonly excelWriter: ExcelWriter,
   ) {}
@@ -218,10 +221,19 @@ export class ExportService {
     const records = await this.salaryRepo.find({ where });
 
     // Enrich with teacher data (from user entity) — teacherId is the user ID
-    // Since we can't join to a non-related entity, we'll export what we have
+    const teacherIds = [...new Set(records.map(r => r.teacherId))];
+    const teachers = teacherIds.length > 0
+      ? await this.userRepo
+          .createQueryBuilder('user')
+          .where('user.id IN (:...ids)', { ids: teacherIds })
+          .getMany()
+      : [];
+    const teacherMap = new Map(teachers.map(t => [t.id, t.name]));
+
     const data = records.map((r) => ({
       recordId: r.id,
       teacherId: r.teacherId,
+      teacherName: teacherMap.get(r.teacherId) || 'Unknown',
       lessonId: r.lessonId,
       salaryRuleId: r.salaryRuleId,
       ruleVersion: r.ruleVersion,
@@ -237,6 +249,7 @@ export class ExportService {
     const columns = [
       'recordId',
       'teacherId',
+      'teacherName',
       'lessonId',
       'salaryRuleId',
       'ruleVersion',

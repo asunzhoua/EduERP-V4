@@ -10,6 +10,7 @@ import { LessonAttendanceEntity } from '../teaching/lesson-attendance/lesson-att
 import { ContractEntity } from '../teaching/contract/contract.entity';
 import { SalaryRecordEntity } from '../salary/entities/salary-record.entity';
 import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
+import { User } from '../identity/entities/user.entity';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
       ContractEntity,
       SalaryRecordEntity,
       EnrollmentEntity,
+      User,
     ]),
   ],
   controllers: [ExportController],

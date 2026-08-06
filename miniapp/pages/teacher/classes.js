@@ -16,7 +16,8 @@ Page({
     var userInfo = app.globalData.userInfo || {};
     const role = userInfo.role;
     if (role === 'Student' || role === 'Parent') {
-      wx.reLaunch({ url: '/pages/index/index' });
+      // 学生/家长点击"班级/学习"Tab → 跳转到学生课时记录页面
+      wx.reLaunch({ url: '/pages/student/lessons' });
       return;
     }
     if (options.courseCode) {

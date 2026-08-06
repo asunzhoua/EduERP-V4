@@ -41,6 +41,13 @@ App({
     var requestModule = require('./utils/request');
     requestModule.get('/auth/me').then(function(data) {
       self.globalData.userInfo = data;
+      // 重新配置 TabBar
+      try {
+        var roleUtils = require('./utils/role');
+        roleUtils.setupTabBarByRole(data.role);
+      } catch (e) {
+        console.warn('[App] TabBar setup failed:', e);
+      }
     }).catch(function() {
       // 静默失败 — request.js 的 token 过期处理会负责跳转
       // 这里不重复调用 logout，避免双重跳转

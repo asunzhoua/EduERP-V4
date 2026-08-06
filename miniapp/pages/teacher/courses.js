@@ -20,7 +20,8 @@ Page({
     var userInfo = app.globalData.userInfo || {};
     const role = userInfo.role;
     if (role === 'Student' || role === 'Parent') {
-      wx.reLaunch({ url: '/pages/index/index' });
+      // 学生/家长点击"课程"Tab → 跳转到学生课程页面
+      wx.reLaunch({ url: '/pages/student/classes' });
       return;
     }
     this.loadCourses();

@@ -20,7 +20,7 @@ import {
 @ApiBearerAuth()
 @Controller('dashboard')
 @UseGuards(RolesGuard)
-@Roles('ADMIN')
+@Roles('SuperAdmin', 'Admin')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 

@@ -18,7 +18,7 @@ import { Student } from '@modules/student/entities/student.entity';
     EventBusModule,
     forwardRef(() => ClassModule),
     EnrollmentModule,
-    LessonAttendanceModule,
+    forwardRef(() => LessonAttendanceModule),
     ReminderModule,
   ],
   controllers: [LessonController],
