@@ -446,17 +446,13 @@ async function getParentAttendance(): Promise<any> {
 describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
   beforeAll(async () => {
     // Set environment variables for test
-    process.env.DB_HOST = 'localhost';
-    process.env.DB_PORT = '3306';
-    process.env.DB_USERNAME = 'root';
-    process.env.DB_PASSWORD = 'sun123456';
-    process.env.DB_DATABASE = 'eduos';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({
           isGlobal: true,
           load: [appConfig],
+          envFilePath: '.env',
         }),
         TypeOrmModule.forRootAsync({
           imports: [ConfigModule],
