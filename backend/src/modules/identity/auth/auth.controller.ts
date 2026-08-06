@@ -3,16 +3,20 @@ import {
   Post,
   Get,
   Body,
+  Param,
   Req,
   UseGuards,
   HttpCode,
   HttpStatus,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto, WechatLoginDto } from '../dto/login.dto';
 import { RefreshDto } from '../dto/refresh.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from '@common/decorators/public.decorator';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
 
 @Controller('auth')
@@ -66,6 +70,15 @@ export class AuthController {
     const device = req.headers['user-agent'];
     await this.authService.logout(req.user.sub, ip, device);
     return ApiResponse.success(null, '退出成功');
+  }
+
+  @Post('admin/users/:id/revoke-session')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin', 'Admin')
+  @HttpCode(HttpStatus.OK)
+  async revokeSession(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    await this.authService.revokeUserSessions(req.user.sub, id);
+    return ApiResponse.success(null, '已撤销该用户的会话');
   }
 
   @Get('me')

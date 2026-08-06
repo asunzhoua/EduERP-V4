@@ -14,6 +14,7 @@ describe('AuthController', () => {
       refresh: jest.fn(),
       logout: jest.fn(),
       getCurrentUser: jest.fn(),
+      revokeUserSessions: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -91,6 +92,16 @@ describe('AuthController', () => {
       expect(result.code).toBe(0);
       expect(result.data).toEqual(user);
       expect(authService.getCurrentUser).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('POST /auth/admin/users/:id/revoke-session', () => {
+    it('should call revokeUserSessions with operator and target id', async () => {
+      authService.revokeUserSessions.mockResolvedValue(undefined);
+      const req = { user: { sub: 1 } };
+      const result = await controller.revokeSession(5, req);
+      expect(authService.revokeUserSessions).toHaveBeenCalledWith(1, 5);
+      expect(result.code).toBe(0);
     });
   });
 });

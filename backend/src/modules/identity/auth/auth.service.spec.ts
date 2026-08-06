@@ -2,7 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
-import { UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { User } from '../entities/user.entity';
@@ -303,6 +308,67 @@ describe('AuthService', () => {
       // Should not throw — logout is idempotent
       await expect(service.logout(999)).resolves.toBeUndefined();
       expect(userRepo.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── revokeUserSessions ───
+
+  describe('revokeUserSessions', () => {
+    it("should revoke another user's sessions (clear refresh token)", async () => {
+      const admin = { ...mockUser, id: 1, role: 'SuperAdmin' };
+      const target = { ...mockUser, id: 3, role: 'Teacher' };
+      userRepo.findById
+        .mockResolvedValueOnce(admin)
+        .mockResolvedValueOnce(target);
+      userRepo.update.mockResolvedValue(undefined as any);
+      loginLogRepo.create.mockReturnValue({} as LoginLog);
+      loginLogRepo.save.mockResolvedValue({} as LoginLog);
+
+      await service.revokeUserSessions(1, 3);
+
+      expect(userRepo.update).toHaveBeenCalledWith(3, {
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+      });
+      expect(loginLogRepo.save).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when operator revokes self', async () => {
+      await expect(service.revokeUserSessions(1, 1)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw ForbiddenException when Admin targets Admin', async () => {
+      const admin = { ...mockUser, id: 1, role: 'Admin' };
+      const target = { ...mockUser, id: 2, role: 'Admin' };
+      userRepo.findById
+        .mockResolvedValueOnce(admin)
+        .mockResolvedValueOnce(target);
+      await expect(service.revokeUserSessions(1, 2)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('should throw ForbiddenException when Admin targets SuperAdmin', async () => {
+      const admin = { ...mockUser, id: 1, role: 'Admin' };
+      const target = { ...mockUser, id: 2, role: 'SuperAdmin' };
+      userRepo.findById
+        .mockResolvedValueOnce(admin)
+        .mockResolvedValueOnce(target);
+      await expect(service.revokeUserSessions(1, 2)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('should throw NotFoundException when target does not exist', async () => {
+      const admin = { ...mockUser, id: 1, role: 'SuperAdmin' };
+      userRepo.findById
+        .mockResolvedValueOnce(admin)
+        .mockResolvedValueOnce(null);
+      await expect(service.revokeUserSessions(1, 999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

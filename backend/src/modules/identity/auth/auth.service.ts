@@ -2,6 +2,9 @@ import {
   Injectable,
   UnauthorizedException,
   InternalServerErrorException,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -9,7 +12,7 @@ import * as https from 'https';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { User } from '../entities/user.entity';
+import { User, UserRole } from '../entities/user.entity';
 import { LoginLog } from '../entities/login-log.entity';
 import { UserRepository } from '../user.repository';
 import { AppLogger } from '@utils/logger';
@@ -131,6 +134,38 @@ export class AuthService {
       } as Partial<User>);
       await this.createLoginLog(user.id, user.username, user.role, 'LOGOUT', true, ip, device);
     }
+  }
+
+  async revokeUserSessions(operatorUserId: number, targetUserId: number): Promise<void> {
+    if (operatorUserId === targetUserId) {
+      throw new BadRequestException('不能撤销自己的会话');
+    }
+
+    const operator = await this.userRepository.findById(operatorUserId);
+    if (!operator) {
+      throw new UnauthorizedException('操作者不存在');
+    }
+
+    const target = await this.userRepository.findById(targetUserId);
+    if (!target) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    // Role hierarchy: only SuperAdmin may revoke SuperAdmin or Admin.
+    if (
+      operator.role !== UserRole.SUPER_ADMIN &&
+      (target.role === UserRole.SUPER_ADMIN || target.role === UserRole.ADMIN)
+    ) {
+      throw new ForbiddenException('无权撤销该用户的会话');
+    }
+
+    await this.userRepository.update(targetUserId, {
+      refreshToken: null as any,
+      refreshTokenExpiresAt: null as any,
+    } as Partial<User>);
+
+    await this.createLoginLog(operator.id, operator.username, operator.role, 'ADMIN_REVOKE', true);
+    this.logger.log(`Admin session revoke: operator=${operatorUserId}, target=${targetUserId}`);
   }
 
   async getCurrentUser(userId: number): Promise<Partial<User>> {
