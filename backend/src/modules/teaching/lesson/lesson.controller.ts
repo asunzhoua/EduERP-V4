@@ -199,6 +199,7 @@ export class LessonController {
       startTime: dto.startTime,
       endTime: dto.endTime,
       teacherId: primaryTeacher.teacherId,
+      topic: dto.topic,
       isMakeup: false,
       createdBy: operatorId,
       status: LessonStatus.SCHEDULED,

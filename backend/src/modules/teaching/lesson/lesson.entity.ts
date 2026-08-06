@@ -57,6 +57,11 @@ export class LessonEntity {
   @Column({ type: 'timestamp', nullable: true })
   actualEndTime: Date | null;
 
+  // ─── Topic ───
+
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  topic: string | null;
+
   // ─── Notes & Cancellation ───
 
   @Column({ type: 'text', nullable: true })

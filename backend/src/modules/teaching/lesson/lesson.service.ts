@@ -42,6 +42,7 @@ export interface CreateLessonInput {
   startTime: string;
   endTime: string;
   teacherId: number;
+  topic?: string;
   isMakeup?: boolean;
   originLessonId?: number;
   createdBy?: number;
@@ -157,6 +158,7 @@ export class LessonService {
     lesson.startTime = input.startTime;
     lesson.endTime = input.endTime;
     lesson.teacherId = input.teacherId;
+    lesson.topic = input.topic ?? null;
     lesson.isMakeup = input.isMakeup ?? false;
     lesson.originLessonId = input.originLessonId ?? null;
     lesson.changeRequestId = null;
