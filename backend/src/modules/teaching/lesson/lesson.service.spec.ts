@@ -149,6 +149,20 @@ describe('LessonService', () => {
       expect(result.lessonNumber).toBe(1);
     });
 
+    it('should create a lesson with SCHEDULED status when status is provided (check-in path)', async () => {
+      classRepo.findOneByCode.mockResolvedValue({ ...mockActiveClass });
+      lessonRepo.findOneByClassCodeAndLessonNumber.mockResolvedValue(null);
+      lessonRepo.save.mockResolvedValue({
+        ...mockLesson,
+        status: LessonStatus.SCHEDULED,
+      });
+
+      await service.create({ ...mockLessonInput, status: LessonStatus.SCHEDULED });
+
+      const savedLesson = lessonRepo.save.mock.calls[0][0] as LessonEntity;
+      expect(savedLesson.status).toBe(LessonStatus.SCHEDULED);
+    });
+
     it('should throw BadRequestException when endTime <= startTime', async () => {
       const input = { ...mockLessonInput, endTime: '09:00' };
 

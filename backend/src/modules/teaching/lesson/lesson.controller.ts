@@ -190,7 +190,7 @@ export class LessonController {
     );
     const lessonNumber = (maxLessonNumber ?? 0) + 1;
 
-    // 4. Create the lesson entity
+    // 4. Create the lesson entity (SCHEDULED so it can progress to TEACHING/FINISHED)
     const lesson = await this.lessonService.create({
       classCode: dto.classCode,
       courseCode: cls.courseCode,
@@ -201,6 +201,7 @@ export class LessonController {
       teacherId: primaryTeacher.teacherId,
       isMakeup: false,
       createdBy: operatorId,
+      status: LessonStatus.SCHEDULED,
     });
 
     // 5. Auto-create PENDING attendance records for enrolled students

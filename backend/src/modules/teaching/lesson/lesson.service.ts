@@ -45,6 +45,12 @@ export interface CreateLessonInput {
   isMakeup?: boolean;
   originLessonId?: number;
   createdBy?: number;
+  /**
+   * Optional initial status. Defaults to DRAFT (keeps manual/makeup creation
+   * semantics unchanged). The check-in path passes SCHEDULED so the lesson can
+   * progress SCHEDULED → TEACHING → FINISHED.
+   */
+  status?: LessonStatus;
 }
 
 @Injectable()
@@ -146,7 +152,7 @@ export class LessonService {
     lesson.classCode = input.classCode;
     lesson.courseCode = input.courseCode;
     lesson.lessonNumber = input.lessonNumber;
-    lesson.status = LessonStatus.DRAFT;
+    lesson.status = input.status ?? LessonStatus.DRAFT;
     lesson.scheduledDate = input.scheduledDate;
     lesson.startTime = input.startTime;
     lesson.endTime = input.endTime;

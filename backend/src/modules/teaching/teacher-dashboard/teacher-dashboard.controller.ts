@@ -10,6 +10,9 @@ import { ClassEntity } from '../class/class.entity';
 import { LessonEntity } from '../lesson/lesson.entity';
 import { LessonAttendanceEntity } from '../lesson-attendance/lesson-attendance.entity';
 import { TeacherAssignmentEntity } from '../teacher-assignment/teacher-assignment.entity';
+import { EnrollmentRepository } from '../enrollment/enrollment.repository';
+import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
+import { LessonStatus } from '../lesson/enums/lesson-status.enum';
 
 @ApiTags('Teacher Dashboard')
 @ApiBearerAuth()
@@ -25,6 +28,7 @@ export class TeacherDashboardController {
     private lessonRepository: Repository<LessonEntity>,
     @InjectRepository(LessonAttendanceEntity)
     private lessonAttendanceRepository: Repository<LessonAttendanceEntity>,
+    private readonly enrollmentRepository: EnrollmentRepository,
   ) {}
 
   @Get('dashboard')
@@ -69,18 +73,32 @@ export class TeacherDashboardController {
         pendingAttendance = todayLessons - lessonsWithAttendance.length;
       }
 
-      // Sum currentStudents from active classes
-      const activeClasses = await this.classRepository.find({
-        where: { classCode: In(classCodes), status: 'ACTIVE' } as any,
-      });
-      totalStudents = activeClasses.reduce((sum, cls) => sum + ((cls as any).currentStudents || 0), 0);
+      // Count distinct students with ACTIVE enrollments in the teacher's classes
+      const activeStudentCodes = new Set<string>();
+      for (const classCode of classCodes) {
+        const enrollments = await this.enrollmentRepository.findByClassCode(classCode);
+        for (const e of enrollments) {
+          if (e.status === EnrollmentStatus.ACTIVE) {
+            activeStudentCodes.add(e.studentCode);
+          }
+        }
+      }
+      totalStudents = activeStudentCodes.size;
     }
+
+    // Count FINISHED lessons in the teacher's classes
+    const completedLessons = classCodes.length > 0
+      ? await this.lessonRepository.count({
+          where: { classCode: In(classCodes), status: LessonStatus.FINISHED } as any,
+        })
+      : 0;
 
     return ApiResponse.success({
       todayLessons,
       pendingAttendance,
       totalStudents,
       totalClasses: classCodes.length,
+      completedLessons,
     });
   }
 }

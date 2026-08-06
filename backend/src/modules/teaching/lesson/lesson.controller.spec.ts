@@ -334,4 +334,50 @@ describe('LessonController', () => {
       ).rejects.toThrow('Class not found: TEST01');
     });
   });
+
+  // ─── createWithAttendance ───
+
+  describe('createWithAttendance', () => {
+    it('should create the lesson as SCHEDULED (check-in path)', async () => {
+      mockClassService.findByCode = jest
+        .fn()
+        .mockResolvedValue({ courseCode: 'CS101' } as any);
+      mockClassService.getTeachers = jest.fn().mockResolvedValue([
+        { teacherId: 7, role: TeacherRole.PRIMARY },
+      ] as any);
+      mockLessonRepository.findMaxLessonNumber.mockResolvedValue(2);
+
+      const created = {
+        id: 50,
+        classCode: 'TEST01',
+        lessonNumber: 3,
+        status: LessonStatus.SCHEDULED,
+      };
+      service.create = jest.fn().mockResolvedValue(created);
+      mockLessonAttendanceService.autoCreateForLesson = jest
+        .fn()
+        .mockResolvedValue([]);
+      mockLessonAttendanceService.batchRollCall = jest.fn().mockResolvedValue([]);
+
+      const mockReq = { user: { sub: 42 } };
+      const dto = {
+        classCode: 'TEST01',
+        lessonDate: '2026-08-01',
+        startTime: '10:00',
+        endTime: '11:30',
+        attendanceRecords: [{ studentCode: 'STU-001', status: 'PRESENT' }],
+      };
+
+      await controller.createWithAttendance(dto as any, mockReq);
+
+      expect(service.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          classCode: 'TEST01',
+          courseCode: 'CS101',
+          lessonNumber: 3,
+          status: LessonStatus.SCHEDULED,
+        }),
+      );
+    });
+  });
 });

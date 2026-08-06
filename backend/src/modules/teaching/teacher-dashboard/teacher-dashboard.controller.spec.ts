@@ -6,6 +6,7 @@ import { TeacherAssignmentEntity } from '../teacher-assignment/teacher-assignmen
 import { ClassEntity } from '../class/class.entity';
 import { LessonEntity } from '../lesson/lesson.entity';
 import { LessonAttendanceEntity } from '../lesson-attendance/lesson-attendance.entity';
+import { EnrollmentRepository } from '../enrollment/enrollment.repository';
 
 describe('TeacherDashboardController', () => {
   let controller: TeacherDashboardController;
@@ -27,6 +28,10 @@ describe('TeacherDashboardController', () => {
     createQueryBuilder: jest.fn(),
   };
 
+  const mockEnrollmentRepo = {
+    findByClassCode: jest.fn(),
+  };
+
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TeacherDashboardController],
@@ -46,6 +51,10 @@ describe('TeacherDashboardController', () => {
         {
           provide: getRepositoryToken(LessonAttendanceEntity),
           useValue: mockLessonAttendanceRepo,
+        },
+        {
+          provide: EnrollmentRepository,
+          useValue: mockEnrollmentRepo,
         },
       ],
     }).compile();
@@ -74,6 +83,7 @@ describe('TeacherDashboardController', () => {
       expect(result.data!.todayLessons).toBe(0);
       expect(result.data!.pendingAttendance).toBe(0);
       expect(result.data!.totalStudents).toBe(0);
+      expect(result.data!.completedLessons).toBe(0);
     });
 
     it('should return dashboard stats when teacher has assignments', async () => {
@@ -99,9 +109,9 @@ describe('TeacherDashboardController', () => {
       };
       mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
-      mockClassRepo.find.mockResolvedValue([
-        { classCode: 'CLS-001', currentStudents: 15 },
-        { classCode: 'CLS-002', currentStudents: 10 },
+      // Distinct active-enrollment student count
+      mockEnrollmentRepo.findByClassCode.mockResolvedValue([
+        { classCode: 'CLS-001', studentCode: 'STU-001', status: 'ACTIVE' },
       ]);
 
       const mockReq = { user: { sub: 100 } };
@@ -110,7 +120,8 @@ describe('TeacherDashboardController', () => {
       expect(result).toBeDefined();
       expect(result.data!.todayLessons).toBe(3);
       expect(result.data!.pendingAttendance).toBe(2); // 3 total - 1 with attendance
-      expect(result.data!.totalStudents).toBe(25); // 15 + 10
+      expect(result.data!.totalStudents).toBe(1); // 1 distinct active enrollment
+      expect(result.data!.completedLessons).toBe(3); // lessonRepo.count (FINISHED) mock
     });
 
     it('should handle no lessons today', async () => {
@@ -120,6 +131,8 @@ describe('TeacherDashboardController', () => {
 
       mockLessonRepo.count.mockResolvedValue(0);
       mockLessonRepo.find.mockResolvedValue([]);
+
+      mockEnrollmentRepo.findByClassCode.mockResolvedValue([]);
 
       const mockReq = { user: { sub: 100 } };
       const result = await controller.getDashboard(mockReq);

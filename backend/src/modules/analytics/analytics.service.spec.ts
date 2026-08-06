@@ -103,7 +103,7 @@ describe('AnalyticsService', () => {
   // ─── getStudentMetrics ───
 
   describe('getStudentMetrics', () => {
-    it('should return all 8 student metrics with correct structure', async () => {
+    it('should return all 10 student metrics with correct structure', async () => {
       // Mock DAU/WAU/MAU query builder chain
       const mockQbChain = {
         select: jest.fn().mockReturnThis(),
@@ -139,9 +139,19 @@ describe('AnalyticsService', () => {
         { classCode: 'CLS-001', totalLessons: 20 },
       ]);
 
+      // Mock ACTIVE contract aggregation
+      const mockContractQb = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue({ consumed: '4', remaining: '8' }),
+      };
+      mockContractRepo.createQueryBuilder.mockReturnValue(mockContractQb);
+
       const result = await service.getStudentMetrics('STU-001');
 
-      expect(result.metrics).toHaveLength(8);
+      expect(result.metrics).toHaveLength(10);
       expect(result.metrics[0]).toEqual({ name: 'dau', value: 5, unit: '人' });
       expect(result.metrics[1]).toEqual({ name: 'wau', value: 20, unit: '人' });
       expect(result.metrics[2]).toEqual({ name: 'mau', value: 80, unit: '人' });
@@ -150,6 +160,8 @@ describe('AnalyticsService', () => {
       expect(result.metrics[5].name).toBe('absenceRate');
       expect(result.metrics[6].name).toBe('lateRate');
       expect(result.metrics[7]).toEqual({ name: 'courseProgress', value: 40, unit: '%' }); // 8/20 = 40%
+      expect(result.metrics[8]).toEqual({ name: 'consumedLessons', value: 4, unit: '节' });
+      expect(result.metrics[9]).toEqual({ name: 'remainingLessons', value: 8, unit: '节' });
     });
 
     it('should handle empty attendance data (division by zero protection)', async () => {
@@ -167,14 +179,25 @@ describe('AnalyticsService', () => {
       mockLessonAttendanceRepo.find.mockResolvedValue([]);
       mockEnrollmentRepo.find.mockResolvedValue([]);
 
+      const mockContractQb = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue({ consumed: '0', remaining: '0' }),
+      };
+      mockContractRepo.createQueryBuilder.mockReturnValue(mockContractQb);
+
       const result = await service.getStudentMetrics('STU-EMPTY');
 
-      expect(result.metrics).toHaveLength(8);
+      expect(result.metrics).toHaveLength(10);
       // All rates should be 0 when no records
       expect(result.metrics.find(m => m.name === 'attendanceRate')!.value).toBe(0);
       expect(result.metrics.find(m => m.name === 'absenceRate')!.value).toBe(0);
       expect(result.metrics.find(m => m.name === 'lateRate')!.value).toBe(0);
       expect(result.metrics.find(m => m.name === 'courseProgress')!.value).toBe(0);
+      expect(result.metrics.find(m => m.name === 'consumedLessons')!.value).toBe(0);
+      expect(result.metrics.find(m => m.name === 'remainingLessons')!.value).toBe(0);
     });
 
     it('should calculate attendance rates correctly', async () => {
@@ -204,6 +227,15 @@ describe('AnalyticsService', () => {
       ]);
       mockEnrollmentRepo.find.mockResolvedValue([]);
 
+      const mockContractQb = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue({ consumed: '2', remaining: '8' }),
+      };
+      mockContractRepo.createQueryBuilder.mockReturnValue(mockContractQb);
+
       const result = await service.getStudentMetrics('STU-RATES');
 
       // presentCount = 6 (PRESENT) + 2 (LATE) = 8
@@ -214,6 +246,8 @@ describe('AnalyticsService', () => {
       expect(result.metrics.find(m => m.name === 'attendanceRate')!.value).toBe(80);
       expect(result.metrics.find(m => m.name === 'absenceRate')!.value).toBe(10);
       expect(result.metrics.find(m => m.name === 'lateRate')!.value).toBe(20);
+      expect(result.metrics.find(m => m.name === 'consumedLessons')!.value).toBe(2);
+      expect(result.metrics.find(m => m.name === 'remainingLessons')!.value).toBe(8);
     });
   });
 
@@ -367,6 +401,19 @@ describe('AnalyticsService', () => {
 
   describe('getTeacherTrend', () => {
     it('should return lessonTrend and attendanceTrend with correct structure', async () => {
+      // Use dates relative to today so the trailing 7-day window always covers them
+      const fmt = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dd}`;
+      };
+      const today = new Date();
+      const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+      const twoDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2);
+      const yesterdayStr = fmt(yesterday);
+      const twoDaysAgoStr = fmt(twoDaysAgo);
+
       // Mock single lesson query (merged: returns id + date for both trends)
       const mockTeacherLessonsQb = {
         select: jest.fn().mockReturnThis(),
@@ -374,9 +421,9 @@ describe('AnalyticsService', () => {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         getRawMany: jest.fn().mockResolvedValue([
-          { id: '1', date: '2026-07-20' },
-          { id: '2', date: '2026-07-20' },
-          { id: '3', date: '2026-07-21' },
+          { id: '1', date: yesterdayStr },
+          { id: '2', date: yesterdayStr },
+          { id: '3', date: twoDaysAgoStr },
         ]),
       };
 
@@ -403,10 +450,10 @@ describe('AnalyticsService', () => {
       expect(result.lessonTrend).toHaveLength(7);
       expect(result.attendanceTrend).toHaveLength(7);
       // Verify lessonTrend has correct counts from merged query
-      const jul20 = result.lessonTrend.find(t => t.date === '2026-07-20');
-      expect(jul20?.value).toBe(2);
-      const jul21 = result.lessonTrend.find(t => t.date === '2026-07-21');
-      expect(jul21?.value).toBe(1);
+      const y1 = result.lessonTrend.find(t => t.date === yesterdayStr);
+      expect(y1?.value).toBe(2);
+      const y2 = result.lessonTrend.find(t => t.date === twoDaysAgoStr);
+      expect(y2?.value).toBe(1);
     });
 
     it('should return all zeros when no lessons for teacher', async () => {

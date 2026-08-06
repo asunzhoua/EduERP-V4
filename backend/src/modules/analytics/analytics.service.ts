@@ -166,6 +166,23 @@ export class AnalyticsService {
 
     metrics.push({ name: 'courseProgress', value: courseProgress, unit: '%' });
 
+    // --- Contract consumption metrics (over the student's ACTIVE contracts) ---
+    const contractAgg = await this.contractRepository
+      .createQueryBuilder('contract')
+      .select('COALESCE(SUM(contract.totalLessons - contract.remainingLessons), 0)', 'consumed')
+      .addSelect('COALESCE(SUM(contract.remainingLessons), 0)', 'remaining')
+      .where('contract.studentCode = :studentCode', { studentCode })
+      .andWhere('contract.status = :status', { status: ContractStatus.ACTIVE })
+      .getRawOne();
+
+    const consumedLessons = parseInt(contractAgg?.consumed || '0', 10);
+    const remainingLessons = parseInt(contractAgg?.remaining || '0', 10);
+
+    metrics.push(
+      { name: 'consumedLessons', value: consumedLessons, unit: '节' },
+      { name: 'remainingLessons', value: remainingLessons, unit: '节' },
+    );
+
     return { metrics };
   }
 

@@ -473,10 +473,18 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   });
 
   // ═══════════════════════════════════════════════════════════
-  // Test 8: Complete Lesson (Trigger Deduction)
+  // Test 8: Start + Complete Lesson (Trigger Deduction)
   // ═══════════════════════════════════════════════════════════
   describe('Step 8: Complete Lesson', () => {
     it('should mark lesson as FINISHED via Teacher', async () => {
+      // Check-in path creates SCHEDULED; follow the state machine
+      // SCHEDULED → TEACHING (start) → FINISHED (complete)
+      const startRes = await request(app.getHttpServer())
+        .patch(`/classes/${testIds.classCode}/lessons/1/start`)
+        .set('Authorization', `Bearer ${teacherToken}`)
+        .expect(200);
+      expect(startRes.body.code).toBe(0);
+
       const res = await request(app.getHttpServer())
         .patch(`/classes/${testIds.classCode}/lessons/1/complete`)
         .set('Authorization', `Bearer ${teacherToken}`)
@@ -627,6 +635,12 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     });
 
     it('should complete the second lesson', async () => {
+      const startRes = await request(app.getHttpServer())
+        .patch(`/classes/${testIds.classCode}/lessons/2/start`)
+        .set('Authorization', `Bearer ${teacherToken}`)
+        .expect(200);
+      expect(startRes.body.code).toBe(0);
+
       const res = await request(app.getHttpServer())
         .patch(`/classes/${testIds.classCode}/lessons/2/complete`)
         .set('Authorization', `Bearer ${teacherToken}`)
@@ -676,6 +690,12 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     });
 
     it('should complete the third lesson', async () => {
+      const startRes = await request(app.getHttpServer())
+        .patch(`/classes/${testIds.classCode}/lessons/3/start`)
+        .set('Authorization', `Bearer ${teacherToken}`)
+        .expect(200);
+      expect(startRes.body.code).toBe(0);
+
       const res = await request(app.getHttpServer())
         .patch(`/classes/${testIds.classCode}/lessons/3/complete`)
         .set('Authorization', `Bearer ${teacherToken}`)

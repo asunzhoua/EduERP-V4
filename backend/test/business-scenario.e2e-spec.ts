@@ -351,7 +351,7 @@ async function createLessonAndRollCall(
 ): Promise<{ lessonId: number; attendanceRecord: any }> {
   const today = getTodayDate();
 
-  // POST /lessons = create-with-attendance: creates the lesson (DRAFT),
+  // POST /lessons = create-with-attendance: creates the lesson (SCHEDULED),
   // auto-creates PENDING attendance, and performs the batch roll call in one step.
   const lessonRes = await request(app.getHttpServer())
     .post('/lessons')
