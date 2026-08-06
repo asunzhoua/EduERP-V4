@@ -136,7 +136,10 @@ export class AuthService {
     }
   }
 
-  async revokeUserSessions(operatorUserId: number, targetUserId: number): Promise<void> {
+  async revokeUserSessions(
+    operatorUserId: number,
+    targetUserId: number,
+  ): Promise<void> {
     if (operatorUserId === targetUserId) {
       throw new BadRequestException('不能撤销自己的会话');
     }
@@ -164,8 +167,16 @@ export class AuthService {
       refreshTokenExpiresAt: null as any,
     } as Partial<User>);
 
-    await this.createLoginLog(operator.id, operator.username, operator.role, 'ADMIN_REVOKE', true);
-    this.logger.log(`Admin session revoke: operator=${operatorUserId}, target=${targetUserId}`);
+    await this.createLoginLog(
+      operator.id,
+      operator.username,
+      operator.role,
+      'ADMIN_REVOKE',
+      true,
+    );
+    this.logger.log(
+      `Admin session revoke: operator=${operatorUserId}, target=${targetUserId}`,
+    );
   }
 
   async getCurrentUser(userId: number): Promise<Partial<User>> {
