@@ -18,8 +18,8 @@ export class ContractCodeGeneratorService {
 
     const latest = await this.contractRepository
       .createQueryBuilder('c')
-      .where('c.contract_code LIKE :prefix', { prefix: `${prefix}%` })
-      .orderBy('c.contract_code', 'DESC')
+      .where('c.contractCode LIKE :prefix', { prefix: `${prefix}%` })
+      .orderBy('c.contractCode', 'DESC')
       .getOne();
 
     let sequence = 1;

@@ -403,6 +403,20 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   });
 
   // ═══════════════════════════════════════════════════════════
+  // Step 5.5: Activate Class (DRAFT → ACTIVE)
+  // ═══════════════════════════════════════════════════════════
+  describe('Step 5.5: Activate Class', () => {
+    it('should activate the class via Admin', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/classes/${testIds.classCode}/status`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'ACTIVE' })
+        .expect(200);
+      expect(res.body.code).toBe(0);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════
   // Test 6: Enroll Student in Class
   // ═══════════════════════════════════════════════════════════
   describe('Step 6: Enroll Student in Class', () => {
@@ -477,16 +491,22 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   // Test 9: Data Consistency Verification (Three Perspectives)
   // ═══════════════════════════════════════════════════════════
   describe('Step 9: Data Consistency Verification', () => {
-    it('9.1 Admin perspective: GET /students/:code should show student', async () => {
+    it('9.1 Admin perspective: GET /students?studentCode should show student', async () => {
+      // Note: GET /students/:code does not exist — the :id route uses ParseIntPipe.
+      // Use the list endpoint with a studentCode filter instead.
       const res = await request(app.getHttpServer())
-        .get(`/students/${testIds.studentCode}`)
+        .get(`/students?studentCode=${testIds.studentCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(res.body.code).toBe(0);
       expect(res.body.data).toBeDefined();
-      expect(res.body.data.studentCode).toBe(testIds.studentCode);
-      expect(res.body.data.name).toBe('E2E测试学生-李小明的弟弟');
+      const student = res.body.data.items.find(
+        (s: any) => s.studentCode === testIds.studentCode,
+      );
+      expect(student).toBeDefined();
+      expect(student.studentCode).toBe(testIds.studentCode);
+      expect(student.name).toBe('E2E测试学生-李小明的弟弟');
     });
 
     it('9.2 Admin perspective: GET /contracts/:code should show remaining lessons deducted', async () => {
@@ -555,9 +575,8 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
       expect(Array.isArray(res.body.data)).toBe(true);
       expect(res.body.data.length).toBeGreaterThan(0);
 
-      const enrollment = res.body.data.find(
-        (e: any) => e.studentCode === testIds.studentCode,
-      );
+      // Note: the enriched response has no studentCode field; use the first record.
+      const enrollment = res.body.data[0];
       expect(enrollment).toBeDefined();
       expect(enrollment.classCode).toBe(testIds.classCode);
     });
@@ -691,13 +710,13 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
       expect(contractRes.body.data.remainingLessons).toBe(8);
       expect(contractRes.body.data.totalLessons).toBe(10);
 
-      // 2. Class has 3 lessons
+      // 2. Class has 3 lessons (GET /classes/:code/lessons returns a plain array)
       const lessonsRes = await request(app.getHttpServer())
         .get(`/classes/${testIds.classCode}/lessons`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .expect(200);
 
-      expect(lessonsRes.body.data.items.length).toBe(3);
+      expect(lessonsRes.body.data.length).toBe(3);
 
       // 3. Enrollment is still active
       const enrollmentRes = await request(app.getHttpServer())
@@ -707,13 +726,17 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
 
       expect(enrollmentRes.body.data.status).toBe('ACTIVE');
 
-      // 4. Student exists and is active
+      // 4. Student exists and is active (list endpoint with studentCode filter)
       const studentRes = await request(app.getHttpServer())
-        .get(`/students/${testIds.studentCode}`)
+        .get(`/students?studentCode=${testIds.studentCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(studentRes.body.data.status).toBe('ACTIVE');
+      const student = studentRes.body.data.items.find(
+        (s: any) => s.studentCode === testIds.studentCode,
+      );
+      expect(student).toBeDefined();
+      expect(student.status).toBe('ACTIVE');
     });
 
     it('should verify lesson details are correct', async () => {
