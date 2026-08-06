@@ -1,4 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { LessonAttendanceRepository } from './lesson-attendance.repository';
 import { LessonAttendanceEntity } from './lesson-attendance.entity';
 import { AttendanceStatus, DEDUCTIBLE_STATUSES } from './enums/attendance-status.enum';
@@ -9,6 +11,9 @@ import { ReminderType } from '@modules/reminder/enums/reminder-type.enum';
 import { TargetType } from '@modules/reminder/enums/target-type.enum';
 import { ContractRepository } from '@modules/teaching/contract/contract.repository';
 import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
+import { ClassEntity } from '@modules/teaching/class/class.entity';
+import { CourseEntity } from '@modules/teaching/course/course.entity';
+import { Subject } from '@common/enums/subject.enum';
 
 /**
  * Allowed workflow state transitions per AttendanceStateMachine.
@@ -73,6 +78,10 @@ export class LessonAttendanceService {
     private readonly attendanceRepo: LessonAttendanceRepository,
     private readonly reminderService: ReminderService,
     private readonly contractRepo: ContractRepository,
+    @InjectRepository(ClassEntity)
+    private readonly classRepo: Repository<ClassEntity>,
+    @InjectRepository(CourseEntity)
+    private readonly courseRepo: Repository<CourseEntity>,
   ) {}
 
   // ─── Auto-Creation ───
@@ -183,9 +192,12 @@ export class LessonAttendanceService {
 
     // ─── PHASE 2: Contract lesson deduction (only on first check-in) ───
     if (isFirstCheckIn && DEDUCTIBLE_STATUSES.has(input.status)) {
-      await this.deductLessonFromContract(input.studentCode).catch(err =>
-        this.logger.warn(`Lesson deduction failed for student ${input.studentCode}: ${err.message}`),
-      );
+      const subject = await this.resolveLessonSubject(entity.classCode);
+      if (subject) {
+        await this.deductLessonFromContract(input.studentCode, subject).catch(err =>
+          this.logger.warn(`Lesson deduction failed for student ${input.studentCode}: ${err.message}`),
+        );
+      }
     }
 
     // ─── Create attendance reminder for teacher ───
@@ -266,10 +278,15 @@ export class LessonAttendanceService {
     const saved = await this.attendanceRepo.saveAll(results);
 
     // ─── PHASE 2: Contract lesson deduction for all deductible students ───
+    const subject = results.length > 0
+      ? await this.resolveLessonSubject(results[0].classCode)
+      : null;
     for (const studentCode of studentsToDeduct) {
-      await this.deductLessonFromContract(studentCode).catch(err =>
-        this.logger.warn(`Lesson deduction failed for student ${studentCode}: ${err.message}`),
-      );
+      if (subject) {
+        await this.deductLessonFromContract(studentCode, subject).catch(err =>
+          this.logger.warn(`Lesson deduction failed for student ${studentCode}: ${err.message}`),
+        );
+      }
     }
 
     // ─── Create attendance reminder for teacher ───
@@ -285,6 +302,26 @@ export class LessonAttendanceService {
   // ─── Contract Lesson Deduction (Phase 2 Batch 2.1) ───
 
   /**
+   * Resolve the subject for a lesson via class → course chain.
+   * Returns null (and logs a warning) when the class or course cannot be found.
+   */
+  private async resolveLessonSubject(classCode: string): Promise<Subject | null> {
+    const cls = await this.classRepo.findOne({ where: { classCode } });
+    if (!cls) {
+      this.logger.warn(`Cannot resolve subject: class ${classCode} not found.`);
+      return null;
+    }
+    const course = await this.courseRepo.findOne({ where: { courseCode: cls.courseCode } });
+    if (!course) {
+      this.logger.warn(
+        `Cannot resolve subject: course ${cls.courseCode} not found for class ${classCode}.`,
+      );
+      return null;
+    }
+    return course.subject;
+  }
+
+  /**
    * Deduct one lesson from the student's active contract.
    * Called when attendance is recorded with a deductible status
    * (PRESENT, LATE, ONLINE, OFFLINE).
@@ -297,13 +334,17 @@ export class LessonAttendanceService {
    */
   private async deductLessonFromContract(
     studentCode: string,
+    subject: Subject,
   ): Promise<LessonDeductionResult | null> {
-    // 1. Find active contract for student
-    const contract = await this.contractRepo.findOneActiveByStudentCode(studentCode);
+    // 1. Find active contract for student + subject
+    const contract = await this.contractRepo.findActiveByStudentCodeAndSubject(
+      studentCode,
+      subject,
+    );
 
     if (!contract) {
       this.logger.warn(
-        `No active contract found for student ${studentCode}. Skipping lesson deduction.`,
+        `No active contract found for student ${studentCode} and subject ${subject}. Skipping lesson deduction.`,
       );
       return null;
     }
@@ -426,9 +467,12 @@ export class LessonAttendanceService {
     // 2. Rollback contract deductions for deductible statuses
     const rollbackResults: LessonDeductionResult[] = [];
 
+    const subject = records.length > 0
+      ? await this.resolveLessonSubject(records[0].classCode)
+      : null;
     for (const record of records) {
-      if (record.status && DEDUCTIBLE_STATUSES.has(record.status)) {
-        const result = await this.rollbackLessonDeduction(record.studentCode);
+      if (record.status && DEDUCTIBLE_STATUSES.has(record.status) && subject) {
+        const result = await this.rollbackLessonDeduction(record.studentCode, subject);
         if (result) {
           rollbackResults.push(result);
         }
@@ -452,15 +496,22 @@ export class LessonAttendanceService {
    */
   private async rollbackLessonDeduction(
     studentCode: string,
+    subject: Subject,
   ): Promise<LessonDeductionResult | null> {
     // Find contract (ACTIVE or EXHAUSTED — EXHAUSTED may be restored to ACTIVE)
-    const activeContract = await this.contractRepo.findOneActiveByStudentCode(studentCode);
+    const activeContract = await this.contractRepo.findActiveByStudentCodeAndSubject(
+      studentCode,
+      subject,
+    );
     let contract = activeContract;
 
     if (!contract) {
-      // Try EXHAUSTED contract (all lessons consumed, needs restoration)
+      // Try EXHAUSTED contract of the same subject (all lessons consumed, needs restoration)
       const allContracts = await this.contractRepo.findByStudentCode(studentCode);
-      contract = allContracts.find(c => c.status === ContractStatus.EXHAUSTED) ?? null;
+      contract =
+        allContracts
+          .filter(c => c.subject === subject && c.status === ContractStatus.EXHAUSTED)
+          .sort((a, b) => b.validFrom.localeCompare(a.validFrom))[0] ?? null;
     }
 
     if (!contract) {

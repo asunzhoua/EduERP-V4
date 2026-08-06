@@ -13,6 +13,7 @@ import { EnrollmentService } from '../enrollment/enrollment.service';
 import { AttendanceWorkflowState } from '../lesson-attendance/enums/attendance-workflow-state.enum';
 import { AttendanceStatus } from '../lesson-attendance/enums/attendance-status.enum';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
+import { Subject } from '@common/enums/subject.enum';
 
 // ═══════════════════════════════════════════════════════════════
 // Scenario 1: Happy Path — Complete Teaching Flow
@@ -33,8 +34,9 @@ describe('Teaching E2E: Happy Path', () => {
     const attendanceService = new LessonAttendanceService(
       mockAttendanceRepo as any,
       { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } as any,
-      { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } as any,
-      { emit: jest.fn() } as any,
+      { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } as any,
+      { findOne: jest.fn().mockImplementation(({ where }: any) => Promise.resolve({ classCode: where.classCode, courseCode: 'MATH001' })) } as any,
+      { findOne: jest.fn().mockImplementation(({ where }: any) => Promise.resolve({ courseCode: where.courseCode, subject: Subject.MATH })) } as any,
     );
 
     // ── Step 1: Course created (DRAFT) ──
@@ -183,8 +185,9 @@ describe('Teaching E2E: ATTEND-002 Violation', () => {
     const service = new LessonAttendanceService(
       mockRepo as any,
       { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } as any,
-      { findOneActiveByStudentCode: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } as any,
-      { emit: jest.fn() } as any,
+      { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } as any,
+      { findOne: jest.fn().mockResolvedValue(null) } as any,
+      { findOne: jest.fn().mockResolvedValue(null) } as any,
     );
 
     await expect(

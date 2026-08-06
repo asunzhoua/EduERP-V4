@@ -59,12 +59,12 @@ function createMockContractRepo(options?: {
     findOneByCode: jest.fn().mockImplementation((code: string) => {
       return Promise.resolve(store.find(c => c.contractCode === code) || null);
     }),
-    findOneActiveByStudentCode: jest.fn().mockImplementation((studentCode: string) => {
+    findActiveByStudentCodeAndSubject: jest.fn().mockImplementation((studentCode: string, subject: Subject) => {
       if (options?.activeContract !== undefined) {
         return Promise.resolve(options.activeContract);
       }
       const found = store.find(
-        c => c.studentCode === studentCode && c.status === ContractStatus.ACTIVE,
+        c => c.studentCode === studentCode && c.subject === subject && c.status === ContractStatus.ACTIVE,
       );
       return Promise.resolve(found ? { ...found } : null);
     }),
@@ -154,11 +154,20 @@ function createAttendanceService(
   mockContractRepo: ReturnType<typeof createMockContractRepo>,
   mockReminderService?: ReturnType<typeof createMockReminderService>,
 ) {
+  const mockClassRepo = {
+    findOne: jest.fn().mockImplementation(({ where }: any) =>
+      Promise.resolve({ classCode: where.classCode, courseCode: 'MATH001' })),
+  } as any;
+  const mockCourseRepo = {
+    findOne: jest.fn().mockImplementation(({ where }: any) =>
+      Promise.resolve({ courseCode: where.courseCode, subject: Subject.MATH })),
+  } as any;
   return new LessonAttendanceService(
     mockAttendanceRepo as any,
     (mockReminderService || createMockReminderService()) as any,
     mockContractRepo as any,
-    { emit: jest.fn() } as any,
+    mockClassRepo,
+    mockCourseRepo,
   );
 }
 
@@ -234,7 +243,7 @@ describe('Business Flow Integration: Scenario 1 — Happy Path', () => {
     expect(recorded.operator).toBe(10);
 
     // Verify contract deduction happened
-    expect(contractRepo.findOneActiveByStudentCode).toHaveBeenCalledWith('STU001');
+    expect(contractRepo.findActiveByStudentCodeAndSubject).toHaveBeenCalledWith('STU001', Subject.MATH);
     expect(contractRepo.save).toHaveBeenCalled();
 
     // Verify the saved contract has remainingLessons decremented
@@ -531,8 +540,8 @@ describe('Business Flow Integration: Scenario 3 — Contract Exhaustion', () => 
     });
     contractRepo._store.push({ ...contract });
 
-    // Mock: findOneActiveByStudentCode returns null (EXHAUSTED is not ACTIVE)
-    contractRepo.findOneActiveByStudentCode.mockResolvedValue(null);
+    // Mock: findActiveByStudentCodeAndSubject returns null (EXHAUSTED is not ACTIVE)
+    contractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(null);
 
     await service.autoCreateForLesson(1, ['STU001'], 'CL001', 10);
 
@@ -1130,7 +1139,7 @@ describe('Business Flow Integration: Scenario 10 — No Active Contract', () => 
     const contractRepo = createMockContractRepo();
     const service = createAttendanceService(attendanceRepo, contractRepo);
 
-    // No contract in store — findOneActiveByStudentCode returns null
+    // No contract in store — findActiveByStudentCodeAndSubject returns null
     await service.autoCreateForLesson(1, ['STU001'], 'CL001', 10);
 
     // Should NOT throw — attendance recorded, deduction skipped gracefully
@@ -1145,7 +1154,7 @@ describe('Business Flow Integration: Scenario 10 — No Active Contract', () => 
     expect(result.status).toBe(AttendanceStatus.PRESENT);
 
     // Contract repo was queried but nothing saved
-    expect(contractRepo.findOneActiveByStudentCode).toHaveBeenCalledWith('STU001');
+    expect(contractRepo.findActiveByStudentCodeAndSubject).toHaveBeenCalledWith('STU001', Subject.MATH);
     expect(contractRepo.save).not.toHaveBeenCalled();
   });
 });

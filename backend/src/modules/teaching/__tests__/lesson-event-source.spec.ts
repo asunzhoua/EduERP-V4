@@ -34,6 +34,7 @@ import { SalaryRuleEntity } from '@modules/salary/entities/salary-rule.entity';
 import { SalaryRecordStatus, SalaryRuleType } from '@modules/salary/enums/salary.enums';
 import { LessonCompletedEvent } from '@modules/salary/events/lesson-completed.event';
 import { ContractRepository } from '../contract/contract.repository';
+import { Subject } from '@common/enums/subject.enum';
 import { Student } from '@modules/student/entities/student.entity';
 
 // ══════════════════════════════════════════════════════════════
@@ -213,7 +214,7 @@ function createMockEnrollmentRepo() {
 function createMockContractRepo() {
   return {
     save: jest.fn().mockResolvedValue({}),
-    findOneActiveByStudentCode: jest.fn().mockResolvedValue(null),
+    findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null),
     findOneByCode: jest.fn().mockResolvedValue(null),
   };
 }
@@ -285,10 +286,20 @@ describe('Lesson Completed Event Source', () => {
     lessonService = module.get<LessonService>(LessonService);
 
     // Build LessonAttendanceService (without eventEmitter)
+    const mockLessonClassRepo = {
+      findOne: jest.fn().mockImplementation(({ where }: any) =>
+        Promise.resolve({ classCode: where.classCode, courseCode: 'MATH001' })),
+    } as any;
+    const mockLessonCourseRepo = {
+      findOne: jest.fn().mockImplementation(({ where }: any) =>
+        Promise.resolve({ courseCode: where.courseCode, subject: Subject.MATH })),
+    } as any;
     attendanceService = new LessonAttendanceService(
       mockAttendanceRepo as any,
       mockReminderService as any,
       mockContractRepo as any,
+      mockLessonClassRepo,
+      mockLessonCourseRepo,
     );
   });
 

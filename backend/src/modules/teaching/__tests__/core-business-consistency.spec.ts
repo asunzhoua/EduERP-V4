@@ -43,6 +43,7 @@ import { ContractRepository } from '../contract/contract.repository';
 import { Student } from '@modules/student/entities/student.entity';
 import { ClassStatus } from '../class/enums/class-status.enum';
 import { ContractStatus } from '../contract/enums/contract-status.enum';
+import { Subject } from '@common/enums/subject.enum';
 
 // ══════════════════════════════════════════════════════════════
 //  State Machine Reference (mirrors the one in lesson.service.ts)
@@ -186,9 +187,9 @@ function createMockContractRepo() {
       else store.push(entity);
       return Promise.resolve(entity);
     }),
-    findOneActiveByStudentCode: jest.fn().mockImplementation((code: string) => {
+    findActiveByStudentCodeAndSubject: jest.fn().mockImplementation((code: string, subject: Subject) => {
       return Promise.resolve(
-        store.find(c => c.studentCode === code && c.status === 'ACTIVE') || null,
+        store.find(c => c.studentCode === code && c.subject === subject && c.status === 'ACTIVE') || null,
       );
     }),
     findOneByCode: jest.fn().mockResolvedValue(null),
@@ -627,13 +628,21 @@ describe('Core Business Consistency Audit', () => {
 
       const mockAttendanceRepo = createMockAttendanceRepo();
       const mockReminderService = createMockReminderService();
-      const mockEventEmitter = createMockEventEmitter2();
+      const mockClassRepo = {
+        findOne: jest.fn().mockImplementation(({ where }: any) =>
+          Promise.resolve({ classCode: where.classCode, courseCode: 'MATH001' })),
+      } as any;
+      const mockCourseRepo = {
+        findOne: jest.fn().mockImplementation(({ where }: any) =>
+          Promise.resolve({ courseCode: where.courseCode, subject: Subject.MATH })),
+      } as any;
 
       attendanceService = new LessonAttendanceService(
         mockAttendanceRepo as any,
         mockReminderService as any,
         mockContractRepo as any,
-        mockEventEmitter as any,
+        mockClassRepo,
+        mockCourseRepo,
       );
 
       const module: TestingModule = await Test.createTestingModule({
@@ -682,6 +691,7 @@ describe('Core Business Consistency Audit', () => {
         id: 1,
         contractCode: 'CT-IDEMP-001',
         studentCode: 'STU001',
+        subject: Subject.MATH,
         totalLessons: 5,
         remainingLessons: 5,
         status: 'ACTIVE',
