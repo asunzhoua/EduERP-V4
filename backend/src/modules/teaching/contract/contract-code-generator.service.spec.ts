@@ -4,6 +4,9 @@ import { Repository } from 'typeorm';
 import { ContractCodeGeneratorService } from './contract-code-generator.service';
 import { ContractEntity } from './contract.entity';
 
+const FIXED_DATE = new Date('2026-07-15T08:00:00Z');
+let OriginalDate: typeof Date;
+
 describe('ContractCodeGeneratorService', () => {
   let service: ContractCodeGeneratorService;
   let contractRepo: jest.Mocked<Repository<ContractEntity>>;
@@ -11,6 +14,18 @@ describe('ContractCodeGeneratorService', () => {
   /** Build the expected prefix for a given Date (CT{year}{month}) */
   const prefix = (d: Date) =>
     `CT${d.getFullYear()}${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+
+  beforeEach(() => {
+    OriginalDate = global.Date;
+    jest.spyOn(global, 'Date').mockImplementation((((...args: any[]) => {
+      if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
+      return new (OriginalDate.bind(null, ...args))();
+    }) as any));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   beforeEach(async () => {
     const mockRepo = {
@@ -91,7 +106,7 @@ describe('ContractCodeGeneratorService', () => {
       await service.generateContractCode();
 
       expect(qb.where).toHaveBeenCalledWith(
-        'c.contract_code LIKE :prefix',
+        'c.contractCode LIKE :prefix',
         { prefix: `${expectedPrefix}%` },
       );
     });
@@ -110,7 +125,7 @@ describe('ContractCodeGeneratorService', () => {
 
       await service.generateContractCode();
 
-      expect(qb.orderBy).toHaveBeenCalledWith('c.contract_code', 'DESC');
+      expect(qb.orderBy).toHaveBeenCalledWith('c.contractCode', 'DESC');
     });
   });
 });

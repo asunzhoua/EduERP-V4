@@ -4,6 +4,9 @@ import { Repository } from 'typeorm';
 import { StudentCodeGeneratorService } from './student-code-generator.service';
 import { Student } from '../entities/student.entity';
 
+const FIXED_DATE = new Date('2026-07-15T08:00:00Z');
+let OriginalDate: typeof Date;
+
 describe('StudentCodeGeneratorService', () => {
   let service: StudentCodeGeneratorService;
   let repository: jest.Mocked<Repository<Student>>;
@@ -13,6 +16,18 @@ describe('StudentCodeGeneratorService', () => {
     orderBy: jest.fn().mockReturnThis(),
     getOne: jest.fn(),
   };
+
+  beforeEach(() => {
+    OriginalDate = global.Date;
+    jest.spyOn(global, 'Date').mockImplementation((((...args: any[]) => {
+      if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
+      return new (OriginalDate.bind(null, ...args))();
+    }) as any));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

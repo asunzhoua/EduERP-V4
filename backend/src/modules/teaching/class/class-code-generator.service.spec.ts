@@ -4,6 +4,9 @@ import { Repository } from 'typeorm';
 import { ClassCodeGeneratorService } from './class-code-generator.service';
 import { ClassEntity } from './class.entity';
 
+const FIXED_DATE = new Date('2026-07-15T08:00:00Z');
+let OriginalDate: typeof Date;
+
 describe('ClassCodeGeneratorService', () => {
   let service: ClassCodeGeneratorService;
   let classRepo: jest.Mocked<Repository<ClassEntity>>;
@@ -11,6 +14,18 @@ describe('ClassCodeGeneratorService', () => {
   /** Build the expected prefix for a given Date (CL{year}{month}) */
   const prefix = (d: Date) =>
     `CL${d.getFullYear()}${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+
+  beforeEach(() => {
+    OriginalDate = global.Date;
+    jest.spyOn(global, 'Date').mockImplementation((((...args: any[]) => {
+      if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
+      return new (OriginalDate.bind(null, ...args))();
+    }) as any));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   beforeEach(async () => {
     const mockRepo = {

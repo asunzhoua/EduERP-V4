@@ -4,6 +4,9 @@ import { Repository } from 'typeorm';
 import { CourseCodeGeneratorService } from './course-code-generator.service';
 import { CourseEntity } from './course.entity';
 
+const FIXED_DATE = new Date('2026-07-15T08:00:00Z');
+let OriginalDate: typeof Date;
+
 describe('CourseCodeGeneratorService', () => {
   let service: CourseCodeGeneratorService;
   let courseRepo: jest.Mocked<Repository<CourseEntity>>;
@@ -11,6 +14,18 @@ describe('CourseCodeGeneratorService', () => {
   /** Build the expected prefix for a given Date (CS{year}{month}) */
   const prefix = (d: Date) =>
     `CS${d.getFullYear()}${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+
+  beforeEach(() => {
+    OriginalDate = global.Date;
+    jest.spyOn(global, 'Date').mockImplementation((((...args: any[]) => {
+      if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
+      return new (OriginalDate.bind(null, ...args))();
+    }) as any));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   beforeEach(async () => {
     const mockRepo = {
@@ -52,19 +67,11 @@ describe('CourseCodeGeneratorService', () => {
   describe('generateCourseCode', () => {
     it('should start from 0001 when no existing records', async () => {
       setupQueryMock(null);
-      const now = new Date('2026-03-15');
-      const OriginalDate = global.Date;
-      jest.spyOn(global, 'Date').mockImplementation(((...args: any[]) => {
-        if (args.length === 0) return now;
-        return new (OriginalDate.bind(null, ...args))();
-      }) as any);
 
       const code = await service.generateCourseCode();
+      const now = new Date();
 
       expect(code).toBe(`${prefix(now)}0001`);
-
-      // restore
-      jest.restoreAllMocks();
     });
 
     it('should increment sequence after the latest record', async () => {
