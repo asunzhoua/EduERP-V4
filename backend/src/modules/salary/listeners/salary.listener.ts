@@ -39,7 +39,10 @@ export class SalaryListener {
 
       this.logger.log(`Salary record created for lesson ${event.lessonId}, amount: ${record.amount}`);
     } catch (error) {
-      this.logger.error(`Failed to calculate salary for lesson ${event.lessonId}: ${error.message}`);
+      this.logger.error(
+        `Failed to calculate salary for lesson ${event.lessonId}: ${error.message}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       // 不抛出异常，避免影响主流程
     }
   }

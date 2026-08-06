@@ -332,6 +332,7 @@ export class LessonService {
         scheduledDate: saved.scheduledDate,
         actualStartTime: saved.actualStartTime?.toISOString() ?? null,
         actualEndTime: saved.actualEndTime?.toISOString() ?? null,
+        completedAt: saved.actualEndTime ?? new Date(),
         durationMinutes: this.computeDurationMinutes(
           saved.startTime,
           saved.endTime,

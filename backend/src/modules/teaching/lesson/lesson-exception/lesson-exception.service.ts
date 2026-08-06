@@ -567,6 +567,7 @@ export class LessonExceptionService {
       scheduledDate: makeupLesson.scheduledDate,
       actualStartTime: new Date().toISOString(),
       actualEndTime: new Date().toISOString(),
+      completedAt: new Date(),
       durationMinutes: makeupDuration,
       isMakeup: true,
       originalLessonId: originalLessonId,

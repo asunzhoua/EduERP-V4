@@ -321,6 +321,23 @@ describe('Lesson Completed Event Source', () => {
       expect(completedEvents[0].payload.lessonId).toBe(lessonId);
     });
 
+    it('lesson.completed 事件应携带 completedAt', async () => {
+      const lessonId = 11;
+      const teaching = getMockLessonEntity({
+        id: lessonId,
+        status: LessonStatus.TEACHING,
+      });
+      mockLessonRepo._store.set(lessonId, teaching);
+
+      await lessonService.updateStatus(lessonId, LessonStatus.FINISHED, 1);
+
+      const completedEvents = mockEventBus._published.filter(
+        (e: any) => e.name === 'lesson.completed',
+      );
+      expect(completedEvents).toHaveLength(1);
+      expect(completedEvents[0].payload.completedAt).toBeInstanceOf(Date);
+    });
+
     it('batchRollCall 不再发射 lesson.completed', async () => {
       // 准备考勤记录
       const lessonId = 20;
@@ -405,6 +422,7 @@ describe('Lesson Completed Event Source', () => {
         scheduledDate: '2026-07-12',
         actualStartTime: '2026-07-14T09:00:00Z',
         actualEndTime: '2026-07-14T10:30:00Z',
+        completedAt: new Date('2026-07-14T10:30:00Z'),
         durationMinutes: 90,
         eventId: 'test-uuid-1',
         timestamp: '2026-07-14T10:30:00Z',
