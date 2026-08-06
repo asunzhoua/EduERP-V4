@@ -33,13 +33,6 @@ import { appConfig } from '@config/configuration';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: () => {
-        console.log('[DB Config]', {
-          host: process.env.DB_HOST,
-          port: process.env.DB_PORT,
-          username: process.env.DB_USERNAME,
-          password: process.env.DB_PASSWORD?.substring(0, 3) + '...',
-          database: process.env.DB_DATABASE,
-        });
         return {
         type: 'mysql',
         host: process.env.DB_HOST || 'localhost',

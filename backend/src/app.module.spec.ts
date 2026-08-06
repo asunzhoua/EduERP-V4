@@ -1,4 +1,6 @@
 import 'reflect-metadata';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { AppModule } from './app.module';
 
 describe('AppModule', () => {
@@ -9,5 +11,10 @@ describe('AppModule', () => {
       return name === 'ScheduleModule';
     });
     expect(hasScheduleModule).toBe(true);
+  });
+
+  it('should not log DB connection info on startup', () => {
+    const source = readFileSync(join(__dirname, 'app.module.ts'), 'utf8');
+    expect(source).not.toContain('[DB Config]');
   });
 });
