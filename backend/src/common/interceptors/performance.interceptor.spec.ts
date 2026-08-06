@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, CallHandler } from '@nestjs/common';
 import { of, throwError } from 'rxjs';
+import { delay } from 'rxjs/operators';
 import { PerformanceInterceptor } from './performance.interceptor';
 
 describe('PerformanceInterceptor', () => {
@@ -60,12 +61,7 @@ describe('PerformanceInterceptor', () => {
       } as ExecutionContext;
 
       const mockHandler: CallHandler = {
-        handle: () => {
-          // 模拟慢请求（延迟 1.5 秒）
-          return new Promise((resolve) => {
-            setTimeout(() => resolve({ items: [] }), 1500);
-          });
-        },
+        handle: () => of({ items: [] }).pipe(delay(1500)),
       };
 
       const result = interceptor.intercept(mockContext, mockHandler);
