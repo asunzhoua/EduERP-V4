@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { EventBusModule } from '@events/event-bus.module';
 import { IdentityModule } from '@modules/identity/identity.module';
 import { StudentModule } from '@modules/student/student.module';
@@ -22,6 +23,7 @@ import { appConfig } from '@config/configuration';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig],
