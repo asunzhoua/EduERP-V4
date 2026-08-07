@@ -13,6 +13,8 @@ import { ContractEntity } from '@modules/teaching/contract/contract.entity';
 import { LessonExceptionEntity } from '@modules/teaching/lesson/lesson-exception/lesson-exception.entity';
 import { SalaryRecordEntity } from '@modules/salary/entities/salary-record.entity';
 import { User } from '@modules/identity/entities/user.entity';
+import { ClassEntity } from '@modules/teaching/class/class.entity';
+import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/lesson-attendance.entity';
 import { LessonStatus } from '@modules/teaching/lesson/enums/lesson-status.enum';
 import { StudentStatus } from '@modules/student/enums/student-status.enum';
 import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
@@ -42,6 +44,8 @@ describe('DashboardService', () => {
   let exceptionRepo: MockRepo;
   let salaryRepo: MockRepo;
   let userRepo: MockRepo;
+  let classRepo: MockRepo;
+  let attendanceRepo: MockRepo;
 
   beforeEach(async () => {
     lessonRepo = mockRepository();
@@ -50,6 +54,8 @@ describe('DashboardService', () => {
     exceptionRepo = mockRepository();
     salaryRepo = mockRepository();
     userRepo = mockRepository();
+    classRepo = mockRepository();
+    attendanceRepo = mockRepository();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -66,6 +72,11 @@ describe('DashboardService', () => {
           useValue: salaryRepo,
         },
         { provide: getRepositoryToken(User), useValue: userRepo },
+        { provide: getRepositoryToken(ClassEntity), useValue: classRepo },
+        {
+          provide: getRepositoryToken(LessonAttendanceEntity),
+          useValue: attendanceRepo,
+        },
       ],
     }).compile();
 
@@ -226,6 +237,76 @@ describe('DashboardService', () => {
 
       // consumedValue: (100-40)*120 + (60-20)*150 = 7200 + 6000 = 13200
       expect(result.consumedValue).toBe(13200);
+    });
+  });
+
+  // ─── getSummary ────────────────────────────────────────────────────
+
+  describe('getSummary', () => {
+    function mockContractAgg(raw: any) {
+      contractRepo.createQueryBuilder.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue(raw),
+      });
+    }
+
+    beforeEach(() => {
+      classRepo.count.mockResolvedValue(0);
+      studentRepo.count.mockResolvedValue(0);
+      userRepo.count.mockResolvedValue(0);
+      mockContractAgg(null);
+      attendanceRepo.count.mockResolvedValue(0);
+    });
+
+    it('should aggregate totals, contract dimension and attendance dimension', async () => {
+      classRepo.count.mockResolvedValue(12);
+      studentRepo.count.mockResolvedValue(150);
+      userRepo.count.mockResolvedValue(8);
+      mockContractAgg({ total: '200', remaining: '120', consumed: '80' });
+      attendanceRepo.count
+        .mockResolvedValueOnce(3)   // today
+        .mockResolvedValueOnce(10)  // week
+        .mockResolvedValueOnce(40)  // month
+        .mockResolvedValueOnce(120); // year
+
+      const result = await service.getSummary();
+
+      expect(classRepo.count).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ deleted: false }) }),
+      );
+      expect(result.totalClasses).toBe(12);
+      expect(result.totalStudents).toBe(150);
+      expect(result.totalTeachers).toBe(8);
+      expect(result.totalContractHours).toBe(200);
+      expect(result.remainingContractHours).toBe(120);
+      expect(result.consumedContractHours).toBe(80);
+      expect(result.attendance.today).toBe(3);
+      expect(result.attendance.week).toBe(10);
+      expect(result.attendance.month).toBe(40);
+      expect(result.attendance.year).toBe(120);
+      expect(attendanceRepo.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: expect.objectContaining({
+              _value: expect.arrayContaining(['PRESENT', 'LATE', 'ONLINE', 'OFFLINE']),
+            }),
+            checkInTime: expect.objectContaining({ _type: 'between' }),
+          }),
+        }),
+      );
+    });
+
+    it('should default to zero when no data', async () => {
+      const result = await service.getSummary();
+
+      expect(result.totalClasses).toBe(0);
+      expect(result.totalStudents).toBe(0);
+      expect(result.totalTeachers).toBe(0);
+      expect(result.totalContractHours).toBe(0);
+      expect(result.remainingContractHours).toBe(0);
+      expect(result.consumedContractHours).toBe(0);
+      expect(result.attendance).toEqual({ today: 0, week: 0, month: 0, year: 0 });
     });
   });
 });

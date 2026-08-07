@@ -47,6 +47,15 @@ describe('DashboardController', () => {
               monthIncome: 50000,
               consumedValue: 15000,
             }),
+            getSummary: jest.fn().mockResolvedValue({
+              totalClasses: 8,
+              totalStudents: 100,
+              totalTeachers: 10,
+              totalContractHours: 2000,
+              consumedContractHours: 800,
+              remainingContractHours: 1200,
+              attendance: { today: 5, week: 30, month: 120, year: 800 },
+            }),
           },
         },
       ],
@@ -102,5 +111,17 @@ describe('DashboardController', () => {
     expect(result.todayIncome).toBe(10000);
     expect(result.monthIncome).toBe(50000);
     expect(result.consumedValue).toBe(15000);
+  });
+
+  it('should return summary', async () => {
+    const result = await controller.getSummary();
+    expect(result).toBeDefined();
+    expect(result.totalClasses).toBe(8);
+    expect(result.totalStudents).toBe(100);
+    expect(result.totalTeachers).toBe(10);
+    expect(result.totalContractHours).toBe(2000);
+    expect(result.consumedContractHours).toBe(800);
+    expect(result.remainingContractHours).toBe(1200);
+    expect(result.attendance).toEqual({ today: 5, week: 30, month: 120, year: 800 });
   });
 });

@@ -17,6 +17,8 @@ import { ContractEntity } from '@modules/teaching/contract/contract.entity';
 import { LessonExceptionEntity } from '@modules/teaching/lesson/lesson-exception/lesson-exception.entity';
 import { SalaryRecordEntity } from '@modules/salary/entities/salary-record.entity';
 import { User } from '@modules/identity/entities/user.entity';
+import { ClassEntity } from '@modules/teaching/class/class.entity';
+import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/lesson-attendance.entity';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { User } from '@modules/identity/entities/user.entity';
       LessonExceptionEntity,
       SalaryRecordEntity,
       User,
+      ClassEntity,
+      LessonAttendanceEntity,
     ]),
   ],
   controllers: [DashboardController],

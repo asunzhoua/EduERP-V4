@@ -63,3 +63,22 @@ export class FinanceStatsDto {
   monthIncome: number;
   consumedValue: number;
 }
+
+// ─── Summary DTOs ───────────────────────────────────────────────────────────
+
+export class AttendanceConsumptionDto {
+  today: number;
+  week: number;
+  month: number;
+  year: number;
+}
+
+export class DashboardSummaryDto {
+  totalClasses: number;
+  totalStudents: number;
+  totalTeachers: number;
+  totalContractHours: number;
+  consumedContractHours: number;
+  remainingContractHours: number;
+  attendance: AttendanceConsumptionDto;
+}

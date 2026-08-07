@@ -12,6 +12,57 @@
 
   <!-- 正常展示 -->
   <view wx:else>
+    <!-- 综合概览 -->
+    <view class="section" wx:if="{{summary}}">
+      <view class="section-title">综合概览</view>
+      <view class="stats-grid">
+        <view class="stat-card">
+          <view class="stat-value">{{summary.totalClasses}}</view>
+          <view class="stat-label">总班级</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">{{summary.totalStudents}}</view>
+          <view class="stat-label">总学生</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">{{summary.totalTeachers}}</view>
+          <view class="stat-label">总教师</view>
+        </view>
+      </view>
+      <view class="stats-grid">
+        <view class="stat-card">
+          <view class="stat-value">{{summary.totalContractHours}}</view>
+          <view class="stat-label">合同总课时</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">{{summary.consumedContractHours}}</view>
+          <view class="stat-label">已消耗</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">{{summary.remainingContractHours}}</view>
+          <view class="stat-label">剩余课时</view>
+        </view>
+      </view>
+      <view class="stats-grid">
+        <view class="stat-card">
+          <view class="stat-value">{{summary.attendance.today}}</view>
+          <view class="stat-label">今日消耗</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">{{summary.attendance.week}}</view>
+          <view class="stat-label">本周消耗</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">{{summary.attendance.month}}</view>
+          <view class="stat-label">本月消耗</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">{{summary.attendance.year}}</view>
+          <view class="stat-label">本年消耗</view>
+        </view>
+      </view>
+    </view>
+
     <!-- 今日运营 -->
     <view class="section">
       <view class="section-title">今日运营</view>

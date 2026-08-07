@@ -14,6 +14,7 @@ import {
   StudentStatsDto,
   TeacherStatsDto,
   FinanceStatsDto,
+  DashboardSummaryDto,
 } from './dto/dashboard-response.dto';
 
 @ApiTags('Dashboard')
@@ -23,6 +24,12 @@ import {
 @Roles('SuperAdmin', 'Admin')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
+
+  @Get('summary')
+  @ApiOperation({ summary: '获取综合概览（总量 + 合同课时 + 实际出勤消耗）' })
+  async getSummary(): Promise<DashboardSummaryDto> {
+    return this.dashboardService.getSummary();
+  }
 
   @Get('overview')
   @ApiOperation({ summary: '获取总览数据' })

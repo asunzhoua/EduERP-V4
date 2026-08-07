@@ -20,6 +20,9 @@ import { LessonExceptionEntity } from '@modules/teaching/lesson/lesson-exception
 import { SalaryRecordEntity } from '@modules/salary/entities/salary-record.entity';
 import { User } from '@modules/identity/entities/user.entity';
 import { UserStatus } from '@modules/identity/entities/user.entity';
+import { ClassEntity } from '@modules/teaching/class/class.entity';
+import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/lesson-attendance.entity';
+import { DEDUCTIBLE_STATUSES } from '@modules/teaching/lesson-attendance/enums/attendance-status.enum';
 
 // DTOs
 import {
@@ -28,7 +31,11 @@ import {
   StudentStatsDto,
   TeacherStatsDto,
   FinanceStatsDto,
+  DashboardSummaryDto,
 } from './dto/dashboard-response.dto';
+
+// getRawOne 聚合结果：COALESCE 返回的列均为字符串
+type ContractAgg = { total?: string; remaining?: string; consumed?: string };
 
 @Injectable()
 export class DashboardService {
@@ -50,6 +57,12 @@ export class DashboardService {
 
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    @InjectRepository(ClassEntity)
+    private readonly classRepo: Repository<ClassEntity>,
+
+    @InjectRepository(LessonAttendanceEntity)
+    private readonly attendanceRepo: Repository<LessonAttendanceEntity>,
   ) {}
 
   // ------------------------------------------------------------------
@@ -177,6 +190,96 @@ export class DashboardService {
         todayIncome,
         consumedValue,
       },
+    };
+  }
+
+  // ------------------------------------------------------------------
+  // 2.6 getSummary
+  // 综合概览：总量 + 合同维度 + 实际出勤维度（口径分离，见方案 M4）
+  // ------------------------------------------------------------------
+
+  async getSummary(): Promise<DashboardSummaryDto> {
+    const totalClasses = await this.classRepo.count({
+      where: { deleted: false },
+    });
+    const totalStudents = await this.studentRepo.count({
+      where: { deleted: false },
+    });
+    const totalTeachers = await this.userRepo.count({
+      where: { role: 'Teacher' },
+    });
+
+    // 合同维度：全量合同（含非活动）
+    const contractAgg = await this.contractRepo
+      .createQueryBuilder('contract')
+      .select('COALESCE(SUM(contract.totalLessons), 0)', 'total')
+      .addSelect('COALESCE(SUM(contract.remainingLessons), 0)', 'remaining')
+      .addSelect(
+        'COALESCE(SUM(contract.totalLessons - contract.remainingLessons), 0)',
+        'consumed',
+      )
+      .getRawOne<ContractAgg>();
+
+    const totalContractHours = parseInt(contractAgg?.total || '0', 10);
+    const remainingContractHours = parseInt(contractAgg?.remaining || '0', 10);
+    const consumedContractHours = parseInt(contractAgg?.consumed || '0', 10);
+
+    // 实际出勤维度：按 checkInTime 落在区间聚合
+    const now = new Date();
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const tomorrow = new Date(todayStart);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(todayStart.getDate() - ((todayStart.getDay() + 6) % 7)); // 周一为一周起点
+
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+    const nextYear = new Date(now.getFullYear() + 1, 0, 1);
+
+    const deductibleStatuses = Array.from(DEDUCTIBLE_STATUSES);
+
+    const [today, week, month, year] = await Promise.all([
+      this.attendanceRepo.count({
+        where: {
+          status: In(deductibleStatuses),
+          checkInTime: Between(todayStart, tomorrow),
+        },
+      }),
+      this.attendanceRepo.count({
+        where: {
+          status: In(deductibleStatuses),
+          checkInTime: Between(weekStart, tomorrow),
+        },
+      }),
+      this.attendanceRepo.count({
+        where: {
+          status: In(deductibleStatuses),
+          checkInTime: Between(monthStart, nextMonth),
+        },
+      }),
+      this.attendanceRepo.count({
+        where: {
+          status: In(deductibleStatuses),
+          checkInTime: Between(yearStart, nextYear),
+        },
+      }),
+    ]);
+
+    return {
+      totalClasses,
+      totalStudents,
+      totalTeachers,
+      totalContractHours,
+      consumedContractHours,
+      remainingContractHours,
+      attendance: { today, week, month, year },
     };
   }
 

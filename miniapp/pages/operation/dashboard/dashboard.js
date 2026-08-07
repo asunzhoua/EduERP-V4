@@ -10,13 +10,14 @@ Page({
     students: null,
     teachers: null,
     finance: null,
+    summary: null,
     showExport: false,
   },
 
   onLoad() {
     // 权限控制：仅管理员可见导出按钮
     const userInfo = wx.getStorageSync('userInfo');
-    if (userInfo && userInfo.role === 'ADMIN') {
+    if (userInfo && ['Admin', 'SuperAdmin'].includes(userInfo.role)) {
       this.setData({ showExport: true });
     } else {
       this.setData({ showExport: false });
@@ -30,12 +31,13 @@ Page({
 
     try {
       // 并行请求所有数据
-      const [overview, lessons, students, teachers, finance] = await Promise.all([
+      const [overview, lessons, students, teachers, finance, summary] = await Promise.all([
         get('/dashboard/overview'),
         get('/dashboard/lessons'),
         get('/dashboard/students'),
         get('/dashboard/teachers'),
         get('/dashboard/finance'),
+        get('/dashboard/summary'),
       ]);
 
       this.setData({
@@ -44,6 +46,7 @@ Page({
         students,
         teachers,
         finance,
+        summary,
         loading: false,
       });
     } catch (err) {
