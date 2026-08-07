@@ -9,6 +9,7 @@ var ROLES = {
   STUDENT: 'Student',
   PARENT: 'Parent',
   ADMIN: 'Admin',
+  SUPER_ADMIN: 'SuperAdmin',
 };
 
 // 角色中文名映射
@@ -17,6 +18,7 @@ var ROLE_TEXT_MAP = {
   Student: '学生',
   Parent: '家长',
   Admin: '管理员',
+  SuperAdmin: '管理员',
 };
 
 /**
@@ -29,12 +31,12 @@ function isTeacher(role) {
 }
 
 /**
- * 判断是否为教师角色（含 Admin）
+ * 判断是否为教师角色（含 Admin / SuperAdmin）
  * @param {string} role
  * @returns {boolean}
  */
 function isTeacherOrAbove(role) {
-  return role === ROLES.TEACHER || role === ROLES.ADMIN;
+  return role === ROLES.TEACHER || role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN;
 }
 
 /**

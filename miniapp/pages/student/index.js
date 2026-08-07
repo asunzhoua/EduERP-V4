@@ -12,12 +12,12 @@ Page({
   },
 
   onLoad() {
-    // 角色守卫：教师不允许访问学生专属页面
+    // 角色守卫：教师/管理员不允许访问学生专属页面 → 个人中心
     const app = getApp();
     var userInfo = app.globalData.userInfo || {};
     const role = userInfo.role;
-    if (role === 'Teacher') {
-      wx.reLaunch({ url: '/pages/index/index' });
+    if (role === 'Teacher' || role === 'Admin' || role === 'SuperAdmin') {
+      wx.reLaunch({ url: '/pages/teacher/profile' });
       return;
     }
     this.loadData();
@@ -28,8 +28,8 @@ Page({
     const app = getApp();
     var userInfo = app.globalData.userInfo || {};
     const role = userInfo.role;
-    if (role === 'Teacher') {
-      wx.reLaunch({ url: '/pages/index/index' });
+    if (role === 'Teacher' || role === 'Admin' || role === 'SuperAdmin') {
+      wx.reLaunch({ url: '/pages/teacher/profile' });
       return;
     }
     // 每次显示页面时都刷新数据（从详情页返回时需要更新）
