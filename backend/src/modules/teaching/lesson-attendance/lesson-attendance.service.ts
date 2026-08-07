@@ -1,16 +1,26 @@
-import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LessonAttendanceRepository } from './lesson-attendance.repository';
 import { LessonAttendanceEntity } from './lesson-attendance.entity';
-import { AttendanceStatus, DEDUCTIBLE_STATUSES } from './enums/attendance-status.enum';
+import {
+  AttendanceStatus,
+  DEDUCTIBLE_STATUSES,
+} from './enums/attendance-status.enum';
 import { AttendanceWorkflowState } from './enums/attendance-workflow-state.enum';
 import { AttendanceSource } from './enums/attendance-source.enum';
+import { DeductionSkipReason } from './enums/deduction-skip-reason.enum';
 import { ReminderService } from '@modules/reminder/reminder.service';
 import { ReminderType } from '@modules/reminder/enums/reminder-type.enum';
 import { TargetType } from '@modules/reminder/enums/target-type.enum';
 import { ContractRepository } from '@modules/teaching/contract/contract.repository';
 import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
+import { ContractEntity } from '@modules/teaching/contract/contract.entity';
 import { ClassEntity } from '@modules/teaching/class/class.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
 import { Subject } from '@common/enums/subject.enum';
@@ -63,6 +73,7 @@ export interface BatchRollCallInput {
 
 /** Result of a lesson deduction operation. */
 export interface LessonDeductionResult {
+  contractId: number;
   studentCode: string;
   contractCode: string;
   previousRemaining: number;
@@ -155,7 +166,7 @@ export class LessonAttendanceService {
     if (!entity) {
       throw new NotFoundException(
         `Attendance record not found for lesson ${input.lessonId}, student ${input.studentCode}. ` +
-        `Records must be auto-created (via autoCreateForLesson) before roll call.`,
+          `Records must be auto-created (via autoCreateForLesson) before roll call.`,
       );
     }
 
@@ -167,13 +178,12 @@ export class LessonAttendanceService {
 
     // ─── Reason required for specific statuses ───
     if (REASON_REQUIRED_STATUSES.has(input.status) && !input.reason?.trim()) {
-      throw new BadRequestException(
-        `Status ${input.status} requires a reason`,
-      );
+      throw new BadRequestException(`Status ${input.status} requires a reason`);
     }
 
     // ─── Track if this is first check-in (for deduction) ───
-    const isFirstCheckIn = entity.workflowState === AttendanceWorkflowState.PENDING;
+    const isFirstCheckIn =
+      entity.workflowState === AttendanceWorkflowState.PENDING;
 
     // ─── Apply changes ───
     entity.workflowState = AttendanceWorkflowState.CHECKED_IN;
@@ -190,18 +200,56 @@ export class LessonAttendanceService {
 
     const saved = await this.attendanceRepo.save(entity);
 
-    // ─── PHASE 2: Contract lesson deduction (only on first check-in) ───
-    if (isFirstCheckIn && DEDUCTIBLE_STATUSES.has(input.status)) {
-      const subject = await this.resolveLessonSubject(entity.classCode);
-      if (subject) {
-        await this.deductLessonFromContract(input.studentCode, subject).catch(err =>
-          this.logger.warn(`Lesson deduction failed for student ${input.studentCode}: ${err.message}`),
+    // ─── PHASE 2: Contract lesson deduction (only on first check-in, never twice) ───
+    if (
+      isFirstCheckIn &&
+      !entity.deductedContractId &&
+      DEDUCTIBLE_STATUSES.has(input.status)
+    ) {
+      // Subject resolution may throw on a repo/DB error; guard so an infra
+      // failure never propagates (the attendance is already saved). Distinguish
+      // from a genuine "no subject" business case: infra errors get no badge.
+      let subject: Subject | null = null;
+      let resolveFailed = false;
+      try {
+        subject = await this.resolveLessonSubject(entity.classCode);
+      } catch (err) {
+        resolveFailed = true;
+        this.logger.warn(
+          `Cannot resolve lesson subject for class ${entity.classCode}: ${err.message}`,
         );
+      }
+      if (subject) {
+        try {
+          const result = await this.deductLessonFromContract(
+            input.studentCode,
+            subject,
+          );
+          if (result) {
+            saved.deductedContractId = result.contractId;
+            await this.attendanceRepo.save(saved);
+          } else {
+            saved.deductionSkippedReason =
+              DeductionSkipReason.NO_ACTIVE_CONTRACT;
+            await this.attendanceRepo.save(saved);
+          }
+        } catch (err) {
+          this.logger.warn(
+            `Lesson deduction failed for student ${input.studentCode}: ${err.message}`,
+          );
+        }
+      } else if (!resolveFailed) {
+        saved.deductionSkippedReason = DeductionSkipReason.NO_SUBJECT;
+        await this.attendanceRepo.save(saved);
       }
     }
 
     // ─── Create attendance reminder for teacher ───
-    this.createAttendanceReminders(entity.teacherId, entity.lessonId, entity.classCode).catch(err =>
+    this.createAttendanceReminders(
+      entity.teacherId,
+      entity.lessonId,
+      entity.classCode,
+    ).catch((err) =>
       this.logger.warn(`Failed to create attendance reminder: ${err.message}`),
     );
 
@@ -215,17 +263,19 @@ export class LessonAttendanceService {
    * PHASE 2 BATCH 2.1: Now triggers contract lesson deduction
    * for each student with deductible status on first check-in.
    */
-  async batchRollCall(input: BatchRollCallInput): Promise<LessonAttendanceEntity[]> {
+  async batchRollCall(
+    input: BatchRollCallInput,
+  ): Promise<LessonAttendanceEntity[]> {
     // 1. Batch query existing records
-    const studentCodes = input.records.map(r => r.studentCode);
-    const existingRecords = await this.attendanceRepo.findByLessonIdAndStudentCodes(
-      input.lessonId,
-      studentCodes,
-    );
-    const existingMap = new Map(existingRecords.map(r => [r.studentCode, r]));
+    const studentCodes = input.records.map((r) => r.studentCode);
+    const existingRecords =
+      await this.attendanceRepo.findByLessonIdAndStudentCodes(
+        input.lessonId,
+        studentCodes,
+      );
+    const existingMap = new Map(existingRecords.map((r) => [r.studentCode, r]));
 
     const results: LessonAttendanceEntity[] = [];
-    const studentsToDeduct: string[] = [];
 
     for (const recordInput of input.records) {
       const entity = existingMap.get(recordInput.studentCode);
@@ -237,7 +287,9 @@ export class LessonAttendanceService {
 
       // Validate status enum
       if (!Object.values(AttendanceStatus).includes(recordInput.status)) {
-        throw new BadRequestException(`Invalid attendance status: ${recordInput.status}`);
+        throw new BadRequestException(
+          `Invalid attendance status: ${recordInput.status}`,
+        );
       }
 
       // Validate workflow state — must be PENDING
@@ -248,7 +300,10 @@ export class LessonAttendanceService {
       }
 
       // Validate reason requirement
-      if (REASON_REQUIRED_STATUSES.has(recordInput.status) && !recordInput.reason?.trim()) {
+      if (
+        REASON_REQUIRED_STATUSES.has(recordInput.status) &&
+        !recordInput.reason?.trim()
+      ) {
         throw new BadRequestException(
           `Reason is required for status ${recordInput.status} (student: ${recordInput.studentCode})`,
         );
@@ -263,11 +318,6 @@ export class LessonAttendanceService {
       entity.reason = recordInput.reason ?? null;
       entity.note = recordInput.note ?? null;
 
-      // Track students needing deduction
-      if (DEDUCTIBLE_STATUSES.has(recordInput.status)) {
-        studentsToDeduct.push(recordInput.studentCode);
-      }
-
       results.push(entity);
     }
 
@@ -278,21 +328,66 @@ export class LessonAttendanceService {
     const saved = await this.attendanceRepo.saveAll(results);
 
     // ─── PHASE 2: Contract lesson deduction for all deductible students ───
-    const subject = results.length > 0
-      ? await this.resolveLessonSubject(results[0].classCode)
-      : null;
-    for (const studentCode of studentsToDeduct) {
-      if (subject) {
-        await this.deductLessonFromContract(studentCode, subject).catch(err =>
-          this.logger.warn(`Lesson deduction failed for student ${studentCode}: ${err.message}`),
+    let subject: Subject | null = null;
+    let resolveFailed = false;
+    if (results.length > 0) {
+      try {
+        subject = await this.resolveLessonSubject(results[0].classCode);
+      } catch (err) {
+        resolveFailed = true;
+        this.logger.warn(
+          `Cannot resolve lesson subject for class ${results[0].classCode}: ${err.message}`,
         );
       }
+    }
+    const ledgerUpdates: LessonAttendanceEntity[] = [];
+    for (const entity of results) {
+      if (
+        entity.status &&
+        DEDUCTIBLE_STATUSES.has(entity.status) &&
+        !entity.deductedContractId
+      ) {
+        if (!subject) {
+          if (!resolveFailed) {
+            entity.deductionSkippedReason = DeductionSkipReason.NO_SUBJECT;
+            ledgerUpdates.push(entity);
+          }
+          continue;
+        }
+        try {
+          const result = await this.deductLessonFromContract(
+            entity.studentCode,
+            subject,
+          );
+          if (result) {
+            entity.deductedContractId = result.contractId;
+            ledgerUpdates.push(entity);
+          } else {
+            entity.deductionSkippedReason =
+              DeductionSkipReason.NO_ACTIVE_CONTRACT;
+            ledgerUpdates.push(entity);
+          }
+        } catch (err) {
+          this.logger.warn(
+            `Lesson deduction failed for student ${entity.studentCode}: ${err.message}`,
+          );
+        }
+      }
+    }
+    if (ledgerUpdates.length > 0) {
+      await this.attendanceRepo.saveAll(ledgerUpdates);
     }
 
     // ─── Create attendance reminder for teacher ───
     if (results.length > 0) {
-      this.createAttendanceReminders(results[0].teacherId, input.lessonId, results[0].classCode).catch(err =>
-        this.logger.warn(`Failed to create attendance reminder: ${err.message}`),
+      this.createAttendanceReminders(
+        results[0].teacherId,
+        input.lessonId,
+        results[0].classCode,
+      ).catch((err) =>
+        this.logger.warn(
+          `Failed to create attendance reminder: ${err.message}`,
+        ),
       );
     }
 
@@ -305,13 +400,17 @@ export class LessonAttendanceService {
    * Resolve the subject for a lesson via class → course chain.
    * Returns null (and logs a warning) when the class or course cannot be found.
    */
-  private async resolveLessonSubject(classCode: string): Promise<Subject | null> {
+  private async resolveLessonSubject(
+    classCode: string,
+  ): Promise<Subject | null> {
     const cls = await this.classRepo.findOne({ where: { classCode } });
     if (!cls) {
       this.logger.warn(`Cannot resolve subject: class ${classCode} not found.`);
       return null;
     }
-    const course = await this.courseRepo.findOne({ where: { courseCode: cls.courseCode } });
+    const course = await this.courseRepo.findOne({
+      where: { courseCode: cls.courseCode },
+    });
     if (!course) {
       this.logger.warn(
         `Cannot resolve subject: course ${cls.courseCode} not found for class ${classCode}.`,
@@ -374,10 +473,11 @@ export class LessonAttendanceService {
 
     this.logger.log(
       `Lesson deducted: student=${studentCode}, contract=${contract.contractCode}, ` +
-      `remaining=${previousRemaining} → ${contract.remainingLessons}`,
+        `remaining=${previousRemaining} → ${contract.remainingLessons}`,
     );
 
     return {
+      contractId: contract.id,
       studentCode,
       contractCode: contract.contractCode,
       previousRemaining,
@@ -437,7 +537,9 @@ export class LessonAttendanceService {
 
     if (toLock.length > 0) {
       await this.attendanceRepo.saveAll(toLock);
-      this.logger.log(`Locked ${toLock.length} attendance records for lesson ${lessonId}`);
+      this.logger.log(
+        `Locked ${toLock.length} attendance records for lesson ${lessonId}`,
+      );
     }
   }
 
@@ -453,9 +555,10 @@ export class LessonAttendanceService {
    * 3. Delete all attendance records
    * 4. Return rollback results for audit
    */
-  async cancelByLessonId(
-    lessonId: number,
-  ): Promise<{ deletedCount: number; rollbackResults: LessonDeductionResult[] }> {
+  async cancelByLessonId(lessonId: number): Promise<{
+    deletedCount: number;
+    rollbackResults: LessonDeductionResult[];
+  }> {
     // 1. Find all attendance records for the lesson
     const records = await this.attendanceRepo.findByLessonId(lessonId);
 
@@ -467,12 +570,13 @@ export class LessonAttendanceService {
     // 2. Rollback contract deductions for deductible statuses
     const rollbackResults: LessonDeductionResult[] = [];
 
-    const subject = records.length > 0
-      ? await this.resolveLessonSubject(records[0].classCode)
-      : null;
+    const subject =
+      records.length > 0
+        ? await this.resolveLessonSubject(records[0].classCode)
+        : null;
     for (const record of records) {
       if (record.status && DEDUCTIBLE_STATUSES.has(record.status) && subject) {
-        const result = await this.rollbackLessonDeduction(record.studentCode, subject);
+        const result = await this.rollbackLessonDeduction(record, subject);
         if (result) {
           rollbackResults.push(result);
         }
@@ -484,39 +588,63 @@ export class LessonAttendanceService {
 
     this.logger.log(
       `Cancelled attendance for lesson ${lessonId}: ` +
-      `deleted=${records.length}, rollbacks=${rollbackResults.length}`,
+        `deleted=${records.length}, rollbacks=${rollbackResults.length}`,
     );
 
     return { deletedCount: records.length, rollbackResults };
   }
 
   /**
-   * Rollback a single lesson deduction from a student's contract.
-   * Inverse of deductLessonFromContract.
+   * Rollback a single lesson deduction. Restores the EXACT contract recorded
+   * on the attendance row (deductedContractId) when available; otherwise falls
+   * back to a subject-based restore (legacy rows). Never revives contracts in
+   * EXPIRED/REFUNDED/FROZEN state.
    */
   private async rollbackLessonDeduction(
-    studentCode: string,
+    record: LessonAttendanceEntity,
     subject: Subject,
   ): Promise<LessonDeductionResult | null> {
-    // Find contract (ACTIVE or EXHAUSTED — EXHAUSTED may be restored to ACTIVE)
-    const activeContract = await this.contractRepo.findActiveByStudentCodeAndSubject(
-      studentCode,
-      subject,
-    );
-    let contract = activeContract;
+    // 1. Exact-contract restore via ledger (ACTIVE / EXHAUSTED only)
+    let contract: ContractEntity | null = null;
+    if (record.deductedContractId) {
+      const ledgerContract = await this.contractRepo.findOneById(
+        record.deductedContractId,
+      );
+      if (
+        ledgerContract &&
+        ledgerContract.studentCode === record.studentCode &&
+        (ledgerContract.status === ContractStatus.ACTIVE ||
+          ledgerContract.status === ContractStatus.EXHAUSTED)
+      ) {
+        contract = ledgerContract;
+      }
+    }
+
+    // 2. Fallback: legacy rows / invalid ledger → subject-based restore
+    if (!contract) {
+      contract = await this.contractRepo.findActiveByStudentCodeAndSubject(
+        record.studentCode,
+        subject,
+      );
+    }
 
     if (!contract) {
       // Try EXHAUSTED contract of the same subject (all lessons consumed, needs restoration)
-      const allContracts = await this.contractRepo.findByStudentCode(studentCode);
+      const allContracts = await this.contractRepo.findByStudentCode(
+        record.studentCode,
+      );
       contract =
         allContracts
-          .filter(c => c.subject === subject && c.status === ContractStatus.EXHAUSTED)
+          .filter(
+            (c) =>
+              c.subject === subject && c.status === ContractStatus.EXHAUSTED,
+          )
           .sort((a, b) => b.validFrom.localeCompare(a.validFrom))[0] ?? null;
     }
 
     if (!contract) {
       this.logger.warn(
-        `No active/exhausted contract found for student ${studentCode}. Skipping rollback.`,
+        `No active/exhausted contract found for student ${record.studentCode}. Skipping rollback.`,
       );
       return null;
     }
@@ -536,16 +664,18 @@ export class LessonAttendanceService {
     await this.contractRepo.save(contract);
 
     this.logger.log(
-      `Lesson rollback: student=${studentCode}, contract=${contract.contractCode}, ` +
-      `remaining=${previousRemaining} → ${contract.remainingLessons}`,
+      `Lesson rollback: student=${record.studentCode}, contract=${contract.contractCode}, ` +
+        `remaining=${previousRemaining} → ${contract.remainingLessons}`,
     );
 
     return {
-      studentCode,
+      contractId: contract.id,
+      studentCode: record.studentCode,
       contractCode: contract.contractCode,
       previousRemaining,
       newRemaining: contract.remainingLessons,
-      statusChanged: contract.status === ContractStatus.ACTIVE && previousRemaining === 0,
+      statusChanged:
+        contract.status === ContractStatus.ACTIVE && previousRemaining === 0,
     };
   }
 
@@ -555,7 +685,9 @@ export class LessonAttendanceService {
     return this.attendanceRepo.findByLessonId(lessonId);
   }
 
-  async findByStudentCode(studentCode: string): Promise<LessonAttendanceEntity[]> {
+  async findByStudentCode(
+    studentCode: string,
+  ): Promise<LessonAttendanceEntity[]> {
     return this.attendanceRepo.findByStudentCode(studentCode);
   }
 

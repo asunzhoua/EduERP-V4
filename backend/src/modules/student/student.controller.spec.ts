@@ -156,4 +156,37 @@ describe('StudentController', () => {
     expect(result.data).toEqual({ success: 1, failed: 0 });
     expect(service.importStudents).toHaveBeenCalledWith(file.buffer, file.originalname, 1);
   });
+
+  it('GET self/attendance - maps deductionSkippedReason', async () => {
+    service.findByUserId.mockResolvedValue(mockStudent);
+    mockAttendanceRepository.findByStudentCode.mockResolvedValue([
+      {
+        id: 1,
+        lessonId: 10,
+        studentCode: 'STU20240001',
+        status: 'PRESENT',
+        deductionSkippedReason: 'NO_ACTIVE_CONTRACT',
+      },
+    ]);
+    mockLessonRepository.find.mockResolvedValue([
+      {
+        id: 10,
+        classCode: 'CL1',
+        courseCode: 'C1',
+        scheduledDate: '2026-08-06',
+        startTime: '09:00',
+        endTime: '10:00',
+      },
+    ]);
+    mockClassRepository.find.mockResolvedValue([{ classCode: 'CL1', name: '一班' }]);
+    mockCourseRepository.find.mockResolvedValue([{ courseCode: 'C1', name: '数学' }]);
+
+    const result = await controller.getSelfAttendance(mockReq);
+    expect(result.code).toBe(0);
+    expect(result.data[0]).toMatchObject({
+      id: 1,
+      status: 'PRESENT',
+      deductionSkippedReason: 'NO_ACTIVE_CONTRACT',
+    });
+  });
 });

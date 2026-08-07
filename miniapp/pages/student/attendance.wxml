@@ -57,8 +57,11 @@
           <text class="course-name">{{item.courseName || '未知课程'}}</text>
           <text class="class-name">{{item.className || '未知班级'}}</text>
         </view>
-        <view class="attendance-status status-{{item.status}}">
-          {{item.status === 'PRESENT' ? '到课' : item.status === 'ABSENT' ? '缺勤' : item.status === 'LATE' ? '迟到' : item.status === 'LEAVE' ? '请假' : '待确认'}}
+        <view class="attendance-right">
+          <view class="attendance-status status-{{item.status}}">
+            {{item.status === 'PRESENT' ? '到课' : item.status === 'ABSENT' ? '缺勤' : item.status === 'LATE' ? '迟到' : item.status === 'LEAVE' ? '请假' : '待确认'}}
+          </view>
+          <view wx:if="{{item.deductionSkippedReason}}" class="deduction-skip-badge">未扣课时</view>
         </view>
       </view>
     </view>

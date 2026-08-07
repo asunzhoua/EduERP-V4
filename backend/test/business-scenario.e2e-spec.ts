@@ -717,12 +717,11 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
       expect(res.body.data.status).toBe('EXHAUSTED');
     });
 
-    it('2.4 合同耗尽后，再次签到不报错（跳过扣课）', async () => {
-      // Create another lesson for the exhausted contract.
-      // NOTE: the app's deduction is student-level — a PRESENT on this lesson would
-      // deduct from whichever contract is still ACTIVE (the original), corrupting it.
-      // Use a non-deductible status (ABSENT) so the exhausted contract stays 0 and the
-      // original contract is untouched. This preserves the invariants asserted elsewhere.
+    it('2.4 合同耗尽后，再次签到不报错（打标跳过扣课）', async () => {
+      // Contract is EXHAUSTED. A deductible status (PRESENT) on a new lesson must
+      // not deduct anywhere: subject-matched deduction only sees the ENGLISH
+      // contract, which is EXHAUSTED, so the attendance row is flagged
+      // deductionSkippedReason = NO_ACTIVE_CONTRACT (not silently skipped).
       const lessonRes = await request(app.getHttpServer())
         .post('/lessons')
         .set('Authorization', `Bearer ${teacherToken}`)
@@ -731,13 +730,22 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
           lessonDate: getTodayDate(),
           startTime: '18:00',
           endTime: '19:00',
-          attendanceRecords: [
-            { studentCode: studentCode, status: 'ABSENT', reason: '合同已耗尽' },
-          ],
+          attendanceRecords: [{ studentCode: studentCode, status: 'PRESENT' }],
         })
         .expect(201);
       const lessonId = lessonRes.body.data.lesson.id;
       createdIds.lessonIds.push(lessonId);
+
+      // Attendance row is flagged as skipped (no ACTIVE contract for ENGLISH)
+      const attRes = await request(app.getHttpServer())
+        .get(`/lessons/${lessonId}/attendance`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(attRes.body.data).toHaveLength(1);
+      expect(attRes.body.data[0].status).toBe('PRESENT');
+      expect(attRes.body.data[0].deductionSkippedReason).toBe(
+        'NO_ACTIVE_CONTRACT',
+      );
 
       // Contract should still be EXHAUSTED with 0 remaining
       const contractRes = await request(app.getHttpServer())

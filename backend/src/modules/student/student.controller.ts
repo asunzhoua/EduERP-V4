@@ -262,6 +262,7 @@ export class StudentController {
         courseName: lesson ? (courseMap.get(lesson.courseCode) || null) : null,
         className: lesson ? (classMap.get(lesson.classCode) || null) : null,
         status: a.status || 'PENDING',
+        deductionSkippedReason: a.deductionSkippedReason || null,
       };
     });
 

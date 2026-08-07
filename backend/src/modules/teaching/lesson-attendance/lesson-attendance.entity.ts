@@ -10,6 +10,7 @@ import {
 import { AttendanceStatus } from './enums/attendance-status.enum';
 import { AttendanceWorkflowState } from './enums/attendance-workflow-state.enum';
 import { AttendanceSource } from './enums/attendance-source.enum';
+import { DeductionSkipReason } from './enums/deduction-skip-reason.enum';
 
 /**
  * One record per student per lesson.
@@ -56,6 +57,14 @@ export class LessonAttendanceEntity {
     nullable: true,
   })
   status: AttendanceStatus | null;
+
+  /** Contract the lesson hour was deducted from (set once at first check-in). Null for legacy rows. */
+  @Column({ type: 'bigint', nullable: true })
+  deductedContractId: number | null;
+
+  /** Why a deductible attendance skipped deduction (set once at first check-in). Null = deducted or not deductible. */
+  @Column({ type: 'enum', enum: DeductionSkipReason, nullable: true })
+  deductionSkippedReason: DeductionSkipReason | null;
 
   @Column({ type: 'timestamp', nullable: true })
   checkInTime: Date | null;

@@ -45,6 +45,7 @@ describe('LessonAttendanceService', () => {
     mockContractRepo = {
       findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null),
       findByStudentCode: jest.fn().mockResolvedValue([]),
+      findOneById: jest.fn().mockResolvedValue(null),
       save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
     };
 
@@ -317,7 +318,9 @@ describe('LessonAttendanceService', () => {
     beforeEach(async () => {
       mockRepo = {
         save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
-        saveAll: jest.fn().mockImplementation((es: any[]) => Promise.resolve(es)),
+        saveAll: jest
+          .fn()
+          .mockImplementation((es: any[]) => Promise.resolve(es)),
         findByLessonAndStudent: jest.fn(),
         findByLessonId: jest.fn(),
         countUnconfirmedByLessonId: jest.fn(),
@@ -327,10 +330,31 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
-          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
-          { provide: ContractRepository, useValue: { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
-          { provide: getRepositoryToken(ClassEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
-          { provide: getRepositoryToken(CourseEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
+          {
+            provide: ReminderService,
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
+          },
+          {
+            provide: ContractRepository,
+            useValue: {
+              findActiveByStudentCodeAndSubject: jest
+                .fn()
+                .mockResolvedValue(null),
+              save: jest
+                .fn()
+                .mockImplementation((e: any) => Promise.resolve(e)),
+            },
+          },
+          {
+            provide: getRepositoryToken(ClassEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: getRepositoryToken(CourseEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -340,7 +364,10 @@ describe('LessonAttendanceService', () => {
 
     it('should create PENDING records for each student', async () => {
       const result = await service.autoCreateForLesson(
-        1, ['STU001', 'STU002'], 'CL001', 10,
+        1,
+        ['STU001', 'STU002'],
+        'CL001',
+        10,
       );
 
       expect(result).toHaveLength(2);
@@ -369,10 +396,31 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
-          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
-          { provide: ContractRepository, useValue: { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
-          { provide: getRepositoryToken(ClassEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
-          { provide: getRepositoryToken(CourseEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
+          {
+            provide: ReminderService,
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
+          },
+          {
+            provide: ContractRepository,
+            useValue: {
+              findActiveByStudentCodeAndSubject: jest
+                .fn()
+                .mockResolvedValue(null),
+              save: jest
+                .fn()
+                .mockImplementation((e: any) => Promise.resolve(e)),
+            },
+          },
+          {
+            provide: getRepositoryToken(ClassEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: getRepositoryToken(CourseEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -388,8 +436,10 @@ describe('LessonAttendanceService', () => {
       mockRepo.findByLessonAndStudent.mockResolvedValue(entity);
 
       const result = await service.recordAttendance({
-        lessonId: 1, studentCode: 'STU001',
-        status: AttendanceStatus.PRESENT, operator: 10,
+        lessonId: 1,
+        studentCode: 'STU001',
+        status: AttendanceStatus.PRESENT,
+        operator: 10,
       });
 
       expect(result.workflowState).toBe(AttendanceWorkflowState.CHECKED_IN);
@@ -404,8 +454,10 @@ describe('LessonAttendanceService', () => {
 
       await expect(
         service.recordAttendance({
-          lessonId: 1, studentCode: 'STU001',
-          status: AttendanceStatus.LATE, operator: 10,
+          lessonId: 1,
+          studentCode: 'STU001',
+          status: AttendanceStatus.LATE,
+          operator: 10,
         }),
       ).rejects.toThrow('Status LATE requires a reason');
     });
@@ -416,8 +468,11 @@ describe('LessonAttendanceService', () => {
       mockRepo.findByLessonAndStudent.mockResolvedValue(entity);
 
       const result = await service.recordAttendance({
-        lessonId: 1, studentCode: 'STU001',
-        status: AttendanceStatus.LATE, reason: 'Traffic', operator: 10,
+        lessonId: 1,
+        studentCode: 'STU001',
+        status: AttendanceStatus.LATE,
+        reason: 'Traffic',
+        operator: 10,
       });
 
       expect(result.status).toBe(AttendanceStatus.LATE);
@@ -429,8 +484,10 @@ describe('LessonAttendanceService', () => {
 
       await expect(
         service.recordAttendance({
-          lessonId: 1, studentCode: 'STU999',
-          status: AttendanceStatus.PRESENT, operator: 10,
+          lessonId: 1,
+          studentCode: 'STU999',
+          status: AttendanceStatus.PRESENT,
+          operator: 10,
         }),
       ).rejects.toThrow('Attendance record not found');
     });
@@ -442,8 +499,10 @@ describe('LessonAttendanceService', () => {
 
       await expect(
         service.recordAttendance({
-          lessonId: 1, studentCode: 'STU001',
-          status: AttendanceStatus.PRESENT, operator: 10,
+          lessonId: 1,
+          studentCode: 'STU001',
+          status: AttendanceStatus.PRESENT,
+          operator: 10,
         }),
       ).rejects.toThrow('Invalid workflow transition');
     });
@@ -455,7 +514,9 @@ describe('LessonAttendanceService', () => {
     beforeEach(async () => {
       mockRepo = {
         save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
-        saveAll: jest.fn().mockImplementation((es: any[]) => Promise.resolve(es)),
+        saveAll: jest
+          .fn()
+          .mockImplementation((es: any[]) => Promise.resolve(es)),
         findByLessonAndStudent: jest.fn(),
         findByLessonIdAndStudentCodes: jest.fn(),
       };
@@ -464,10 +525,31 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
-          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
-          { provide: ContractRepository, useValue: { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
-          { provide: getRepositoryToken(ClassEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
-          { provide: getRepositoryToken(CourseEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
+          {
+            provide: ReminderService,
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
+          },
+          {
+            provide: ContractRepository,
+            useValue: {
+              findActiveByStudentCodeAndSubject: jest
+                .fn()
+                .mockResolvedValue(null),
+              save: jest
+                .fn()
+                .mockImplementation((e: any) => Promise.resolve(e)),
+            },
+          },
+          {
+            provide: getRepositoryToken(ClassEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: getRepositoryToken(CourseEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -487,8 +569,19 @@ describe('LessonAttendanceService', () => {
       const result = await service.batchRollCall({
         lessonId: 1,
         records: [
-          { lessonId: 1, studentCode: 'STU001', status: AttendanceStatus.PRESENT, operator: 10 },
-          { lessonId: 1, studentCode: 'STU002', status: AttendanceStatus.ABSENT, reason: 'Sick', operator: 10 },
+          {
+            lessonId: 1,
+            studentCode: 'STU001',
+            status: AttendanceStatus.PRESENT,
+            operator: 10,
+          },
+          {
+            lessonId: 1,
+            studentCode: 'STU002',
+            status: AttendanceStatus.ABSENT,
+            reason: 'Sick',
+            operator: 10,
+          },
         ],
       });
 
@@ -503,7 +596,9 @@ describe('LessonAttendanceService', () => {
     beforeEach(async () => {
       mockRepo = {
         save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
-        saveAll: jest.fn().mockImplementation((es: any[]) => Promise.resolve(es)),
+        saveAll: jest
+          .fn()
+          .mockImplementation((es: any[]) => Promise.resolve(es)),
         findByLessonId: jest.fn(),
       };
 
@@ -511,10 +606,31 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
-          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
-          { provide: ContractRepository, useValue: { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
-          { provide: getRepositoryToken(ClassEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
-          { provide: getRepositoryToken(CourseEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
+          {
+            provide: ReminderService,
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
+          },
+          {
+            provide: ContractRepository,
+            useValue: {
+              findActiveByStudentCodeAndSubject: jest
+                .fn()
+                .mockResolvedValue(null),
+              save: jest
+                .fn()
+                .mockImplementation((e: any) => Promise.resolve(e)),
+            },
+          },
+          {
+            provide: getRepositoryToken(ClassEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: getRepositoryToken(CourseEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -553,7 +669,9 @@ describe('LessonAttendanceService', () => {
     beforeEach(async () => {
       mockRepo = {
         save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
-        saveAll: jest.fn().mockImplementation((es: any[]) => Promise.resolve(es)),
+        saveAll: jest
+          .fn()
+          .mockImplementation((es: any[]) => Promise.resolve(es)),
         findByLessonId: jest.fn(),
       };
 
@@ -561,10 +679,31 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
-          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
-          { provide: ContractRepository, useValue: { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
-          { provide: getRepositoryToken(ClassEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
-          { provide: getRepositoryToken(CourseEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
+          {
+            provide: ReminderService,
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
+          },
+          {
+            provide: ContractRepository,
+            useValue: {
+              findActiveByStudentCodeAndSubject: jest
+                .fn()
+                .mockResolvedValue(null),
+              save: jest
+                .fn()
+                .mockImplementation((e: any) => Promise.resolve(e)),
+            },
+          },
+          {
+            provide: getRepositoryToken(ClassEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: getRepositoryToken(CourseEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -600,7 +739,9 @@ describe('LessonAttendanceService', () => {
     beforeEach(async () => {
       mockRepo = {
         save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
-        saveAll: jest.fn().mockImplementation((es: any[]) => Promise.resolve(es)),
+        saveAll: jest
+          .fn()
+          .mockImplementation((es: any[]) => Promise.resolve(es)),
         findByLessonId: jest.fn(),
       };
 
@@ -608,10 +749,31 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
-          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
-          { provide: ContractRepository, useValue: { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
-          { provide: getRepositoryToken(ClassEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
-          { provide: getRepositoryToken(CourseEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
+          {
+            provide: ReminderService,
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
+          },
+          {
+            provide: ContractRepository,
+            useValue: {
+              findActiveByStudentCodeAndSubject: jest
+                .fn()
+                .mockResolvedValue(null),
+              save: jest
+                .fn()
+                .mockImplementation((e: any) => Promise.resolve(e)),
+            },
+          },
+          {
+            provide: getRepositoryToken(ClassEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: getRepositoryToken(CourseEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -621,13 +783,15 @@ describe('LessonAttendanceService', () => {
 
     it('should allow CONFIRMED �?CHECKED_IN transition per state machine', async () => {
       // The state machine allows CONFIRMED �?CHECKED_IN (admin override)
-      expect(VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED])
-        .toContain(AttendanceWorkflowState.CHECKED_IN);
+      expect(
+        VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED],
+      ).toContain(AttendanceWorkflowState.CHECKED_IN);
     });
 
     it('should allow CHECKED_IN �?PENDING transition per state machine', async () => {
-      expect(VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN])
-        .toContain(AttendanceWorkflowState.PENDING);
+      expect(
+        VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN],
+      ).toContain(AttendanceWorkflowState.PENDING);
     });
   });
 
@@ -645,10 +809,31 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
-          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
-          { provide: ContractRepository, useValue: { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
-          { provide: getRepositoryToken(ClassEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
-          { provide: getRepositoryToken(CourseEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
+          {
+            provide: ReminderService,
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
+          },
+          {
+            provide: ContractRepository,
+            useValue: {
+              findActiveByStudentCodeAndSubject: jest
+                .fn()
+                .mockResolvedValue(null),
+              save: jest
+                .fn()
+                .mockImplementation((e: any) => Promise.resolve(e)),
+            },
+          },
+          {
+            provide: getRepositoryToken(ClassEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: getRepositoryToken(CourseEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -689,10 +874,31 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
-          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
-          { provide: ContractRepository, useValue: { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
-          { provide: getRepositoryToken(ClassEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
-          { provide: getRepositoryToken(CourseEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
+          {
+            provide: ReminderService,
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
+          },
+          {
+            provide: ContractRepository,
+            useValue: {
+              findActiveByStudentCodeAndSubject: jest
+                .fn()
+                .mockResolvedValue(null),
+              save: jest
+                .fn()
+                .mockImplementation((e: any) => Promise.resolve(e)),
+            },
+          },
+          {
+            provide: getRepositoryToken(ClassEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: getRepositoryToken(CourseEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -736,10 +942,31 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
-          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
-          { provide: ContractRepository, useValue: { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
-          { provide: getRepositoryToken(ClassEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
-          { provide: getRepositoryToken(CourseEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
+          {
+            provide: ReminderService,
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
+          },
+          {
+            provide: ContractRepository,
+            useValue: {
+              findActiveByStudentCodeAndSubject: jest
+                .fn()
+                .mockResolvedValue(null),
+              save: jest
+                .fn()
+                .mockImplementation((e: any) => Promise.resolve(e)),
+            },
+          },
+          {
+            provide: getRepositoryToken(ClassEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: getRepositoryToken(CourseEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -785,10 +1012,31 @@ describe('LessonAttendanceService', () => {
         providers: [
           LessonAttendanceService,
           { provide: LessonAttendanceRepository, useValue: mockRepo },
-          { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
-          { provide: ContractRepository, useValue: { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } },
-          { provide: getRepositoryToken(ClassEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
-          { provide: getRepositoryToken(CourseEntity), useValue: { findOne: jest.fn().mockResolvedValue(null) } },
+          {
+            provide: ReminderService,
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
+          },
+          {
+            provide: ContractRepository,
+            useValue: {
+              findActiveByStudentCodeAndSubject: jest
+                .fn()
+                .mockResolvedValue(null),
+              save: jest
+                .fn()
+                .mockImplementation((e: any) => Promise.resolve(e)),
+            },
+          },
+          {
+            provide: getRepositoryToken(ClassEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: getRepositoryToken(CourseEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -820,13 +1068,16 @@ describe('LessonAttendanceService', () => {
   describe('subject-matched deduction', () => {
     it('should deduct from the matching-subject contract', async () => {
       const contract = {
+        id: 1,
         contractCode: 'CT-MATH-001',
         studentCode: 'STU001',
         subject: Subject.MATH,
         remainingLessons: 10,
         status: 'ACTIVE',
       };
-      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(contract);
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(
+        contract,
+      );
       mockContractRepo.save.mockImplementation((e: any) => Promise.resolve(e));
 
       const result = await (service as any).deductLessonFromContract(
@@ -834,16 +1085,18 @@ describe('LessonAttendanceService', () => {
         Subject.MATH,
       );
 
-      expect(mockContractRepo.findActiveByStudentCodeAndSubject).toHaveBeenCalledWith(
-        'STU001',
-        Subject.MATH,
-      );
+      expect(
+        mockContractRepo.findActiveByStudentCodeAndSubject,
+      ).toHaveBeenCalledWith('STU001', Subject.MATH);
       expect(contract.remainingLessons).toBe(9);
       expect(result!.contractCode).toBe('CT-MATH-001');
+      expect(result!.contractId).toBe(1);
     });
 
     it('should skip (no save, no throw) when no matching-subject contract exists', async () => {
-      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(null);
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(
+        null,
+      );
 
       const result = await (service as any).deductLessonFromContract(
         'STU001',
@@ -856,24 +1109,34 @@ describe('LessonAttendanceService', () => {
   });
 
   describe('rollbackLessonDeduction', () => {
-    it('should add 1 lesson back to an ACTIVE contract', async () => {
+    const record = (overrides: Record<string, unknown> = {}) => ({
+      studentCode: 'STU001',
+      deductedContractId: null,
+      ...overrides,
+    });
+
+    it('should add 1 lesson back to an ACTIVE contract (legacy, no ledger)', async () => {
       const contract = {
+        id: 1,
         contractCode: 'CT-MATH-001',
         studentCode: 'STU001',
         subject: Subject.MATH,
         remainingLessons: 5,
         status: ContractStatus.ACTIVE,
       };
-      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(contract);
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(
+        contract,
+      );
 
       const result = await (service as any).rollbackLessonDeduction(
-        'STU001',
+        record(),
         Subject.MATH,
       );
 
       expect(
         mockContractRepo.findActiveByStudentCodeAndSubject,
       ).toHaveBeenCalledWith('STU001', Subject.MATH);
+      expect(mockContractRepo.findOneById).not.toHaveBeenCalled();
       expect(contract.remainingLessons).toBe(6);
       expect(contract.status).toBe(ContractStatus.ACTIVE);
       expect(result).toEqual(
@@ -886,19 +1149,156 @@ describe('LessonAttendanceService', () => {
       );
     });
 
-    it('should restore an EXHAUSTED contract to ACTIVE and +1', async () => {
+    it('should restore the EXACT contract recorded in the ledger', async () => {
       const contract = {
+        id: 42,
+        contractCode: 'CT-MATH-002',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 5,
+        status: ContractStatus.ACTIVE,
+      };
+      mockContractRepo.findOneById.mockResolvedValue(contract);
+
+      const result = await (service as any).rollbackLessonDeduction(
+        record({ deductedContractId: 42 }),
+        Subject.MATH,
+      );
+
+      expect(mockContractRepo.findOneById).toHaveBeenCalledWith(42);
+      expect(
+        mockContractRepo.findActiveByStudentCodeAndSubject,
+      ).not.toHaveBeenCalled();
+      expect(contract.remainingLessons).toBe(6);
+      expect(result!.contractId).toBe(42);
+    });
+
+    it('should restore an EXHAUSTED ledger contract to ACTIVE and +1', async () => {
+      const contract = {
+        id: 42,
+        contractCode: 'CT-MATH-002',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 0,
+        status: ContractStatus.EXHAUSTED,
+      };
+      mockContractRepo.findOneById.mockResolvedValue(contract);
+
+      const result = await (service as any).rollbackLessonDeduction(
+        record({ deductedContractId: 42 }),
+        Subject.MATH,
+      );
+
+      expect(contract.remainingLessons).toBe(1);
+      expect(contract.status).toBe(ContractStatus.ACTIVE);
+      expect(result!.statusChanged).toBe(true);
+    });
+
+    it('should fall back to subject restore when the ledger contract is missing', async () => {
+      const contract = {
+        id: 1,
+        contractCode: 'CT-MATH-001',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 5,
+        status: ContractStatus.ACTIVE,
+      };
+      mockContractRepo.findOneById.mockResolvedValue(null);
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(
+        contract,
+      );
+
+      const result = await (service as any).rollbackLessonDeduction(
+        record({ deductedContractId: 999 }),
+        Subject.MATH,
+      );
+
+      expect(
+        mockContractRepo.findActiveByStudentCodeAndSubject,
+      ).toHaveBeenCalledWith('STU001', Subject.MATH);
+      expect(result!.contractCode).toBe('CT-MATH-001');
+    });
+
+    it('should fall back to subject restore when the ledger contract belongs to another student', async () => {
+      const contract = {
+        id: 1,
+        contractCode: 'CT-MATH-001',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 5,
+        status: ContractStatus.ACTIVE,
+      };
+      mockContractRepo.findOneById.mockResolvedValue({
+        id: 42,
+        contractCode: 'CT-MATH-OTHER',
+        studentCode: 'STU999',
+        subject: Subject.MATH,
+        remainingLessons: 5,
+        status: ContractStatus.ACTIVE,
+      });
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(
+        contract,
+      );
+
+      const result = await (service as any).rollbackLessonDeduction(
+        record({ deductedContractId: 42 }),
+        Subject.MATH,
+      );
+
+      expect(
+        mockContractRepo.findActiveByStudentCodeAndSubject,
+      ).toHaveBeenCalledWith('STU001', Subject.MATH);
+      expect(result!.contractCode).toBe('CT-MATH-001');
+    });
+
+    it('should fall back to subject restore when the ledger contract is REFUNDED', async () => {
+      const contract = {
+        id: 1,
+        contractCode: 'CT-MATH-001',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 5,
+        status: ContractStatus.ACTIVE,
+      };
+      mockContractRepo.findOneById.mockResolvedValue({
+        id: 42,
+        contractCode: 'CT-MATH-002',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 0,
+        status: ContractStatus.REFUNDED,
+      });
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(
+        contract,
+      );
+
+      const result = await (service as any).rollbackLessonDeduction(
+        record({ deductedContractId: 42 }),
+        Subject.MATH,
+      );
+
+      expect(
+        mockContractRepo.findActiveByStudentCodeAndSubject,
+      ).toHaveBeenCalledWith('STU001', Subject.MATH);
+      expect(result!.contractCode).toBe('CT-MATH-001');
+    });
+
+    it('should restore an EXHAUSTED contract to ACTIVE and +1 (legacy fallback)', async () => {
+      const contract = {
+        id: 1,
         contractCode: 'CT-MATH-001',
         studentCode: 'STU001',
         subject: Subject.MATH,
         remainingLessons: 0,
         status: ContractStatus.EXHAUSTED,
       };
-      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(null);
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(
+        null,
+      );
       mockContractRepo.findByStudentCode.mockResolvedValue([contract]);
 
       const result = await (service as any).rollbackLessonDeduction(
-        'STU001',
+        record(),
         Subject.MATH,
       );
 
@@ -910,6 +1310,7 @@ describe('LessonAttendanceService', () => {
 
     it('should pick only the matching-subject EXHAUSTED contract in fallback', async () => {
       const english = {
+        id: 1,
         contractCode: 'CT-ENG-001',
         studentCode: 'STU001',
         subject: Subject.ENGLISH,
@@ -918,6 +1319,7 @@ describe('LessonAttendanceService', () => {
         validFrom: '2026-01-01',
       };
       const math = {
+        id: 2,
         contractCode: 'CT-MATH-001',
         studentCode: 'STU001',
         subject: Subject.MATH,
@@ -925,11 +1327,13 @@ describe('LessonAttendanceService', () => {
         status: ContractStatus.EXHAUSTED,
         validFrom: '2026-01-01',
       };
-      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(null);
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(
+        null,
+      );
       mockContractRepo.findByStudentCode.mockResolvedValue([english, math]);
 
       const result = await (service as any).rollbackLessonDeduction(
-        'STU001',
+        record(),
         Subject.MATH,
       );
 
@@ -938,6 +1342,7 @@ describe('LessonAttendanceService', () => {
 
     it('should pick the most recent (validFrom DESC) EXHAUSTED contract in fallback', async () => {
       const older = {
+        id: 1,
         contractCode: 'CT-MATH-001',
         studentCode: 'STU001',
         subject: Subject.MATH,
@@ -946,6 +1351,7 @@ describe('LessonAttendanceService', () => {
         validFrom: '2026-01-01',
       };
       const newer = {
+        id: 2,
         contractCode: 'CT-MATH-002',
         studentCode: 'STU001',
         subject: Subject.MATH,
@@ -953,11 +1359,13 @@ describe('LessonAttendanceService', () => {
         status: ContractStatus.EXHAUSTED,
         validFrom: '2026-06-01',
       };
-      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(null);
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(
+        null,
+      );
       mockContractRepo.findByStudentCode.mockResolvedValue([older, newer]);
 
       const result = await (service as any).rollbackLessonDeduction(
-        'STU001',
+        record(),
         Subject.MATH,
       );
 
@@ -965,16 +1373,483 @@ describe('LessonAttendanceService', () => {
     });
 
     it('should return null without saving when no contract to roll back', async () => {
-      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(null);
+      mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(
+        null,
+      );
       mockContractRepo.findByStudentCode.mockResolvedValue([]);
 
       const result = await (service as any).rollbackLessonDeduction(
-        'STU001',
+        record(),
         Subject.MATH,
       );
 
       expect(result).toBeNull();
       expect(mockContractRepo.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deduction ledger (check-in write)', () => {
+    let mockRepo: any;
+    let contractRepo: any;
+
+    beforeEach(async () => {
+      mockRepo = {
+        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        saveAll: jest
+          .fn()
+          .mockImplementation((es: any[]) => Promise.resolve(es)),
+        findByLessonAndStudent: jest.fn(),
+        findByLessonIdAndStudentCodes: jest.fn(),
+      };
+      contractRepo = {
+        findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue({
+          id: 7,
+          contractCode: 'CT-MATH-001',
+          studentCode: 'STU001',
+          subject: Subject.MATH,
+          remainingLessons: 10,
+          status: ContractStatus.ACTIVE,
+        }),
+        findOneById: jest.fn().mockResolvedValue(null),
+        findByStudentCode: jest.fn().mockResolvedValue([]),
+        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+      };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          LessonAttendanceService,
+          { provide: LessonAttendanceRepository, useValue: mockRepo },
+          {
+            provide: ReminderService,
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
+          },
+          { provide: ContractRepository, useValue: contractRepo },
+          {
+            provide: getRepositoryToken(ClassEntity),
+            useValue: {
+              findOne: jest.fn().mockResolvedValue({ courseCode: 'MATH001' }),
+            },
+          },
+          {
+            provide: getRepositoryToken(CourseEntity),
+            useValue: {
+              findOne: jest.fn().mockResolvedValue({ subject: Subject.MATH }),
+            },
+          },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        ],
+      }).compile();
+
+      service = module.get<LessonAttendanceService>(LessonAttendanceService);
+    });
+
+    it('should write deductedContractId to the attendance row after a single check-in', async () => {
+      const entity = new LessonAttendanceEntity();
+      entity.workflowState = AttendanceWorkflowState.PENDING;
+      entity.classCode = 'CL001';
+      entity.studentCode = 'STU001';
+      entity.lessonId = 1;
+      mockRepo.findByLessonAndStudent.mockResolvedValue(entity);
+
+      await service.recordAttendance({
+        lessonId: 1,
+        studentCode: 'STU001',
+        status: AttendanceStatus.PRESENT,
+        operator: 10,
+      });
+
+      expect(
+        contractRepo.findActiveByStudentCodeAndSubject,
+      ).toHaveBeenCalledWith('STU001', Subject.MATH);
+      expect(entity.deductedContractId).toBe(7);
+      expect(mockRepo.save).toHaveBeenCalledTimes(2);
+    });
+
+    it('should NOT re-deduct when the attendance row already has a ledger', async () => {
+      const entity = new LessonAttendanceEntity();
+      entity.workflowState = AttendanceWorkflowState.PENDING;
+      entity.classCode = 'CL001';
+      entity.studentCode = 'STU001';
+      entity.lessonId = 1;
+      entity.deductedContractId = 7;
+      mockRepo.findByLessonAndStudent.mockResolvedValue(entity);
+
+      await service.recordAttendance({
+        lessonId: 1,
+        studentCode: 'STU001',
+        status: AttendanceStatus.PRESENT,
+        operator: 10,
+      });
+
+      expect(
+        contractRepo.findActiveByStudentCodeAndSubject,
+      ).not.toHaveBeenCalled();
+      expect(entity.deductedContractId).toBe(7);
+      expect(mockRepo.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('should write the ledger for each deductible student in batch roll call', async () => {
+      const e1 = new LessonAttendanceEntity();
+      e1.studentCode = 'STU001';
+      e1.classCode = 'CL001';
+      e1.workflowState = AttendanceWorkflowState.PENDING;
+      const e2 = new LessonAttendanceEntity();
+      e2.studentCode = 'STU002';
+      e2.classCode = 'CL001';
+      e2.workflowState = AttendanceWorkflowState.PENDING;
+      mockRepo.findByLessonIdAndStudentCodes.mockResolvedValue([e1, e2]);
+
+      await service.batchRollCall({
+        lessonId: 1,
+        records: [
+          {
+            lessonId: 1,
+            studentCode: 'STU001',
+            status: AttendanceStatus.PRESENT,
+            operator: 10,
+          },
+          {
+            lessonId: 1,
+            studentCode: 'STU002',
+            status: AttendanceStatus.PRESENT,
+            operator: 10,
+          },
+        ],
+      });
+
+      expect(
+        contractRepo.findActiveByStudentCodeAndSubject,
+      ).toHaveBeenCalledTimes(2);
+      expect(e1.deductedContractId).toBe(7);
+      expect(e2.deductedContractId).toBe(7);
+      expect(mockRepo.saveAll).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('deduction skip flag (no active contract / no subject)', () => {
+    let mockRepo: any;
+    let contractRepo: any;
+    let classRepo: any;
+    let courseRepo: any;
+
+    beforeEach(async () => {
+      mockRepo = {
+        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        saveAll: jest
+          .fn()
+          .mockImplementation((es: any[]) => Promise.resolve(es)),
+        findByLessonAndStudent: jest.fn(),
+        findByLessonIdAndStudentCodes: jest.fn(),
+      };
+      contractRepo = {
+        findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null),
+        findOneById: jest.fn().mockResolvedValue(null),
+        findByStudentCode: jest.fn().mockResolvedValue([]),
+        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+      };
+      classRepo = {
+        findOne: jest
+          .fn()
+          .mockResolvedValue({ courseCode: 'MATH001' }),
+      };
+      courseRepo = {
+        findOne: jest.fn().mockResolvedValue({ subject: Subject.MATH }),
+      };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          LessonAttendanceService,
+          { provide: LessonAttendanceRepository, useValue: mockRepo },
+          {
+            provide: ReminderService,
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
+          },
+          { provide: ContractRepository, useValue: contractRepo },
+          { provide: getRepositoryToken(ClassEntity), useValue: classRepo },
+          { provide: getRepositoryToken(CourseEntity), useValue: courseRepo },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        ],
+      }).compile();
+
+      service = module.get<LessonAttendanceService>(LessonAttendanceService);
+    });
+
+    it('V1 recordAttendance: PRESENT + no active contract → NO_ACTIVE_CONTRACT', async () => {
+      const entity = new LessonAttendanceEntity();
+      entity.workflowState = AttendanceWorkflowState.PENDING;
+      entity.classCode = 'CL001';
+      entity.studentCode = 'STU001';
+      entity.lessonId = 1;
+      mockRepo.findByLessonAndStudent.mockResolvedValue(entity);
+
+      await service.recordAttendance({
+        lessonId: 1,
+        studentCode: 'STU001',
+        status: AttendanceStatus.PRESENT,
+        operator: 10,
+      });
+
+      expect(
+        contractRepo.findActiveByStudentCodeAndSubject,
+      ).toHaveBeenCalledWith('STU001', Subject.MATH);
+      expect(entity.deductionSkippedReason).toBe('NO_ACTIVE_CONTRACT');
+    });
+
+    it('V2 recordAttendance: subject resolution fails → NO_SUBJECT', async () => {
+      classRepo.findOne.mockResolvedValue(null);
+      const entity = new LessonAttendanceEntity();
+      entity.workflowState = AttendanceWorkflowState.PENDING;
+      entity.classCode = 'CL999';
+      entity.studentCode = 'STU001';
+      entity.lessonId = 1;
+      mockRepo.findByLessonAndStudent.mockResolvedValue(entity);
+
+      await service.recordAttendance({
+        lessonId: 1,
+        studentCode: 'STU001',
+        status: AttendanceStatus.PRESENT,
+        operator: 10,
+      });
+
+      expect(entity.deductionSkippedReason).toBe('NO_SUBJECT');
+      expect(
+        contractRepo.findActiveByStudentCodeAndSubject,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('V3 recordAttendance: successful deduction → no skip flag', async () => {
+      contractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue({
+        id: 7,
+        contractCode: 'CT-MATH-001',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 10,
+        status: ContractStatus.ACTIVE,
+      });
+      const entity = new LessonAttendanceEntity();
+      entity.workflowState = AttendanceWorkflowState.PENDING;
+      entity.classCode = 'CL001';
+      entity.studentCode = 'STU001';
+      entity.lessonId = 1;
+      entity.deductionSkippedReason = null;
+      mockRepo.findByLessonAndStudent.mockResolvedValue(entity);
+
+      await service.recordAttendance({
+        lessonId: 1,
+        studentCode: 'STU001',
+        status: AttendanceStatus.PRESENT,
+        operator: 10,
+      });
+
+      expect(entity.deductedContractId).toBe(7);
+      expect(entity.deductionSkippedReason).toBeNull();
+    });
+
+    it('V3 recordAttendance: non-deductible status → no flag, no deduction attempt', async () => {
+      const entity = new LessonAttendanceEntity();
+      entity.workflowState = AttendanceWorkflowState.PENDING;
+      entity.classCode = 'CL001';
+      entity.studentCode = 'STU001';
+      entity.lessonId = 1;
+      entity.deductionSkippedReason = null;
+      mockRepo.findByLessonAndStudent.mockResolvedValue(entity);
+
+      await service.recordAttendance({
+        lessonId: 1,
+        studentCode: 'STU001',
+        status: AttendanceStatus.MAKEUP,
+        operator: 10,
+      });
+
+      expect(entity.deductionSkippedReason).toBeNull();
+      expect(
+        contractRepo.findActiveByStudentCodeAndSubject,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('V4 recordAttendance: deduction throws → no skip flag, record still succeeds', async () => {
+      contractRepo.findActiveByStudentCodeAndSubject.mockRejectedValue(
+        new Error('db down'),
+      );
+      const entity = new LessonAttendanceEntity();
+      entity.workflowState = AttendanceWorkflowState.PENDING;
+      entity.classCode = 'CL001';
+      entity.studentCode = 'STU001';
+      entity.lessonId = 1;
+      entity.deductionSkippedReason = null;
+      mockRepo.findByLessonAndStudent.mockResolvedValue(entity);
+
+      await service.recordAttendance({
+        lessonId: 1,
+        studentCode: 'STU001',
+        status: AttendanceStatus.PRESENT,
+        operator: 10,
+      });
+
+      expect(entity.deductionSkippedReason).toBeNull();
+    });
+
+    it('V1 batchRollCall: PRESENT + no active contract → NO_ACTIVE_CONTRACT', async () => {
+      const e1 = new LessonAttendanceEntity();
+      e1.studentCode = 'STU001';
+      e1.classCode = 'CL001';
+      e1.workflowState = AttendanceWorkflowState.PENDING;
+      mockRepo.findByLessonIdAndStudentCodes.mockResolvedValue([e1]);
+
+      await service.batchRollCall({
+        lessonId: 1,
+        records: [
+          {
+            lessonId: 1,
+            studentCode: 'STU001',
+            status: AttendanceStatus.PRESENT,
+            operator: 10,
+          },
+        ],
+      });
+
+      expect(e1.deductionSkippedReason).toBe('NO_ACTIVE_CONTRACT');
+    });
+
+    it('V2 batchRollCall: subject resolution fails → NO_SUBJECT', async () => {
+      classRepo.findOne.mockResolvedValue(null);
+      const e1 = new LessonAttendanceEntity();
+      e1.studentCode = 'STU001';
+      e1.classCode = 'CL999';
+      e1.workflowState = AttendanceWorkflowState.PENDING;
+      mockRepo.findByLessonIdAndStudentCodes.mockResolvedValue([e1]);
+
+      await service.batchRollCall({
+        lessonId: 1,
+        records: [
+          {
+            lessonId: 1,
+            studentCode: 'STU001',
+            status: AttendanceStatus.PRESENT,
+            operator: 10,
+          },
+        ],
+      });
+
+      expect(e1.deductionSkippedReason).toBe('NO_SUBJECT');
+    });
+
+    it('V3 batchRollCall: successful deduction → no skip flag', async () => {
+      contractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue({
+        id: 7,
+        contractCode: 'CT-MATH-001',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 10,
+        status: ContractStatus.ACTIVE,
+      });
+      const e1 = new LessonAttendanceEntity();
+      e1.studentCode = 'STU001';
+      e1.classCode = 'CL001';
+      e1.workflowState = AttendanceWorkflowState.PENDING;
+      e1.deductionSkippedReason = null;
+      mockRepo.findByLessonIdAndStudentCodes.mockResolvedValue([e1]);
+
+      await service.batchRollCall({
+        lessonId: 1,
+        records: [
+          {
+            lessonId: 1,
+            studentCode: 'STU001',
+            status: AttendanceStatus.PRESENT,
+            operator: 10,
+          },
+        ],
+      });
+
+      expect(e1.deductedContractId).toBe(7);
+      expect(e1.deductionSkippedReason).toBeNull();
+    });
+
+    it('V4 batchRollCall: deduction throws → no skip flag', async () => {
+      contractRepo.findActiveByStudentCodeAndSubject.mockRejectedValue(
+        new Error('db down'),
+      );
+      const e1 = new LessonAttendanceEntity();
+      e1.studentCode = 'STU001';
+      e1.classCode = 'CL001';
+      e1.workflowState = AttendanceWorkflowState.PENDING;
+      e1.deductionSkippedReason = null;
+      mockRepo.findByLessonIdAndStudentCodes.mockResolvedValue([e1]);
+
+      await service.batchRollCall({
+        lessonId: 1,
+        records: [
+          {
+            lessonId: 1,
+            studentCode: 'STU001',
+            status: AttendanceStatus.PRESENT,
+            operator: 10,
+          },
+        ],
+      });
+
+      expect(e1.deductionSkippedReason).toBeNull();
+    });
+
+    it('V5 recordAttendance: subject resolution throws → warn only, no flag, record succeeds', async () => {
+      classRepo.findOne.mockRejectedValue(new Error('db down'));
+      const entity = new LessonAttendanceEntity();
+      entity.workflowState = AttendanceWorkflowState.PENDING;
+      entity.classCode = 'CL001';
+      entity.studentCode = 'STU001';
+      entity.lessonId = 1;
+      entity.deductionSkippedReason = null;
+      mockRepo.findByLessonAndStudent.mockResolvedValue(entity);
+
+      await expect(
+        service.recordAttendance({
+          lessonId: 1,
+          studentCode: 'STU001',
+          status: AttendanceStatus.PRESENT,
+          operator: 10,
+        }),
+      ).resolves.toBeDefined();
+
+      expect(entity.deductionSkippedReason).toBeNull();
+      expect(
+        contractRepo.findActiveByStudentCodeAndSubject,
+      ).not.toHaveBeenCalled();
+      expect(mockRepo.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('V5 batchRollCall: subject resolution throws → warn only, no flag, records succeed', async () => {
+      classRepo.findOne.mockRejectedValue(new Error('db down'));
+      const e1 = new LessonAttendanceEntity();
+      e1.studentCode = 'STU001';
+      e1.classCode = 'CL001';
+      e1.workflowState = AttendanceWorkflowState.PENDING;
+      e1.deductionSkippedReason = null;
+      mockRepo.findByLessonIdAndStudentCodes.mockResolvedValue([e1]);
+
+      await expect(
+        service.batchRollCall({
+          lessonId: 1,
+          records: [
+            {
+              lessonId: 1,
+              studentCode: 'STU001',
+              status: AttendanceStatus.PRESENT,
+              operator: 10,
+            },
+          ],
+        }),
+      ).resolves.toBeDefined();
+
+      expect(e1.deductionSkippedReason).toBeNull();
+      expect(
+        contractRepo.findActiveByStudentCodeAndSubject,
+      ).not.toHaveBeenCalled();
+      expect(mockRepo.saveAll).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -133,6 +133,24 @@
   border: 2rpx solid #d9d9d9;
 }
 
+.attendance-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8rpx;
+  margin-left: 12rpx;
+}
+
+.deduction-skip-badge {
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  background: #fff7e6;
+  color: #fa8c16;
+  border: 2rpx solid #ffd591;
+  white-space: nowrap;
+}
+
 /* 统计卡片 */
 .stats-card {
   background: #fff;
