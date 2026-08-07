@@ -52,13 +52,12 @@ export class CourseRepository {
     if (options.teacherId) {
       qb.andWhere(
         `c.courseCode IN (
-          SELECT cl."courseCode" FROM class cl
-          WHERE cl."deleted" = false
-          AND cl."classCode" IN (
-            SELECT ta."classCode" FROM teacher_assignment ta
-            WHERE ta."teacherId" = :teacherId
-            AND ta."effectiveTo" IS NULL
-            AND ta."deleted" = false
+          SELECT cl.courseCode FROM class cl
+          WHERE cl.deleted = false
+          AND cl.classCode IN (
+            SELECT ta.classCode FROM teacher_assignment ta
+            WHERE ta.teacherId = :teacherId
+            AND ta.effectiveTo IS NULL
           )
         )`,
         { teacherId: options.teacherId },

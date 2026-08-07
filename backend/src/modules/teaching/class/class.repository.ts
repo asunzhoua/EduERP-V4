@@ -69,7 +69,7 @@ export class ClassRepository {
     }
     if (options.teacherId) {
       qb.andWhere(
-        `c.classCode IN (SELECT ta."classCode" FROM teacher_assignment ta WHERE ta."teacherId" = :teacherId AND ta."effectiveTo" IS NULL AND ta."deleted" = false)`,
+        `c.classCode IN (SELECT ta.classCode FROM teacher_assignment ta WHERE ta.teacherId = :teacherId AND ta.effectiveTo IS NULL)`,
         { teacherId: options.teacherId },
       );
     }

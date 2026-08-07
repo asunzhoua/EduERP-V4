@@ -81,7 +81,6 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     classCode: '',
     courseCode: '',
     enrollmentId: 0,
-    lessonId: 0,
   };
 
   // Unique test prefix to identify test data
@@ -229,10 +228,15 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   afterAll(async () => {
     // ── Cleanup: Remove all test data via raw SQL ──
     try {
-      if (testIds.lessonId) {
-        await dataSource.query(`DELETE FROM lesson_attendance WHERE lessonId = ?`, [testIds.lessonId]);
-      }
       if (testIds.classCode) {
+        // 3 lessons are created across Step 7/10/11. Delete attendance for ALL
+        // of them before deleting the lessons — a single-lessonId delete left
+        // orphan rows that polluted later business-scenario runs (studentCode
+        // reuse picks up the residual ABSENT/LATE rows).
+        await dataSource.query(
+          `DELETE FROM lesson_attendance WHERE lessonId IN (SELECT id FROM lesson WHERE classCode = ?)`,
+          [testIds.classCode],
+        );
         await dataSource.query(`DELETE FROM lesson WHERE classCode = ?`, [testIds.classCode]);
         await dataSource.query(`DELETE FROM teacher_assignment WHERE classCode = ?`, [testIds.classCode]);
       }
@@ -262,6 +266,28 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     }
 
     await app.close();
+  }, 15000);
+
+  // ═══════════════════════════════════════════════════════════
+  // Regression: Teacher-scoped /courses and /classes must not 500.
+  // The M-01 teacherId subqueries used Postgres double-quoted
+  // identifiers ("ta.classCode") and referenced teacher_assignment.deleted,
+  // both invalid in MySQL → QueryFailedError for any Teacher user.
+  // ═══════════════════════════════════════════════════════════
+  it('Teacher can list own courses and classes (no 500)', async () => {
+    const coursesRes = await request(app.getHttpServer())
+      .get('/courses')
+      .query({ pageSize: 10 })
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+    expect(coursesRes.body.code).toBe(0);
+
+    const classesRes = await request(app.getHttpServer())
+      .get('/classes')
+      .query({ pageSize: 10 })
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+    expect(classesRes.body.code).toBe(0);
   }, 15000);
 
   // ═══════════════════════════════════════════════════════════
@@ -467,8 +493,6 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
       expect(res.body.data.lesson).toBeDefined();
       expect(res.body.data.lessonNumber).toBe(1);
       expect(res.body.data.attendanceCount).toBe(1);
-
-      testIds.lessonId = res.body.data.lesson.id;
     });
   });
 
