@@ -182,6 +182,11 @@
 .stats-present { color: #52c41a; }
 .stats-absent { color: #ff4d4f; }
 .stats-late { color: #fa8c16; }
+.stats-leave { color: #1890ff; }
+.stats-sick { color: #722ed1; }
+.stats-makeup { color: #13c2c2; }
+.stats-online { color: #2f54eb; }
+.stats-offline { color: #ad8b00; }
 
 .stats-label {
   font-size: 22rpx;

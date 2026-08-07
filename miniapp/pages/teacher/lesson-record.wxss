@@ -159,6 +159,22 @@
   background: #fff7e6;
 }
 
+.student-item.status-SICK {
+  background: #f9f0ff;
+}
+
+.student-item.status-MAKEUP {
+  background: #e6fffb;
+}
+
+.student-item.status-ONLINE {
+  background: #f0f5ff;
+}
+
+.student-item.status-OFFLINE {
+  background: #fffbe6;
+}
+
 .student-name {
   font-size: 32rpx;
   color: #333333;

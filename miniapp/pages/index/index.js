@@ -1,6 +1,7 @@
 // pages/index/index.js
 const app = getApp();
 const { get } = require('../../utils/request');
+const { statusText } = require('../../utils/attendance-status');
 
 Page({
   data: {
@@ -72,9 +73,13 @@ Page({
           get('/students/self/contracts').catch(() => []),
           get('/students/self/lessons').catch(() => [])
         ]);
+        const recentLessons = (Array.isArray(lessons) ? lessons : []).slice(0, 5).map(l => ({
+          ...l,
+          statusText: statusText(l.status)
+        }));
         this.setData({
           myContracts: Array.isArray(contracts) ? contracts : [],
-          recentLessons: Array.isArray(lessons) ? lessons.slice(0, 5) : [],
+          recentLessons,
           loading: false
         });
       } catch (err) {

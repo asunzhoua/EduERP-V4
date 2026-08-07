@@ -1,10 +1,11 @@
 // pages/student/attendance.js
 const { get } = require('../../utils/request');
+const { statusText, statusClass } = require('../../utils/attendance-status');
 
 Page({
   data: {
     attendanceList: [],
-    stats: { total: 0, present: 0, absent: 0, late: 0, leave: 0, attendanceRate: 0 },
+    stats: { total: 0, present: 0, absent: 0, late: 0, leave: 0, sick: 0, makeup: 0, online: 0, offline: 0, attendanceRate: 0 },
     loading: true,
     error: null
   },
@@ -25,16 +26,28 @@ Page({
     try {
       this.setData({ loading: true, error: null });
       const res = await get('/students/self/attendance');
-      const list = Array.isArray(res) ? res : [];
-      const total = list.length;
-      const present = list.filter(a => a.status === 'PRESENT').length;
-      const absent = list.filter(a => a.status === 'ABSENT').length;
-      const late = list.filter(a => a.status === 'LATE').length;
-      const leave = list.filter(a => a.status === 'LEAVE').length;
-      const attendanceRate = total > 0 ? Math.round((present + late) / total * 100) : 0;
+      const attendanceList = (Array.isArray(res) ? res : []).map(a => ({
+        ...a,
+        statusText: statusText(a.status),
+        statusClass: statusClass(a.status)
+      }));
+      const total = attendanceList.length;
+      const present = attendanceList.filter(a => a.status === 'PRESENT').length;
+      const absent = attendanceList.filter(a => a.status === 'ABSENT').length;
+      const late = attendanceList.filter(a => a.status === 'LATE').length;
+      const leave = attendanceList.filter(a => a.status === 'LEAVE').length;
+      const sick = attendanceList.filter(a => a.status === 'SICK').length;
+      const makeup = attendanceList.filter(a => a.status === 'MAKEUP').length;
+      const online = attendanceList.filter(a => a.status === 'ONLINE').length;
+      const offline = attendanceList.filter(a => a.status === 'OFFLINE').length;
+      // 到课率分子与后端扣课集合 DEDUCTIBLE_STATUSES 对齐：PRESENT/LATE/ONLINE/OFFLINE
+      const deductCount = attendanceList.filter(a =>
+        a.status === 'PRESENT' || a.status === 'LATE' || a.status === 'ONLINE' || a.status === 'OFFLINE'
+      ).length;
+      const attendanceRate = total > 0 ? Math.round(deductCount / total * 100) : 0;
       this.setData({
-        attendanceList: list,
-        stats: { total, present, absent, late, leave, attendanceRate },
+        attendanceList,
+        stats: { total, present, absent, late, leave, sick, makeup, online, offline, attendanceRate },
         loading: false
       });
     } catch (err) {

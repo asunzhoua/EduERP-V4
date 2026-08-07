@@ -149,7 +149,8 @@ Page({
       if (lesson.attendance && Array.isArray(lesson.attendance)) {
         lesson.attendance.forEach(record => {
           totalRecords++;
-          if (record.status === 'PRESENT' || record.status === 'LATE') {
+          // 分子与后端扣课集合 DEDUCTIBLE_STATUSES 对齐：PRESENT/LATE/ONLINE/OFFLINE
+          if (record.status === 'PRESENT' || record.status === 'LATE' || record.status === 'ONLINE' || record.status === 'OFFLINE') {
             presentRecords++;
           }
         });

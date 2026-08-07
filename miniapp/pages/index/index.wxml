@@ -174,7 +174,7 @@
               <text class="lesson-name">{{item.className || item.courseName || '课时'}}</text>
               <text class="lesson-date">{{item.lessonDate || ''}}</text>
             </view>
-            <text class="lesson-status {{item.status === 'PRESENT' ? 'status-done' : item.status === 'LATE' ? 'status-late' : ''}}">{{item.status === 'PRESENT' ? '已到' : item.status === 'ABSENT' ? '缺勤' : item.status === 'LATE' ? '迟到' : item.status === 'LEAVE' ? '请假' : '待上课'}}</text>
+            <text class="lesson-status">{{item.statusText}}</text>
           </view>
         </view>
       </view>

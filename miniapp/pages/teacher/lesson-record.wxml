@@ -72,7 +72,7 @@
         >
           <text class="student-name">{{item.name}}</text>
           <view class="status-badge">
-            <text>{{item.status === 'PRESENT' ? '到课' : item.status === 'ABSENT' ? '缺课' : '迟到'}}</text>
+            <text>{{item.statusText}}</text>
           </view>
         </view>
       </block>

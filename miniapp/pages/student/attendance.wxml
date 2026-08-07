@@ -44,6 +44,24 @@
           <text class="stats-label">请假</text>
         </view>
       </view>
+      <view class="stats-row">
+        <view class="stats-item">
+          <text class="stats-value stats-sick">{{stats.sick}}</text>
+          <text class="stats-label">病假</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value stats-makeup">{{stats.makeup}}</text>
+          <text class="stats-label">补课</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value stats-online">{{stats.online}}</text>
+          <text class="stats-label">线上</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value stats-offline">{{stats.offline}}</text>
+          <text class="stats-label">线下</text>
+        </view>
+      </view>
     </view>
 
     <!-- 出勤列表 -->
@@ -58,8 +76,8 @@
           <text class="class-name">{{item.className || '未知班级'}}</text>
         </view>
         <view class="attendance-right">
-          <view class="attendance-status status-{{item.status}}">
-            {{item.status === 'PRESENT' ? '到课' : item.status === 'ABSENT' ? '缺勤' : item.status === 'LATE' ? '迟到' : item.status === 'LEAVE' ? '请假' : '待确认'}}
+          <view class="attendance-status {{item.statusClass}}">
+            {{item.statusText}}
           </view>
           <view wx:if="{{item.deductionSkippedReason}}" class="deduction-skip-badge">未扣课时</view>
         </view>

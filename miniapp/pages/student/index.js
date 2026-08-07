@@ -1,5 +1,6 @@
 // pages/student/index.js
 const { get } = require('../../utils/request');
+const { statusText } = require('../../utils/attendance-status');
 
 Page({
   data: {
@@ -108,10 +109,15 @@ Page({
       const usedLessons = totalLessons - remainingLessons;
       const overallProgress = totalLessons > 0 ? Math.round(usedLessons / totalLessons * 100) : 0;
 
+      const recentLessons = (Array.isArray(lessons) ? lessons : []).slice(0, 5).map(l => ({
+        ...l,
+        statusText: statusText(l.status)
+      }));
+
       this.setData({
         studentInfo: info || {},
         contracts: contractList,
-        recentLessons: Array.isArray(lessons) ? lessons.slice(0, 5) : [],
+        recentLessons,
         overviewStats: { totalLessons, usedLessons, remainingLessons, overallProgress },
         loading: false
       });

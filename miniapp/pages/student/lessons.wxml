@@ -38,6 +38,28 @@
           <text class="stats-label">迟到</text>
         </view>
       </view>
+      <view class="stats-row">
+        <view class="stats-item">
+          <text class="stats-value stats-leave">{{stats.leave}}</text>
+          <text class="stats-label">请假</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value stats-sick">{{stats.sick}}</text>
+          <text class="stats-label">病假</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value stats-makeup">{{stats.makeup}}</text>
+          <text class="stats-label">补课</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value stats-online">{{stats.online}}</text>
+          <text class="stats-label">线上</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value stats-offline">{{stats.offline}}</text>
+          <text class="stats-label">线下</text>
+        </view>
+      </view>
     </view>
 
     <!-- 筛选标签 -->
@@ -61,7 +83,7 @@
           <view class="lesson-bottom">
             <text class="lesson-time">{{item.startTime}} - {{item.endTime}}</text>
             <text class="lesson-status {{item.status === 'PRESENT' ? 'tag-present' : item.status === 'ABSENT' ? 'tag-absent' : item.status === 'LATE' ? 'tag-late' : item.status === 'LEAVE' ? 'tag-leave' : 'tag-other'}}">
-              {{item.status === 'PRESENT' ? '已到' : item.status === 'ABSENT' ? '缺课' : item.status === 'LATE' ? '迟到' : item.status === 'LEAVE' ? '请假' : '待确认'}}
+              {{item.statusText}}
             </text>
           </view>
         </view>

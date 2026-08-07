@@ -94,7 +94,7 @@
         <view class="lesson-info">
           <text class="lesson-time">{{item.startTime}} - {{item.endTime}}</text>
           <text class="lesson-status-tag {{item.status === 'PRESENT' ? 'tag-present' : item.status === 'ABSENT' ? 'tag-absent' : 'tag-other'}}">
-            {{item.status === 'PRESENT' ? '已到' : item.status === 'ABSENT' ? '缺课' : item.status === 'LATE' ? '迟到' : item.status === 'LEAVE' ? '请假' : '待确认'}}
+            {{item.statusText}}
           </text>
         </view>
       </view>

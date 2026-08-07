@@ -1,5 +1,6 @@
 // pages/teacher/lesson-record.js
 const { get, post } = require('../../utils/request');
+const { statusText } = require('../../utils/attendance-status');
 
 Page({
   data: {
@@ -90,6 +91,11 @@ Page({
     return `${y}-${m}-${d}`;
   },
 
+  // 为考勤列表注入状态文案（WXML 中避免复杂三元，由 JS 统一映射）
+  decorateStudents(students) {
+    return students.map(s => ({ ...s, statusText: statusText(s.status) }));
+  },
+
   // 加载班级列表
   async loadClasses() {
     this.setData({ loadingClasses: true, errorClasses: null });
@@ -125,7 +131,7 @@ Page({
       const lateCount = students.filter(s => s.status === 'LATE').length;
       const absentCount = students.filter(s => s.status === 'ABSENT').length;
       this.setData({
-        students,
+        students: this.decorateStudents(students),
         selectedStudents: students.map(s => s.studentCode),
         presentCount,
         lateCount,
@@ -197,7 +203,7 @@ Page({
                 const lateCount = updatedStudents.filter(s => s.status === 'LATE').length;
                 const absentCount = updatedStudents.filter(s => s.status === 'ABSENT').length;
                 this.setData({
-                  students: updatedStudents,
+                  students: this.decorateStudents(updatedStudents),
                   presentCount,
                   lateCount,
                   absentCount
@@ -214,7 +220,7 @@ Page({
     const presentCount = students.filter(s => s.status === 'PRESENT').length;
     const lateCount = students.filter(s => s.status === 'LATE').length;
     const absentCount = students.filter(s => s.status === 'ABSENT').length;
-    this.setData({ students, presentCount, lateCount, absentCount });
+    this.setData({ students: this.decorateStudents(students), presentCount, lateCount, absentCount });
   },
 
   // 全部到课
@@ -225,7 +231,7 @@ Page({
       reason: ''
     }));
     this.setData({
-      students,
+      students: this.decorateStudents(students),
       presentCount: students.length,
       lateCount: 0,
       absentCount: 0
@@ -249,7 +255,7 @@ Page({
             reason
           }));
           this.setData({
-            students,
+            students: this.decorateStudents(students),
             presentCount: 0,
             lateCount: 0,
             absentCount: students.length

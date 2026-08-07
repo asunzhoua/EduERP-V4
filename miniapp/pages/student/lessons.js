@@ -1,11 +1,12 @@
 // pages/student/lessons.js
 const { get } = require('../../utils/request');
+const { statusText } = require('../../utils/attendance-status');
 
 Page({
   data: {
     lessons: [],
     allLessons: [],
-    stats: { total: 0, present: 0, absent: 0, late: 0, leave: 0 },
+    stats: { total: 0, present: 0, absent: 0, late: 0, leave: 0, sick: 0, makeup: 0, online: 0, offline: 0 },
     filterStatus: 'ALL',
     loading: true,
     error: null
@@ -27,16 +28,23 @@ Page({
     try {
       this.setData({ loading: true, error: null });
       const data = await get('/students/self/lessons');
-      const allLessons = Array.isArray(data) ? data : [];
+      const allLessons = (Array.isArray(data) ? data : []).map(l => ({
+        ...l,
+        statusText: statusText(l.status)
+      }));
       const present = allLessons.filter(l => l.status === 'PRESENT').length;
       const absent = allLessons.filter(l => l.status === 'ABSENT').length;
       const late = allLessons.filter(l => l.status === 'LATE').length;
       const leave = allLessons.filter(l => l.status === 'LEAVE').length;
+      const sick = allLessons.filter(l => l.status === 'SICK').length;
+      const makeup = allLessons.filter(l => l.status === 'MAKEUP').length;
+      const online = allLessons.filter(l => l.status === 'ONLINE').length;
+      const offline = allLessons.filter(l => l.status === 'OFFLINE').length;
 
       this.setData({
         allLessons,
         lessons: allLessons,
-        stats: { total: allLessons.length, present, absent, late, leave },
+        stats: { total: allLessons.length, present, absent, late, leave, sick, makeup, online, offline },
         filterStatus: 'ALL',
         loading: false
       });
