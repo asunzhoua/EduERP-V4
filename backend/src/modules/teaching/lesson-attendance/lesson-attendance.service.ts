@@ -575,7 +575,14 @@ export class LessonAttendanceService {
         ? await this.resolveLessonSubject(records[0].classCode)
         : null;
     for (const record of records) {
-      if (record.status && DEDUCTIBLE_STATUSES.has(record.status) && subject) {
+      // Rollback needs either a ledger contract (deductedContractId — exact
+      // restore, no subject required) or a resolvable subject (legacy fallback).
+      // A null subject must not silently skip rollback when the ledger exists.
+      if (
+        record.status &&
+        DEDUCTIBLE_STATUSES.has(record.status) &&
+        (record.deductedContractId || subject)
+      ) {
         const result = await this.rollbackLessonDeduction(record, subject);
         if (result) {
           rollbackResults.push(result);
@@ -602,7 +609,7 @@ export class LessonAttendanceService {
    */
   private async rollbackLessonDeduction(
     record: LessonAttendanceEntity,
-    subject: Subject,
+    subject: Subject | null,
   ): Promise<LessonDeductionResult | null> {
     // 1. Exact-contract restore via ledger (ACTIVE / EXHAUSTED only)
     let contract: ContractEntity | null = null;
@@ -620,15 +627,17 @@ export class LessonAttendanceService {
       }
     }
 
-    // 2. Fallback: legacy rows / invalid ledger → subject-based restore
-    if (!contract) {
+    // 2. Fallback: legacy rows / invalid ledger → subject-based restore.
+    //    Requires a resolvable subject; a null subject means the exact contract
+    //    cannot be identified, so nothing can be restored here.
+    if (!contract && subject) {
       contract = await this.contractRepo.findActiveByStudentCodeAndSubject(
         record.studentCode,
         subject,
       );
     }
 
-    if (!contract) {
+    if (!contract && subject) {
       // Try EXHAUSTED contract of the same subject (all lessons consumed, needs restoration)
       const allContracts = await this.contractRepo.findByStudentCode(
         record.studentCode,

@@ -1388,6 +1388,90 @@ describe('LessonAttendanceService', () => {
     });
   });
 
+  describe('cancelByLessonId()', () => {
+    let mockRepo: any;
+    let contractRepo: any;
+    let classRepo: any;
+    let courseRepo: any;
+
+    beforeEach(async () => {
+      mockRepo = {
+        findByLessonId: jest.fn(),
+        deleteByLessonId: jest.fn().mockResolvedValue({ affected: 1 }),
+        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        saveAll: jest
+          .fn()
+          .mockImplementation((es: any[]) => Promise.resolve(es)),
+      };
+      contractRepo = {
+        findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null),
+        findOneById: jest.fn().mockResolvedValue(null),
+        findByStudentCode: jest.fn().mockResolvedValue([]),
+        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+      };
+      // classRepo.findOne → null makes resolveLessonSubject return null (subject unresolvable)
+      classRepo = { findOne: jest.fn().mockResolvedValue(null) };
+      courseRepo = { findOne: jest.fn().mockResolvedValue(null) };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          LessonAttendanceService,
+          { provide: LessonAttendanceRepository, useValue: mockRepo },
+          {
+            provide: ReminderService,
+            useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) },
+          },
+          { provide: ContractRepository, useValue: contractRepo },
+          { provide: getRepositoryToken(ClassEntity), useValue: classRepo },
+          { provide: getRepositoryToken(CourseEntity), useValue: courseRepo },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        ],
+      }).compile();
+
+      service = module.get<LessonAttendanceService>(LessonAttendanceService);
+    });
+
+    it('A: restores the ledger contract even when subject resolution returns null', async () => {
+      const contract = {
+        id: 42,
+        contractCode: 'CT-MATH-002',
+        studentCode: 'STU001',
+        subject: Subject.MATH,
+        remainingLessons: 5,
+        status: ContractStatus.ACTIVE,
+      };
+      contractRepo.findOneById.mockResolvedValue(contract);
+      const record = new LessonAttendanceEntity();
+      record.studentCode = 'STU001';
+      record.classCode = 'CL999';
+      record.status = AttendanceStatus.PRESENT;
+      record.deductedContractId = 42;
+      mockRepo.findByLessonId.mockResolvedValue([record]);
+
+      const res = await service.cancelByLessonId(1);
+
+      expect(res.rollbackResults).toHaveLength(1);
+      expect(contract.remainingLessons).toBe(6);
+      expect(contractRepo.findOneById).toHaveBeenCalledWith(42);
+      expect(mockRepo.deleteByLessonId).toHaveBeenCalledWith(1);
+    });
+
+    it('B: skips rollback without a ledger when subject is unresolvable (nothing to restore)', async () => {
+      const record = new LessonAttendanceEntity();
+      record.studentCode = 'STU001';
+      record.classCode = 'CL999';
+      record.status = AttendanceStatus.PRESENT;
+      record.deductedContractId = null;
+      mockRepo.findByLessonId.mockResolvedValue([record]);
+
+      const res = await service.cancelByLessonId(1);
+
+      expect(res.rollbackResults).toHaveLength(0);
+      expect(contractRepo.save).not.toHaveBeenCalled();
+      expect(mockRepo.deleteByLessonId).toHaveBeenCalledWith(1);
+    });
+  });
+
   describe('deduction ledger (check-in write)', () => {
     let mockRepo: any;
     let contractRepo: any;
