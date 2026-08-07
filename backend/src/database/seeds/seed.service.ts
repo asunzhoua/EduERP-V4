@@ -300,7 +300,7 @@ export class SeedService {
       }
     }
 
-    this.logger.log('Test users ready (teacher1/teacher123, student1/student123, parent1/parent123)', 'Seed');
+    this.logger.log('Test users ready (teacher1/Teacher@Dev2026, student1/Student@Dev2026, parent1/Parent@Dev2026; overridable via SEED_*_PASSWORD)', 'Seed');
   }
 
   /** 创建测试班级 — 2 个 ACTIVE 班级 */

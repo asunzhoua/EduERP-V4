@@ -82,6 +82,48 @@ describe('OptimizedExceptionFilter', () => {
       );
     });
 
+    it('should preserve a specific 401 message (e.g. 密码错误)', () => {
+      const exception = new HttpException('密码错误', HttpStatus.UNAUTHORIZED);
+
+      filter.catch(exception, mockHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: 401,
+          message: '密码错误',
+        })
+      );
+    });
+
+    it('should map an empty 401 message to the generic text', () => {
+      const exception = new HttpException('', HttpStatus.UNAUTHORIZED);
+
+      filter.catch(exception, mockHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: 401,
+          message: '未授权，请先登录',
+        })
+      );
+    });
+
+    it('should preserve a specific 403 message (e.g. 无权访问该学生的记录)', () => {
+      const exception = new HttpException('无权访问该学生的记录', HttpStatus.FORBIDDEN);
+
+      filter.catch(exception, mockHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(403);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: 403,
+          message: '无权访问该学生的记录',
+        })
+      );
+    });
+
     it('should handle 403 Forbidden', () => {
       const exception = new HttpException('Forbidden', HttpStatus.FORBIDDEN);
 
