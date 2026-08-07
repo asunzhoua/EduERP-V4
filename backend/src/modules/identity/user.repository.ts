@@ -35,6 +35,24 @@ export class UserRepository {
     return this.repo.findOne({ where: { username, deleted: false } });
   }
 
+  async findByMobile(mobile: string): Promise<User | null> {
+    return this.repo.findOne({ where: { mobile, deleted: false } });
+  }
+
+  async findAndCountByRole(
+    role: string,
+    page: number,
+    pageSize: number,
+  ): Promise<{ items: User[]; total: number }> {
+    const [items, total] = await this.repo.findAndCount({
+      where: { role, deleted: false },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      order: { createTime: 'DESC' },
+    });
+    return { items, total };
+  }
+
   async findByUsernameWithPassword(username: string): Promise<User | null> {
     return this.repo
       .createQueryBuilder('u')

@@ -61,6 +61,25 @@ function handleTokenExpired() {
 }
 
 /**
+ * 剔除对象中值为 undefined / null / 空串 的键。
+ * wx.request 序列化 GET 查询串时会把 undefined 变成字符串 "undefined"，
+ * 导致后端校验（如 @IsEnum）报 400。此处统一清理，避免逐页排查遗漏。
+ */
+function stripEmptyKeys(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return data;
+  }
+  var cleaned = {};
+  Object.keys(data).forEach(function(key) {
+    var value = data[key];
+    if (value !== undefined && value !== null && value !== '') {
+      cleaned[key] = value;
+    }
+  });
+  return cleaned;
+}
+
+/**
  * 封装请求方法
  * @param {Object} options 请求配置
  * @param {number} [options.timeout] 超时时间（毫秒），默认 15000
@@ -99,7 +118,7 @@ function request(options) {
       wx.request({
         url: baseUrl + options.url,
         method: options.method || 'GET',
-        data: options.data,
+        data: stripEmptyKeys(options.data),
         timeout: timeout,
         responseType: responseType,
         header: header,

@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/login/login",
+    "pages/register/register",
     "pages/index/index",
     "pages/teacher/courses",
     "pages/teacher/course-detail",
@@ -19,6 +20,7 @@
     "pages/parent/index",
     "pages/parent/child-detail",
     "pages/operation/dashboard/dashboard",
+    "pages/operation/parent-manage/parent-manage",
     "pages/reminder/list",
     "pages/reminder/detail",
     "pages/student/leave-apply/leave-apply",

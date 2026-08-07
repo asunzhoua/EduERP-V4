@@ -4,6 +4,7 @@ import {
   Get,
   Body,
   Param,
+  Query,
   Req,
   UseGuards,
   HttpCode,
@@ -13,6 +14,8 @@ import {
 import { AuthService } from './auth.service';
 import { LoginDto, WechatLoginDto } from '../dto/login.dto';
 import { RefreshDto } from '../dto/refresh.dto';
+import { RegisterDto } from '../dto/register.dto';
+import { CreateParentDto, QueryParentsDto } from '../dto/create-parent.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from '@common/decorators/public.decorator';
 import { RolesGuard } from '@common/guards/roles.guard';
@@ -59,6 +62,39 @@ export class AuthController {
     const ip = req.ip;
     const device = req.headers['user-agent'];
     const result = await this.authService.refresh(refreshDto.refreshToken, ip, device);
+    return ApiResponse.success(result);
+  }
+
+  @Public()
+  @Post('register')
+  @HttpCode(HttpStatus.OK)
+  async register(@Body() registerDto: RegisterDto) {
+    const result = await this.authService.register(registerDto);
+    return ApiResponse.success(result, '注册成功');
+  }
+
+  @Post('admin/parents')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin', 'Admin')
+  @HttpCode(HttpStatus.OK)
+  async adminCreateParent(
+    @Body() createParentDto: CreateParentDto,
+    @Req() req: any,
+  ) {
+    const result = await this.authService.adminCreateParent(
+      createParentDto,
+      req.user.sub,
+    );
+    return ApiResponse.success(result, '家长开户成功');
+  }
+
+  @Get('admin/parents')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin', 'Admin')
+  async listParents(@Query() query: QueryParentsDto) {
+    const page = query.page || 1;
+    const pageSize = query.pageSize || 20;
+    const result = await this.authService.listParents(page, pageSize);
     return ApiResponse.success(result);
   }
 

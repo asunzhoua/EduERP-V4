@@ -27,6 +27,8 @@ Page({
     },
     // 最近课程
     recentLessons: [],
+    // 管理员标记（控制家长开户入口显示）
+    isAdmin: false,
     // UI 状态
     loading: true,
     error: null
@@ -99,7 +101,8 @@ Page({
           mobile: data.mobile || '未绑定',
           role: roleText,
           avatar: data.avatar || ''
-        }
+        },
+        isAdmin: data.role === 'Admin' || data.role === 'SuperAdmin'
       });
     }).catch(function (err) {
       console.warn('[TeacherProfile] 获取个人信息失败:', err);
@@ -113,7 +116,8 @@ Page({
           mobile: userInfo.mobile || '未绑定',
           role: userInfo.role === 'Teacher' ? '教师' : userInfo.role || '教师',
           avatar: userInfo.avatar || ''
-        }
+        },
+        isAdmin: userInfo.role === 'Admin' || userInfo.role === 'SuperAdmin'
       });
     });
   },
@@ -269,5 +273,10 @@ Page({
   // 跳转教师请假
   goToLeaveApply: function () {
     wx.navigateTo({ url: '/pages/teacher/leave-apply/leave-apply' });
+  },
+
+  // 跳转家长管理（管理员专用）
+  goToParentManage: function () {
+    wx.navigateTo({ url: '/pages/operation/parent-manage/parent-manage' });
   }
 });

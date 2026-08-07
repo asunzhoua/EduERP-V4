@@ -141,6 +141,14 @@
       </view>
     </view>
 
+    <!-- 管理员入口 -->
+    <view class="quick-nav" style="margin-top: 20rpx;" wx:if="{{isAdmin}}">
+      <view class="nav-item" bindtap="goToParentManage">
+        <text class="nav-icon">👪</text>
+        <text class="nav-text">家长开户</text>
+      </view>
+    </view>
+
     <!-- 退出登录 -->
     <view class="logout-section">
       <button class="logout-btn" bindtap="handleLogout">退出登录</button>

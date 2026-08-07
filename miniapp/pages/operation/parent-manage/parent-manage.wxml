@@ -1,0 +1,54 @@
+<!--pages/operation/parent-manage/parent-manage.wxml-->
+<view class="container">
+  <!-- 选项卡 -->
+  <view class="tabs">
+    <view class="tab {{activeTab === 'create' ? 'active' : ''}}" data-tab="create" bindtap="switchTab">家长开户</view>
+    <view class="tab {{activeTab === 'bind' ? 'active' : ''}}" data-tab="bind" bindtap="switchTab">绑定学生</view>
+  </view>
+
+  <!-- 开户表单 -->
+  <view wx:if="{{activeTab === 'create'}}" class="form-card">
+    <view class="form-item">
+      <text class="label">用户名</text>
+      <input class="input" placeholder="家长登录账号" value="{{createUsername}}" data-field="createUsername" bindinput="onInput" />
+    </view>
+    <view class="form-item">
+      <text class="label">姓名</text>
+      <input class="input" placeholder="家长姓名" value="{{createName}}" data-field="createName" bindinput="onInput" />
+    </view>
+    <view class="form-item">
+      <text class="label">手机号</text>
+      <input class="input" type="number" placeholder="请输入手机号" value="{{createMobile}}" data-field="createMobile" bindinput="onInput" />
+    </view>
+    <view class="form-item">
+      <text class="label">密码</text>
+      <input class="input" type="password" placeholder="至少 6 位" value="{{createPassword}}" data-field="createPassword" bindinput="onInput" />
+    </view>
+    <view class="form-item">
+      <text class="label">关联学生</text>
+      <picker mode="selector" range="{{studentNames}}" bindchange="onPickStudent">
+        <view class="picker">{{createStudentName}}</view>
+      </picker>
+    </view>
+    <button class="submit-btn" loading="{{submitting}}" bindtap="onCreateParent">开户</button>
+    <view class="tip">开户后家长可用账号密码登录，并在学生详情中查看学习数据。</view>
+  </view>
+
+  <!-- 绑定表单 -->
+  <view wx:elif="{{activeTab === 'bind'}}" class="form-card">
+    <view class="form-item">
+      <text class="label">家长</text>
+      <picker mode="selector" range="{{parentNames}}" bindchange="onPickBindParent">
+        <view class="picker">{{bindParentName}}</view>
+      </picker>
+    </view>
+    <view class="form-item">
+      <text class="label">学生</text>
+      <picker mode="selector" range="{{studentNames}}" bindchange="onPickBindStudent">
+        <view class="picker">{{bindStudentName}}</view>
+      </picker>
+    </view>
+    <button class="submit-btn" loading="{{submitting}}" bindtap="onBindParent">绑定</button>
+    <view class="tip">用于给已开户的家长补关联学生。</view>
+  </view>
+</view>

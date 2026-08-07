@@ -15,6 +15,9 @@ describe('AuthController', () => {
       logout: jest.fn(),
       getCurrentUser: jest.fn(),
       revokeUserSessions: jest.fn(),
+      register: jest.fn(),
+      adminCreateParent: jest.fn(),
+      listParents: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -102,6 +105,50 @@ describe('AuthController', () => {
       const result = await controller.revokeSession(5, req);
       expect(authService.revokeUserSessions).toHaveBeenCalledWith(1, 5);
       expect(result.code).toBe(0);
+    });
+  });
+
+  describe('POST /auth/register', () => {
+    it('should call register with dto and return created user', async () => {
+      const created = { id: 10, username: 'parent1', role: 'Parent' };
+      authService.register.mockResolvedValue(created);
+
+      const body = { username: 'parent1', password: 'pass123', name: '测试家长', mobile: '13800000001' };
+      const result = await controller.register(body);
+
+      expect(result.code).toBe(0);
+      expect(result.message).toBe('注册成功');
+      expect(result.data).toEqual(created);
+      expect(authService.register).toHaveBeenCalledWith(body);
+    });
+  });
+
+  describe('POST /auth/admin/parents', () => {
+    it('should call adminCreateParent with dto and operator sub', async () => {
+      const created = { id: 20, username: 'parent9', role: 'Parent' };
+      authService.adminCreateParent.mockResolvedValue(created);
+
+      const body = { username: 'parent9', password: 'pass123', name: '开户家长', mobile: '13800000009', studentId: 5 };
+      const req = { user: { sub: 1 } };
+      const result = await controller.adminCreateParent(body, req);
+
+      expect(result.code).toBe(0);
+      expect(result.message).toBe('家长开户成功');
+      expect(result.data).toEqual(created);
+      expect(authService.adminCreateParent).toHaveBeenCalledWith(body, 1);
+    });
+  });
+
+  describe('GET /auth/admin/parents', () => {
+    it('should call listParents with page and pageSize', async () => {
+      const pageData = { items: [], total: 0 };
+      authService.listParents.mockResolvedValue(pageData);
+
+      const result = await controller.listParents({ page: 1, pageSize: 20 });
+
+      expect(result.code).toBe(0);
+      expect(result.data).toEqual(pageData);
+      expect(authService.listParents).toHaveBeenCalledWith(1, 20);
     });
   });
 });

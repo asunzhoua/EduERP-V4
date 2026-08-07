@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
   UnauthorizedException,
@@ -28,6 +29,7 @@ describe('AuthService', () => {
   let userRepo: jest.Mocked<UserRepository>;
   let loginLogRepo: jest.Mocked<Repository<LoginLog>>;
   let jwtService: jest.Mocked<JwtService>;
+  let dataSource: { transaction: jest.Mock };
 
   const mockUser = {
     id: 1,
@@ -56,6 +58,10 @@ describe('AuthService', () => {
       findByRefreshToken: jest.fn(),
       findById: jest.fn(),
       update: jest.fn(),
+      findByUsername: jest.fn(),
+      findByMobile: jest.fn(),
+      save: jest.fn(),
+      findAndCountByRole: jest.fn(),
     };
 
     const mockLoginLogRepo = {
@@ -68,12 +74,17 @@ describe('AuthService', () => {
       verify: jest.fn(),
     };
 
+    const mockDataSource = {
+      transaction: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: UserRepository, useValue: mockUserRepo },
         { provide: getRepositoryToken(LoginLog), useValue: mockLoginLogRepo },
         { provide: JwtService, useValue: mockJwtService },
+        { provide: DataSource, useValue: mockDataSource },
       ],
     }).compile();
 
@@ -81,6 +92,7 @@ describe('AuthService', () => {
     userRepo = module.get(UserRepository);
     loginLogRepo = module.get(getRepositoryToken(LoginLog));
     jwtService = module.get(JwtService);
+    dataSource = module.get(DataSource);
   });
 
   afterEach(() => {
@@ -208,6 +220,23 @@ describe('AuthService', () => {
 
       await expect(service.login('nonexistent', 'password')).rejects.toThrow(
         UnauthorizedException,
+      );
+    });
+
+    it('should truncate device to 200 chars when writing login log', async () => {
+      userRepo.findByUsernameWithPassword.mockResolvedValue(mockUser);
+      mockedBcrypt.compare.mockResolvedValue(true as never);
+      userRepo.update.mockResolvedValue(undefined as any);
+      loginLogRepo.create.mockReturnValue({} as LoginLog);
+      loginLogRepo.save.mockResolvedValue({} as LoginLog);
+
+      const longDevice = 'A'.repeat(300);
+      await service.login('admin', 'correct-password', longDevice, '127.0.0.1');
+
+      expect(loginLogRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          device: 'A'.repeat(200),
+        }),
       );
     });
   });
@@ -461,6 +490,266 @@ describe('AuthService', () => {
 
       await expect(service.getCurrentUser(999)).rejects.toThrow(UnauthorizedException);
       await expect(service.getCurrentUser(999)).rejects.toThrow('用户不存在');
+    });
+  });
+
+  // ─── register ───
+
+  describe('register', () => {
+    const registerDto = {
+      username: 'parent1',
+      password: 'pass123',
+      name: '测试家长',
+      mobile: '13800000001',
+    };
+
+    it('should create a Parent user with hashed password and return safe fields', async () => {
+      userRepo.findByUsername.mockResolvedValue(null);
+      userRepo.findByMobile.mockResolvedValue(null);
+      mockedBcrypt.hash.mockResolvedValue('hashed-abc' as never);
+      const created = {
+        ...mockUser,
+        id: 10,
+        username: 'parent1',
+        mobile: '13800000001',
+        name: '测试家长',
+        role: 'Parent',
+        password: 'hashed-abc',
+      } as unknown as User;
+      userRepo.save.mockResolvedValue(created);
+
+      const result = await service.register(registerDto);
+
+      expect(mockedBcrypt.hash).toHaveBeenCalledWith('pass123', 10);
+      expect(userRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ role: 'Parent', status: 1 }),
+      );
+      expect(result).toMatchObject({
+        id: 10,
+        username: 'parent1',
+        mobile: '13800000001',
+        name: '测试家长',
+        role: 'Parent',
+      });
+      expect(result).not.toHaveProperty('password');
+    });
+
+    it('should throw ConflictException when username already exists', async () => {
+      userRepo.findByUsername.mockResolvedValue({ ...mockUser, username: 'parent1' } as User);
+
+      await expect(service.register(registerDto)).rejects.toThrow(ConflictException);
+      expect(userRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException when mobile already registered', async () => {
+      userRepo.findByUsername.mockResolvedValue(null);
+      userRepo.findByMobile.mockResolvedValue({ ...mockUser, mobile: '13800000001' } as User);
+
+      await expect(service.register(registerDto)).rejects.toThrow(ConflictException);
+      expect(userRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when mobile is empty', async () => {
+      userRepo.findByUsername.mockResolvedValue(null);
+
+      await expect(
+        service.register({
+          username: 'parent2',
+          password: 'pass123',
+          name: '测试家长2',
+          mobile: '',
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(userRepo.save).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── adminCreateParent ───
+
+  describe('adminCreateParent', () => {
+    const createDto = {
+      username: 'parent9',
+      password: 'pass123',
+      name: '开户家长',
+      mobile: '13800000009',
+      studentId: 5,
+    };
+
+    function mockTransactionManager(overrides: Record<string, jest.Mock> = {}) {
+      return {
+        findOne: jest.fn(),
+        create: jest.fn(),
+        save: jest.fn(),
+        ...overrides,
+      };
+    }
+
+    function mockOperator() {
+      return { ...mockUser, id: 1, username: 'admin', role: 'SuperAdmin' } as User;
+    }
+
+    it('should create parent user and link to student within one transaction', async () => {
+      const manager = mockTransactionManager();
+      manager.findOne
+        .mockResolvedValueOnce(null) // username unique check
+        .mockResolvedValueOnce(null) // mobile unique check
+        .mockResolvedValueOnce({ id: 5, name: '学生' } as any); // student exists
+      const savedParent = { ...mockUser, id: 20, username: 'parent9', role: 'Parent', password: 'hashed' } as any;
+      manager.save
+        .mockResolvedValueOnce(savedParent) // parent user
+        .mockResolvedValueOnce({ id: 1 } as any); // student_parent link
+      manager.create.mockImplementation((_entity: any, data: any) => ({ ...data }));
+      dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+      userRepo.findById.mockResolvedValue(mockOperator());
+      loginLogRepo.create.mockReturnValue({} as LoginLog);
+      loginLogRepo.save.mockResolvedValue({} as LoginLog);
+
+      const result = await service.adminCreateParent(createDto, 1);
+
+      expect(result).toMatchObject({ id: 20, username: 'parent9', role: 'Parent' });
+      expect(result).not.toHaveProperty('password');
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(manager.save).toHaveBeenCalledTimes(2);
+      expect(manager.save).toHaveBeenLastCalledWith(
+        expect.objectContaining({ studentId: 5, parentId: 20, relation: 'father' }),
+      );
+    });
+
+    it('should throw NotFoundException when student does not exist', async () => {
+      const manager = mockTransactionManager();
+      manager.findOne
+        .mockResolvedValueOnce(null) // username unique check
+        .mockResolvedValueOnce(null) // mobile unique check
+        .mockResolvedValueOnce(null); // student not found
+      dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+      userRepo.findById.mockResolvedValue(mockOperator());
+
+      await expect(service.adminCreateParent(createDto, 1)).rejects.toThrow(NotFoundException);
+      expect(manager.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException when username exists (inside transaction)', async () => {
+      const manager = mockTransactionManager();
+      manager.findOne.mockResolvedValueOnce({ ...mockUser, username: 'parent9' } as any);
+      dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+      userRepo.findById.mockResolvedValue(mockOperator());
+
+      await expect(service.adminCreateParent(createDto, 1)).rejects.toThrow(ConflictException);
+      expect(manager.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException when operator does not exist', async () => {
+      userRepo.findById.mockResolvedValue(null);
+
+      await expect(service.adminCreateParent(createDto, 1)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(dataSource.transaction).not.toHaveBeenCalled();
+    });
+
+    it('should record ADMIN_CREATE_PARENT audit log with operator', async () => {
+      const manager = mockTransactionManager();
+      manager.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 5 } as any);
+      manager.save
+        .mockResolvedValueOnce({ ...mockUser, id: 20, username: 'parent9', role: 'Parent', password: 'hashed' } as any)
+        .mockResolvedValueOnce({ id: 1 } as any);
+      manager.create.mockImplementation((_entity: any, data: any) => ({ ...data }));
+      dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+      userRepo.findById.mockResolvedValue(mockOperator());
+      loginLogRepo.create.mockReturnValue({} as LoginLog);
+      loginLogRepo.save.mockResolvedValue({} as LoginLog);
+
+      await service.adminCreateParent(createDto, 1);
+
+      expect(loginLogRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 1,
+          username: 'admin',
+          role: 'SuperAdmin',
+          action: 'ADMIN_CREATE_PARENT',
+          success: true,
+        }),
+      );
+    });
+
+    it('should create parent without binding when studentId omitted', async () => {
+      const manager = mockTransactionManager();
+      manager.findOne
+        .mockResolvedValueOnce(null) // username unique check
+        .mockResolvedValueOnce(null); // mobile unique check
+      const savedParent = {
+        ...mockUser,
+        id: 21,
+        username: 'parent10',
+        role: 'Parent',
+        password: 'hashed',
+      } as any;
+      manager.save.mockResolvedValueOnce(savedParent);
+      manager.create.mockImplementation((_entity: any, data: any) => ({ ...data }));
+      dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+      userRepo.findById.mockResolvedValue(mockOperator());
+
+      const result = await service.adminCreateParent(
+        { ...createDto, username: 'parent10', studentId: undefined },
+        1,
+      );
+
+      expect(result).toMatchObject({ id: 21, username: 'parent10', role: 'Parent' });
+      expect(manager.findOne).toHaveBeenCalledTimes(2);
+      expect(manager.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw BadRequestException when mobile is empty', async () => {
+      const manager = mockTransactionManager();
+      manager.findOne.mockResolvedValueOnce(null); // username unique check
+      dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+      userRepo.findById.mockResolvedValue(mockOperator());
+
+      await expect(
+        service.adminCreateParent(
+          { ...createDto, username: 'parent11', mobile: '' },
+          1,
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(manager.save).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── listParents ───
+
+  describe('listParents', () => {
+    it('should return paginated parent users with safe fields', async () => {
+      const items = [
+        { ...mockUser, id: 10, username: 'p1', role: 'Parent', password: 'x', refreshToken: 'rt', mobile: '13800000001' },
+        { ...mockUser, id: 11, username: 'p2', role: 'Parent', password: 'x', refreshToken: null, mobile: '13800000002' },
+      ] as unknown as User[];
+      userRepo.findAndCountByRole.mockResolvedValue({ items, total: 2 });
+
+      const result = await service.listParents(1, 20);
+
+      expect(userRepo.findAndCountByRole).toHaveBeenCalledWith('Parent', 1, 20);
+      expect(result.total).toBe(2);
+      expect(result.items).toHaveLength(2);
+      expect(result.items[0]).not.toHaveProperty('password');
+      expect(result.items[0]).not.toHaveProperty('refreshToken');
+      expect(result.items[0]).toHaveProperty('role', 'Parent');
+    });
+
+    it('should default to page 1 pageSize 20', async () => {
+      userRepo.findAndCountByRole.mockResolvedValue({ items: [], total: 0 });
+
+      await service.listParents();
+
+      expect(userRepo.findAndCountByRole).toHaveBeenCalledWith('Parent', 1, 20);
     });
   });
 });

@@ -5,16 +5,21 @@ import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as https from 'https';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { User, UserRole } from '../entities/user.entity';
+import { User, UserRole, UserStatus } from '../entities/user.entity';
 import { LoginLog } from '../entities/login-log.entity';
 import { UserRepository } from '../user.repository';
+import { Student } from '../../student/entities/student.entity';
+import { StudentParent } from '../../student/entities/student-parent.entity';
+import { RegisterDto } from '../dto/register.dto';
+import { CreateParentDto } from '../dto/create-parent.dto';
 import { AppLogger } from '@utils/logger';
 import { appConfig } from '@config/configuration';
 
@@ -28,6 +33,7 @@ export class AuthService {
     @InjectRepository(LoginLog)
     private loginLogRepository: Repository<LoginLog>,
     private jwtService: JwtService,
+    private dataSource: DataSource,
   ) {}
 
   async validateUser(username: string, password: string): Promise<User> {
@@ -190,6 +196,132 @@ export class AuthService {
     return safeUser;
   }
 
+  async register(dto: RegisterDto): Promise<Partial<User>> {
+    const existingUsername = await this.userRepository.findByUsername(dto.username);
+    if (existingUsername) {
+      throw new ConflictException('用户名已存在');
+    }
+
+    const mobile = (dto.mobile || '').trim();
+    if (!mobile) {
+      throw new BadRequestException('手机号不能为空');
+    }
+    const existingMobile = await this.userRepository.findByMobile(mobile);
+    if (existingMobile) {
+      throw new ConflictException('手机号已注册');
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+    const user = new User();
+    user.username = dto.username;
+    user.password = hashedPassword;
+    user.mobile = mobile;
+    user.name = dto.name;
+    user.role = UserRole.PARENT;
+    user.status = UserStatus.ACTIVE;
+    user.campusId = 0;
+
+    const saved = await this.userRepository.save(user);
+
+    const { password: _, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safeUser } = saved;
+    return safeUser;
+  }
+
+  async adminCreateParent(
+    dto: CreateParentDto,
+    operatorUserId: number,
+  ): Promise<Partial<User>> {
+    const operator = await this.userRepository.findById(operatorUserId);
+    if (!operator) {
+      throw new UnauthorizedException('操作者不存在');
+    }
+
+    const savedParent = await this.dataSource.transaction(async (manager) => {
+      const existingUsername = await manager.findOne(User, {
+        where: { username: dto.username },
+      });
+      if (existingUsername) {
+        throw new ConflictException('用户名已存在');
+      }
+
+      const mobile = (dto.mobile || '').trim();
+      if (!mobile) {
+        throw new BadRequestException('手机号不能为空');
+      }
+      const existingMobile = await manager.findOne(User, {
+        where: { mobile },
+      });
+      if (existingMobile) {
+        throw new ConflictException('手机号已注册');
+      }
+
+      if (dto.studentId) {
+        const student = await manager.findOne(Student, {
+          where: { id: dto.studentId, deleted: false },
+        });
+        if (!student) {
+          throw new NotFoundException('学生不存在');
+        }
+      }
+
+      const hashedPassword = await bcrypt.hash(dto.password, 10);
+      const parent = manager.create(User, {
+        username: dto.username,
+        password: hashedPassword,
+        mobile,
+        name: dto.name,
+        role: UserRole.PARENT,
+        status: UserStatus.ACTIVE,
+        campusId: 0,
+      });
+      const saved = await manager.save(parent);
+
+      if (dto.studentId) {
+        const link = manager.create(StudentParent, {
+          studentId: dto.studentId,
+          parentId: saved.id,
+          relation: 'father',
+          isPrimary: false,
+        });
+        await manager.save(link);
+      }
+
+      return saved;
+    });
+
+    await this.createLoginLog(
+      operator.id,
+      operator.username,
+      operator.role,
+      'ADMIN_CREATE_PARENT',
+      true,
+    );
+    this.logger.log(
+      `Admin create parent: operator=${operatorUserId}, username=${savedParent.username}, studentId=${dto.studentId}`,
+    );
+
+    const { password: _, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safeUser } = savedParent;
+    return safeUser;
+  }
+
+  async listParents(
+    page = 1,
+    pageSize = 20,
+  ): Promise<{ items: Partial<User>[]; total: number }> {
+    const { items, total } = await this.userRepository.findAndCountByRole(
+      UserRole.PARENT,
+      page,
+      pageSize,
+    );
+
+    const safeItems = items.map((u) => {
+      const { password: _, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safeUser } = u;
+      return safeUser;
+    });
+    return { items: safeItems, total };
+  }
+
   async wechatLogin(
     code: string,
     ip?: string,
@@ -314,7 +446,7 @@ export class AuthService {
         action,
         success,
         ip: ip || '',
-        device: device || '',
+        device: (device || '').slice(0, 200),
       });
       await this.loginLogRepository.save(log);
     } catch (error) {

@@ -39,5 +39,7 @@
       <text class="iconfont icon-wechat"></text>
       微信授权登录
     </button>
+
+    <view class="register-link" bindtap="goToRegister">没有账号？立即注册</view>
   </view>
 </view>

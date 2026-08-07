@@ -10,6 +10,19 @@ Page({
     loading: false
   },
 
+  onShow() {
+    // 注册成功后回填用户名
+    const prefill = wx.getStorageSync('prefillUsername');
+    if (prefill) {
+      this.setData({ username: prefill });
+      wx.removeStorageSync('prefillUsername');
+    }
+  },
+
+  goToRegister() {
+    wx.navigateTo({ url: '/pages/register/register' });
+  },
+
   onInputUsername(e) {
     this.setData({ username: e.detail.value });
   },
