@@ -42,28 +42,29 @@ All events are emitted via `@nestjs/event-emitter` (EventBus). Event names use l
 |---|-----------|--------|-------------|-----------|-----------|
 | 1 | `lesson.completed` | CURRENT | Teaching | Lesson (T4) | Dashboard, Notification (future) |
 | 2 | `lesson.finished` | CURRENT | Teaching | Lesson (T4) | Finance, Points, Notification, Dashboard |
-| 3 | `attendance.confirmed` | DESIGNED | Teaching | Lesson (T4) | Dashboard |
-| 4 | `lesson.feedback.created` | DESIGNED | Teaching | Lesson (T4) | Dashboard, Notification (future) |
-| 5 | `leave.submitted` | DESIGNED | Teaching | Lesson (T4) | Notification (future) |
-| 6 | `leave.approved` | DESIGNED | Teaching | Lesson (T4) | Notification (future) |
-| 7 | `contract.exhausted` | DESIGNED | Finance | Contract (T3) | Teaching, Dashboard |
-| 8 | `contract.expired` | DESIGNED | Finance | Contract (T3) | Teaching, Dashboard |
-| 9 | `contract.refunded` | DESIGNED | Finance | Contract (T3) | Teaching, Dashboard |
-| 10 | `student.deactivated` | DESIGNED | Student | Student (S1) | Teaching |
-| 11 | `points.granted` | DESIGNED | Finance | (Finance entity) | Dashboard, Notification (future) |
-| 12 | `contract.deducted` | PLANNED | Finance | Contract (T3) | Dashboard, Notification |
-| 13 | `salary.calculated` | PLANNED | Finance | (Finance entity) | Notification, Dashboard |
-| 14 | `student.status.changed` | PLANNED | Student | Student (S1) | Teaching, Finance, Dashboard |
-| 15 | `attendance.anomaly` | PLANNED | Teaching | Lesson (T4) | Notification |
-| 16 | `contract.expiring` | PLANNED | Finance | Contract (T3) | Notification |
-| 17 | `attendance.summary` | FUTURE | Teaching | Lesson (T4) | Dashboard |
-| 18 | `points.awarded` | FUTURE | Points | (Points entity) | Dashboard, Notification |
-| 19 | `points.redeemed` | FUTURE | Points | (Points entity) | Dashboard |
-| 20 | `student.created` | FUTURE | Student | Student (S1) | Teaching, Dashboard |
-| 21 | `user.login` | FUTURE | Identity | User (I1) | Dashboard, Notification |
-| 22 | `user.logout` | FUTURE | Identity | User (I1) | Dashboard |
-| 23 | `rule.updated` | FUTURE | System | (System) | All domains |
-| 24 | `config.changed` | FUTURE | System | (System) | All domains |
+| 3 | `lesson.cancelled` | CURRENT | Teaching | Lesson (T4) | Teaching (审计日志) |
+| 4 | `attendance.confirmed` | DESIGNED | Teaching | Lesson (T4) | Dashboard |
+| 5 | `lesson.feedback.created` | DESIGNED | Teaching | Lesson (T4) | Dashboard, Notification (future) |
+| 6 | `leave.submitted` | DESIGNED | Teaching | Lesson (T4) | Notification (future) |
+| 7 | `leave.approved` | DESIGNED | Teaching | Lesson (T4) | Notification (future) |
+| 8 | `contract.exhausted` | DESIGNED | Finance | Contract (T3) | Teaching, Dashboard |
+| 9 | `contract.expired` | DESIGNED | Finance | Contract (T3) | Teaching, Dashboard |
+| 10 | `contract.refunded` | DESIGNED | Finance | Contract (T3) | Teaching, Dashboard |
+| 11 | `student.deactivated` | DESIGNED | Student | Student (S1) | Teaching |
+| 12 | `points.granted` | DESIGNED | Finance | (Finance entity) | Dashboard, Notification (future) |
+| 13 | `contract.deducted` | PLANNED | Finance | Contract (T3) | Dashboard, Notification |
+| 14 | `salary.calculated` | PLANNED | Finance | (Finance entity) | Notification, Dashboard |
+| 15 | `student.status.changed` | PLANNED | Student | Student (S1) | Teaching, Finance, Dashboard |
+| 16 | `attendance.anomaly` | PLANNED | Teaching | Lesson (T4) | Notification |
+| 17 | `contract.expiring` | PLANNED | Finance | Contract (T3) | Notification |
+| 18 | `attendance.summary` | FUTURE | Teaching | Lesson (T4) | Dashboard |
+| 19 | `points.awarded` | FUTURE | Points | (Points entity) | Dashboard, Notification |
+| 20 | `points.redeemed` | FUTURE | Points | (Points entity) | Dashboard |
+| 21 | `student.created` | FUTURE | Student | Student (S1) | Teaching, Dashboard |
+| 22 | `user.login` | FUTURE | Identity | User (I1) | Dashboard, Notification |
+| 23 | `user.logout` | FUTURE | Identity | User (I1) | Dashboard |
+| 24 | `rule.updated` | FUTURE | System | (System) | All domains |
+| 25 | `config.changed` | FUTURE | System | (System) | All domains |
 
 **Aggregate Reference Key:** T1=Course, T2=Class, T3=Contract, T4=Lesson, T5=Enrollment, S1=Student, I1=User, I2=Role
 
@@ -112,6 +113,26 @@ All events are emitted via `@nestjs/event-emitter` (EventBus). Event names use l
 | Points | Award attendance points to students | FUTURE |
 | Notification | Send confirmed lesson notification to parents | FUTURE |
 | Dashboard | Update financial and operational stats | FUTURE |
+
+---
+
+### `lesson.cancelled`
+
+| | |
+|---|---|
+| **Publisher** | Teaching Domain |
+| **Status** | CURRENT |
+| **Source** | `backend/src/modules/teaching/lesson/lesson.service.ts`（Lesson 状态改为 CANCELLED 时 publish，含异常流程取消） |
+| **Trigger** | Lesson 状态变为 CANCELLED（取消/停课） |
+| **Meaning** | 课次被取消：不扣费、不计工资。 |
+| **Payload** | `lessonId`, `classCode`, `courseCode`, `teacherId`, `scheduledDate`, `cancelledReason`, `cancelledBy`, `cancelledAt` |
+| **Idempotency Key** | `lessonId` |
+
+**Subscribers:**
+
+| Domain | Action | Status |
+|--------|--------|--------|
+| Teaching | LessonEventSubscriber 审计日志（`lesson-event.subscriber.ts:57`） | CURRENT |
 
 ---
 

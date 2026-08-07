@@ -693,6 +693,8 @@ AI：
 
 文档。
 
+> **命名演进说明（2026-08-07 核对）**：本清单为 v4.0 阶段的 PascalCase 旧名。代码实际采用小写点号命名，以 [EventCatalog](../EventCatalog/EventCatalog.md)（v1.0.0）为权威。旧名 → 新名映射（示例）：`LessonFinished` → `lesson.finished`；`LessonCancelled` → `lesson.cancelled`；`LeaveApplied` → `leave.submitted`；`LeaveApproved` → `leave.approved`。课次事件两阶段：先 `lesson.completed`（不扣钱），考勤确认后 `lesson.finished`（扣钱）。本节保留旧名，不逐条改写。
+
 ---
 
 ## 十五、AI开发执行规则（必须遵守）

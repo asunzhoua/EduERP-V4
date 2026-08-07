@@ -240,6 +240,19 @@ TEACHING ───cancel──► CANCELLED
 | ARCHIVED | **lesson.finished** | Yes |
 | CANCELLED | — | No |
 
+### Lesson Status — 代码扩展状态（异常/补课流程）
+
+> 以下 4 个状态由后端异常/补课流程扩展（`backend/src/modules/teaching/lesson/enums/lesson-status.enum.ts`）。v4.0 目录未收录，标注为代码扩展。
+
+| Status | Meaning | Valid Transitions (code) |
+|--------|---------|--------------------------|
+| SUSPENDED | 停课（请假/暂停，如事假、训练暂停） | → SCHEDULED, RESCHEDULED, MAKEUP_PENDING |
+| RESCHEDULED | 已调课待上课 | → TEACHING |
+| MAKEUP_PENDING | 补课待安排（CANCELLED/SUSPENDED 后可排补课） | → RESCHEDULED |
+| MAKEUP_COMPLETED | 补课完成（原课次终态） | → (none) |
+
+Transition matrix (code): SCHEDULED → TEACHING \| CANCELLED \| SUSPENDED；CANCELLED → SCHEDULED \| MAKEUP_PENDING；SUSPENDED → SCHEDULED \| RESCHEDULED \| MAKEUP_PENDING；RESCHEDULED → TEACHING；MAKEUP_PENDING → RESCHEDULED；MAKEUP_COMPLETED → (none)
+
 **Detailed Doc**: [LessonStateMachine.md](./LessonStateMachine.md)
 
 ---
@@ -421,7 +434,7 @@ TEACHING ───cancel──► CANCELLED
 | 2 | **Course** | Course Status | DRAFT, PUBLISHED, ARCHIVED | ARCHIVED |
 | 3 | **Class** | Class Status | DRAFT, ACTIVE, COMPLETED, CANCELLED | COMPLETED |
 | 4 | **Contract** | Contract Status | ACTIVE, EXHAUSTED, EXPIRED, FROZEN, REFUNDED | EXHAUSTED, EXPIRED, REFUNDED |
-| 5 | **Lesson** | Lesson Status | DRAFT, SCHEDULED, TEACHING, FINISHED, ARCHIVED, CANCELLED | ARCHIVED |
+| 5 | **Lesson** | Lesson Status | DRAFT, SCHEDULED, TEACHING, FINISHED, ARCHIVED, CANCELLED, SUSPENDED, RESCHEDULED, MAKEUP_PENDING, MAKEUP_COMPLETED | ARCHIVED |
 | 6 | **Attendance** | Attendance Workflow | PENDING, CHECKED_IN, CONFIRMED, LOCKED | LOCKED |
 | 7 | **ChangeRequest** | Request Lifecycle | PENDING, APPROVED, REJECTED, EXECUTED | REJECTED, EXECUTED |
 | 8 | **Enrollment** | Enrollment Status | ACTIVE, WITHDRAWN, COMPLETED | COMPLETED |

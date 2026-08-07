@@ -7,6 +7,16 @@
 
 ---
 
+> **⚠️ 弃用说明（2026-08-07 核对）**：本文档为 v4.0 遗留的 PascalCase 数据字典，与当前代码/领域层（snake_case）脱节，**请勿再以此为准**。
+> 权威字段定义见：
+> - 域目录与表归属：[DomainCatalog](../DomainCatalog/DomainCatalog.md)
+> - 教学域字段：[TeachingDomainModel](../DomainModel/TeachingDomainModel.md)、[AttendanceDomainModel](../DomainModel/AttendanceDomainModel.md)
+> - 数据库迁移与实体：`backend/src/modules/**/entities/*.entity.ts`
+>
+> 本文档不再逐表重写，仅作历史参考。
+
+---
+
 ## 一、设计目标
 
 Data Dictionary不是数据库，不是ER图。它是整个系统所有数据的唯一标准。

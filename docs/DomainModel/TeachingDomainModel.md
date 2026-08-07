@@ -115,8 +115,8 @@ OUT OF SCOPE:
 | **Enrollment** | Student-Class-Contract bridge | Composite (classCode + studentCode) | ACTIVE → WITHDRAWN \| COMPLETED |
 | **TeacherAssignment** | Teacher-to-Class link | Composite (classCode + teacherId) | ACTIVE ↔ INACTIVE |
 | **Lesson** | Individual teaching session | `id` (integer PK) + business key (classCode + lessonNumber) | DRAFT/SCHEDULED → TEACHING → FINISHED → ARCHIVED \| CANCELLED |
-| **LessonAttendance** | Per-student lesson attendance | Composite (lessonId + studentCode) | NOT_STARTED → PRESENT \| LATE \| LEAVE_APPROVED \| ABSENT \| MAKEUP |
-| **LessonChangeRequest** | Change management document | `id` (integer PK) | PENDING → APPROVED \| REJECTED |
+| **LessonAttendance** | Per-student lesson attendance | Composite (lessonId + studentCode) | workflowState: PENDING → CHECKED_IN → CONFIRMED → LOCKED × status 8 值（详见 AttendanceDomainModel） |
+| **LessonChangeRequest** | Change management document | `id` (integer PK) | PENDING → APPROVED → EXECUTED \| REJECTED |
 
 ### 2.3 Cross-Domain References
 
@@ -306,7 +306,7 @@ remainingLessons = totalLessons - total_deductions
 Where total_deductions = COUNT(LessonFinished event where:
   - studentCode matches this Contract's studentCode
   - lesson was taught in a Class linked via Enrollment to this Contract
-  - attendance status = PRESENT or LATE
+  - attendance status ∈ {PRESENT, LATE, ONLINE, OFFLINE}
 )
 ```
 
@@ -468,7 +468,7 @@ FINISHED state:
   │                                                    │
   │  Data is confirmed. Money can move.                │
   │                                                    │
-  │  ✅ Contract deduction (per PRESENT/LATE student)  │
+  │  ✅ Contract deduction (per PRESENT/LATE/ONLINE/OFFLINE)    │
   │  ✅ Teacher salary calculation                     │
   │  ✅ Points awarded                                 │
   │  ✅ Parent notification                            │
@@ -487,25 +487,31 @@ LessonAttendance
 ├── id: 1001                     (integer PK)
 ├── lessonId: 42                 (FK → Lesson.id)
 ├── studentCode: ST2026010001    (FK → Student)
-├── status: PRESENT              (NOT_STARTED|PRESENT|LATE|LEAVE_APPROVED|LEAVE_REJECTED|ABSENT|MAKEUP)
+├── workflowState: CHECKED_IN    (PENDING|CHECKED_IN|CONFIRMED|LOCKED)
+├── status: PRESENT              (PRESENT|ABSENT|LATE|LEAVE|SICK|MAKEUP|ONLINE|OFFLINE)
+├── deductedContractId: 5007     (contract the hour was deducted from, optional)
+├── deductionSkippedReason: null (NO_ACTIVE_CONTRACT|NO_SUBJECT, optional)
 ├── checkInTime: null            (timestamp of check-in)
 ├── recordedBy: 5001             (teacher userId)
 └── note: null                   (optional remark)
 ```
 
+> **二维模型：** 考勤是 `workflowState`（PENDING → CHECKED_IN → CONFIRMED → LOCKED）与 `status`（8 值）正交的两维状态。字段、状态机与扣课规则以 [AttendanceDomainModel](./AttendanceDomainModel.md)（v1.0.0）为权威，本节为概要视图。
+
 **Attendance Status Business Meaning:**
 
-| Status | Name (CN) | Deduct Lesson? | Award Points? | Notify Parent? |
-|--------|-----------|---------------|---------------|----------------|
-| PRESENT | 出勤 | Yes | Yes | Yes |
-| LATE | 迟到 | Yes | Yes | Yes |
-| LEAVE_APPROVED | 请假获批 | **No** | No | Yes (acknowledged) |
-| LEAVE_REJECTED | 请假驳回 | Yes | No | Yes (rejected) |
-| ABSENT | 缺勤 | Yes | No | Yes (absence alert) |
-| MAKEUP | 补课 | **No** (charged on original) | Yes | Yes |
-| NOT_STARTED | 未开始 | N/A | N/A | N/A |
+| Status | Name (CN) | Deduct Lesson? |
+|--------|-----------|---------------|
+| PRESENT | 到课 | Yes |
+| LATE | 迟到 | Yes |
+| ONLINE | 线上 | Yes |
+| OFFLINE | 线下 | Yes |
+| ABSENT | 缺勤 | **No** |
+| LEAVE | 请假 | **No** |
+| SICK | 病假 | **No** |
+| MAKEUP | 补课 | **No** (charged on original) |
 
-**Critical rule:** ALL enrolled students MUST have a non-NOT_STARTED status before the lesson can transition to FINISHED. This is enforced server-side.
+**Critical rule:** 所有在册学生的考勤记录必须在课程归档（FINISHED → ARCHIVED）前达到 CONFIRMED 或 LOCKED；否则归档被拒绝（AttendanceDomainModel §10.3）。Enforced server-side.
 
 **Immutability:** Once a lesson reaches FINISHED, attendance records are locked. Editing requires reopening the lesson (FINISHED → SCHEDULED).
 
@@ -530,7 +536,7 @@ LessonChangeRequest
 ├── newEndTime: "11:30"          (after)
 ├── previousTeacherId: 5001      (before, for TEACHER_CHANGE)
 ├── newTeacherId: 5002            (after, for TEACHER_CHANGE)
-├── status: PENDING              (PENDING|APPROVED|REJECTED)
+├── status: PENDING              (PENDING|APPROVED|EXECUTED|REJECTED)
 ├── approvedBy: null             (admin userId)
 ├── approvedAt: null             (approval timestamp)
 ├── rejectionReason: null        (if REJECTED)
@@ -621,7 +627,7 @@ Lesson (id=42) → LessonFinished event
 Finance Domain receives event
     │
     ▼
-For each attendance record where status ∈ {PRESENT, LATE}:
+For each attendance record where status ∈ {PRESENT, LATE, ONLINE, OFFLINE}:
     │
     ▼
 Look up: Lesson.classCode → Enrollment (matching studentCode + classCode)
@@ -643,8 +649,8 @@ Log to contract_audit_log: {lessonId, oldBalance, newBalance}
 
 | Rule | Value |
 |------|-------|
-| Deduction per | 1 lesson per PRESENT/LATE attendance |
-| No-charge statuses | LEAVE_APPROVED, ABSENT (absence = no charge), MAKEUP (charged on original) |
+| Deduction per | 1 lesson per PRESENT/LATE/ONLINE/OFFLINE attendance |
+| No-charge statuses | LEAVE, ABSENT, SICK (no charge), MAKEUP (charged on original) |
 | Deduction performed by | Finance domain only (Rule 17) |
 | Negative balance protection | remainingLessons MUST NOT go below 0 |
 | Idempotency key | lessonId (same lesson must not deduct twice) |
@@ -736,7 +742,7 @@ Rescheduling MUST go through a LessonChangeRequest. Direct field edits are forbi
 ┌─────────────────────────────────────────────────────────────────┐
 │                     FINANCE DOMAIN (future)                      │
 │                                                                  │
-│  6. Deduct Contract.remainingLessons (per PRESENT/LATE)         │
+│  6. Deduct Contract.remainingLessons (per PRESENT/LATE/ONLINE/OFFLINE) │
 │  7. Calculate teacher salary                                     │
 │  8. If remainingLessons == 0 → Contract → EXHAUSTED            │
 │  ═══ EMIT: contract.deducted ═══                                │
@@ -811,7 +817,7 @@ System-generated lessons start as **SCHEDULED**, not DRAFT. DRAFT is only for ma
 4. Admin confirms → Lesson status → ARCHIVED
 5. LessonFinished event emitted
 6. Finance domain receives event
-7. For each PRESENT/LATE attendance:
+7. For each PRESENT/LATE/ONLINE/OFFLINE attendance:
    a. Find Contract via: Lesson → Enrollment → contractCode
    b. Contract.remainingLessons -= 1
    c. If remainingLessons = 0 → Contract → EXHAUSTED

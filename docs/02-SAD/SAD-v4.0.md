@@ -181,6 +181,12 @@ NotificationSent
 
 以后新增事件必须遵循：业务+过去式。例如：LessonFinished，不能：FinishLessonNow。
 
+> **命名演进说明（2026-08-07 核对）**：本清单为 v4.0 阶段的 PascalCase 旧名。代码实际采用小写点号命名（`lesson.completed`、`lesson.finished`、`lesson.cancelled`、`attendance.confirmed`、`leave.approved`…），以 [EventCatalog](../EventCatalog/EventCatalog.md)（v1.0.0）为权威。
+>
+> 旧名 → 新名映射（示例）：`LessonFinished` → `lesson.finished`；`LeaveApplied` → `leave.submitted`；`LeaveApproved` → `leave.approved`。课次事件为两阶段：教师结课后先发 `lesson.completed`（不扣钱），全部考勤确认后发 `lesson.finished`（扣钱）；取消课次发 `lesson.cancelled`。
+>
+> 本节保留旧名用于说明业务语义，不逐条改写冻结文档。
+
 ---
 
 ## 9. 微信小程序运行约束（宪法级条款）

@@ -37,7 +37,8 @@ It is NOT a simple "present or absent" check. Attendance is the **foundational d
 │                                                                │
 │  LessonAttendance                                              │
 │    ├── Workflow State: PENDING → CHECKED_IN → CONFIRMED → LOCKED │
-│    └── Status: PRESENT | ABSENT | LATE | LEAVE | MAKEUP | ONLINE | OFFLINE │
+│    └── Status: PRESENT | ABSENT | LATE | LEAVE | SICK | MAKEUP | ONLINE │
+│                  | OFFLINE                                              │
 │                                                                │
 │  LessonChangeRequest                                           │
 │    ├── Request: RESCHEDULE | TEACHER_CHANGE | CANCEL | REOPEN  │
@@ -83,8 +84,8 @@ Attendance uses **two independent dimensions** that must never be confused:
 │                                                              │
 │  Dimension 2: STATUS (what happened)                         │
 │    Records WHAT actually happened to the student.            │
-│    Values: PRESENT | ABSENT | LATE | LEAVE | MAKEUP |       │
-│            ONLINE | OFFLINE                                  │
+│    Values: PRESENT | ABSENT | LATE | LEAVE | SICK | MAKEUP │
+│            ONLINE | OFFLINE                                │
 │                                                              │
 │  RULE: These two dimensions are orthogonal.                  │
 │  Workflow State governs the process. Status governs the data.│
@@ -123,7 +124,9 @@ One record per student per lesson. Created automatically when a Lesson transitio
 | `classCode` | String FK | ✅ | → Class.classCode. Denormalized from Lesson for query efficiency. |
 | `teacherId` | Int FK | ✅ | → User.id. The PRIMARY teacher of the class at lesson time. Copied from Lesson. |
 | `workflowState` | Enum | ✅ | PENDING \| CHECKED_IN \| CONFIRMED \| LOCKED. See Section 4. |
-| `status` | Enum | ❌ | PRESENT \| ABSENT \| LATE \| LEAVE \| MAKEUP \| ONLINE \| OFFLINE. Nullable when workflowState = PENDING. See Section 5. |
+| `status` | Enum | ❌ | PRESENT \| ABSENT \| LATE \| LEAVE \| SICK \| MAKEUP \| ONLINE \| OFFLINE. Nullable when workflowState = PENDING. See Section 5. |
+| `deductedContractId` | BigInt | ❌ | → Contract.id (soft reference). The contract the lesson hour was deducted from. Set once at first check-in. Null for legacy rows. |
+| `deductionSkippedReason` | Enum | ❌ | NO_ACTIVE_CONTRACT \| NO_SUBJECT. Why a deductible attendance (PRESENT/LATE/ONLINE/OFFLINE) skipped deduction. Set once at first check-in. Null = deducted or not deductible. |
 | `checkInTime` | DateTime | ❌ | Timestamp when the student checked in or was recorded. Set when workflowState → CHECKED_IN. |
 | `reason` | Text | ❌ | Reason for LATE, LEAVE, or ABSENT. Required when status = LATE, LEAVE, or ABSENT. |
 | `operator` | Int | ✅ | userId of whoever recorded or last modified this attendance. System = 0. |
@@ -200,7 +203,7 @@ The workflow state tracks the **lifecycle process** of an attendance record.
 
 | From | To | Trigger | Guard | Side Effect |
 |------|----|---------|-------|-------------|
-| PENDING | CHECKED_IN | Teacher records attendance | `status` must be set (one of 7 values). `checkInTime` set. | Record now has attendance data. |
+| PENDING | CHECKED_IN | Teacher records attendance | `status` must be set (one of 8 values). `checkInTime` set. | Record now has attendance data. |
 | CHECKED_IN | CONFIRMED | Admin confirms OR auto-confirm (timeout after review window) | All CHECKED_IN records for this lesson reviewed. | Emits `attendance.confirmed` when ALL records for this lesson reach CONFIRMED. |
 | CONFIRMED | LOCKED | Lesson: FINISHED → ARCHIVED | Lesson archived. | Record is final. No further modifications allowed. |
 
@@ -229,6 +232,7 @@ The status records **what actually happened** to the student during the lesson.
 | `OFFLINE` | 线下出勤 | Student attended in person | **Deduct** from Contract |
 | `ABSENT` | 缺勤 | Student did not attend, no approval | **No deduction** |
 | `LEAVE` | 请假 | Student on approved leave | **No deduction** |
+| `SICK` | 病假 | Student on approved sick leave | **No deduction** |
 | `MAKEUP` | 补课 | Student attending a makeup lesson | **No deduction** (charged on original lesson) |
 
 ### 5.2 Financial Implication Rules
@@ -239,7 +243,7 @@ Deduction Rule:
   THEN Finance Domain deducts from Contract.remainingLessons
 
 No-Deduction Rule:
-  IF status ∈ {ABSENT, LEAVE, MAKEUP}
+  IF status ∈ {ABSENT, LEAVE, SICK, MAKEUP}
   THEN Finance Domain does NOT deduct
 ```
 
@@ -255,6 +259,7 @@ No-Deduction Rule:
 | OFFLINE | Teacher / System | During CHECKED_IN | No |
 | ABSENT | Teacher / System | During CHECKED_IN | Yes — absence note |
 | LEAVE | Admin | During CHECKED_IN | Yes — leave approval reference |
+| SICK | Admin | During CHECKED_IN | Yes — sick-leave approval reference |
 | MAKEUP | System | Auto-creation | No (implied by makeup lesson link) |
 
 ### 5.4 Status Immutability Rules
