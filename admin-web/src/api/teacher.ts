@@ -9,6 +9,7 @@ export interface Teacher {
   role: string
   status: number
   avatar: string | null
+  teacherLevel: string | null
   teachingCount: number
   monthSalary: number
   createTime: string
@@ -26,12 +27,14 @@ export interface CreateTeacherPayload {
   name: string
   mobile: string
   password: string
+  teacherLevel?: string | null
 }
 
 export interface UpdateTeacherPayload {
   name?: string
   mobile?: string
   password?: string
+  teacherLevel?: string | null
 }
 
 export function fetchTeachers(query: TeacherQuery = {}): Promise<Paginated<Teacher>> {

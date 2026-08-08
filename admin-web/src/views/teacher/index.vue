@@ -20,9 +20,18 @@ const query = reactive({ keyword: '', status: undefined as number | undefined, p
 const statusLabel: Record<number, string> = { 1: '启用', 0: '停用' }
 const statusColor: Record<number, string> = { 1: 'green', 0: 'default' }
 
+const teacherLevelOptions = [
+  { value: '', label: '未设置' },
+  { value: '初级', label: '初级' },
+  { value: '中级', label: '中级' },
+  { value: '高级', label: '高级' },
+  { value: '特级', label: '特级' },
+]
+
 const columns = [
   { title: '用户名', dataIndex: 'username', key: 'username', width: 120 },
   { title: '姓名', dataIndex: 'name', key: 'name', width: 100 },
+  { title: '等级', dataIndex: 'teacherLevel', key: 'teacherLevel', width: 90 },
   { title: '手机号', dataIndex: 'mobile', key: 'mobile', width: 130 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
   { title: '授课数', dataIndex: 'teachingCount', key: 'teachingCount', width: 90 },
@@ -65,17 +74,18 @@ const form = reactive({
   name: '',
   mobile: '',
   password: '',
+  teacherLevel: '',
 })
 
 function openCreate() {
   editing.value = null
-  Object.assign(form, { username: '', name: '', mobile: '', password: '' })
+  Object.assign(form, { username: '', name: '', mobile: '', password: '', teacherLevel: '' })
   modalOpen.value = true
 }
 
 function openEdit(row: Teacher) {
   editing.value = row
-  Object.assign(form, { name: row.name, mobile: row.mobile || '', password: '' })
+  Object.assign(form, { name: row.name, mobile: row.mobile || '', password: '', teacherLevel: row.teacherLevel || '' })
   modalOpen.value = true
 }
 
@@ -103,6 +113,7 @@ async function onSubmit() {
         name: form.name,
         mobile: form.mobile,
         password: form.password || undefined,
+        teacherLevel: form.teacherLevel,
       })
       message.success('教师信息已更新')
     } else {
@@ -111,6 +122,7 @@ async function onSubmit() {
         name: form.name,
         mobile: form.mobile,
         password: form.password,
+        teacherLevel: form.teacherLevel || null,
       })
       message.success('教师创建成功')
     }
@@ -182,6 +194,9 @@ onMounted(load)
         <template v-if="column.key === 'status'">
           <a-tag :color="statusColor[record.status as number] || 'default'">{{ statusLabel[record.status as number] || '未知' }}</a-tag>
         </template>
+        <template v-else-if="column.key === 'teacherLevel'">
+          {{ (record.teacherLevel as string) || '未设置' }}
+        </template>
         <template v-else-if="column.key === 'monthSalary'">
           {{ formatMoney(record.monthSalary as number) }}
         </template>
@@ -213,6 +228,11 @@ onMounted(load)
             </a-form-item>
           </a-col>
         </a-row>
+        <a-form-item label="教师等级">
+          <a-select v-model:value="form.teacherLevel" placeholder="选择等级（用于工资规则匹配）">
+            <a-select-option v-for="opt in teacherLevelOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</a-select-option>
+          </a-select>
+        </a-form-item>
         <a-form-item label="密码" :required="!editing">
           <a-input-password v-model:value="form.password" :placeholder="editing ? '留空表示不修改' : '初始密码'" />
         </a-form-item>
