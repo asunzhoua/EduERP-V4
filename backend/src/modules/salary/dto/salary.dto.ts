@@ -116,13 +116,15 @@ export class UpdateSalaryRecordStatusDto {
 }
 
 export class SalaryStatisticsQueryDto {
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsNumber()
-  year: number;
+  year?: number;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsNumber()
-  month: number;
+  month?: number;
 
   @ApiProperty({ required: false })
   @IsOptional()

@@ -56,36 +56,60 @@ export class SalaryService {
   }
 
   async getStatistics(query: SalaryStatisticsQueryDto) {
-    const { year, month, teacherId } = query;
+    const now = new Date();
+    const year = query.year ?? now.getFullYear();
+    const month = query.month ?? now.getMonth() + 1;
+    const { teacherId } = query;
 
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0); // 月末
 
-    const qb = this.salaryRecordRepo.createQueryBuilder('record');
-
-    qb.where('record.lessonDate BETWEEN :startDate AND :endDate', {
+    const base = this.salaryRecordRepo.createQueryBuilder('record');
+    base.where('record.lessonDate BETWEEN :startDate AND :endDate', {
       startDate,
       endDate,
     });
-
     if (teacherId) {
-      qb.andWhere('record.teacherId = :teacherId', { teacherId });
+      base.andWhere('record.teacherId = :teacherId', { teacherId });
     }
 
-    const result = await qb
+    const totals = await base
+      .clone()
       .select([
-        'COUNT(record.id) as totalRecords',
-        'SUM(record.amount) as totalAmount',
-        'SUM(record.duration) as totalMinutes',
+        'COUNT(record.id) AS totalRecords',
+        'SUM(record.amount) AS totalAmount',
+        'SUM(record.duration) AS totalMinutes',
+        'COUNT(DISTINCT record.teacherId) AS teacherCount',
       ])
       .getRawOne();
+
+    const byStatus = await base
+      .clone()
+      .select(['record.status AS status', 'SUM(record.amount) AS amount'])
+      .groupBy('record.status')
+      .getRawMany();
+
+    let paidAmount = 0;
+    let pendingAmount = 0;
+    for (const row of byStatus) {
+      const amount = parseFloat(row.amount) || 0;
+      if (row.status === SalaryRecordStatus.PAID) {
+        paidAmount += amount;
+      } else {
+        pendingAmount += amount; // PENDING 与 CONFIRMED 均属未发放
+      }
+    }
 
     return {
       year,
       month,
-      totalRecords: parseInt(result.totalRecords) || 0,
-      totalAmount: parseFloat(result.totalAmount) || 0,
-      totalMinutes: parseInt(result.totalMinutes) || 0,
+      totalRecords: parseInt(totals.totalRecords) || 0,
+      totalAmount: parseFloat(totals.totalAmount) || 0,
+      totalMinutes: parseInt(totals.totalMinutes) || 0,
+      teacherCount: parseInt(totals.teacherCount) || 0,
+      recordCount: parseInt(totals.totalRecords) || 0,
+      paidAmount,
+      pendingAmount,
     };
   }
 

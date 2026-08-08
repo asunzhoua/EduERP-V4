@@ -81,7 +81,7 @@ onMounted(load)
       <a-descriptions-item label="学校">{{ student.school || '-' }}</a-descriptions-item>
       <a-descriptions-item label="年级">{{ student.grade || '-' }}</a-descriptions-item>
       <a-descriptions-item label="报名时间">{{ formatDate(student.createTime) }}</a-descriptions-item>
-      <a-descriptions-item label="标签" :span="2">
+      <a-descriptions-item label="标签" :span="3">
         <template v-if="student.tags && student.tags.length">
           <a-tag v-for="tag in student.tags" :key="tag" color="blue">{{ tag }}</a-tag>
         </template>
