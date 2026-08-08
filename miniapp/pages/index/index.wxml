@@ -1,196 +1,231 @@
 <!--pages/index/index.wxml-->
 <view class="container">
-  <!-- 用户信息 -->
-  <view class="user-card">
-    <image class="avatar" src="{{userInfo.avatar || '/images/default-avatar.png'}}" mode="aspectFill"></image>
-    <view class="user-info">
-      <text class="user-name">{{userInfo.name || '未登录'}}</text>
-      <text class="user-role">{{roleText}}</text>
-    </view>
-  </view>
 
-  <!-- ========== 教师端快捷入口 ========== -->
-  <view class="quick-actions" wx:if="{{role !== 'Student' && role !== 'Parent'}}">
-    <view class="action-grid">
-      <view class="action-item" bindtap="goToCourses">
-        <text class="action-icon">📚</text>
-        <text class="action-text">我的课程</text>
-      </view>
-      <view class="action-item" bindtap="goToClasses">
-        <text class="action-icon">🏫</text>
-        <text class="action-text">我的班级</text>
-      </view>
-      <view class="action-item" bindtap="goToStudents">
-        <text class="action-icon">👥</text>
-        <text class="action-text">学生管理</text>
-      </view>
-      <view class="action-item" bindtap="goToLessons">
-        <text class="action-icon">📝</text>
-        <text class="action-text">课时记录</text>
-      </view>
-      <view class="action-item" bindtap="goToDashboard" wx:if="{{role === 'Admin' || role === 'SuperAdmin'}}">
-        <text class="action-icon">📊</text>
-        <text class="action-text">运营看板</text>
-      </view>
-      <view class="action-item" bindtap="goToReminders">
-        <text class="action-icon">🔔</text>
-        <text class="action-text">我的提醒</text>
-      </view>
-      <view class="action-item" bindtap="goToProfile">
-        <text class="action-icon">👤</text>
-        <text class="action-text">个人中心</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- ========== 学生端快捷入口 ========== -->
-  <view class="quick-actions" wx:if="{{role === 'Student' || role === 'Parent'}}">
-    <view class="action-grid">
-      <view class="action-item" bindtap="goToMyClasses">
-        <text class="action-icon">🏫</text>
-        <text class="action-text">我的班级</text>
-      </view>
-      <view class="action-item" bindtap="goToMyLessonRecords">
-        <text class="action-icon">📝</text>
-        <text class="action-text">课时记录</text>
-      </view>
-      <view class="action-item" bindtap="goToReminders">
-        <text class="action-icon">🔔</text>
-        <text class="action-text">我的提醒</text>
-      </view>
-      <view class="action-item" bindtap="goToAttendance">
-        <text class="action-icon">📋</text>
-        <text class="action-text">出勤记录</text>
-      </view>
-      <view class="action-item" bindtap="goToStudentProfile">
-        <text class="action-icon">👤</text>
-        <text class="action-text">个人中心</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- ========== 教师端今日概览 ========== -->
-  <view class="section" wx:if="{{role !== 'Student' && role !== 'Parent'}}">
-    <view class="section-header">
-      <text class="section-title">今日概览</text>
-      <text class="section-refresh" bindtap="retryLoad" wx:if="{{error}}">点击重试</text>
-    </view>
-    
-    <!-- 加载中状态 -->
-    <view class="overview-card" wx:if="{{loading}}">
-      <view class="skeleton-item">
-        <view class="skeleton-value"></view>
-        <view class="skeleton-label"></view>
-      </view>
-      <view class="skeleton-item">
-        <view class="skeleton-value"></view>
-        <view class="skeleton-label"></view>
-      </view>
-      <view class="skeleton-item">
-        <view class="skeleton-value"></view>
-        <view class="skeleton-label"></view>
-      </view>
-    </view>
-
-    <!-- 错误状态 -->
-    <view class="overview-card error-card" wx:elif="{{error}}">
-      <view class="error-content">
-        <text class="error-icon">⚠️</text>
-        <text class="error-text">{{error}}</text>
-        <text class="error-hint" bindtap="retryLoad">点击重试</text>
-      </view>
-    </view>
-
-    <!-- 正常数据 -->
-    <view class="overview-card" wx:else>
-      <view class="overview-item">
-        <text class="overview-value {{todayLessons > 0 ? 'has-data' : ''}}">{{todayLessons}}</text>
-        <text class="overview-label">今日课次</text>
-      </view>
-      <view class="overview-item">
-        <text class="overview-value {{pendingAttendance > 0 ? 'warning' : ''}}">{{pendingAttendance}}</text>
-        <text class="overview-label">待考勤</text>
-      </view>
-      <view class="overview-item">
-        <text class="overview-value">{{totalStudents}}</text>
-        <text class="overview-label">在籍学生</text>
-      </view>
-      <view class="overview-item">
-        <text class="overview-value">{{totalClasses}}</text>
-        <text class="overview-label">我的班级</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- ========== 学生端学习概览 ========== -->
-  <view class="section" wx:if="{{role === 'Student' || role === 'Parent'}}">
-    <view class="section-header">
-      <text class="section-title">孩子学习</text>
-      <text class="section-refresh" bindtap="retryLoad" wx:if="{{error}}">点击重试</text>
-    </view>
-
-    <!-- 加载中 -->
-    <view class="overview-card" wx:if="{{loading}}">
-      <view class="skeleton-item">
-        <view class="skeleton-value"></view>
-        <view class="skeleton-label"></view>
-      </view>
-    </view>
-
-    <!-- 错误状态 -->
-    <view class="overview-card error-card" wx:elif="{{error}}">
-      <view class="error-content">
-        <text class="error-icon">⚠️</text>
-        <text class="error-text">{{error}}</text>
-        <text class="error-hint" bindtap="retryLoad">点击重试</text>
-      </view>
-    </view>
-
-    <!-- 正常数据 -->
-    <view wx:else>
-      <!-- 我的合同 -->
-      <view class="overview-card" wx:if="{{myContracts.length > 0}}">
-        <view class="contract-list">
-          <view class="contract-item" wx:for="{{myContracts}}" wx:key="id">
-            <text class="contract-name">{{item.courseName || item.name || '课程合同'}}</text>
-            <text class="contract-info">{{item.totalLessons || 0}} 课时</text>
+  <!-- ========== 家长/学生视图：富首页 ========== -->
+  <block wx:if="{{role === 'Student' || role === 'Parent'}}">
+    <!-- 顶部欢迎区 -->
+    <view class="home-header">
+      <view class="greet">
+        <view>
+          <view class="greet-hi">{{greeting}}，{{parentName}}</view>
+          <view class="greet-sub">{{childCountText}}</view>
+        </view>
+        <view class="header-actions">
+          <view class="bell-mini" bindtap="goToReminders">
+            <view class="ic ic-bell"></view>
+            <view class="bell-badge" wx:if="{{unreadCount > 0}}">{{unreadCount > 99 ? '99+' : unreadCount}}</view>
+          </view>
+          <view class="profile-mini" bindtap="goToStudentProfile">
+            <view class="ic ic-user"></view>
           </view>
         </view>
       </view>
-      <view class="overview-card" wx:else>
-        <view class="empty-hint">
-          <text class="empty-text">暂无合同信息</text>
-        </view>
+
+      <!-- 孩子切换：点击进入对应孩子详情（不伪造多孩数据） -->
+      <scroll-view scroll-x class="child-switcher" wx:if="{{children.length > 0}}">
+        <view class="child-chip"
+          wx:for="{{children}}" wx:key="id"
+          data-id="{{item.id}}" data-name="{{item.name}}"
+          data-studentcode="{{item.studentCode}}"
+          data-school="{{item.school}}" data-grade="{{item.grade}}"
+          bindtap="goToChild">{{item.name}}{{item.grade ? ' · ' + item.grade : ''}}</view>
+      </scroll-view>
+    </view>
+
+    <view class="home-body">
+      <!-- 加载 -->
+      <block wx:if="{{loading}}">
+        <view class="skeleton-line" wx:for="{{[1,2,3,4,5,6]}}" wx:key="*this"></view>
+      </block>
+
+      <!-- 错误 -->
+      <view class="error-card" wx:elif="{{error}}">
+        <text class="error-text">{{error}}</text>
+        <view class="retry-btn" bindtap="retryLoad">点击重试</view>
       </view>
 
-      <!-- 最近课时 -->
-      <view class="section-header" style="margin-top: 20rpx;">
-        <text class="section-title">最近课时</text>
-      </view>
-      <view class="overview-card" wx:if="{{recentLessons.length > 0}}">
-        <view class="lesson-list">
-          <view class="lesson-item" wx:for="{{recentLessons}}" wx:key="id">
-            <view class="lesson-info">
-              <text class="lesson-name">{{item.className || item.courseName || '课时'}}</text>
-              <text class="lesson-date">{{item.lessonDate || ''}}</text>
+      <!-- 内容 -->
+      <block wx:else>
+        <!-- 课时余额大卡 -->
+        <view class="balance-card {{isLowBalance ? 'low' : ''}}">
+          <view class="balance-top">
+            <view class="balance-left">
+              <view class="balance-label">剩余课时</view>
+              <view class="balance-num">{{overviewStats.remainingLessons}}<text class="unit">节</text></view>
+              <view class="balance-sub">总课时 {{overviewStats.totalLessons}} · 已上 {{overviewStats.usedLessons}}</view>
             </view>
-            <text class="lesson-status">{{item.statusText}}</text>
+            <view class="balance-pct">{{overviewStats.overallProgress}}%</view>
+          </view>
+          <view class="progress-track"><view class="progress-fill" style="width: {{overviewStats.overallProgress}}%;"></view></view>
+          <view class="low-banner" wx:if="{{isLowBalance}}">
+            <text>剩余 {{overviewStats.remainingLessons}} 节 · 建议及时续费</text>
+            <view class="low-btn" bindtap="goToContact">开启提醒</view>
           </view>
         </view>
+
+        <!-- 今日课程 -->
+        <view class="card">
+          <view class="card-head">
+            <view class="card-title">今日课程</view>
+            <view class="link" bindtap="goToMyLessonRecords">查看全部</view>
+          </view>
+          <block wx:if="{{todayClasses.length > 0}}">
+            <view class="class-item {{item.isPast ? 'past' : ''}}" wx:for="{{todayClasses}}" wx:key="index">
+              <view class="class-time">
+                <view class="t">{{item.startTime}}</view>
+                <view class="d">{{item.endTime}}</view>
+              </view>
+              <view class="class-mid">
+                <view class="s">{{item.courseName || item.className || '课程'}}</view>
+                <view class="t">{{item.teacherName || '老师'}}</view>
+              </view>
+              <view class="badge {{item.isPast ? 'badge-done' : 'badge-todo'}}">{{item.isPast ? '已完成' : '待上课'}}</view>
+            </view>
+          </block>
+          <view class="empty-hint" wx:else>今日无课，好好休息</view>
+        </view>
+
+        <!-- 出勤概览 -->
+        <view class="card">
+          <view class="card-head">
+            <view class="card-title">出勤概览</view>
+            <view class="link" bindtap="goToAttendance">查看全部</view>
+          </view>
+          <block wx:if="{{recentLessons.length > 0}}">
+            <view class="att-row" wx:for="{{recentLessons}}" wx:key="index">
+              <view class="dot {{item.status === 'ABSENT' ? 'r' : item.status === 'LEAVE' || item.status === 'SICK' ? 'y' : 'g'}}"></view>
+              <text>{{item.lessonDate || ''}} {{item.courseName || item.className || '课时'}}</text>
+              <text class="att-status">{{item.statusText}}</text>
+            </view>
+          </block>
+          <view class="empty-hint" wx:else>暂无课时记录</view>
+        </view>
+
+        <!-- 最近课程反馈 -->
+        <view class="card">
+          <view class="card-head">
+            <view class="card-title">最近课程反馈</view>
+            <view class="link" bindtap="goToFeedback">查看全部</view>
+          </view>
+          <block wx:if="{{recentFeedback.length > 0}}">
+            <view class="fb-row" wx:for="{{recentFeedback}}" wx:key="id">
+              <view class="fb-mid">
+                <view class="fb-s">{{item.courseName || '课程'}}<text class="fb-date" wx:if="{{item.lessonDate}}"> · {{item.lessonDate}}</text></view>
+                <view class="fb-t">{{item.teacherName ? '老师：' + item.teacherName : ''}}</view>
+              </view>
+              <view class="fb-badge">查看 ›</view>
+            </view>
+          </block>
+          <view class="empty-hint" wx:else>暂无课程反馈</view>
+        </view>
+
+        <!-- 我的积分 -->
+        <view class="card points-mini" bindtap="goToPoints">
+          <view class="card-head">
+            <view class="card-title">我的积分</view>
+            <view class="link" catchtap="goToPointsMall">积分商城 ›</view>
+          </view>
+          <view class="points-mini-row">
+            <view class="points-mini-balance">{{pointsBalance}}<text class="points-mini-unit">分</text></view>
+            <view class="points-mini-action">查看积分明细</view>
+          </view>
+        </view>
+
+        <!-- 快捷操作 -->
+        <view class="quick-grid">
+          <view class="quick-tile" bindtap="goToStudentLeaveApply"><view class="ic ic-leave"></view><text>请假申请</text></view>
+          <view class="quick-tile" bindtap="goToLeaveRecords"><view class="ic ic-list"></view><text>我的申请</text></view>
+          <view class="quick-tile" bindtap="goToAttendance"><view class="ic ic-calendar"></view><text>出勤记录</text></view>
+          <view class="quick-tile" bindtap="goToFeedback"><view class="ic ic-eye"></view><text>查看反馈</text></view>
+          <view class="quick-tile" bindtap="goToPointsMall"><view class="ic ic-book"></view><text>积分商城</text></view>
+          <view class="quick-tile" bindtap="goToContact"><view class="ic ic-contact"></view><text>联系机构</text></view>
+        </view>
+      </block>
+    </view>
+  </block>
+
+  <!-- ========== 教师/管理员视图：仪表盘 ========== -->
+  <block wx:else>
+    <!-- 用户信息 -->
+    <view class="user-card">
+      <image class="avatar" src="{{userInfo.avatar || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+      <view class="user-info">
+        <text class="user-name">{{userInfo.name || '未登录'}}</text>
+        <text class="user-role">{{roleText}}</text>
       </view>
-      <view class="overview-card" wx:else>
-        <view class="empty-hint">
-          <text class="empty-text">暂无课时记录</text>
+    </view>
+
+    <!-- 教师端快捷入口 -->
+    <view class="quick-actions">
+      <view class="action-grid">
+        <view class="action-item" bindtap="goToCourses">
+          <view class="ai ic ic-book"></view><text class="action-text">我的课程</text>
+        </view>
+        <view class="action-item" bindtap="goToClasses">
+          <view class="ai ic ic-home"></view><text class="action-text">我的班级</text>
+        </view>
+        <view class="action-item" bindtap="goToStudents">
+          <view class="ai ic ic-user"></view><text class="action-text">学生管理</text>
+        </view>
+        <view class="action-item" bindtap="goToLessons">
+          <view class="ai ic ic-list"></view><text class="action-text">课时记录</text>
+        </view>
+        <view class="action-item" bindtap="goToDashboard" wx:if="{{role === 'Admin' || role === 'SuperAdmin'}}">
+          <view class="ai ic ic-contract"></view><text class="action-text">运营看板</text>
+        </view>
+        <view class="action-item" bindtap="goToReminders">
+          <view class="ai ic ic-bell"></view><text class="action-text">我的提醒</text>
+        </view>
+        <view class="action-item" bindtap="goToProfile">
+          <view class="ai ic ic-user"></view><text class="action-text">个人中心</text>
         </view>
       </view>
     </view>
-  </view>
 
-  <!-- 快捷操作提示（仅教师端） -->
-  <view class="tips-card" wx:if="{{role !== 'Student' && role !== 'Parent' && pendingAttendance > 0}}">
-    <view class="tips-content">
-      <text class="tips-icon">💡</text>
-      <text class="tips-text">您有 {{pendingAttendance}} 条待考勤记录，点击「课时记录」完成打卡</text>
+    <!-- 教师端今日概览 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">今日概览</text>
+        <text class="section-refresh" bindtap="retryLoad" wx:if="{{error}}">点击重试</text>
+      </view>
+
+      <view class="overview-card" wx:if="{{loading}}">
+        <view class="skeleton-line" wx:for="{{[1,2,3,4]}}" wx:key="*this"></view>
+      </view>
+
+      <view class="overview-card error-card" wx:elif="{{error}}">
+        <view class="error-content">
+          <text class="error-text">{{error}}</text>
+          <text class="error-hint" bindtap="retryLoad">点击重试</text>
+        </view>
+      </view>
+
+      <view class="overview-card" wx:else>
+        <view class="overview-item">
+          <text class="overview-value {{todayLessons > 0 ? 'has-data' : ''}}">{{todayLessons}}</text>
+          <text class="overview-label">今日课次</text>
+        </view>
+        <view class="overview-item">
+          <text class="overview-value {{pendingAttendance > 0 ? 'warning' : ''}}">{{pendingAttendance}}</text>
+          <text class="overview-label">待考勤</text>
+        </view>
+        <view class="overview-item">
+          <text class="overview-value">{{totalStudents}}</text>
+          <text class="overview-label">在籍学生</text>
+        </view>
+        <view class="overview-item">
+          <text class="overview-value">{{totalClasses}}</text>
+          <text class="overview-label">我的班级</text>
+        </view>
+      </view>
     </view>
-  </view>
+
+    <!-- 快捷操作提示 -->
+    <view class="tips-card" wx:if="{{pendingAttendance > 0}}">
+      <view class="tips-content">
+        <view class="ic ic-warn"></view>
+        <text class="tips-text">您有 {{pendingAttendance}} 条待考勤记录，点击「课时记录」完成打卡</text>
+      </view>
+    </view>
+  </block>
 </view>

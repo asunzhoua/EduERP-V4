@@ -1,7 +1,7 @@
 /* pages/teacher/course-detail.wxss */
 .container {
   padding: 20rpx;
-  background: #f5f5f5;
+  background: #FAF6F0;
   min-height: 100vh;
 }
 
@@ -16,8 +16,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid #e6f7ff;
-  border-top-color: #1890ff;
+  border: 4rpx solid #FBEEE2;
+  border-top-color: #D97B3E;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -28,7 +28,7 @@
 
 .loading-text {
   font-size: 26rpx;
-  color: #999;
+  color: #9B9084;
   margin-top: 16rpx;
 }
 
@@ -39,15 +39,15 @@
 
 .error-text {
   font-size: 28rpx;
-  color: #999;
+  color: #9B9084;
   margin-bottom: 20rpx;
 }
 
 .retry-btn {
   padding: 16rpx 40rpx;
-  background: #1890ff;
+  background: #D97B3E;
   color: #fff;
-  border-radius: 8rpx;
+  border-radius: 16rpx;
   font-size: 28rpx;
 }
 
@@ -62,14 +62,14 @@
 .course-name {
   font-size: 36rpx;
   font-weight: bold;
-  color: #333;
+  color: #2E2A25;
   display: block;
   margin-bottom: 12rpx;
 }
 
 .course-code {
   font-size: 24rpx;
-  color: #999;
+  color: #9B9084;
   display: block;
   margin-bottom: 16rpx;
 }
@@ -82,27 +82,27 @@
 .tag {
   font-size: 22rpx;
   padding: 6rpx 16rpx;
-  border-radius: 6rpx;
+  border-radius: 12rpx;
 }
 
 .tag-subject {
-  background: #e6f7ff;
-  color: #1890ff;
+  background: #FBEEE2;
+  color: #D97B3E;
 }
 
 .tag-status-PUBLISHED {
-  background: #f6ffed;
-  color: #52c41a;
+  background: #FBEEE2;
+  color: #D97B3E;
 }
 
 .tag-status-DRAFT {
-  background: #fff7e6;
-  color: #fa8c16;
+  background: #FCF0DF;
+  color: #D98E2B;
 }
 
 .tag-status-ARCHIVED {
-  background: #f5f5f5;
-  color: #999;
+  background: #FAF6F0;
+  color: #9B9084;
 }
 
 /* 信息区块 */
@@ -116,7 +116,7 @@
 .section-title {
   font-size: 28rpx;
   font-weight: bold;
-  color: #333;
+  color: #2E2A25;
   margin-bottom: 16rpx;
 }
 
@@ -130,7 +130,7 @@
   display: flex;
   justify-content: space-between;
   padding: 12rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid #FAF6F0;
 }
 
 .info-item:last-child {
@@ -139,18 +139,18 @@
 
 .info-label {
   font-size: 26rpx;
-  color: #666;
+  color: #6F675D;
 }
 
 .info-value {
   font-size: 26rpx;
-  color: #333;
+  color: #2E2A25;
   font-weight: 500;
 }
 
 .description-text {
   font-size: 26rpx;
-  color: #666;
+  color: #6F675D;
   line-height: 1.6;
 }
 
@@ -162,9 +162,9 @@
 .action-btn.primary {
   width: 100%;
   padding: 24rpx;
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  background: linear-gradient(135deg, #D97B3E 0%, #A64E1D 100%);
   color: #fff;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   font-size: 30rpx;
   font-weight: 500;
 }

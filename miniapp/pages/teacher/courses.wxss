@@ -1,9 +1,10 @@
-/* pages/teacher/courses.wxss */
+/* pages/teacher/courses.wxss · 暖杏奶油 */
 .container {
   padding: 20rpx;
-  background: #f5f5f5;
+  background: var(--bg, #FAF6F0);
   min-height: 100vh;
-  padding-bottom: 150rpx; /* 为 FAB 留出空间 */
+  box-sizing: border-box;
+  padding-bottom: 150rpx;
 }
 
 /* 搜索栏 */
@@ -15,142 +16,145 @@
   display: flex;
   align-items: center;
   background: #ffffff;
-  border-radius: 12rpx;
+  border-radius: 999rpx;
   padding: 0 20rpx;
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(120,80,40,.06));
+  border: 2rpx solid var(--border, #EDE5DA);
 }
 
 .search-icon {
-  font-size: 32rpx;
+  width: 36rpx;
+  height: 36rpx;
   margin-right: 12rpx;
 }
 
 .search-input {
   flex: 1;
-  height: 80rpx;
+  height: 84rpx;
   font-size: 28rpx;
+  color: var(--fg, #2E2A25);
 }
 
 .clear-btn {
-  font-size: 32rpx;
-  color: #999;
-  padding: 10rpx;
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--faint, #9B9084);
 }
 
-/* 统计信息 */
+.clear-btn .ic-close {
+  width: 34rpx;
+  height: 34rpx;
+}
+
 .stats-bar {
-  padding: 12rpx 0;
+  display: flex;
+  gap: 20rpx;
   margin-bottom: 16rpx;
 }
 
 .stats-text {
   font-size: 24rpx;
-  color: #999;
+  color: var(--muted, #6F675D);
 }
 
-/* 课程列表 */
 .course-list {
-  margin-top: 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
 }
 
 .course-card {
   background: #ffffff;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-  border-radius: 12rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
+  border-radius: 28rpx;
+  padding: 28rpx;
+  box-shadow: var(--shadow-sm);
 }
 
 .course-card:active {
   transform: scale(0.98);
-  box-shadow: none;
 }
 
 .course-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12rpx;
+  align-items: flex-start;
+  margin-bottom: 16rpx;
 }
 
 .course-name {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--fg, #2E2A25);
+  display: block;
 }
 
 .course-status {
-  font-size: 24rpx;
-  padding: 4rpx 16rpx;
-  border-radius: 8rpx;
-  flex-shrink: 0;
-  margin-left: 16rpx;
+  font-size: 22rpx;
+  padding: 6rpx 20rpx;
+  border-radius: 999rpx;
 }
 
 .status-PUBLISHED {
-  background: #e6f7ff;
-  color: #1890ff;
+  background: var(--growth-soft, #EAF1EC);
+  color: var(--growth-deep, #3E5B4A);
 }
 
 .status-DRAFT {
-  background: #fff7e6;
-  color: #fa8c16;
+  background: var(--warning-soft, #FCF0DF);
+  color: #A86A17;
 }
 
 .status-ARCHIVED {
-  background: #f5f5f5;
-  color: #999999;
+  background: #F1EDE6;
+  color: var(--muted, #6F675D);
 }
 
 .course-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-  margin-bottom: 12rpx;
+  margin-bottom: 16rpx;
 }
 
 .info-row {
   display: flex;
   align-items: center;
+  margin-bottom: 8rpx;
 }
 
 .info-label {
   font-size: 24rpx;
-  color: #999;
+  color: var(--faint, #9B9084);
   width: 80rpx;
 }
 
 .info-value {
   font-size: 26rpx;
-  color: #666;
+  color: var(--muted, #6F675D);
 }
 
 .course-meta {
   display: flex;
   gap: 40rpx;
-  padding-top: 12rpx;
-  border-top: 1rpx solid #f0f0f0;
+  padding-top: 16rpx;
+  border-top: 2rpx solid var(--border, #EDE5DA);
 }
 
 .meta-item {
   display: flex;
-  align-items: baseline;
-  gap: 8rpx;
+  flex-direction: column;
 }
 
 .meta-value {
   font-size: 32rpx;
-  font-weight: bold;
-  color: #1890ff;
+  font-weight: 700;
+  color: var(--accent-deep, #A64E1D);
 }
 
 .meta-label {
   font-size: 22rpx;
-  color: #999;
+  color: var(--faint, #9B9084);
+  margin-top: 4rpx;
 }
 
 /* 加载状态 */
@@ -164,8 +168,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid #e6f7ff;
-  border-top-color: #1890ff;
+  border: 4rpx solid var(--accent-soft, #FBEEE2);
+  border-top-color: var(--accent, #D97B3E);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -176,18 +180,44 @@
 
 .loading-text {
   font-size: 26rpx;
-  color: #999;
+  color: var(--faint, #9B9084);
   margin-top: 16rpx;
 }
 
-.load-more, .no-more {
-  text-align: center;
-  padding: 30rpx;
-  color: #999;
-  font-size: 24rpx;
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0;
 }
 
-/* 空状态 */
+.error-icon {
+  font-size: 40rpx;
+  margin-bottom: 12rpx;
+}
+
+.error-text {
+  font-size: 28rpx;
+  color: var(--muted, #6F675D);
+}
+
+.retry-btn {
+  font-size: 28rpx;
+  color: var(--accent-deep, #A64E1D);
+  margin-top: 20rpx;
+  padding: 10rpx 30rpx;
+  border: 2rpx solid var(--accent, #D97B3E);
+  border-radius: 16rpx;
+}
+
+.load-more,
+.no-more {
+  text-align: center;
+  padding: 24rpx 0;
+  font-size: 24rpx;
+  color: var(--faint, #9B9084);
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -202,32 +232,105 @@
 
 .empty-text {
   font-size: 28rpx;
-  color: #999;
+  color: var(--faint, #9B9084);
   margin-bottom: 12rpx;
 }
 
 .empty-hint {
   font-size: 24rpx;
-  color: #1890ff;
+  color: var(--accent-deep, #A64E1D);
 }
 
-/* FAB 按钮 */
 .fab {
   position: fixed;
   right: 40rpx;
-  bottom: 100rpx;
-  width: 100rpx;
-  height: 100rpx;
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  bottom: 60rpx;
+  width: 108rpx;
+  height: 108rpx;
   border-radius: 50%;
+  background: var(--accent-deep, #A64E1D);
+  color: #FFFFFF;
   display: flex;
-  justify-content: center;
   align-items: center;
-  box-shadow: 0 4rpx 16rpx rgba(24, 144, 255, 0.4);
+  justify-content: center;
+  box-shadow: 0 16rpx 40rpx rgba(166,78,29,.3);
+  z-index: 100;
 }
 
 .fab-icon {
-  font-size: 56rpx;
-  color: #ffffff;
+  font-size: 64rpx;
   font-weight: 300;
+  line-height: 1;
+}
+
+/* ===== 家长/学生视图：孩子课程 ===== */
+.student-view .error-card {
+  background: var(--danger-soft, #F9E9E7);
+  border-radius: 28rpx;
+  padding: 28rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.student-view .retry-btn {
+  font-size: 28rpx;
+  color: var(--accent-deep, #A64E1D);
+  margin-top: 16rpx;
+}
+
+.course-item {
+  background: #ffffff;
+  border-radius: 28rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: var(--shadow-sm);
+}
+
+.course-item:active {
+  transform: scale(0.99);
+}
+
+.ci-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ci-subject {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--fg, #2E2A25);
+}
+
+.ci-remain {
+  font-size: 48rpx;
+  font-weight: 800;
+  color: var(--accent-deep, #A64E1D);
+  font-variant-numeric: tabular-nums;
+}
+
+.ci-unit {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--muted, #6F675D);
+  margin-left: 6rpx;
+}
+
+.ci-meta {
+  font-size: 23rpx;
+  color: var(--faint, #9B9084);
+  margin-top: 4rpx;
+}
+
+.course-item .progress-track {
+  margin-top: 18rpx;
+}
+
+.ci-foot {
+  display: flex;
+  justify-content: space-between;
+  font-size: 24rpx;
+  color: var(--muted, #6F675D);
+  margin-top: 14rpx;
 }

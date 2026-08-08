@@ -7,7 +7,24 @@ Page({
   data: {
     username: '',
     password: '',
-    loading: false
+    loading: false,
+    agreed: false   // 协议勾选，未勾选禁用登录
+  },
+
+  toggleAgree() {
+    this.setData({ agreed: !this.data.agreed });
+  },
+
+  goToAgreement(e) {
+    const type = e.currentTarget.dataset.type;
+    const url = type === 'privacy'
+      ? '/pages/agreement/privacy-policy/privacy-policy'
+      : '/pages/agreement/user-agreement/user-agreement';
+    wx.navigateTo({ url });
+  },
+
+  goToForgot() {
+    wx.navigateTo({ url: '/pages/forgot-password/forgot-password' });
   },
 
   onShow() {
@@ -32,8 +49,12 @@ Page({
   },
 
   async onLogin() {
-    const { username, password } = this.data;
+    const { username, password, agreed } = this.data;
 
+    if (!agreed) {
+      wx.showToast({ title: '请先阅读并同意用户协议', icon: 'none' });
+      return;
+    }
     if (!username || !password) {
       wx.showToast({ title: '请输入用户名和密码', icon: 'none' });
       return;

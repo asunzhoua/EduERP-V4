@@ -1,7 +1,7 @@
 /* pages/reminder/list.wxss */
 .container {
   padding: 20rpx;
-  background: #f5f5f5;
+  background: #FAF6F0;
   min-height: 100vh;
 }
 
@@ -15,15 +15,15 @@
 }
 
 .unread-badge {
-  background: #fff1f0;
-  border: 2rpx solid #ffa39e;
+  background: #F9E9E7;
+  border: 2rpx solid #F9E9E7;
   border-radius: 20rpx;
   padding: 6rpx 20rpx;
 }
 
 .unread-text {
   font-size: 24rpx;
-  color: #ff4d4f;
+  color: #C4483F;
 }
 
 .mark-all-btn {
@@ -32,14 +32,14 @@
 
 .mark-all-text {
   font-size: 26rpx;
-  color: #1890ff;
+  color: #D97B3E;
 }
 
 /* 筛选栏 */
 .filter-bar {
   display: flex;
   background: #fff;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   padding: 8rpx;
   margin-bottom: 20rpx;
 }
@@ -48,12 +48,12 @@
   flex: 1;
   text-align: center;
   padding: 16rpx 0;
-  border-radius: 8rpx;
+  border-radius: 16rpx;
   transition: all 0.2s;
 }
 
 .filter-active {
-  background: #1890ff;
+  background: #D97B3E;
 }
 
 .filter-active .filter-text {
@@ -62,7 +62,7 @@
 
 .filter-text {
   font-size: 26rpx;
-  color: #666;
+  color: #6F675D;
 }
 
 /* 加载中 */
@@ -76,8 +76,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid #ddd;
-  border-top-color: #1890ff;
+  border: 4rpx solid #EDE5DA;
+  border-top-color: #D97B3E;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20rpx;
@@ -89,7 +89,7 @@
 
 .loading-text {
   font-size: 28rpx;
-  color: #999;
+  color: #9B9084;
 }
 
 /* 错误 */
@@ -99,7 +99,7 @@
   align-items: center;
   padding: 60rpx 30rpx;
   background: #fff;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
 }
 
 .error-icon {
@@ -109,16 +109,16 @@
 
 .error-text {
   font-size: 28rpx;
-  color: #999;
+  color: #9B9084;
   margin-bottom: 20rpx;
 }
 
 .retry-btn {
   font-size: 28rpx;
-  color: #1890ff;
+  color: #D97B3E;
   padding: 10rpx 30rpx;
-  border: 2rpx solid #1890ff;
-  border-radius: 8rpx;
+  border: 2rpx solid #D97B3E;
+  border-radius: 16rpx;
 }
 
 /* 空状态 */
@@ -136,13 +136,13 @@
 
 .empty-text {
   font-size: 32rpx;
-  color: #333;
+  color: #2E2A25;
   margin-bottom: 12rpx;
 }
 
 .empty-hint {
   font-size: 26rpx;
-  color: #999;
+  color: #9B9084;
 }
 
 /* 提醒列表 */
@@ -154,15 +154,15 @@
   display: flex;
   align-items: center;
   background: #fff;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 16rpx;
   position: relative;
 }
 
 .reminder-unread {
-  background: #f0f7ff;
-  border-left: 6rpx solid #1890ff;
+  background: #FBEEE2;
+  border-left: 6rpx solid #D97B3E;
 }
 
 /* 未读圆点 */
@@ -172,7 +172,7 @@
   left: 12rpx;
   width: 12rpx;
   height: 12rpx;
-  background: #ff4d4f;
+  background: #C4483F;
   border-radius: 50%;
 }
 
@@ -192,7 +192,7 @@
 .reminder-title {
   font-size: 30rpx;
   font-weight: bold;
-  color: #333;
+  color: #2E2A25;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -202,32 +202,32 @@
 .reminder-status {
   font-size: 22rpx;
   padding: 4rpx 12rpx;
-  border-radius: 6rpx;
+  border-radius: 12rpx;
   margin-left: 12rpx;
   flex-shrink: 0;
 }
 
 .status-pending {
-  background: #fff7e6;
-  color: #fa8c16;
-  border: 2rpx solid #ffd591;
+  background: #FCF0DF;
+  color: #D98E2B;
+  border: 2rpx solid #FCF0DF;
 }
 
 .status-read {
-  background: #f6ffed;
-  color: #52c41a;
-  border: 2rpx solid #b7eb8f;
+  background: #FBEEE2;
+  color: #D97B3E;
+  border: 2rpx solid #FBEEE2;
 }
 
 .status-dismissed {
-  background: #f5f5f5;
-  color: #999;
-  border: 2rpx solid #d9d9d9;
+  background: #FAF6F0;
+  color: #9B9084;
+  border: 2rpx solid #EDE5DA;
 }
 
 .reminder-content {
   font-size: 26rpx;
-  color: #666;
+  color: #6F675D;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -244,15 +244,15 @@
 
 .reminder-type {
   font-size: 22rpx;
-  color: #1890ff;
-  background: #e6f7ff;
+  color: #D97B3E;
+  background: #FBEEE2;
   padding: 2rpx 12rpx;
   border-radius: 4rpx;
 }
 
 .reminder-time {
   font-size: 22rpx;
-  color: #999;
+  color: #9B9084;
 }
 
 /* 箭头 */
@@ -263,7 +263,7 @@
 
 .arrow-icon {
   font-size: 36rpx;
-  color: #ccc;
+  color: #EDE5DA;
 }
 
 /* 加载更多 */
@@ -274,5 +274,5 @@
 
 .load-more-text {
   font-size: 24rpx;
-  color: #999;
+  color: #9B9084;
 }

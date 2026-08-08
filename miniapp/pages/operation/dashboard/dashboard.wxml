@@ -39,7 +39,7 @@
           <view class="stat-label">已消耗</view>
         </view>
         <view class="stat-card">
-          <view class="stat-value">{{summary.remainingContractHours}}</view>
+          <view class="stat-value stat-value--accent">{{summary.remainingContractHours}}</view>
           <view class="stat-label">剩余课时</view>
         </view>
       </view>
@@ -95,11 +95,11 @@
           <view class="stat-label">学员总数</view>
         </view>
         <view class="stat-card">
-          <view class="stat-value">{{overview.students.newToday}}</view>
+          <view class="stat-value stat-value--warning">{{overview.students.newToday}}</view>
           <view class="stat-label">今日新增</view>
         </view>
         <view class="stat-card">
-          <view class="stat-value">{{overview.students.remainingLessons}}</view>
+          <view class="stat-value stat-value--accent">{{overview.students.remainingLessons}}</view>
           <view class="stat-label">剩余课时</view>
         </view>
       </view>
@@ -114,7 +114,7 @@
           <view class="stat-label">今日授课</view>
         </view>
         <view class="stat-card">
-          <view class="stat-value">¥{{overview.teachers.monthlySalary}}</view>
+          <view class="stat-value stat-value--growth">¥{{overview.teachers.monthlySalary}}</view>
           <view class="stat-label">本月工资</view>
         </view>
       </view>
@@ -125,11 +125,11 @@
       <view class="section-title">财务情况</view>
       <view class="stats-grid">
         <view class="stat-card">
-          <view class="stat-value">¥{{overview.finance.todayIncome}}</view>
+          <view class="stat-value stat-value--growth">¥{{overview.finance.todayIncome}}</view>
           <view class="stat-label">今日收入</view>
         </view>
         <view class="stat-card">
-          <view class="stat-value">¥{{overview.finance.consumedValue}}</view>
+          <view class="stat-value stat-value--growth">¥{{overview.finance.consumedValue}}</view>
           <view class="stat-label">课时消耗价值</view>
         </view>
       </view>

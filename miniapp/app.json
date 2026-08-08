@@ -2,6 +2,9 @@
   "pages": [
     "pages/login/login",
     "pages/register/register",
+    "pages/forgot-password/forgot-password",
+    "pages/agreement/user-agreement/user-agreement",
+    "pages/agreement/privacy-policy/privacy-policy",
     "pages/index/index",
     "pages/teacher/courses",
     "pages/teacher/course-detail",
@@ -30,17 +33,20 @@
     "pages/teacher/leave-apply/leave-apply",
     "pages/operation/exception-list/exception-list",
     "pages/operation/exception-approve/exception-approve",
-    "pages/operation/reschedule-view/reschedule-view"
+    "pages/operation/reschedule-view/reschedule-view",
+    "pages/student/points/points",
+    "pages/student/points-mall/points-mall",
+    "pages/student/feedback/feedback"
   ],
   "window": {
     "navigationBarTitleText": "EduERP",
-    "navigationBarBackgroundColor": "#1890ff",
-    "navigationBarTextStyle": "white",
-    "backgroundColor": "#f5f5f5"
+    "navigationBarBackgroundColor": "#FAF6F0",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FAF6F0"
   },
   "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#1890ff",
+    "color": "#9B9084",
+    "selectedColor": "#A64E1D",
     "backgroundColor": "#ffffff",
     "list": [
       {

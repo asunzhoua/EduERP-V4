@@ -48,7 +48,7 @@
 
     <!-- 空状态 -->
     <view class="empty-state" wx:if="{{exceptions.length === 0}}">
-      <text class="empty-icon">📋</text>
+      <view class="ic ic-list empty-ic"></view>
       <text class="empty-text">暂无异常申请</text>
     </view>
 
@@ -78,7 +78,10 @@
         </view>
         <view class="card-footer">
           <text class="card-time">{{item.createdAt || '--'}}</text>
-          <text class="card-arrow">查看详情 ></text>
+          <view class="card-link">
+            <text>查看详情</text>
+            <view class="ic ic-chevron"></view>
+          </view>
         </view>
       </view>
     </view>

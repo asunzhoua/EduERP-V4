@@ -11,12 +11,22 @@ Page({
     todayLessons: 0,
     pendingAttendance: 0,
     totalStudents: 0,
-    myContracts: [],
     recentLessons: [],
     totalClasses: 0,
     loading: false,  // 加载状态
     error: null,     // 错误信息
-    refreshing: false // 下拉刷新状态
+    // 家长/学生首页新增
+    children: [],
+    greeting: '',
+    parentName: '家长',
+    childCountText: '',
+    overviewStats: { totalLessons: 0, usedLessons: 0, remainingLessons: 0, overallProgress: 0 },
+    todayClasses: [],
+    isLowBalance: false,
+    // 消息未读数 / 当前积分
+    unreadCount: 0,
+    pointsBalance: 0,
+    recentFeedback: []
   },
 
   onLoad() {
@@ -29,9 +39,7 @@ Page({
 
   // 下拉刷新
   onPullDownRefresh() {
-    this.setData({ refreshing: true });
     this.loadDashboard().finally(() => {
-      this.setData({ refreshing: false });
       wx.stopPullDownRefresh();
     });
   },
@@ -42,8 +50,49 @@ Page({
       this.setData({
         userInfo,
         role: userInfo.role,
-        roleText: this.getRoleText(userInfo.role)
+        roleText: this.getRoleText(userInfo.role),
+        greeting: this.getGreeting(),
+        parentName: userInfo.name || '家长'
       });
+      if (userInfo.role === 'Student' || userInfo.role === 'Parent') {
+        this.loadChildren();
+      }
+    }
+  },
+
+  getGreeting() {
+    const h = new Date().getHours();
+    if (h < 6) return '夜深了';
+    if (h < 12) return '早上好';
+    if (h < 18) return '下午好';
+    return '晚上好';
+  },
+
+  todayStr() {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + m + '-' + day;
+  },
+
+  isLessonPast(l) {
+    const hm = (l.endTime || '').split(':');
+    if (hm.length < 2) return false;
+    const now = new Date();
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), +hm[0], +hm[1]);
+    return now > end;
+  },
+
+  async loadChildren() {
+    try {
+      const data = await get('/students/my-children');
+      const children = Array.isArray(data) ? data : (data && data.items) || [];
+      this.setData({
+        children,
+        childCountText: children.length > 0 ? children.length + ' 个孩子已关联' : ''
+      });
+    } catch (err) {
+      this.setData({ children: [], childCountText: '' });
     }
   },
 
@@ -67,28 +116,52 @@ Page({
     const role = this.data.role;
 
     if (role === 'Student' || role === 'Parent') {
-      // 学生端数据
-      try {
-        const [contracts, lessons] = await Promise.all([
-          get('/students/self/contracts').catch(() => []),
-          get('/students/self/lessons').catch(() => [])
-        ]);
-        const recentLessons = (Array.isArray(lessons) ? lessons : []).slice(0, 5).map(l => ({
-          ...l,
-          statusText: statusText(l.status)
-        }));
-        this.setData({
-          myContracts: Array.isArray(contracts) ? contracts : [],
-          recentLessons,
-          loading: false
-        });
-      } catch (err) {
-        console.error('[Dashboard] 学生端加载失败:', err);
-        this.setData({ error: err.message || '加载失败', loading: false });
-        if (err.code !== 2002) {
-          wx.showToast({ title: '数据加载失败，请稍后重试', icon: 'none', duration: 2000 });
-        }
+      // 学生端数据：全失败才错误态，部分失败容错（保留已成功数据）
+      let failed = 0;
+      const [contracts, lessons, unread, points, feedback] = await Promise.all([
+        get('/students/self/contracts').catch(() => { failed += 1; return []; }),
+        get('/students/self/lessons').catch(() => { failed += 1; return []; }),
+        get('/reminders/unread-count').catch(() => { failed += 1; return { count: 0 }; }),
+        get('/students/self/points').catch(() => { failed += 1; return { balance: 0 }; }),
+        get('/students/self/feedback').catch(() => { failed += 1; return []; })
+      ]);
+      if (failed === 5) {
+        this.setData({ error: '数据加载失败，请稍后重试', loading: false });
+        return;
       }
+      const contractList = Array.isArray(contracts) ? contracts : [];
+      const lessonList = Array.isArray(lessons) ? lessons : [];
+
+      const totalLessons = contractList.reduce((s, c) => s + (c.totalLessons || 0), 0);
+      const remainingLessons = contractList.reduce((s, c) => s + (c.remainingLessons || 0), 0);
+      const usedLessons = totalLessons - remainingLessons;
+      const overallProgress = totalLessons > 0 ? Math.round(usedLessons / totalLessons * 100) : 0;
+
+      const today = this.todayStr();
+      const todayClasses = lessonList
+        .filter(l => l.lessonDate === today)
+        .slice(0, 4)
+        .map(l => ({ ...l, isPast: this.isLessonPast(l) }));
+
+      // 课时预警（D-3）：剩余 ≤3 节 或 ≤20%，先到先触发
+      const isLowBalance = remainingLessons > 0 &&
+        (remainingLessons <= 3 || (totalLessons > 0 && remainingLessons / totalLessons <= 0.2));
+
+      const recentLessons = lessonList.slice(0, 5).map(l => ({
+        ...l,
+        statusText: statusText(l.status)
+      }));
+
+      this.setData({
+        recentLessons,
+        overviewStats: { totalLessons, usedLessons, remainingLessons, overallProgress },
+        todayClasses,
+        isLowBalance,
+        unreadCount: (unread && unread.count) || 0,
+        pointsBalance: (points && points.balance) || 0,
+        recentFeedback: (Array.isArray(feedback) ? feedback : []).slice(0, 3),
+        loading: false
+      });
     } else {
       // 教师端数据
       try {
@@ -168,15 +241,6 @@ Page({
   },
 
   // 学生端导航
-  goToMyClasses() {
-    wx.navigateTo({
-      url: '/pages/student/classes',
-      fail() {
-        wx.showToast({ title: '页面跳转失败', icon: 'none' });
-      }
-    });
-  },
-
   goToMyLessonRecords() {
     wx.navigateTo({
       url: '/pages/student/lessons',
@@ -184,6 +248,46 @@ Page({
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
     });
+  },
+
+  // 请假申请
+  goToStudentLeaveApply() {
+    wx.navigateTo({
+      url: '/pages/student/leave-apply/leave-apply',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 我的申请（请假记录）
+  goToLeaveRecords() {
+    wx.navigateTo({
+      url: '/pages/student/leave-records/leave-records',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 孩子切换 → 进入对应孩子详情
+  goToChild(e) {
+    const d = e.currentTarget.dataset;
+    wx.navigateTo({
+      url: '/pages/parent/child-detail?id=' + d.id +
+        '&name=' + encodeURIComponent(d.name || '') +
+        '&studentCode=' + encodeURIComponent(d.studentcode || '') +
+        '&school=' + encodeURIComponent(d.school || '') +
+        '&grade=' + encodeURIComponent(d.grade || ''),
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 联系机构
+  goToContact() {
+    wx.showToast({ title: '请拨打机构前台电话联系', icon: 'none' });
   },
 
   // 运营看板（仅 Admin/SuperAdmin）
@@ -220,6 +324,36 @@ Page({
   goToStudentProfile() {
     wx.navigateTo({
       url: '/pages/student/profile',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 学生/家长端 — 我的积分
+  goToPoints() {
+    wx.navigateTo({
+      url: '/pages/student/points/points',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 学生/家长端 — 积分商城
+  goToPointsMall() {
+    wx.navigateTo({
+      url: '/pages/student/points-mall/points-mall',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 学生/家长端 — 课程反馈
+  goToFeedback() {
+    wx.navigateTo({
+      url: '/pages/student/feedback/feedback',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }

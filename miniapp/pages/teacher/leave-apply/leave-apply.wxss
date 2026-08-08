@@ -1,6 +1,6 @@
 .container {
   padding: 20rpx;
-  background: #f5f5f5;
+  background: #FAF6F0;
   min-height: 100vh;
 }
 
@@ -15,8 +15,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid #ddd;
-  border-top-color: #1890ff;
+  border: 4rpx solid #EDE5DA;
+  border-top-color: #D97B3E;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20rpx;
@@ -28,13 +28,13 @@
 
 .loading-text {
   font-size: 28rpx;
-  color: #999;
+  color: #9B9084;
 }
 
 /* 表单区块 */
 .form-section {
   background: #fff;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 20rpx;
 }
@@ -42,12 +42,12 @@
 .form-label {
   font-size: 28rpx;
   font-weight: bold;
-  color: #333;
+  color: #2E2A25;
   margin-bottom: 16rpx;
 }
 
 .required {
-  color: #ff4d4f;
+  color: #C4483F;
 }
 
 /* 选择器 */
@@ -56,21 +56,21 @@
   justify-content: space-between;
   align-items: center;
   padding: 16rpx 0;
-  border-bottom: 2rpx solid #f0f0f0;
+  border-bottom: 2rpx solid #FAF6F0;
 }
 
 .picker-text {
   font-size: 28rpx;
-  color: #333;
+  color: #2E2A25;
 }
 
 .picker-text.placeholder {
-  color: #bbb;
+  color: #9B9084;
 }
 
 .picker-arrow {
   font-size: 28rpx;
-  color: #ccc;
+  color: #EDE5DA;
 }
 
 /* 单选组 */
@@ -84,33 +84,33 @@
   display: flex;
   align-items: center;
   padding: 16rpx 24rpx;
-  border: 2rpx solid #d9d9d9;
-  border-radius: 8rpx;
+  border: 2rpx solid #EDE5DA;
+  border-radius: 16rpx;
   flex: 1;
   min-width: 120rpx;
 }
 
 .radio-active {
-  border-color: #1890ff;
-  background: #e6f7ff;
+  border-color: #D97B3E;
+  background: #FBEEE2;
 }
 
 .radio-dot {
   width: 20rpx;
   height: 20rpx;
   border-radius: 50%;
-  border: 2rpx solid #d9d9d9;
+  border: 2rpx solid #EDE5DA;
   margin-right: 12rpx;
 }
 
 .radio-dot-active {
-  border-color: #1890ff;
-  background: #1890ff;
+  border-color: #D97B3E;
+  background: #D97B3E;
 }
 
 .radio-text {
   font-size: 28rpx;
-  color: #333;
+  color: #2E2A25;
 }
 
 /* 文本框 */
@@ -118,11 +118,11 @@
   width: 100%;
   min-height: 160rpx;
   font-size: 28rpx;
-  color: #333;
+  color: #2E2A25;
   padding: 16rpx;
-  background: #fafafa;
-  border-radius: 8rpx;
-  border: 2rpx solid #f0f0f0;
+  background: #FAF6F0;
+  border-radius: 16rpx;
+  border: 2rpx solid #FAF6F0;
   box-sizing: border-box;
 }
 
@@ -130,7 +130,7 @@
   display: block;
   text-align: right;
   font-size: 22rpx;
-  color: #bbb;
+  color: #9B9084;
   margin-top: 8rpx;
 }
 
@@ -142,12 +142,12 @@
 .submit-btn {
   width: 100%;
   font-size: 32rpx;
-  background: #1890ff;
+  background: #D97B3E;
   color: #fff;
-  border-radius: 8rpx;
+  border-radius: 16rpx;
   padding: 24rpx 0;
 }
 
 .submit-btn[disabled] {
-  background: #91d5ff;
+  background: #FBEEE2;
 }

@@ -8,7 +8,7 @@
 
   <!-- 错误状态 -->
   <view class="error-state" wx:elif="{{error}}">
-    <text class="error-icon">⚠️</text>
+    <view class="ic ic-warn error-ic"></view>
     <text class="error-text">{{error}}</text>
     <button class="retry-btn" bindtap="retryLoad">重试</button>
   </view>
@@ -44,6 +44,26 @@
         <view class="stats-item">
           <text class="stats-value">{{overallProgress}}%</text>
           <text class="stats-label">总体进度</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 课时余额（与家长/学生/后台同源：合同剩余课时） -->
+    <view class="contract-section" wx:if="{{contracts.length > 0}}">
+      <view class="section-header contract-header">
+        <text class="section-title">课时余额</text>
+        <text class="contract-summary">剩余 {{contractSummary.remaining}} / 共 {{contractSummary.total}} 节</text>
+      </view>
+      <view class="contract-list">
+        <view class="contract-card" wx:for="{{contracts}}" wx:key="contractCode">
+          <view class="contract-top">
+            <text class="contract-subject">{{item.subject}}</text>
+            <text class="contract-status">{{item.statusText}}</text>
+          </view>
+          <view class="contract-nums">
+            <text class="contract-num">总 {{item.totalLessons}} 节</text>
+            <text class="contract-num contract-remain">剩余 {{item.remainingLessons}} 节</text>
+          </view>
         </view>
       </view>
     </view>

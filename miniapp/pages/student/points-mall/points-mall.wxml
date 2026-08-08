@@ -1,0 +1,56 @@
+<!-- pages/student/points-mall/points-mall.wxml -->
+<view class="container">
+  <!-- 顶部余额 -->
+  <view class="balance-bar">
+    <text class="balance-label">我的积分</text>
+    <text class="balance-num">{{balance}}</text>
+  </view>
+
+  <!-- 加载 -->
+  <view wx:if="{{loading && products.length === 0}}" class="loading-state">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误 -->
+  <view wx:elif="{{error}}" class="error-card">
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadMall">重试</view>
+  </view>
+
+  <!-- 空 -->
+  <view wx:elif="{{products.length === 0 && !loading}}" class="empty-state">
+    <text class="empty-text">暂无兑换商品</text>
+  </view>
+
+  <!-- 商品列表 -->
+  <view wx:else class="product-list">
+    <view class="product-card" wx:for="{{products}}" wx:key="id">
+      <view class="product-img-wrap" wx:if="{{item.coverImage}}">
+        <image class="product-img" src="{{item.coverImage}}" mode="aspectFill"></image>
+        <view class="product-stock">库存 {{item.stock}}</view>
+      </view>
+      <view class="product-img product-img-ph" wx:else>
+        <view class="ic ic-gift"></view>
+        <view class="product-stock">库存 {{item.stock}}</view>
+      </view>
+      <view class="product-body">
+        <view class="product-name">{{item.name}}</view>
+        <view class="product-foot">
+          <view class="product-price">{{item.pointsPrice}}<text class="unit">分</text></view>
+          <view
+            class="exchange-btn {{item.pointsPrice > balance || item.stock <= 0 || exchangingId === item.id ? 'disabled' : ''}}"
+            bindtap="onExchange"
+            data-id="{{item.id}}"
+          >{{exchangingId === item.id ? '兑换中...' : item.stock <= 0 ? '已兑完' : '兑换'}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部：当前积分 + 返回 -->
+  <view class="mall-foot">
+    <view class="mf-bal">当前积分 <text class="mf-bal-num">{{balance}}</text></view>
+    <view class="mf-back" bindtap="goBack">返回积分页</view>
+  </view>
+</view>

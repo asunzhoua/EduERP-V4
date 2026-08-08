@@ -6,6 +6,11 @@ Page({
   data: {
     lessons: [],
     allLessons: [],
+    // 课时余额（来自合同）
+    balance: { total: 0, used: 0, remaining: 0 },
+    // 日期查询
+    fromDate: '',
+    toDate: '',
     stats: { total: 0, present: 0, absent: 0, late: 0, leave: 0, sick: 0, makeup: 0, online: 0, offline: 0 },
     filterStatus: 'ALL',
     loading: true,
@@ -21,13 +26,44 @@ Page({
       wx.reLaunch({ url: '/pages/index/index' });
       return;
     }
+    this.loadContracts();
     this.loadLessons();
   },
 
-  async loadLessons() {
+  onShow() {
+    // 从其他页面返回时刷新余额与课时
+    this.loadContracts();
+  },
+
+  onPullDownRefresh() {
+    Promise.all([this.loadContracts(), this.loadLessons()]).finally(() => {
+      wx.stopPullDownRefresh();
+    });
+  },
+
+  // 课时余额：总课时 / 已使用 / 剩余
+  async loadContracts() {
+    try {
+      const contracts = await get('/students/self/contracts');
+      const list = Array.isArray(contracts) ? contracts : [];
+      const total = list.reduce((s, c) => s + (c.totalLessons || 0), 0);
+      const remaining = list.reduce((s, c) => s + (c.remainingLessons || 0), 0);
+      this.setData({
+        balance: { total, used: total - remaining, remaining }
+      });
+    } catch (err) {
+      // 余额加载失败不影响课时列表
+      this.setData({ balance: { total: 0, used: 0, remaining: 0 } });
+    }
+  },
+
+  async loadLessons(from, to) {
     try {
       this.setData({ loading: true, error: null });
-      const data = await get('/students/self/lessons');
+      const data = await get('/students/self/lessons', {
+        from: from || this.data.fromDate,
+        to: to || this.data.toDate
+      });
       const allLessons = (Array.isArray(data) ? data : []).map(l => ({
         ...l,
         statusText: statusText(l.status)
@@ -56,10 +92,37 @@ Page({
     }
   },
 
-  onPullDownRefresh() {
-    this.loadLessons().finally(() => {
-      wx.stopPullDownRefresh();
-    });
+  // 开始日期
+  onFromDateChange(e) {
+    const val = e.detail.value;
+    let toDate = this.data.toDate;
+    // 开始日期不能晚于结束日期
+    if (toDate && val > toDate) {
+      toDate = '';
+    }
+    this.setData({ fromDate: val, toDate });
+  },
+
+  // 结束日期
+  onToDateChange(e) {
+    const val = e.detail.value;
+    let fromDate = this.data.fromDate;
+    // 结束日期不能早于开始日期
+    if (fromDate && val < fromDate) {
+      fromDate = '';
+    }
+    this.setData({ toDate: val, fromDate });
+  },
+
+  // 查询
+  onDateQuery() {
+    this.loadLessons();
+  },
+
+  // 重置日期区间
+  onDateReset() {
+    this.setData({ fromDate: '', toDate: '' });
+    this.loadLessons('', '');
   },
 
   filterByStatus(e) {

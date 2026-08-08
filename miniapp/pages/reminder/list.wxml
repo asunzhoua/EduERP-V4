@@ -31,14 +31,14 @@
 
   <!-- 错误提示 -->
   <view class="error-card" wx:elif="{{error}}">
-    <text class="error-icon">⚠️</text>
+    <view class="ic ic-warn error-ic"></view>
     <text class="error-text">{{error}}</text>
     <text class="retry-btn" bindtap="onRetry">点击重试</text>
   </view>
 
   <!-- 空状态 -->
   <view class="empty-state" wx:elif="{{isEmpty}}">
-    <text class="empty-icon">🔔</text>
+    <view class="ic ic-bell empty-ic"></view>
     <text class="empty-text">暂无提醒</text>
     <text class="empty-hint">所有提醒都会出现在这里</text>
   </view>

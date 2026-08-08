@@ -1,0 +1,58 @@
+<!-- pages/student/points/points.wxml -->
+<view class="container">
+  <!-- 加载 -->
+  <view wx:if="{{loading && transactions.length === 0}}" class="loading-state">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误 -->
+  <view wx:elif="{{error}}" class="error-card">
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadPoints">重试</view>
+  </view>
+
+  <block wx:else>
+    <!-- 积分总览 -->
+    <view class="points-card">
+      <view class="points-main">
+        <view class="points-label">当前积分</view>
+        <view class="points-num">{{summary.balance}}<text class="unit">分</text></view>
+      </view>
+      <view class="points-sub">
+        <view class="sub-item"><text class="sub-v">{{summary.totalEarned}}</text><text class="sub-l">累计获得</text></view>
+        <view class="sub-item"><text class="sub-v">{{summary.totalSpent}}</text><text class="sub-l">累计使用</text></view>
+      </view>
+    </view>
+
+    <!-- 去商城 -->
+    <view class="mall-entry" bindtap="goToMall">
+      <view class="me-icon"><view class="ic ic-gift"></view></view>
+      <view class="me-mid">
+        <view class="me-title">积分商城</view>
+        <view class="me-sub">好礼兑换，积分当钱花</view>
+      </view>
+      <view class="me-go">去看看<view class="ic ic-chevron"></view></view>
+    </view>
+
+    <!-- 积分流水 -->
+    <view class="tx-card">
+      <view class="tx-head">
+        <text class="tx-title">最近积分流水</text>
+      </view>
+      <view wx:if="{{transactions.length === 0}}" class="empty-state">
+        <text class="empty-text">暂无积分记录</text>
+      </view>
+      <view wx:else>
+        <view class="tx-item" wx:for="{{transactions}}" wx:key="id">
+          <view class="tx-main">
+            <view class="tx-desc">{{item.description || '积分变动'}}</view>
+            <view class="tx-date">{{item.dateText}}</view>
+          </view>
+          <view class="tx-amount {{item.isEarn ? 'earn' : 'spend'}}">{{item.amountText}}</view>
+          <view class="tx-balance">余额 {{item.balanceAfter}}</view>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

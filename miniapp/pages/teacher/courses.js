@@ -12,26 +12,42 @@ Page({
     pageSize: 20,
     hasMore: true,
     searchKeyword: '',  // 搜索关键词
-    total: 0
+    total: 0,
+    isStudentView: false,  // 家长/学生视图：课程 Tab 原地渲染孩子课程，保留 tab 栏
+    studentCourses: []
   },
 
   onLoad() {
     const app = getApp();
     var userInfo = app.globalData.userInfo || {};
     const role = userInfo.role;
-    if (role === 'Student' || role === 'Parent') {
-      // 学生/家长点击"课程"Tab → 跳转到学生课程页面
-      wx.reLaunch({ url: '/pages/student/classes' });
-      return;
+    const isStudentView = role === 'Student' || role === 'Parent';
+    this.setData({ isStudentView });
+    if (isStudentView) {
+      this.loadStudentCourses();
+    } else {
+      this.loadCourses();
     }
-    this.loadCourses();
+  },
+
+  // Tab 页 onLoad 仅一次；家长/学生视图每次切回刷新（从详情页返回后更新）
+  onShow() {
+    if (this.data.isStudentView) {
+      this.loadStudentCourses();
+    }
   },
 
   // 下拉刷新
   onPullDownRefresh() {
-    this.setData({ 
-      page: 1, 
-      courses: [], 
+    if (this.data.isStudentView) {
+      this.loadStudentCourses().finally(() => {
+        wx.stopPullDownRefresh();
+      });
+      return;
+    }
+    this.setData({
+      page: 1,
+      courses: [],
       hasMore: true,
       searchKeyword: ''
     });
@@ -42,6 +58,7 @@ Page({
 
   // 上拉加载更多
   onReachBottom() {
+    if (this.data.isStudentView) return;
     if (this.data.hasMore && !this.data.loadingMore) {
       this.loadMore();
     }
@@ -70,9 +87,51 @@ Page({
 
   // 清空搜索
   clearSearch() {
-    this.setData({ 
-      searchKeyword: '', 
-      filteredCourses: this.data.courses 
+    this.setData({
+      searchKeyword: '',
+      filteredCourses: this.data.courses
+    });
+  },
+
+  // 家长/学生视图：加载孩子课程（复用 student/classes 的 contracts 映射）
+  async loadStudentCourses() {
+    if (this._studentLoading) return;
+    this._studentLoading = true;
+    this.setData({ loading: true, error: null });
+
+    try {
+      const contracts = await get('/students/self/contracts');
+      const studentCourses = (Array.isArray(contracts) ? contracts : []).map(c => ({
+        classCode: c.classCode,
+        subject: c.subject,
+        teacherName: c.teacherName || '',
+        totalLessons: c.totalLessons,
+        remainingLessons: c.remainingLessons,
+        progress: c.totalLessons > 0
+          ? Math.round((c.totalLessons - c.remainingLessons) / c.totalLessons * 100)
+          : 0
+      }));
+
+      this.setData({ studentCourses, loading: false });
+    } catch (err) {
+      console.error('[Courses] 孩子课程加载失败:', err);
+      this.setData({
+        error: '数据加载失败，请稍后重试',
+        loading: false
+      });
+    } finally {
+      this._studentLoading = false;
+    }
+  },
+
+  // 家长/学生视图：进入班级详情
+  goToStudentClassDetail(e) {
+    const { code } = e.currentTarget.dataset;
+    wx.navigateTo({
+      url: `/pages/student/class-detail?code=${code}`,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
     });
   },
 

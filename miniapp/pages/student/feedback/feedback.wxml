@@ -1,0 +1,42 @@
+<!-- pages/student/feedback/feedback.wxml -->
+<view class="container">
+  <!-- 成长手记引言 -->
+  <view class="fb-intro">
+    <view class="t">课程反馈</view>
+    <view class="s">每一次反馈，都记录着孩子的课堂</view>
+  </view>
+
+  <!-- 加载 -->
+  <view wx:if="{{loading && list.length === 0}}" class="loading-state">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误 -->
+  <view wx:elif="{{error}}" class="error-card">
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadFeedback">重试</view>
+  </view>
+
+  <!-- 空 -->
+  <view wx:elif="{{list.length === 0 && !loading}}" class="empty-state">
+    <text class="empty-text">暂无课程反馈</text>
+  </view>
+
+  <!-- 反馈列表 -->
+  <view wx:else class="feedback-list">
+    <view class="fb-card" wx:for="{{list}}" wx:key="id">
+      <view class="fb-top">
+        <view class="fb-avatar">{{item.teacherName ? item.teacherName[0] : '师'}}</view>
+        <view class="fb-meta">
+          <view class="fb-course">{{item.courseName || '课程'}}</view>
+          <view class="fb-date">{{item.dateText || ''}}{{item.teacherName ? ' · ' + item.teacherName : ''}}</view>
+        </view>
+      </view>
+      <view class="fb-content">
+        <view class="fb-content-label"><view class="ic ic-book"></view>课堂内容</view>
+        <view class="fb-content-text">{{item.content || '本节课暂无内容记录'}}</view>
+      </view>
+    </view>
+  </view>
+</view>

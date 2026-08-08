@@ -1,129 +1,159 @@
 <!-- pages/student/index.wxml -->
 <view class="container">
-  <!-- 欢迎卡片 -->
-  <view class="welcome-card">
-    <view class="welcome-info">
-      <text class="welcome-text">您好，{{studentInfo.name ? studentInfo.name + ' 家长' : '家长'}}</text>
-      <text class="student-code">孩子：{{studentInfo.name || ''}} {{studentInfo.studentCode ? '（' + studentInfo.studentCode + '）' : ''}}</text>
+
+  <!-- ========== 家长/学生视图：我的 ========== -->
+  <block wx:if="{{!isTeacherView}}">
+    <view class="my-page">
+      <!-- 加载中 -->
+      <view class="loading-state" wx:if="{{loading}}">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">加载中...</text>
+      </view>
+
+      <!-- 错误状态 -->
+      <view class="error-state" wx:elif="{{error}}">
+        <view class="ic ic-warn error-ic"></view>
+        <text class="error-text">{{error}}</text>
+        <view class="retry-btn" bindtap="loadData">点击重试</view>
+      </view>
+
+      <!-- 正常内容 -->
+      <block wx:else>
+        <!-- 头像 / 名称 -->
+        <view class="profile-head">
+          <view class="avatar">{{studentInfo.name[0] || '乐'}}</view>
+          <view>
+            <view class="pn">{{studentInfo.name || '家长'}}</view>
+            <view class="ps">{{children.length > 0 ? children.length + ' 个孩子已关联' : '暂无关联孩子'}}</view>
+          </view>
+        </view>
+
+        <!-- 我的孩子 -->
+        <view class="card">
+          <view class="card-title">我的孩子</view>
+          <view class="child-row" wx:for="{{children}}" wx:key="id"
+            data-id="{{item.id}}" data-name="{{item.name}}" data-studentcode="{{item.studentCode}}"
+            data-school="{{item.school}}" data-grade="{{item.grade}}" bindtap="goToChildDetail">
+            <view class="cr-avatar">{{item.name[0] || '孩'}}</view>
+            <view class="cr-mid">
+              <view class="cr-name">{{item.name}}</view>
+              <view class="cr-sub">{{item.grade || '孩子'}}{{item.studentCode ? ' · ' + item.studentCode : ''}}</view>
+            </view>
+            <view class="ic ic-chevron"></view>
+          </view>
+          <view class="empty-hint" wx:if="{{children.length === 0}}">暂无关联孩子，请联系机构开通</view>
+        </view>
+
+        <!-- 功能菜单 -->
+        <view class="card">
+          <view class="menu-row" bindtap="goToContractManage"><view class="mi ic ic-contract"></view><text>合同管理</text><view class="ic ic-chevron"></view></view>
+          <view class="menu-row" bindtap="goToLeaveRecords"><view class="mi ic ic-list"></view><text>请假记录</text><view class="ic ic-chevron"></view></view>
+          <view class="menu-row" bindtap="goToContact"><view class="mi ic ic-contact"></view><text>联系客服</text><view class="ic ic-chevron"></view></view>
+          <view class="menu-row" bindtap="goToAbout"><view class="mi ic ic-home"></view><text>关于我们</text><view class="ic ic-chevron"></view></view>
+        </view>
+
+        <!-- 消息订阅 -->
+        <view class="card">
+          <view class="card-title">消息订阅</view>
+          <view class="sub-row" data-key="lesson" bindtap="toggleSubscribe"><text>上课提醒</text><view class="switch {{subs.lesson ? 'on' : ''}}"></view></view>
+          <view class="sub-row" data-key="balance" bindtap="toggleSubscribe"><text>课时预警</text><view class="switch {{subs.balance ? 'on' : ''}}"></view></view>
+          <view class="sub-row" data-key="approval" bindtap="toggleSubscribe"><text>请假结果</text><view class="switch {{subs.approval ? 'on' : ''}}"></view></view>
+        </view>
+
+        <button class="logout" bindtap="handleLogout">退出登录</button>
+      </block>
     </view>
-    <view class="profile-entry" bindtap="goToProfile">
-      <text class="profile-entry-text">个人中心</text>
-      <text class="profile-entry-arrow">></text>
-    </view>
-  </view>
+  </block>
 
-  <!-- 学习概览 -->
-  <view class="overview-card" wx:if="{{!loading && contracts.length > 0}}">
-    <view class="overview-title">学习概览</view>
-    <view class="overview-stats">
-      <view class="stat-item">
-        <text class="stat-value">{{overviewStats.totalLessons}}</text>
-        <text class="stat-label">总课时</text>
-      </view>
-      <view class="stat-item">
-        <text class="stat-value stat-used">{{overviewStats.usedLessons}}</text>
-        <text class="stat-label">已上</text>
-      </view>
-      <view class="stat-item">
-        <text class="stat-value stat-remain">{{overviewStats.remainingLessons}}</text>
-        <text class="stat-label">剩余</text>
-      </view>
-      <view class="stat-item">
-        <text class="stat-value stat-progress">{{overviewStats.overallProgress}}%</text>
-        <text class="stat-label">进度</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 加载中 -->
-  <view class="loading-state" wx:if="{{loading}}">
-    <view class="loading-spinner"></view>
-    <text class="loading-text">加载中...</text>
-  </view>
-
-  <!-- 错误提示 -->
-  <view class="error-card" wx:elif="{{error}}">
-    <text class="error-text">{{error}}</text>
-    <text class="retry-btn" bindtap="loadData">点击重试</text>
-  </view>
-
-  <!-- 内容区域 -->
+  <!-- ========== 教师/管理员视图：个人中心（保留） ========== -->
   <block wx:else>
-    <!-- 合同列表 -->
-    <view class="section">
-      <view class="section-header">
-        <text class="section-title">孩子合同</text>
+    <view class="teacher-view">
+      <!-- 加载中 -->
+      <view class="loading-state" wx:if="{{loading}}">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">加载中...</text>
       </view>
-      <view class="contract-card" wx:for="{{contracts}}" wx:key="contractCode">
-        <view class="contract-header">
-          <text class="contract-subject">{{item.subject}}</text>
-          <text class="contract-status {{item.status === 'ACTIVE' ? 'status-active' : 'status-inactive'}}">
-            {{item.status === 'ACTIVE' ? '有效' : '已失效'}}
-          </text>
-        </view>
-        <view class="contract-body">
-          <view class="contract-info">
-            <text class="info-label">总课时</text>
-            <text class="info-value">{{item.totalLessons}}</text>
-          </view>
-          <view class="contract-info">
-            <text class="info-label">剩余课时</text>
-            <text class="info-value highlight">{{item.remainingLessons}}</text>
-          </view>
-          <view class="contract-info">
-            <text class="info-label">有效期</text>
-            <text class="info-value date">{{item.validFrom}} ~ {{item.validTo || '长期'}}</text>
-          </view>
-        </view>
-      </view>
-      <view class="empty" wx:if="{{contracts.length === 0}}">
-        <text>暂无合同信息</text>
-      </view>
-    </view>
 
-    <!-- 最近课时 -->
-    <view class="section">
-      <view class="section-header">
-        <text class="section-title">最近课时</text>
-        <text class="section-action" bindtap="goToLessons">查看全部</text>
+      <!-- 错误状态 -->
+      <view class="error-state" wx:elif="{{error}}">
+        <view class="ic ic-warn error-ic"></view>
+        <text class="error-text">{{error}}</text>
+        <view class="retry-btn" bindtap="loadTeacherProfile">重试</view>
       </view>
-      <view class="lesson-item" wx:for="{{recentLessons}}" wx:key="index">
-        <view class="lesson-date">
-          <text class="date-text">{{item.lessonDate}}</text>
-        </view>
-        <view class="lesson-info">
-          <text class="lesson-time">{{item.startTime}} - {{item.endTime}}</text>
-          <text class="lesson-status-tag {{item.status === 'PRESENT' ? 'tag-present' : item.status === 'ABSENT' ? 'tag-absent' : 'tag-other'}}">
-            {{item.statusText}}
-          </text>
-        </view>
-      </view>
-      <view class="empty" wx:if="{{recentLessons.length === 0}}">
-        <text>暂无课时记录</text>
-      </view>
-    </view>
 
-    <!-- 出勤记录入口 -->
-    <view class="section">
-      <view class="section-header">
-        <text class="section-title">出勤记录</text>
-        <text class="section-action" bindtap="goToAttendance">查看全部</text>
-      </view>
-    </view>
-
-    <!-- 请假申请入口 -->
-    <view class="section">
-      <view class="section-header">
-        <text class="section-title">异常申请</text>
-      </view>
-      <view class="menu-grid">
-        <view class="menu-item" bindtap="goToLeaveApply">
-          <text class="menu-icon">📝</text>
-          <text class="menu-text">请假申请</text>
+      <!-- 正常内容 -->
+      <view wx:else>
+        <view class="profile-header">
+          <view class="avatar-area">
+            <image class="avatar-img" wx:if="{{teacherInfo.avatar}}" src="{{teacherInfo.avatar}}" mode="aspectFill" />
+            <view class="avatar-circle" wx:else>
+              <text class="avatar-text">{{teacherInfo.name[0] || '教'}}</text>
+            </view>
+          </view>
+          <view class="profile-name">{{teacherInfo.name}}</view>
+          <view class="profile-role">{{teacherInfo.role}}</view>
         </view>
-        <view class="menu-item" bindtap="goToLeaveRecords">
-          <text class="menu-icon">📋</text>
-          <text class="menu-text">我的申请</text>
+
+        <view class="info-card">
+          <view class="card-title">基础信息</view>
+          <view class="info-row"><text class="info-label">姓名</text><text class="info-value">{{teacherInfo.name}}</text></view>
+          <view class="info-row"><text class="info-label">账号</text><text class="info-value">{{teacherInfo.username}}</text></view>
+          <view class="info-row"><text class="info-label">手机</text><text class="info-value">{{teacherInfo.mobile}}</text></view>
+          <view class="info-row"><text class="info-label">角色</text><text class="info-value">{{teacherInfo.role}}</text></view>
+        </view>
+
+        <view class="stats-card">
+          <view class="card-title">教学统计</view>
+          <view class="stats-grid">
+            <view class="stat-item" bindtap="goToClasses"><text class="stat-number">{{stats.totalClasses}}</text><text class="stat-label">班级</text></view>
+            <view class="stat-item" bindtap="goToStudents"><text class="stat-number">{{stats.totalStudents}}</text><text class="stat-label">学生</text></view>
+            <view class="stat-item" bindtap="goToCourses"><text class="stat-number">{{stats.totalLessons}}</text><text class="stat-label">已完成课时</text></view>
+          </view>
+        </view>
+
+        <view class="overview-card">
+          <view class="card-title">今日概览</view>
+          <view class="overview-row">
+            <view class="overview-item"><text class="overview-number">{{overview.todayLessons}}</text><text class="overview-label">今日课时</text></view>
+            <view class="overview-item"><text class="overview-number">{{overview.pendingAttendance}}</text><text class="overview-label">待记出勤</text></view>
+          </view>
+          <view class="overview-row">
+            <view class="overview-item"><text class="overview-number">{{overview.monthLessons}}</text><text class="overview-label">本月课时</text></view>
+            <view class="overview-item"><text class="overview-number">{{overview.monthAttendanceRate}}</text><text class="overview-label">本月出勤率</text></view>
+          </view>
+        </view>
+
+        <view class="recent-card" wx:if="{{recentLessons.length > 0}}">
+          <view class="card-title">最近课程</view>
+          <view class="lesson-item" wx:for="{{recentLessons}}" wx:key="classCode">
+            <view class="lesson-top">
+              <text class="lesson-class">{{item.className}}</text>
+              <text class="lesson-status status-{{item.status}}">{{item.statusText}}</text>
+            </view>
+            <view class="lesson-info">
+              <text class="lesson-topic">第{{item.lessonNumber}}课 {{item.topic}}</text>
+              <text class="lesson-date">{{item.scheduledDate}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="quick-nav">
+          <view class="nav-item" bindtap="goToClasses"><view class="ni ic ic-home"></view><text class="nav-text">我的班级</text></view>
+          <view class="nav-item" bindtap="goToCourses"><view class="ni ic ic-contract"></view><text class="nav-text">我的课程</text></view>
+          <view class="nav-item" bindtap="goToStudents"><view class="ni ic ic-user"></view><text class="nav-text">我的学生</text></view>
+        </view>
+
+        <view class="quick-nav" style="margin-top: 20rpx;">
+          <view class="nav-item" bindtap="goToMyExceptions"><view class="ni ic ic-warn"></view><text class="nav-text">我的课程异常</text></view>
+          <view class="nav-item" bindtap="goToLeaveApply"><view class="ni ic ic-list"></view><text class="nav-text">教师请假</text></view>
+        </view>
+
+        <view class="quick-nav" style="margin-top: 20rpx;" wx:if="{{isAdmin}}">
+          <view class="nav-item" bindtap="goToParentManage"><view class="ni ic ic-user"></view><text class="nav-text">家长开户</text></view>
+        </view>
+
+        <view class="logout-section">
+          <button class="logout-btn" bindtap="handleLogout">退出登录</button>
         </view>
       </view>
     </view>

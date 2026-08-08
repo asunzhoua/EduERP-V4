@@ -8,7 +8,7 @@
 
   <!-- 错误状态 -->
   <view class="error-state" wx:elif="{{error}}">
-    <text class="error-icon">⚠️</text>
+    <view class="ic ic-warn error-ic"></view>
     <text class="error-text">{{error}}</text>
     <button class="retry-btn" bindtap="retryLoad">重试</button>
   </view>

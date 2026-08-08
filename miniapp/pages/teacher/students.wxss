@@ -1,7 +1,7 @@
 /* pages/teacher/students.wxss */
 .container {
   padding: 20rpx;
-  background: #f5f5f5;
+  background: #FAF6F0;
   min-height: 100vh;
 }
 
@@ -14,8 +14,9 @@
   height: 80rpx;
   padding: 0 30rpx;
   background: #ffffff;
-  border-radius: 12rpx;
+  border-radius: var(--radius-full, 999rpx);
   font-size: 28rpx;
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(59,157,255,0.08));
 }
 
 .student-list {
@@ -28,14 +29,14 @@
   background: #ffffff;
   padding: 24rpx;
   margin-bottom: 12rpx;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
 }
 
 .student-avatar {
   width: 80rpx;
   height: 80rpx;
   border-radius: 50%;
-  background: #1890ff;
+  background: #D97B3E;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -58,12 +59,12 @@
 .student-name {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333333;
+  color: #2E2A25;
 }
 
 .student-gender {
   font-size: 24rpx;
-  color: #999999;
+  color: #9B9084;
 }
 
 .student-detail {
@@ -72,16 +73,16 @@
 
 .school-grade {
   font-size: 24rpx;
-  color: #999999;
+  color: #9B9084;
 }
 
 .student-code {
   font-size: 24rpx;
-  color: #cccccc;
+  color: #EDE5DA;
 }
 
 .empty {
   text-align: center;
   padding: 60rpx;
-  color: #999999;
+  color: #9B9084;
 }

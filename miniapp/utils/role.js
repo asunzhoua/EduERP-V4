@@ -72,13 +72,7 @@ function isStudentOrParent(role) {
  * @returns {string}
  */
 function getHomePage(role) {
-  if (isTeacherOrAbove(role)) {
-    return '/pages/index/index';
-  }
-  if (isStudentOrParent(role)) {
-    return '/pages/student/index';
-  }
-  // 兜底
+  // 所有角色统一落「首页」tab；index 首页 dashboard 按角色渲染（index.js:69 学生/家长分支）
   return '/pages/index/index';
 }
 
@@ -142,7 +136,7 @@ function setupTabBarByRole(role) {
     });
     wx.setTabBarItem({
       index: 2,
-      text: '学习',
+      text: '出勤',
       iconPath: 'images/class.png',
       selectedIconPath: 'images/class-active.png',
     });

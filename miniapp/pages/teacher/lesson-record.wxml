@@ -44,7 +44,7 @@
       </block>
     </view>
     <view class="error-state" wx:if="{{errorClasses}}">
-      <text class="error-icon">⚠️</text>
+      <view class="ic ic-warn error-ic"></view>
       <text class="error-text">{{errorClasses}}</text>
       <view class="retry-btn" bindtap="retryLoadClasses">点击重试</view>
     </view>
@@ -78,7 +78,7 @@
       </block>
     </view>
     <view class="error-state" wx:if="{{errorStudents}}">
-      <text class="error-icon">⚠️</text>
+      <view class="ic ic-warn error-ic"></view>
       <text class="error-text">{{errorStudents}}</text>
       <view class="retry-btn" bindtap="retryLoadStudents">点击重试</view>
     </view>

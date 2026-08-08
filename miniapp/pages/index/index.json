@@ -1,4 +1,5 @@
 {
   "navigationBarTitleText": "EduERP",
-  "usingComponents": {}
+  "usingComponents": {},
+  "enablePullDownRefresh": true
 }

@@ -76,6 +76,14 @@ Page({
     });
   },
 
+  goToAgreement: function (e) {
+    var type = e.currentTarget.dataset.type;
+    var url = type === 'privacy'
+      ? '/pages/agreement/privacy-policy/privacy-policy'
+      : '/pages/agreement/user-agreement/user-agreement';
+    wx.navigateTo({ url: url });
+  },
+
   goToLogin: function () {
     wx.navigateBack();
   }

@@ -1,16 +1,17 @@
 <!--pages/teacher/courses.wxml-->
 <view class="container">
+  <!-- ========== 教师/管理员视图 ========== -->
+  <block wx:if="{{!isStudentView}}">
   <!-- 搜索栏 -->
   <view class="search-bar">
     <view class="search-wrapper">
-      <text class="search-icon">🔍</text>
       <input
         class="search-input"
         placeholder="搜索课程名称/编码/科目"
         value="{{searchKeyword}}"
         bindinput="onSearch"
       />
-      <text class="clear-btn" wx:if="{{searchKeyword}}" bindtap="clearSearch">✕</text>
+      <view class="clear-btn" wx:if="{{searchKeyword}}" bindtap="clearSearch"><view class="ic ic-close"></view></view>
     </view>
   </view>
 
@@ -63,7 +64,7 @@
 
     <!-- 错误状态 -->
     <view class="error-state" wx:elif="{{error}}">
-      <text class="error-icon">⚠️</text>
+      <view class="ic ic-warn error-ic"></view>
       <text class="error-text">{{error}}</text>
       <view class="retry-btn" bindtap="loadCourses">点击重试</view>
     </view>
@@ -80,7 +81,7 @@
 
     <!-- 空状态 -->
     <view class="empty-state" wx:if="{{!loading && !error && filteredCourses.length === 0}}">
-      <text class="empty-icon">📭</text>
+      <view class="ic ic-list empty-ic"></view>
       <text class="empty-text" wx:if="{{searchKeyword}}">未找到匹配的课程</text>
       <text class="empty-text" wx:else>暂无课程</text>
       <text class="empty-hint" wx:if="{{!searchKeyword}}">点击右下角按钮创建课程</text>
@@ -91,4 +92,46 @@
   <view class="fab" bindtap="createCourse">
     <text class="fab-icon">+</text>
   </view>
+  </block>
+
+  <!-- ========== 家长/学生视图：孩子的课程 ========== -->
+  <block wx:else>
+    <view class="student-view">
+      <!-- 加载中状态 -->
+      <view class="loading-state" wx:if="{{loading}}">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">加载中...</text>
+      </view>
+
+      <!-- 错误状态 -->
+      <view class="error-card" wx:elif="{{error}}">
+        <text class="error-text">{{error}}</text>
+        <text class="retry-btn" bindtap="loadStudentCourses">点击重试</text>
+      </view>
+
+      <block wx:else>
+        <!-- 孩子课程/合同列表 -->
+        <view class="course-item" wx:for="{{studentCourses}}" wx:key="classCode"
+          bindtap="goToStudentClassDetail" data-code="{{item.classCode}}">
+          <view class="ci-head">
+            <view class="ci-subject">{{item.subject}}课程</view>
+            <view class="ci-remain">{{item.remainingLessons || 0}}<text class="ci-unit">节</text></view>
+          </view>
+          <view class="ci-meta">剩余课时 · 总课时 {{item.totalLessons || 0}}</view>
+          <view class="progress-track">
+            <view class="progress-fill" style="width: {{item.progress}}%;"></view>
+          </view>
+          <view class="ci-foot">
+            <text>老师：{{item.teacherName || '待分配'}}</text>
+            <text>{{item.progress}}%</text>
+          </view>
+        </view>
+
+        <!-- 空状态 -->
+        <view class="empty-state" wx:if="{{studentCourses.length === 0}}">
+          <text class="empty-text">暂无课程信息</text>
+        </view>
+      </block>
+    </view>
+  </block>
 </view>

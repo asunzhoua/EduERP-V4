@@ -1,7 +1,7 @@
 /* pages/teacher/student-detail/index.wxss */
 .container {
   padding: 20rpx;
-  background: #f5f5f5;
+  background: #FAF6F0;
   min-height: 100vh;
 }
 
@@ -16,8 +16,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid #e6f7ff;
-  border-top-color: #1890ff;
+  border: 4rpx solid #FBEEE2;
+  border-top-color: #D97B3E;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -28,7 +28,7 @@
 
 .loading-text {
   font-size: 26rpx;
-  color: #999;
+  color: #9B9084;
   margin-top: 16rpx;
 }
 
@@ -39,15 +39,15 @@
 
 .error-text {
   font-size: 28rpx;
-  color: #999;
+  color: #9B9084;
   margin-bottom: 20rpx;
 }
 
 .retry-btn {
   padding: 16rpx 40rpx;
-  background: #1890ff;
+  background: #D97B3E;
   color: #fff;
-  border-radius: 8rpx;
+  border-radius: 16rpx;
   font-size: 28rpx;
 }
 
@@ -55,7 +55,7 @@
 .profile-card {
   display: flex;
   align-items: center;
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  background: linear-gradient(135deg, #D97B3E 0%, #A64E1D 100%);
   padding: 30rpx;
   border-radius: 16rpx;
   margin-bottom: 20rpx;
@@ -98,7 +98,7 @@
   color: rgba(255, 255, 255, 0.8);
   padding: 2rpx 12rpx;
   background: rgba(255, 255, 255, 0.15);
-  border-radius: 6rpx;
+  border-radius: 12rpx;
 }
 
 .profile-school {
@@ -109,7 +109,7 @@
 /* 信息区块 */
 .info-section {
   background: #fff;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 20rpx;
 }
@@ -117,7 +117,7 @@
 .section-title {
   font-size: 28rpx;
   font-weight: bold;
-  color: #333;
+  color: #2E2A25;
   margin-bottom: 16rpx;
 }
 
@@ -129,12 +129,12 @@
 
 .info-label {
   font-size: 26rpx;
-  color: #666;
+  color: #6F675D;
 }
 
 .info-value {
   font-size: 26rpx;
-  color: #333;
+  color: #2E2A25;
   font-weight: 500;
 }
 
@@ -155,7 +155,7 @@
 
 .class-card {
   background: #fff;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   padding: 24rpx;
 }
 
@@ -169,12 +169,12 @@
 .class-name {
   font-size: 30rpx;
   font-weight: bold;
-  color: #333;
+  color: #2E2A25;
 }
 
 .class-code {
   font-size: 22rpx;
-  color: #999;
+  color: #9B9084;
 }
 
 .class-mid {
@@ -183,7 +183,7 @@
 
 .class-course {
   font-size: 26rpx;
-  color: #666;
+  color: #6F675D;
 }
 
 .class-progress {
@@ -194,21 +194,21 @@
 .progress-bar {
   flex: 1;
   height: 16rpx;
-  background: #f0f0f0;
-  border-radius: 8rpx;
+  background: #FAF6F0;
+  border-radius: 16rpx;
   overflow: hidden;
   margin-right: 16rpx;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #1890ff, #52c41a);
-  border-radius: 8rpx;
+  background: linear-gradient(90deg, #D97B3E, #D97B3E);
+  border-radius: 16rpx;
 }
 
 .progress-text {
   font-size: 22rpx;
-  color: #999;
+  color: #9B9084;
   white-space: nowrap;
 }
 
@@ -216,7 +216,7 @@
 .empty {
   text-align: center;
   padding: 60rpx 0;
-  color: #999;
+  color: #9B9084;
   font-size: 26rpx;
 }
 
@@ -228,9 +228,9 @@
 .action-btn {
   width: 100%;
   padding: 24rpx;
-  background: #1890ff;
+  background: #D97B3E;
   color: #fff;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   font-size: 30rpx;
   text-align: center;
 }
@@ -241,7 +241,7 @@
   padding: 30rpx;
   background: #fff;
   border-radius: 16rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(59,157,255,0.08));
 }
 .stats-row {
   display: flex;
@@ -255,10 +255,76 @@
 .stats-value {
   font-size: 40rpx;
   font-weight: bold;
-  color: #1890ff;
+  color: #D97B3E;
 }
 .stats-label {
   font-size: 24rpx;
-  color: #999;
+  color: #9B9084;
   margin-top: 8rpx;
+}
+
+/* 课时余额（合同同源） */
+.contract-section {
+  margin-bottom: 20rpx;
+}
+
+.contract-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.contract-summary {
+  font-size: 24rpx;
+  color: #A64E1D;
+  font-weight: 600;
+}
+
+.contract-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.contract-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 22rpx 24rpx;
+}
+
+.contract-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10rpx;
+}
+
+.contract-subject {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #2E2A25;
+}
+
+.contract-status {
+  font-size: 22rpx;
+  color: #A64E1D;
+  padding: 2rpx 14rpx;
+  background: #FBEEE2;
+  border-radius: 999rpx;
+}
+
+.contract-nums {
+  display: flex;
+  gap: 32rpx;
+}
+
+.contract-num {
+  font-size: 24rpx;
+  color: #6F675D;
+  font-variant-numeric: tabular-nums;
+}
+
+.contract-remain {
+  color: #A64E1D;
+  font-weight: 600;
 }

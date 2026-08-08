@@ -8,7 +8,7 @@
 
   <!-- 错误状态 -->
   <view class="error-state" wx:elif="{{error}}">
-    <text class="error-icon">⚠️</text>
+    <view class="ic ic-warn error-ic"></view>
     <text class="error-text">{{error}}</text>
     <button class="retry-btn" bindtap="onPullDownRefresh">重试</button>
   </view>
@@ -116,15 +116,15 @@
     <!-- 快捷入口 -->
     <view class="quick-nav">
       <view class="nav-item" bindtap="goToClasses">
-        <text class="nav-icon">📚</text>
+        <view class="ni ic ic-home"></view>
         <text class="nav-text">我的班级</text>
       </view>
       <view class="nav-item" bindtap="goToCourses">
-        <text class="nav-icon">📖</text>
+        <view class="ni ic ic-contract"></view>
         <text class="nav-text">我的课程</text>
       </view>
       <view class="nav-item" bindtap="goToStudents">
-        <text class="nav-icon">👥</text>
+        <view class="ni ic ic-user"></view>
         <text class="nav-text">我的学生</text>
       </view>
     </view>
@@ -132,11 +132,11 @@
     <!-- 异常入口 -->
     <view class="quick-nav" style="margin-top: 20rpx;">
       <view class="nav-item" bindtap="goToMyExceptions">
-        <text class="nav-icon">⚠️</text>
+        <view class="ni ic ic-warn"></view>
         <text class="nav-text">我的课程异常</text>
       </view>
       <view class="nav-item" bindtap="goToLeaveApply">
-        <text class="nav-icon">📝</text>
+        <view class="ni ic ic-list"></view>
         <text class="nav-text">教师请假</text>
       </view>
     </view>
@@ -144,7 +144,7 @@
     <!-- 管理员入口 -->
     <view class="quick-nav" style="margin-top: 20rpx;" wx:if="{{isAdmin}}">
       <view class="nav-item" bindtap="goToParentManage">
-        <text class="nav-icon">👪</text>
+        <view class="ni ic ic-user"></view>
         <text class="nav-text">家长开户</text>
       </view>
     </view>

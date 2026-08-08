@@ -31,6 +31,17 @@ Page({
     }
   },
 
+  onShow() {
+    // 首次进入由 onLoad 加载；返回页面时刷新拿到最新课时
+    if (!this._inited) {
+      this._inited = true;
+      return;
+    }
+    if (this.data.childId) {
+      this.loadData(this.data.childId);
+    }
+  },
+
   onPullDownRefresh() {
     if (this.data.childId) {
       this.loadData(this.data.childId).finally(() => {

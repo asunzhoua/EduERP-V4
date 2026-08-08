@@ -8,7 +8,7 @@
 
   <!-- 错误 -->
   <view class="error-card" wx:elif="{{error}}">
-    <text class="error-icon">⚠️</text>
+    <view class="ic ic-warn error-ic"></view>
     <text class="error-text">{{error}}</text>
   </view>
 

@@ -1,5 +1,7 @@
 <!--pages/teacher/classes.wxml-->
 <view class="container">
+  <!-- ========== 教师/管理员视图 ========== -->
+  <block wx:if="{{!isStudentView}}">
   <!-- 筛选栏 -->
   <view class="filter-bar">
     <view
@@ -107,16 +109,84 @@
 
     <!-- 错误状态 -->
     <view class="error-state" wx:elif="{{error}}">
-      <text class="error-icon">⚠️</text>
+      <view class="ic ic-warn error-ic"></view>
       <text class="error-text">{{error}}</text>
       <view class="retry-btn" bindtap="loadClasses">点击重试</view>
     </view>
 
     <!-- 空状态 -->
     <view class="empty-state" wx:elif="{{classes.length === 0}}">
-      <text class="empty-icon">📭</text>
+      <view class="ic ic-list empty-ic"></view>
       <text class="empty-text">暂无班级</text>
       <text class="empty-hint">请先创建班级</text>
     </view>
   </view>
+  </block>
+
+  <!-- ========== 家长/学生视图：出勤记录 ========== -->
+  <block wx:else>
+    <view class="student-view">
+      <!-- Loading -->
+      <view wx:if="{{loading}}" class="loading-state">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">加载中...</text>
+      </view>
+
+      <!-- Error -->
+      <view wx:elif="{{error}}" class="error-state">
+        <text class="error-text">{{error}}</text>
+        <view class="retry-btn" bindtap="loadStudentAttendance">重试</view>
+      </view>
+
+      <!-- Empty -->
+      <view wx:elif="{{studentAllAttendance.length === 0}}" class="empty-state">
+        <text class="empty-text">暂无出勤记录</text>
+      </view>
+
+      <block wx:else>
+        <!-- 出勤汇总 -->
+        <view class="stats-card">
+          <view class="att-rate">
+            <text class="att-rate-value">{{attStats.attendanceRate}}%</text>
+            <text class="att-rate-label">到课率</text>
+            <view class="rate-bar">
+              <view class="rate-fill" style="width: {{attStats.attendanceRate}}%;"></view>
+            </view>
+          </view>
+          <view class="att-grid">
+            <view class="att-g"><text class="att-v present">{{attStats.present}}</text><text class="att-l">到课</text></view>
+            <view class="att-g"><text class="att-v absent">{{attStats.absent}}</text><text class="att-l">缺勤</text></view>
+            <view class="att-g"><text class="att-v late">{{attStats.late}}</text><text class="att-l">迟到</text></view>
+            <view class="att-g"><text class="att-v leave">{{attStats.leave}}</text><text class="att-l">请假</text></view>
+          </view>
+        </view>
+
+        <!-- 筛选标签 -->
+        <view class="filter-tabs">
+          <view class="filter-tab {{attFilterStatus === 'ALL' ? 'active' : ''}}" bindtap="filterStudentAttendance" data-status="ALL">全部</view>
+          <view class="filter-tab {{attFilterStatus === 'PRESENT' ? 'active' : ''}}" bindtap="filterStudentAttendance" data-status="PRESENT">到课</view>
+          <view class="filter-tab {{attFilterStatus === 'ABSENT' ? 'active' : ''}}" bindtap="filterStudentAttendance" data-status="ABSENT">缺勤</view>
+          <view class="filter-tab {{attFilterStatus === 'LATE' ? 'active' : ''}}" bindtap="filterStudentAttendance" data-status="LATE">迟到</view>
+          <view class="filter-tab {{attFilterStatus === 'LEAVE' ? 'active' : ''}}" bindtap="filterStudentAttendance" data-status="LEAVE">请假</view>
+        </view>
+
+        <!-- 出勤列表 -->
+        <view class="att-list">
+          <view wx:for="{{studentAttendance}}" wx:key="id" class="att-item">
+            <view class="att-main">
+              <view class="att-date">{{item.lessonDate || '待定'}}</view>
+              <view class="att-course">{{item.courseName || '未知课程'}}</view>
+            </view>
+            <view class="att-right">
+              <view class="att-status {{item.statusClass}}">{{item.statusText}}</view>
+              <view wx:if="{{item.deductionSkippedReason}}" class="deduction-skip-badge">未扣课时</view>
+            </view>
+          </view>
+          <view wx:if="{{studentAttendance.length === 0}}" class="empty-state">
+            <text class="empty-text">无匹配记录</text>
+          </view>
+        </view>
+      </block>
+    </view>
+  </block>
 </view>

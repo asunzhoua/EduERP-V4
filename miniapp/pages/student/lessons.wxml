@@ -1,94 +1,77 @@
 <!-- pages/student/lessons.wxml -->
 <view class="container">
-  <!-- Loading -->
-  <view wx:if="{{loading}}" class="loading-state">
+  <!-- 加载 -->
+  <view wx:if="{{loading && allLessons.length === 0}}" class="loading-state">
     <view class="loading-spinner"></view>
     <text class="loading-text">加载中...</text>
   </view>
 
-  <!-- Error -->
-  <view wx:elif="{{error}}" class="error-state">
+  <!-- 错误 -->
+  <view wx:elif="{{error && allLessons.length === 0}}" class="error-state">
     <text class="error-text">{{error}}</text>
     <view class="retry-btn" bindtap="loadLessons">重试</view>
   </view>
 
-  <!-- Empty -->
+  <!-- 空 -->
   <view wx:elif="{{allLessons.length === 0 && !loading}}" class="empty-state">
     <text class="empty-text">暂无课时记录</text>
   </view>
 
   <block wx:else>
+    <!-- 课时余额 -->
+    <view class="balance-card">
+      <view class="balance-item"><view class="v">{{balance.total}}</view><view class="l">总课时</view></view>
+      <view class="balance-item"><view class="v used">{{balance.used}}</view><view class="l">已使用</view></view>
+      <view class="balance-item"><view class="v remain">{{balance.remaining}}</view><view class="l">剩余课时</view></view>
+    </view>
+
     <!-- 统计概览 -->
     <view class="stats-card">
-      <view class="stats-row">
-        <view class="stats-item">
-          <text class="stats-value">{{stats.total}}</text>
-          <text class="stats-label">总课时</text>
-        </view>
-        <view class="stats-item">
-          <text class="stats-value stats-present">{{stats.present}}</text>
-          <text class="stats-label">已到</text>
-        </view>
-        <view class="stats-item">
-          <text class="stats-value stats-absent">{{stats.absent}}</text>
-          <text class="stats-label">缺勤</text>
-        </view>
-        <view class="stats-item">
-          <text class="stats-value stats-late">{{stats.late}}</text>
-          <text class="stats-label">迟到</text>
-        </view>
+      <view class="stat"><view class="v">{{stats.total}}</view><view class="l">记录数</view></view>
+      <view class="stat"><view class="v present">{{stats.present}}</view><view class="l">已到</view></view>
+      <view class="stat"><view class="v absent">{{stats.absent}}</view><view class="l">缺勤</view></view>
+      <view class="stat"><view class="v leave">{{stats.leave}}</view><view class="l">请假</view></view>
+    </view>
+
+    <!-- 日期查询 -->
+    <view class="date-card">
+      <view class="date-row">
+        <picker mode="date" value="{{fromDate}}" bindchange="onFromDateChange">
+          <view class="date-field {{fromDate ? '' : 'placeholder'}}">{{fromDate || '开始日期'}}</view>
+        </picker>
+        <text class="date-sep">至</text>
+        <picker mode="date" value="{{toDate}}" bindchange="onToDateChange">
+          <view class="date-field {{toDate ? '' : 'placeholder'}}">{{toDate || '结束日期'}}</view>
+        </picker>
       </view>
-      <view class="stats-row">
-        <view class="stats-item">
-          <text class="stats-value stats-leave">{{stats.leave}}</text>
-          <text class="stats-label">请假</text>
-        </view>
-        <view class="stats-item">
-          <text class="stats-value stats-sick">{{stats.sick}}</text>
-          <text class="stats-label">病假</text>
-        </view>
-        <view class="stats-item">
-          <text class="stats-value stats-makeup">{{stats.makeup}}</text>
-          <text class="stats-label">补课</text>
-        </view>
-        <view class="stats-item">
-          <text class="stats-value stats-online">{{stats.online}}</text>
-          <text class="stats-label">线上</text>
-        </view>
-        <view class="stats-item">
-          <text class="stats-value stats-offline">{{stats.offline}}</text>
-          <text class="stats-label">线下</text>
-        </view>
+      <view class="date-btns">
+        <view class="btn reset" bindtap="onDateReset">重置</view>
+        <view class="btn query" bindtap="onDateQuery">查询</view>
       </view>
     </view>
 
-    <!-- 筛选标签 -->
-    <view class="filter-tabs">
-      <view class="filter-tab {{filterStatus === 'ALL' ? 'active' : ''}}" bindtap="filterByStatus" data-status="ALL">全部</view>
-      <view class="filter-tab {{filterStatus === 'PRESENT' ? 'active' : ''}}" bindtap="filterByStatus" data-status="PRESENT">已到</view>
-      <view class="filter-tab {{filterStatus === 'ABSENT' ? 'active' : ''}}" bindtap="filterByStatus" data-status="ABSENT">缺勤</view>
-      <view class="filter-tab {{filterStatus === 'LATE' ? 'active' : ''}}" bindtap="filterByStatus" data-status="LATE">迟到</view>
-      <view class="filter-tab {{filterStatus === 'LEAVE' ? 'active' : ''}}" bindtap="filterByStatus" data-status="LEAVE">请假</view>
-    </view>
+    <!-- 筛选 -->
+    <scroll-view scroll-x class="filter-row">
+      <view class="chip {{filterStatus === 'ALL' ? 'on' : ''}}" bindtap="filterByStatus" data-status="ALL">全部</view>
+      <view class="chip {{filterStatus === 'PRESENT' ? 'on' : ''}}" bindtap="filterByStatus" data-status="PRESENT">已到</view>
+      <view class="chip {{filterStatus === 'ABSENT' ? 'on' : ''}}" bindtap="filterByStatus" data-status="ABSENT">缺勤</view>
+      <view class="chip {{filterStatus === 'LATE' ? 'on' : ''}}" bindtap="filterByStatus" data-status="LATE">迟到</view>
+      <view class="chip {{filterStatus === 'LEAVE' ? 'on' : ''}}" bindtap="filterByStatus" data-status="LEAVE">请假</view>
+    </scroll-view>
 
-    <!-- List -->
+    <!-- 课时列表 -->
     <view class="lesson-list">
-      <view wx:for="{{lessons}}" wx:key="lessonId" class="lesson-item">
-        <view class="lesson-date">
-          <text class="date-text">{{item.lessonDate}}</text>
+      <view class="lesson-card" wx:for="{{lessons}}" wx:key="lessonId">
+        <view class="l-date">{{item.lessonDate}}</view>
+        <view class="l-mid">
+          <view class="l-course">{{item.courseName || item.topic || '未知课程'}}</view>
+          <view class="l-sub">{{item.className || ''}}{{item.startTime ? ' · ' + item.startTime + ' - ' + item.endTime : ''}}</view>
         </view>
-        <view class="lesson-info">
-          <text class="course-name">{{item.courseName || item.topic || '未知课程'}}</text>
-          <text class="class-name">{{item.className || '未知班级'}}</text>
-          <view class="lesson-bottom">
-            <text class="lesson-time">{{item.startTime}} - {{item.endTime}}</text>
-            <text class="lesson-status {{item.status === 'PRESENT' ? 'tag-present' : item.status === 'ABSENT' ? 'tag-absent' : item.status === 'LATE' ? 'tag-late' : item.status === 'LEAVE' ? 'tag-leave' : 'tag-other'}}">
-              {{item.statusText}}
-            </text>
-          </view>
+        <view class="badge {{item.status === 'PRESENT' ? 'badge-present' : item.status === 'ABSENT' ? 'badge-absent' : item.status === 'LATE' ? 'badge-todo' : item.status === 'LEAVE' ? 'badge-leave' : 'badge-done'}}">
+          {{item.statusText}}
         </view>
       </view>
-      <view wx:if="{{lessons.length === 0}}" class="empty-state">
+      <view class="empty-state" wx:if="{{lessons.length === 0}}">
         <text class="empty-text">无匹配记录</text>
       </view>
     </view>

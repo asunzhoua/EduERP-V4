@@ -1,0 +1,40 @@
+/* pages/agreement/agreement-common.wxss · 协议页公共样式（暖杏奶油） */
+.doc {
+  padding: 40rpx 44rpx 64rpx;
+  background: var(--bg, #FAF6F0);
+  min-height: 100vh;
+  box-sizing: border-box;
+  color: var(--fg, #2E2A25);
+  font-size: 28rpx;
+  line-height: 1.9;
+}
+
+.doc-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 8rpx;
+}
+
+.doc-updated {
+  text-align: center;
+  font-size: 23rpx;
+  color: var(--faint, #9B9084);
+  margin-bottom: 36rpx;
+}
+
+.sec {
+  margin-bottom: 30rpx;
+}
+
+.sec-h {
+  font-size: 30rpx;
+  font-weight: 700;
+  margin-bottom: 10rpx;
+}
+
+.sec-p {
+  font-size: 27rpx;
+  color: var(--muted, #6F675D);
+  margin-bottom: 8rpx;
+}

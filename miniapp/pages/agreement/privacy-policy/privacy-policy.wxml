@@ -1,0 +1,61 @@
+<!-- pages/agreement/privacy-policy/privacy-policy.wxml -->
+<view class="doc">
+  <view class="doc-title">EduERP 教育培训小程序隐私政策</view>
+  <view class="doc-updated">更新日期：2026 年 08 月 07 日 · 生效日期：2026 年 08 月 07 日</view>
+
+  <view class="sec">
+    <view class="sec-h">导言</view>
+    <view class="sec-p">我们重视你及孩子的个人信息安全。本政策旨在说明本小程序（由培训机构运营，以下称"机构"或"我们"）在提供服务过程中如何收集、使用、存储和保护你的个人信息。请在使用本小程序前仔细阅读。</view>
+  </view>
+
+  <view class="sec">
+    <view class="sec-h">一、我们收集哪些信息</view>
+    <view class="sec-p">1.1 账号信息：你注册或登录时提供的手机号、用户名，以及通过微信授权登录时微信返回的昵称、头像等信息。</view>
+    <view class="sec-p">1.2 孩子信息：为关联课程与课时，我们可能收集并登记你孩子的姓名、学号、年级、学校等信息。我们遵循最小必要原则，仅收集为提供服务所必需的信息。</view>
+    <view class="sec-p">1.3 课程与课时信息：孩子所报课程、合同信息、课时余额、出勤记录、请假记录等，此类信息为提供服务所必需。</view>
+    <view class="sec-p">1.4 设备与日志信息：为保障账号安全与改进服务，我们可能收集微信授权返回的设备相关信息及使用日志。</view>
+  </view>
+
+  <view class="sec">
+    <view class="sec-h">二、我们如何使用这些信息</view>
+    <view class="sec-p">2.1 用于向你提供课时查询、课程安排、出勤记录、请假申请与消息提醒等服务。</view>
+    <view class="sec-p">2.2 用于身份验证、账号安全保护、异常行为排查与风险防控。</view>
+    <view class="sec-p">2.3 用于业务运营、客户服务、服务质量改进，以及经匿名化处理后的数据统计与分析。未经你另行同意，我们不会将个人信息用于与课程服务无关的商业营销。</view>
+  </view>
+
+  <view class="sec">
+    <view class="sec-h">三、信息的存储与保护</view>
+    <view class="sec-p">3.1 你的信息存储于机构安全可控的服务器环境中，我们采取加密存储、访问控制、权限管理等合理的技术与管理措施，防止信息被非法获取、篡改或泄露。</view>
+    <view class="sec-p">3.2 尽管我们采取了合理措施，网络环境仍存在一定安全风险，我们无法保证绝对安全。你应自行妥善保管账号、密码及相关设备，因你方原因导致的信息泄露或损失，由你方自行承担。</view>
+    <view class="sec-p">3.3 我们仅在实现服务目的所需的期限内保留你的信息，超出保留期限后将依法删除或进行匿名化处理。</view>
+  </view>
+
+  <view class="sec">
+    <view class="sec-h">四、信息的共享与对外提供</view>
+    <view class="sec-p">4.1 我们不会向无关第三方出售或提供你的个人信息。</view>
+    <view class="sec-p">4.2 为实现服务，我们可能委托必要的第三方服务商处理部分信息（例如微信订阅消息推送、云服务托管等），并要求其遵守保密义务与数据安全要求。</view>
+    <view class="sec-p">4.3 除上述情形外，仅在下列情形下可能向第三方提供信息：(1) 获得你的明确同意；(2) 依据法律法规或监管要求。</view>
+  </view>
+
+  <view class="sec">
+    <view class="sec-h">五、你的权利</view>
+    <view class="sec-p">5.1 你可以在本小程序内随时查看孩子的课时、出勤等信息。</view>
+    <view class="sec-p">5.2 你可以联系机构，查询、更正、删除你的个人信息，或申请注销账号、撤回对个人信息处理的同意。我们将在合法范围内响应你的请求。</view>
+  </view>
+
+  <view class="sec">
+    <view class="sec-h">六、未成年人信息保护</view>
+    <view class="sec-p">6.1 本小程序涉及未成年人（孩子）信息的处理。作为监护人，你应确保所提供孩子信息的真实性与合法性，并同意我们为提供课程服务在必要范围内处理该等信息。</view>
+    <view class="sec-p">6.2 请妥善保管账号并引导孩子合理使用本小程序；当孩子信息发生变化时，请及时联系我们更新。</view>
+  </view>
+
+  <view class="sec">
+    <view class="sec-h">七、政策的更新</view>
+    <view class="sec-p">7.1 本政策如有更新，我们将在本小程序内公示；涉及重大变更时，将以显著方式提示你。你继续使用本小程序即视为接受更新后的政策。</view>
+  </view>
+
+  <view class="sec">
+    <view class="sec-h">八、联系方式</view>
+    <view class="sec-p">如对本政策有任何疑问、意见，或需行使上述权利，请联系机构，或通过小程序内"联系客服"入口与我们联系。</view>
+  </view>
+</view>

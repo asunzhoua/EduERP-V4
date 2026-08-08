@@ -1,45 +1,41 @@
 <!--pages/login/login.wxml-->
-<view class="login-container">
-  <view class="login-header">
-    <image class="logo" src="/images/logo.png" mode="aspectFit"></image>
-    <text class="title">EduERP</text>
-    <text class="subtitle">教育培训管理系统</text>
+<view class="login-bg">
+  <!-- 品牌区 -->
+  <view class="login-brand">
+    <view class="brand-mark">
+      <view class="brand-leaf"></view>
+    </view>
+    <text class="brand-name">EduERP</text>
+    <text class="brand-slogan">让每一次成长都被看见</text>
   </view>
 
+  <!-- 插画区（课堂暖阳插画） -->
+  <image class="login-hero" src="/images/login-hero.jpg" mode="widthFix" />
+
+  <!-- 表单 -->
   <view class="login-form">
-    <view class="form-item">
-      <input
-        class="input"
-        type="text"
-        placeholder="请输入用户名"
-        value="{{username}}"
-        bindinput="onInputUsername"
-      />
+    <view class="field">
+      <view class="fic ic ic-user"></view>
+      <input class="input" placeholder="请输入手机号或账号" placeholder-class="ph"
+        value="{{username}}" bindinput="onInputUsername" />
+    </view>
+    <view class="field">
+      <view class="fic ic ic-lock"></view>
+      <input class="input" password placeholder="请输入密码" placeholder-class="ph"
+        value="{{password}}" bindinput="onInputPassword" />
     </view>
 
-    <view class="form-item">
-      <input
-        class="input"
-        type="password"
-        placeholder="请输入密码"
-        value="{{password}}"
-        bindinput="onInputPassword"
-      />
+    <view class="agree" bindtap="toggleAgree">
+      <view class="cb {{agreed ? 'on' : ''}}"></view>
+      <text>已阅读并同意</text><text class="link" catchtap="goToAgreement" data-type="user">《用户协议》</text><text>与</text><text class="link" catchtap="goToAgreement" data-type="privacy">《隐私政策》</text>
     </view>
 
-    <button
-      class="login-btn"
-      loading="{{loading}}"
-      bindtap="onLogin"
-    >
-      登录
-    </button>
+    <button class="btn-login" bindtap="onLogin" disabled="{{!agreed}}">登　录</button>
+    <button class="btn-wechat" bindtap="onWechatLogin">微信授权登录</button>
 
-    <button class="wechat-btn" bindtap="onWechatLogin">
-      <text class="iconfont icon-wechat"></text>
-      微信授权登录
-    </button>
-
-    <view class="register-link" bindtap="goToRegister">没有账号？立即注册</view>
+    <view class="login-links">
+      <text>没有账号？<text class="link" bindtap="goToRegister">立即注册</text></text>
+      <text class="link" bindtap="goToForgot">忘记密码？</text>
+    </view>
   </view>
 </view>

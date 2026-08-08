@@ -18,7 +18,7 @@
 
   <!-- 错误状态 -->
   <view class="error-state" wx:elif="{{error}}">
-    <text class="error-icon">⚠️</text>
+    <view class="ic ic-warn error-ic"></view>
     <text class="error-text">{{error}}</text>
     <view class="retry-btn" bindtap="loadStudents">点击重试</view>
   </view>

@@ -2,7 +2,7 @@
 .container {
   padding: 20rpx;
   padding-bottom: 40rpx;
-  background: #f5f5f5;
+  background: #FAF6F0;
   min-height: 100vh;
 }
 
@@ -19,8 +19,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid #e0e0e0;
-  border-top-color: #1890ff;
+  border: 4rpx solid #EDE5DA;
+  border-top-color: #D97B3E;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 20rpx;
@@ -33,7 +33,7 @@
 .loading-text,
 .error-text {
   font-size: 28rpx;
-  color: #999;
+  color: #9B9084;
   margin-bottom: 20rpx;
 }
 
@@ -44,9 +44,9 @@
 
 .retry-btn {
   font-size: 28rpx;
-  background: #1890ff;
+  background: #D97B3E;
   color: #fff;
-  border-radius: 8rpx;
+  border-radius: 16rpx;
   padding: 12rpx 40rpx;
   margin-top: 20rpx;
 }
@@ -57,7 +57,7 @@
   flex-direction: column;
   align-items: center;
   padding: 50rpx 30rpx 40rpx;
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  background: linear-gradient(135deg, #D97B3E 0%, #A64E1D 100%);
   border-radius: 16rpx;
   margin-bottom: 20rpx;
 }
@@ -108,7 +108,7 @@
 /* === 基础信息卡片 === */
 .info-card {
   background: #ffffff;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 20rpx;
 }
@@ -116,7 +116,7 @@
 .card-title {
   font-size: 30rpx;
   font-weight: bold;
-  color: #333;
+  color: #2E2A25;
   margin-bottom: 20rpx;
   display: flex;
   justify-content: space-between;
@@ -128,7 +128,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16rpx 0;
-  border-bottom: 1rpx solid #f5f5f5;
+  border-bottom: 1rpx solid #FAF6F0;
 }
 
 .info-row:last-child {
@@ -137,19 +137,19 @@
 
 .info-label {
   font-size: 28rpx;
-  color: #666;
+  color: #6F675D;
 }
 
 .info-value {
   font-size: 28rpx;
-  color: #333;
+  color: #2E2A25;
   font-weight: 500;
 }
 
 /* === 班级统计 === */
 .stats-card {
   background: #ffffff;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 20rpx;
 }
@@ -171,19 +171,19 @@
 .stat-number {
   font-size: 48rpx;
   font-weight: bold;
-  color: #1890ff;
+  color: #D97B3E;
   margin-bottom: 8rpx;
 }
 
 .stat-label {
   font-size: 24rpx;
-  color: #999;
+  color: #9B9084;
 }
 
 /* === 教学概览 === */
 .overview-card {
   background: #ffffff;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 20rpx;
 }
@@ -192,7 +192,7 @@
   display: flex;
   justify-content: space-around;
   padding: 16rpx 0;
-  border-bottom: 1rpx solid #f5f5f5;
+  border-bottom: 1rpx solid #FAF6F0;
 }
 
 .overview-row:last-child {
@@ -209,26 +209,26 @@
 .overview-number {
   font-size: 40rpx;
   font-weight: bold;
-  color: #333;
+  color: #2E2A25;
   margin-bottom: 8rpx;
 }
 
 .overview-label {
   font-size: 24rpx;
-  color: #999;
+  color: #9B9084;
 }
 
 /* === 最近课程 === */
 .recent-card {
   background: #ffffff;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 20rpx;
 }
 
 .lesson-item {
   padding: 20rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid #FAF6F0;
 }
 
 .lesson-item:last-child {
@@ -245,37 +245,37 @@
 .lesson-class {
   font-size: 28rpx;
   font-weight: bold;
-  color: #333;
+  color: #2E2A25;
 }
 
 .lesson-status {
   font-size: 22rpx;
   padding: 4rpx 16rpx;
-  border-radius: 6rpx;
+  border-radius: 12rpx;
 }
 
 .status-PLANNED {
-  background: #e6f7ff;
-  color: #1890ff;
-  border: 1rpx solid #91d5ff;
+  background: #FBEEE2;
+  color: #D97B3E;
+  border: 1rpx solid #FBEEE2;
 }
 
 .status-TEACHING {
-  background: #fff7e6;
-  color: #fa8c16;
-  border: 1rpx solid #ffd591;
+  background: #FCF0DF;
+  color: #D98E2B;
+  border: 1rpx solid #FCF0DF;
 }
 
 .status-COMPLETED {
-  background: #f6ffed;
-  color: #52c41a;
-  border: 1rpx solid #b7eb8f;
+  background: #FBEEE2;
+  color: #D97B3E;
+  border: 1rpx solid #FBEEE2;
 }
 
 .status-CANCELLED {
-  background: #f5f5f5;
-  color: #999;
-  border: 1rpx solid #d9d9d9;
+  background: #FAF6F0;
+  color: #9B9084;
+  border: 1rpx solid #EDE5DA;
 }
 
 .lesson-info {
@@ -286,18 +286,18 @@
 
 .lesson-topic {
   font-size: 26rpx;
-  color: #666;
+  color: #6F675D;
 }
 
 .lesson-date {
   font-size: 24rpx;
-  color: #999;
+  color: #9B9084;
 }
 
 /* === 快捷入口 === */
 .quick-nav {
   background: #ffffff;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 20rpx;
   display: flex;
@@ -318,7 +318,7 @@
 
 .nav-text {
   font-size: 24rpx;
-  color: #666;
+  color: #6F675D;
 }
 
 /* === 退出登录 === */
@@ -330,8 +330,8 @@
 .logout-btn {
   font-size: 30rpx;
   background: #fff;
-  color: #ff4d4f;
-  border: 1rpx solid #ff4d4f;
-  border-radius: 8rpx;
+  color: #C4483F;
+  border: 1rpx solid #C4483F;
+  border-radius: 16rpx;
   padding: 20rpx 0;
 }

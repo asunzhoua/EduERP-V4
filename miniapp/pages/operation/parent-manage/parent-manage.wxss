@@ -1,85 +1,102 @@
-/* pages/operation/parent-manage/parent-manage.wxss */
+/* pages/operation/parent-manage/parent-manage.wxss · 暖杏奶油 */
 .container {
-  padding: 30rpx;
-  background: #f5f5f5;
+  padding: 24rpx;
+  background: var(--bg, #FAF6F0);
   min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .tabs {
   display: flex;
-  background: #ffffff;
-  border-radius: 16rpx;
+  background: #FFFFFF;
+  border-radius: 999rpx;
   padding: 8rpx;
-  margin-bottom: 30rpx;
+  margin-bottom: 28rpx;
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(120,80,40,.06));
 }
 
 .tab {
   flex: 1;
   text-align: center;
-  font-size: 30rpx;
-  color: #666666;
+  font-size: 28rpx;
+  color: var(--muted, #6F675D);
   padding: 18rpx 0;
-  border-radius: 12rpx;
+  border-radius: 999rpx;
 }
 
 .tab.active {
-  background: #1890ff;
-  color: #ffffff;
-  font-weight: 500;
+  background: var(--accent-deep, #A64E1D);
+  color: #FFFFFF;
+  font-weight: 600;
 }
 
 .form-card {
-  background: #ffffff;
-  border-radius: 16rpx;
-  padding: 40rpx 30rpx;
+  background: #FFFFFF;
+  border-radius: 28rpx;
+  padding: 32rpx 28rpx;
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(120,80,40,.06));
 }
 
 .form-item {
-  margin-bottom: 30rpx;
+  margin-bottom: 28rpx;
 }
 
 .label {
   display: block;
   font-size: 28rpx;
-  color: #333333;
+  font-weight: 500;
+  color: var(--fg, #2E2A25);
   margin-bottom: 12rpx;
 }
 
 .input {
   width: 100%;
-  height: 84rpx;
-  padding: 0 24rpx;
+  height: 88rpx;
+  padding: 0 28rpx;
   font-size: 30rpx;
-  border: 2rpx solid #e8e8e8;
-  border-radius: 12rpx;
+  color: var(--fg, #2E2A25);
+  background: #FFFFFF;
+  border: 2rpx solid var(--border, #EDE5DA);
+  border-radius: 999rpx;
   box-sizing: border-box;
 }
 
 .picker {
-  height: 84rpx;
-  line-height: 84rpx;
-  padding: 0 24rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  padding: 0 28rpx;
   font-size: 30rpx;
-  color: #333333;
-  border: 2rpx solid #e8e8e8;
-  border-radius: 12rpx;
-  background: #fafafa;
+  color: var(--fg, #2E2A25);
+  border: 2rpx solid var(--border, #EDE5DA);
+  border-radius: 999rpx;
+  background: #FFFFFF;
 }
 
 .submit-btn {
   width: 100%;
-  height: 88rpx;
-  line-height: 88rpx;
-  background: #1890ff;
-  color: #ffffff;
-  font-size: 34rpx;
-  border-radius: 12rpx;
+  height: 96rpx;
+  line-height: 96rpx;
+  background: var(--accent-deep, #A64E1D);
+  color: #FFFFFF;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 999rpx;
   margin-top: 20rpx;
+  box-shadow: 0 10rpx 24rpx rgba(166,78,29,.25);
+}
+
+.submit-btn::after {
+  border: none;
+}
+
+.submit-btn[disabled] {
+  background: #D8CFC2;
+  box-shadow: none;
 }
 
 .tip {
   margin-top: 20rpx;
   font-size: 24rpx;
-  color: #999999;
+  color: var(--faint, #9B9084);
   line-height: 1.6;
 }

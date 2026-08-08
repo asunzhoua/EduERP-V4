@@ -1,3 +1,4 @@
+<!-- pages/student/leave-apply/leave-apply.wxml -->
 <view class="container">
   <!-- 加载中 -->
   <view class="loading-state" wx:if="{{loading}}">
@@ -5,81 +6,68 @@
     <text class="loading-text">加载中...</text>
   </view>
 
-  <!-- 表单内容 -->
+  <!-- 表单 -->
   <block wx:else>
-    <!-- 选择课程 -->
-    <view class="form-section">
-      <view class="form-label">课程 <text class="required">*</text></view>
-      <view class="picker-wrapper" bindtap="onSelectCourse">
-        <text class="picker-text {{selectedCourse ? '' : 'placeholder'}}">
+    <view class="form-card">
+      <!-- 选择课程 -->
+      <view class="form-row" bindtap="onSelectCourse">
+        <text class="lab">课程 <text class="req">*</text></text>
+        <view class="val {{selectedCourse ? '' : 'ph'}}">
           {{selectedCourse ? selectedCourse.subject + ' - ' + selectedCourse.teacherName : '请选择课程'}}
-        </text>
-        <text class="picker-arrow">></text>
-      </view>
-    </view>
-
-    <!-- 异常类型 -->
-    <view class="form-section">
-      <view class="form-label">异常类型 <text class="required">*</text></view>
-      <view class="radio-group">
-        <view class="radio-item {{leaveType === 'SICK' ? 'radio-active' : ''}}" bindtap="onSelectType" data-type="SICK">
-          <text class="radio-dot {{leaveType === 'SICK' ? 'radio-dot-active' : ''}}"></text>
-          <text class="radio-text">病假</text>
-        </view>
-        <view class="radio-item {{leaveType === 'PERSONAL' ? 'radio-active' : ''}}" bindtap="onSelectType" data-type="PERSONAL">
-          <text class="radio-dot {{leaveType === 'PERSONAL' ? 'radio-dot-active' : ''}}"></text>
-          <text class="radio-text">事假</text>
+          <view class="ic ic-chevron"></view>
         </view>
       </view>
-    </view>
 
-    <!-- 请假日期 -->
-    <view class="form-section">
-      <view class="form-label">请假日期 <text class="required">*</text></view>
-      <picker mode="date" value="{{selectedDate}}" bindchange="onDateChange" start="2020-01-01" end="2035-12-31">
-        <view class="picker-wrapper">
-          <text class="picker-text {{selectedDate ? '' : 'placeholder'}}">
+      <!-- 异常类型 -->
+      <view class="form-row">
+        <text class="lab">异常类型 <text class="req">*</text></text>
+        <view class="chips">
+          <view class="chip {{leaveType === 'SICK' ? 'on' : ''}}" bindtap="onSelectType" data-type="SICK">病假</view>
+          <view class="chip {{leaveType === 'PERSONAL' ? 'on' : ''}}" bindtap="onSelectType" data-type="PERSONAL">事假</view>
+        </view>
+      </view>
+
+      <!-- 请假日期 -->
+      <view class="form-row">
+        <text class="lab">请假日期 <text class="req">*</text></text>
+        <picker mode="date" value="{{selectedDate}}" bindchange="onDateChange" start="2020-01-01" end="2035-12-31">
+          <view class="val {{selectedDate ? '' : 'ph'}}">
             {{selectedDate || '请选择日期'}}
-          </text>
-          <text class="picker-arrow">></text>
-        </view>
-      </picker>
-    </view>
-
-    <!-- 原因 -->
-    <view class="form-section">
-      <view class="form-label">请假原因 <text class="required">*</text></view>
-      <textarea class="form-textarea" placeholder="请详细描述请假原因..." value="{{reason}}" bindinput="onInputReason" maxlength="500" />
-      <text class="char-count">{{reason.length}}/500</text>
-    </view>
-
-    <!-- 上传附件 -->
-    <view class="form-section">
-      <view class="form-label">
-        附件
-        <text class="required" wx:if="{{leaveType === 'SICK'}}">*</text>
-        <text class="hint" wx:if="{{leaveType === 'SICK'}}">（病假必须上传）</text>
+            <view class="ic ic-chevron"></view>
+          </view>
+        </picker>
       </view>
-      <view class="upload-area">
-        <view class="file-list">
-          <view class="file-item" wx:for="{{files}}" wx:key="id">
-            <text class="file-name">{{item.name}}</text>
-            <text class="file-remove" bindtap="onRemoveFile" data-id="{{item.id}}">✕</text>
+
+      <!-- 原因 -->
+      <view class="form-block">
+        <text class="lab">请假原因 <text class="req">*</text></text>
+        <textarea class="remark" placeholder="请详细描述请假原因..." placeholder-class="ph" value="{{reason}}" bindinput="onInputReason" maxlength="500" />
+        <text class="char-count">{{reason.length}}/500</text>
+      </view>
+
+      <!-- 附件 -->
+      <view class="form-block">
+        <text class="lab">附件<text class="req" wx:if="{{leaveType === 'SICK'}}"> *</text>
+          <text class="hint" wx:if="{{leaveType === 'SICK'}}">（病假必须上传）</text>
+        </text>
+        <view class="upload-area">
+          <view class="file-list">
+            <view class="file-item" wx:for="{{files}}" wx:key="id">
+              <text class="file-name">{{item.name}}</text>
+              <view class="file-remove" bindtap="onRemoveFile" data-id="{{item.id}}"><view class="ic ic-close"></view></view>
+            </view>
+          </view>
+          <view class="upload-btn" wx:if="{{files.length < 5}}" bindtap="onUploadFile">
+            <view class="ic ic-add"></view>
+            <text>上传附件</text>
           </view>
         </view>
-        <view class="upload-btn" wx:if="{{files.length < 5}}" bindtap="onUploadFile">
-          <text class="upload-icon">+</text>
-          <text class="upload-text">上传附件</text>
-        </view>
       </view>
     </view>
 
-    <!-- 提交按钮 -->
-    <view class="submit-section">
-      <button class="submit-btn" bindtap="onSubmit" disabled="{{submitting}}">
-        <text wx:if="{{!submitting}}">提交申请</text>
-        <text wx:else>提交中...</text>
-      </button>
-    </view>
+    <button class="submit-btn" bindtap="onSubmit" disabled="{{submitting}}">
+      {{submitting ? '提交中...' : '提交申请'}}
+    </button>
+    <view class="form-note">提交后由老师确认，可在「我的申请」查看进度</view>
   </block>
 </view>

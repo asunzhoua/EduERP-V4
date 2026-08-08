@@ -1,11 +1,24 @@
 // pages/teacher/student-detail.js
 const { get } = require('../../utils/request');
 
+const SUBJECT_LABELS = {
+  MATH: '数学', ENGLISH: '英语', CHINESE: '语文', PHYSICS: '物理',
+  CHEMISTRY: '化学', ART: '美术', MUSIC: '音乐', DANCE: '舞蹈',
+  SPORTS: '体育', CODING: '编程', OTHER: '其他'
+};
+
+const CONTRACT_STATUS_LABELS = {
+  ACTIVE: '生效中', EXHAUSTED: '已用完', EXPIRED: '已过期',
+  REFUNDED: '已退款', FROZEN: '已冻结'
+};
+
 Page({
   data: {
     studentCode: '',
     student: null,
     classes: [],
+    contracts: [],
+    contractSummary: { total: 0, remaining: 0 },
     loading: true,
     error: null,
     totalCompletedLessons: 0,
@@ -35,13 +48,25 @@ Page({
     }
   },
 
+  // 首次进入由 onLoad 加载；返回页面时刷新拿到最新课时
+  onShow() {
+    if (!this._inited) {
+      this._inited = true;
+      return;
+    }
+    if (this.data.studentCode) {
+      this.loadData(this.data.studentCode);
+    }
+  },
+
   async loadData(code) {
     this.setData({ loading: true, error: null });
 
     try {
-      const [studentResult, enrollments] = await Promise.all([
+      const [studentResult, enrollments, contractsRes] = await Promise.all([
         get('/students', { studentCode: code }),
-        get(`/enrollments/students/${code}/enrollments`)
+        get(`/enrollments/students/${code}/enrollments`),
+        get(`/contracts/students/${code}/contracts`).catch(() => [])
       ]);
 
       const student = studentResult && studentResult.items && studentResult.items[0] ? studentResult.items[0] : null;
@@ -55,6 +80,20 @@ Page({
         totalLessons: e.totalLessons || 0
       }));
 
+      // 合同课时（与家长/学生/后台同源：contract.remainingLessons）
+      const contractList = (Array.isArray(contractsRes) ? contractsRes : []).map(c => ({
+        contractCode: c.contractCode,
+        subject: SUBJECT_LABELS[c.subject] || c.subject,
+        totalLessons: c.totalLessons || 0,
+        remainingLessons: c.remainingLessons || 0,
+        status: c.status,
+        statusText: CONTRACT_STATUS_LABELS[c.status] || c.status
+      }));
+      const contractSummary = {
+        total: contractList.reduce((s, c) => s + c.totalLessons, 0),
+        remaining: contractList.reduce((s, c) => s + c.remainingLessons, 0)
+      };
+
       const totalCompletedLessons = classes.reduce((sum, c) => sum + (c.completedLessons || 0), 0);
       const totalLessons = classes.reduce((sum, c) => sum + (c.totalLessons || 0), 0);
       const overallProgress = totalLessons > 0 ? Math.round(totalCompletedLessons / totalLessons * 100) : 0;
@@ -62,6 +101,8 @@ Page({
       this.setData({
         student,
         classes,
+        contracts: contractList,
+        contractSummary,
         loading: false,
         totalCompletedLessons,
         totalLessons,
@@ -73,6 +114,8 @@ Page({
         error: err.message || '加载失败',
         student: null,
         classes: [],
+        contracts: [],
+        contractSummary: { total: 0, remaining: 0 },
         loading: false
       });
     }
