@@ -5,7 +5,9 @@ import {
   IsOptional,
   IsNumberString,
   Matches,
+  IsIn,
 } from 'class-validator';
+import { TEACHER_LEVELS } from '@modules/identity/entities/user.entity';
 
 export class CreateTeacherDto {
   @IsString()
@@ -31,6 +33,7 @@ export class CreateTeacherDto {
   @IsOptional()
   @IsString()
   @MaxLength(50)
+  @IsIn(['', ...TEACHER_LEVELS])
   teacherLevel?: string;
 }
 
@@ -53,6 +56,7 @@ export class UpdateTeacherDto {
   @IsOptional()
   @IsString()
   @MaxLength(50)
+  @IsIn(['', ...TEACHER_LEVELS])
   teacherLevel?: string;
 }
 

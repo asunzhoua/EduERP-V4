@@ -6,10 +6,12 @@ import {
   IsDateString,
   IsObject,
   ValidateNested,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SalaryRuleConfigDto } from './salary-rule-config.dto';
+import { TEACHER_LEVELS } from '@modules/identity/entities/user.entity';
 
 export class CreateSalaryRuleDto {
   @ApiProperty()
@@ -34,9 +36,10 @@ export class CreateSalaryRuleDto {
   @IsString()
   courseType?: string;
 
-  @ApiPropertyOptional({ description: '教师等级（预留维度，无数据源时规则不会命中）' })
+  @ApiPropertyOptional({ description: '教师等级（与教师档案 teacherLevel 精确匹配）' })
   @IsOptional()
   @IsString()
+  @IsIn(TEACHER_LEVELS)
   teacherLevel?: string;
 
   @ApiPropertyOptional({ default: true })
@@ -86,6 +89,7 @@ export class UpdateSalaryRuleDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @IsIn(TEACHER_LEVELS)
   teacherLevel?: string;
 
   @ApiPropertyOptional()

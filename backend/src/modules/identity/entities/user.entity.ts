@@ -22,6 +22,9 @@ export enum UserRole {
   STUDENT = 'Student',
 }
 
+/** 教师等级（与 salary_rule.teacherLevel 精确匹配，须保持一致） */
+export const TEACHER_LEVELS = ['初级', '中级', '高级', '特级'] as const;
+
 @Entity('user')
 export class User {
   @PrimaryGeneratedColumn({ type: 'bigint' })
