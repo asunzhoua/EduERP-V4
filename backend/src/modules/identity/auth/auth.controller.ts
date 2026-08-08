@@ -16,6 +16,10 @@ import { LoginDto, WechatLoginDto } from '../dto/login.dto';
 import { RefreshDto } from '../dto/refresh.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { CreateParentDto, QueryParentsDto } from '../dto/create-parent.dto';
+import {
+  ChangePasswordDto,
+  ResetPasswordDto,
+} from '../dto/change-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from '@common/decorators/public.decorator';
 import { RolesGuard } from '@common/guards/roles.guard';
@@ -61,7 +65,11 @@ export class AuthController {
   async refresh(@Body() refreshDto: RefreshDto, @Req() req: any) {
     const ip = req.ip;
     const device = req.headers['user-agent'];
-    const result = await this.authService.refresh(refreshDto.refreshToken, ip, device);
+    const result = await this.authService.refresh(
+      refreshDto.refreshToken,
+      ip,
+      device,
+    );
     return ApiResponse.success(result);
   }
 
@@ -115,6 +123,44 @@ export class AuthController {
   async revokeSession(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     await this.authService.revokeUserSessions(req.user.sub, id);
     return ApiResponse.success(null, '已撤销该用户的会话');
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @Body() changePasswordDto: ChangePasswordDto,
+    @Req() req: any,
+  ) {
+    const ip = req.ip;
+    const device = req.headers['user-agent'];
+    await this.authService.changePassword(
+      req.user.sub,
+      changePasswordDto.oldPassword,
+      changePasswordDto.newPassword,
+      ip,
+      device,
+    );
+    return ApiResponse.success(null, '密码修改成功，请重新登录');
+  }
+
+  @Post('admin/users/:id/reset-password')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin', 'Admin')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() resetPasswordDto: ResetPasswordDto,
+    @Req() req: any,
+  ) {
+    await this.authService.adminResetPassword(
+      req.user.sub,
+      resetPasswordDto.operatorPassword,
+      id,
+      resetPasswordDto.newPassword,
+      { operatorIp: req.ip, reason: resetPasswordDto.reason },
+    );
+    return ApiResponse.success(null, '密码重置成功');
   }
 
   @Get('me')

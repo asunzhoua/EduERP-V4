@@ -18,13 +18,13 @@ describe('AuthController', () => {
       register: jest.fn(),
       adminCreateParent: jest.fn(),
       listParents: jest.fn(),
+      changePassword: jest.fn(),
+      adminResetPassword: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [
-        { provide: AuthService, useValue: authService },
-      ],
+      providers: [{ provide: AuthService, useValue: authService }],
     }).compile();
 
     controller = module.get(AuthController);
@@ -46,7 +46,12 @@ describe('AuthController', () => {
 
       expect(result.code).toBe(0);
       expect(result.data).toEqual(loginResult);
-      expect(authService.login).toHaveBeenCalledWith('admin', '123456', 'test-agent', '127.0.0.1');
+      expect(authService.login).toHaveBeenCalledWith(
+        'admin',
+        '123456',
+        'test-agent',
+        '127.0.0.1',
+      );
     });
   });
 
@@ -65,7 +70,11 @@ describe('AuthController', () => {
 
       expect(result.code).toBe(0);
       expect(result.data).toEqual(refreshResult);
-      expect(authService.refresh).toHaveBeenCalledWith('old-refresh-token', '127.0.0.1', 'test-agent');
+      expect(authService.refresh).toHaveBeenCalledWith(
+        'old-refresh-token',
+        '127.0.0.1',
+        'test-agent',
+      );
     });
   });
 
@@ -73,19 +82,33 @@ describe('AuthController', () => {
     it('should return success message', async () => {
       authService.logout.mockResolvedValue(undefined);
 
-      const req = { user: { sub: 1 }, ip: '127.0.0.1', headers: { 'user-agent': 'test-agent' } };
+      const req = {
+        user: { sub: 1 },
+        ip: '127.0.0.1',
+        headers: { 'user-agent': 'test-agent' },
+      };
 
       const result = await controller.logout(req);
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('退出成功');
-      expect(authService.logout).toHaveBeenCalledWith(1, '127.0.0.1', 'test-agent');
+      expect(authService.logout).toHaveBeenCalledWith(
+        1,
+        '127.0.0.1',
+        'test-agent',
+      );
     });
   });
 
   describe('GET /auth/me', () => {
     it('should return current user profile', async () => {
-      const user = { id: 1, username: 'admin', name: '管理员', role: 'admin', status: 1 };
+      const user = {
+        id: 1,
+        username: 'admin',
+        name: '管理员',
+        role: 'admin',
+        status: 1,
+      };
       authService.getCurrentUser.mockResolvedValue(user);
 
       const req = { user: { sub: 1 } };
@@ -113,7 +136,12 @@ describe('AuthController', () => {
       const created = { id: 10, username: 'parent1', role: 'Parent' };
       authService.register.mockResolvedValue(created);
 
-      const body = { username: 'parent1', password: 'pass123', name: '测试家长', mobile: '13800000001' };
+      const body = {
+        username: 'parent1',
+        password: 'pass123',
+        name: '测试家长',
+        mobile: '13800000001',
+      };
       const result = await controller.register(body);
 
       expect(result.code).toBe(0);
@@ -128,7 +156,13 @@ describe('AuthController', () => {
       const created = { id: 20, username: 'parent9', role: 'Parent' };
       authService.adminCreateParent.mockResolvedValue(created);
 
-      const body = { username: 'parent9', password: 'pass123', name: '开户家长', mobile: '13800000009', studentId: 5 };
+      const body = {
+        username: 'parent9',
+        password: 'pass123',
+        name: '开户家长',
+        mobile: '13800000009',
+        studentId: 5,
+      };
       const req = { user: { sub: 1 } };
       const result = await controller.adminCreateParent(body, req);
 
@@ -149,6 +183,56 @@ describe('AuthController', () => {
       expect(result.code).toBe(0);
       expect(result.data).toEqual(pageData);
       expect(authService.listParents).toHaveBeenCalledWith(1, 20);
+    });
+  });
+
+  describe('POST /auth/change-password', () => {
+    it('should call changePassword with user sub and dto fields', async () => {
+      authService.changePassword.mockResolvedValue(undefined);
+
+      const body = { oldPassword: 'OldPass1', newPassword: 'NewPass123' };
+      const req = {
+        user: { sub: 1 },
+        ip: '127.0.0.1',
+        headers: { 'user-agent': 'test-agent' },
+      };
+
+      const result = await controller.changePassword(body, req);
+
+      expect(result.code).toBe(0);
+      expect(result.message).toBe('密码修改成功，请重新登录');
+      expect(authService.changePassword).toHaveBeenCalledWith(
+        1,
+        'OldPass1',
+        'NewPass123',
+        '127.0.0.1',
+        'test-agent',
+      );
+    });
+  });
+
+  describe('POST /auth/admin/users/:id/reset-password', () => {
+    it('should call adminResetPassword with operator sub, dto and context', async () => {
+      authService.adminResetPassword.mockResolvedValue(undefined);
+
+      const body = {
+        newPassword: 'NewPass456',
+        operatorPassword: 'admin-pass',
+        reason: '家长要求',
+      };
+      const req = { user: { sub: 1 }, ip: '127.0.0.1' };
+
+      const result = await controller.resetPassword(5, body, req);
+
+      expect(result.code).toBe(0);
+      expect(result.message).toBe('密码重置成功');
+      expect(authService.adminResetPassword).toHaveBeenCalledWith(
+        1,
+        'admin-pass',
+        5,
+        'NewPass456',
+        { operatorIp: '127.0.0.1', reason: '家长要求' },
+      );
     });
   });
 });

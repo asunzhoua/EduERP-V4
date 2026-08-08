@@ -60,7 +60,12 @@ export class AuthService {
     password: string,
     device?: string,
     ip?: string,
-  ): Promise<{ accessToken: string; refreshToken: string; expiresIn: number; user: Partial<User> }> {
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+    user: Partial<User>;
+  }> {
     const user = await this.validateUser(username, password);
 
     const payload = {
@@ -82,11 +87,24 @@ export class AuthService {
       refreshToken,
       refreshTokenExpiresAt,
       lastLoginAt: new Date(),
-    } as Partial<User>);
+    });
 
-    await this.createLoginLog(user.id, user.username, user.role, 'LOGIN', true, ip, device);
+    await this.createLoginLog(
+      user.id,
+      user.username,
+      user.role,
+      'LOGIN',
+      true,
+      ip,
+      device,
+    );
 
-    const { password: _, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safeUser } = user;
+    const {
+      password: _,
+      refreshToken: _rt,
+      refreshTokenExpiresAt: _rtea,
+      ...safeUser
+    } = user;
     return { accessToken, refreshToken, expiresIn: 7200, user: safeUser };
   }
 
@@ -123,11 +141,23 @@ export class AuthService {
     await this.userRepository.update(user.id, {
       refreshToken: newRefreshToken,
       refreshTokenExpiresAt,
-    } as Partial<User>);
+    });
 
-    await this.createLoginLog(user.id, user.username, user.role, 'REFRESH', true, ip, device);
+    await this.createLoginLog(
+      user.id,
+      user.username,
+      user.role,
+      'REFRESH',
+      true,
+      ip,
+      device,
+    );
 
-    return { accessToken: newAccessToken, refreshToken: newRefreshToken, expiresIn: 7200 };
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      expiresIn: 7200,
+    };
   }
 
   async logout(userId: number, ip?: string, device?: string): Promise<void> {
@@ -137,8 +167,16 @@ export class AuthService {
       await this.userRepository.update(userId, {
         refreshToken: null as any,
         refreshTokenExpiresAt: null as any,
-      } as Partial<User>);
-      await this.createLoginLog(user.id, user.username, user.role, 'LOGOUT', true, ip, device);
+      });
+      await this.createLoginLog(
+        user.id,
+        user.username,
+        user.role,
+        'LOGOUT',
+        true,
+        ip,
+        device,
+      );
     }
   }
 
@@ -171,7 +209,7 @@ export class AuthService {
     await this.userRepository.update(targetUserId, {
       refreshToken: null as any,
       refreshTokenExpiresAt: null as any,
-    } as Partial<User>);
+    });
 
     await this.createLoginLog(
       operator.id,
@@ -182,6 +220,112 @@ export class AuthService {
     );
     this.logger.log(
       `Admin session revoke: operator=${operatorUserId}, target=${targetUserId}`,
+    );
+  }
+
+  async changePassword(
+    userId: number,
+    oldPassword: string,
+    newPassword: string,
+    ip?: string,
+    device?: string,
+  ): Promise<void> {
+    const user = await this.userRepository.findByIdWithPassword(userId);
+
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
+    }
+
+    const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isOldPasswordValid) {
+      throw new UnauthorizedException('原密码错误');
+    }
+
+    if (newPassword === oldPassword) {
+      throw new BadRequestException('新密码不能与原密码相同');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await this.userRepository.update(userId, {
+      password: hashedPassword,
+      refreshToken: null as any,
+      refreshTokenExpiresAt: null as any,
+    });
+
+    await this.createLoginLog(
+      user.id,
+      user.username,
+      user.role,
+      'CHANGE_PASSWORD',
+      true,
+      ip,
+      device,
+    );
+    this.logger.log(`Password changed: userId=${userId}`);
+  }
+
+  async adminResetPassword(
+    operatorUserId: number,
+    operatorPassword: string,
+    targetUserId: number,
+    newPassword: string,
+    context?: { operatorIp?: string; reason?: string },
+  ): Promise<void> {
+    if (operatorUserId === targetUserId) {
+      throw new BadRequestException('不能重置自己的密码，请使用修改密码');
+    }
+
+    const operator =
+      await this.userRepository.findByIdWithPassword(operatorUserId);
+    if (!operator) {
+      throw new UnauthorizedException('操作者不存在');
+    }
+
+    const target = await this.userRepository.findById(targetUserId);
+    if (!target) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    const isOperatorPasswordValid = await bcrypt.compare(
+      operatorPassword,
+      operator.password,
+    );
+    if (!isOperatorPasswordValid) {
+      throw new ForbiddenException('操作员密码验证失败');
+    }
+
+    // Role hierarchy: only SuperAdmin may reset SuperAdmin or Admin.
+    if (
+      operator.role !== UserRole.SUPER_ADMIN &&
+      (target.role === UserRole.SUPER_ADMIN || target.role === UserRole.ADMIN)
+    ) {
+      throw new ForbiddenException('无权重置该用户的密码');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await this.userRepository.update(targetUserId, {
+      password: hashedPassword,
+      refreshToken: null as any,
+      refreshTokenExpiresAt: null as any,
+    });
+
+    const detail = context?.reason
+      ? `reason=${context.reason}`
+      : 'reason=admin reset';
+    await this.createLoginLog(
+      operator.id,
+      operator.username,
+      operator.role,
+      'ADMIN_RESET_PASSWORD',
+      true,
+      context?.operatorIp,
+      undefined,
+      detail,
+    );
+    this.logger.log(
+      `Admin reset password: operator=${operatorUserId}, target=${targetUserId}`,
     );
   }
 
@@ -197,7 +341,9 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto): Promise<Partial<User>> {
-    const existingUsername = await this.userRepository.findByUsername(dto.username);
+    const existingUsername = await this.userRepository.findByUsername(
+      dto.username,
+    );
     if (existingUsername) {
       throw new ConflictException('用户名已存在');
     }
@@ -224,7 +370,12 @@ export class AuthService {
 
     const saved = await this.userRepository.save(user);
 
-    const { password: _, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safeUser } = saved;
+    const {
+      password: _,
+      refreshToken: _rt,
+      refreshTokenExpiresAt: _rtea,
+      ...safeUser
+    } = saved;
     return safeUser;
   }
 
@@ -301,7 +452,12 @@ export class AuthService {
       `Admin create parent: operator=${operatorUserId}, username=${savedParent.username}, studentId=${dto.studentId}`,
     );
 
-    const { password: _, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safeUser } = savedParent;
+    const {
+      password: _,
+      refreshToken: _rt,
+      refreshTokenExpiresAt: _rtea,
+      ...safeUser
+    } = savedParent;
     return safeUser;
   }
 
@@ -316,7 +472,12 @@ export class AuthService {
     );
 
     const safeItems = items.map((u) => {
-      const { password: _, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safeUser } = u;
+      const {
+        password: _,
+        refreshToken: _rt,
+        refreshTokenExpiresAt: _rtea,
+        ...safeUser
+      } = u;
       return safeUser;
     });
     return { items: safeItems, total };
@@ -326,7 +487,12 @@ export class AuthService {
     code: string,
     ip?: string,
     device?: string,
-  ): Promise<{ accessToken: string; refreshToken: string; expiresIn: number; user: Partial<User> }> {
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+    user: Partial<User>;
+  }> {
     // 1. 调用微信 jscode2session 获取 openid
     const session = await this.getWxSession(code);
     const { openid } = session;
@@ -336,7 +502,7 @@ export class AuthService {
     }
 
     // 2. 查找用户（通过 openid 关联）
-    let user = await this.userRepository.findByOpenid(openid);
+    const user = await this.userRepository.findByOpenid(openid);
 
     if (!user) {
       throw new UnauthorizedException('微信用户未绑定系统账号，请联系管理员');
@@ -349,7 +515,7 @@ export class AuthService {
     // 3. 更新 unionid（如果返回了且用户没有）
     const unionid = (session as any).unionid;
     if (unionid && !user.unionid) {
-      await this.userRepository.update(user.id, { unionid } as Partial<User>);
+      await this.userRepository.update(user.id, { unionid });
     }
 
     // 4. 生成 JWT
@@ -372,11 +538,24 @@ export class AuthService {
       refreshToken,
       refreshTokenExpiresAt,
       lastLoginAt: new Date(),
-    } as Partial<User>);
+    });
 
-    await this.createLoginLog(user.id, user.username, user.role, 'WECHAT_LOGIN', true, ip, device);
+    await this.createLoginLog(
+      user.id,
+      user.username,
+      user.role,
+      'WECHAT_LOGIN',
+      true,
+      ip,
+      device,
+    );
 
-    const { password: _, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safeUser } = user;
+    const {
+      password: _,
+      refreshToken: _rt,
+      refreshTokenExpiresAt: _rtea,
+      ...safeUser
+    } = user;
     return { accessToken, refreshToken, expiresIn: 7200, user: safeUser };
   }
 
@@ -385,11 +564,15 @@ export class AuthService {
    * POST https://api.weixin.qq.com/sns/jscode2session
    *    ?appid=APPID&secret=SECRET&js_code=CODE&grant_type=authorization_code
    */
-  private getWxSession(code: string): Promise<{ openid: string; session_key: string; unionid?: string }> {
+  private getWxSession(
+    code: string,
+  ): Promise<{ openid: string; session_key: string; unionid?: string }> {
     const config = this.config.wechat;
 
     if (!config.appid || !config.secret) {
-      throw new InternalServerErrorException('微信登录未配置：请设置 WECHAT_APPID 和 WECHAT_SECRET');
+      throw new InternalServerErrorException(
+        '微信登录未配置：请设置 WECHAT_APPID 和 WECHAT_SECRET',
+      );
     }
 
     const url = new URL('https://api.weixin.qq.com/sns/jscode2session');
@@ -399,33 +582,41 @@ export class AuthService {
     url.searchParams.set('grant_type', 'authorization_code');
 
     return new Promise((resolve, reject) => {
-      https.get(url.toString(), (res) => {
-        let data = '';
-        res.on('data', (chunk: string) => { data += chunk; });
-        res.on('end', () => {
-          try {
-            const result = JSON.parse(data);
+      https
+        .get(url.toString(), (res) => {
+          let data = '';
+          res.on('data', (chunk: string) => {
+            data += chunk;
+          });
+          res.on('end', () => {
+            try {
+              const result = JSON.parse(data);
 
-            // 微信返回错误
-            if (result.errcode) {
-              this.logger.error(`[WeChatLogin] jscode2session failed: ${result.errmsg} (code=${result.errcode})`);
-              reject(new InternalServerErrorException('微信服务器验证失败'));
-              return;
+              // 微信返回错误
+              if (result.errcode) {
+                this.logger.error(
+                  `[WeChatLogin] jscode2session failed: ${result.errmsg} (code=${result.errcode})`,
+                );
+                reject(new InternalServerErrorException('微信服务器验证失败'));
+                return;
+              }
+
+              resolve({
+                openid: result.openid,
+                session_key: result.session_key,
+                unionid: result.unionid,
+              });
+            } catch (e) {
+              reject(new InternalServerErrorException('微信登录响应解析失败'));
             }
-
-            resolve({
-              openid: result.openid,
-              session_key: result.session_key,
-              unionid: result.unionid,
-            });
-          } catch (e) {
-            reject(new InternalServerErrorException('微信登录响应解析失败'));
-          }
+          });
+        })
+        .on('error', (err) => {
+          this.logger.error(
+            `[WeChatLogin] HTTP request failed: ${err.message}`,
+          );
+          reject(new InternalServerErrorException('微信登录网络请求失败'));
         });
-      }).on('error', (err) => {
-        this.logger.error(`[WeChatLogin] HTTP request failed: ${err.message}`);
-        reject(new InternalServerErrorException('微信登录网络请求失败'));
-      });
     });
   }
 
@@ -437,6 +628,7 @@ export class AuthService {
     success: boolean,
     ip?: string,
     device?: string,
+    detail?: string,
   ): Promise<void> {
     try {
       const log = this.loginLogRepository.create({
@@ -447,6 +639,7 @@ export class AuthService {
         success,
         ip: ip || '',
         device: (device || '').slice(0, 200),
+        detail: (detail || '').slice(0, 500),
       });
       await this.loginLogRepository.save(log);
     } catch (error) {

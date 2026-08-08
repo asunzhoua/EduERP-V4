@@ -57,6 +57,7 @@ describe('AuthService', () => {
       findByUsernameWithPassword: jest.fn(),
       findByRefreshToken: jest.fn(),
       findById: jest.fn(),
+      findByIdWithPassword: jest.fn(),
       update: jest.fn(),
       findByUsername: jest.fn(),
       findByMobile: jest.fn(),
@@ -114,7 +115,10 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException when user is disabled (status !== 1)', async () => {
-      userRepo.findByUsernameWithPassword.mockResolvedValue({ ...mockUser, status: 0 } as User);
+      userRepo.findByUsernameWithPassword.mockResolvedValue({
+        ...mockUser,
+        status: 0,
+      });
 
       await expect(service.validateUser('admin', 'password')).rejects.toThrow(
         UnauthorizedException,
@@ -128,12 +132,12 @@ describe('AuthService', () => {
       userRepo.findByUsernameWithPassword.mockResolvedValue(mockUser);
       mockedBcrypt.compare.mockResolvedValue(false as never);
 
-      await expect(service.validateUser('admin', 'wrong-password')).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(service.validateUser('admin', 'wrong-password')).rejects.toThrow(
-        '密码错误',
-      );
+      await expect(
+        service.validateUser('admin', 'wrong-password'),
+      ).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.validateUser('admin', 'wrong-password'),
+      ).rejects.toThrow('密码错误');
     });
 
     it('should return user when validation succeeds', async () => {
@@ -152,11 +156,16 @@ describe('AuthService', () => {
     it('should return accessToken and refreshToken on successful login', async () => {
       userRepo.findByUsernameWithPassword.mockResolvedValue(mockUser);
       mockedBcrypt.compare.mockResolvedValue(true as never);
-      userRepo.update.mockResolvedValue(undefined as any);
+      userRepo.update.mockResolvedValue(undefined);
       loginLogRepo.create.mockReturnValue({} as LoginLog);
       loginLogRepo.save.mockResolvedValue({} as LoginLog);
 
-      const result = await service.login('admin', 'correct-password', 'Chrome', '127.0.0.1');
+      const result = await service.login(
+        'admin',
+        'correct-password',
+        'Chrome',
+        '127.0.0.1',
+      );
 
       expect(result).toHaveProperty('accessToken');
       expect(result).toHaveProperty('refreshToken');
@@ -176,7 +185,7 @@ describe('AuthService', () => {
     it('should update user with new refreshToken on login', async () => {
       userRepo.findByUsernameWithPassword.mockResolvedValue(mockUser);
       mockedBcrypt.compare.mockResolvedValue(true as never);
-      userRepo.update.mockResolvedValue(undefined as any);
+      userRepo.update.mockResolvedValue(undefined);
       loginLogRepo.create.mockReturnValue({} as LoginLog);
       loginLogRepo.save.mockResolvedValue({} as LoginLog);
 
@@ -195,7 +204,7 @@ describe('AuthService', () => {
     it('should create a LOGIN log entry', async () => {
       userRepo.findByUsernameWithPassword.mockResolvedValue(mockUser);
       mockedBcrypt.compare.mockResolvedValue(true as never);
-      userRepo.update.mockResolvedValue(undefined as any);
+      userRepo.update.mockResolvedValue(undefined);
       loginLogRepo.create.mockReturnValue({} as LoginLog);
       loginLogRepo.save.mockResolvedValue({} as LoginLog);
 
@@ -226,7 +235,7 @@ describe('AuthService', () => {
     it('should truncate device to 200 chars when writing login log', async () => {
       userRepo.findByUsernameWithPassword.mockResolvedValue(mockUser);
       mockedBcrypt.compare.mockResolvedValue(true as never);
-      userRepo.update.mockResolvedValue(undefined as any);
+      userRepo.update.mockResolvedValue(undefined);
       loginLogRepo.create.mockReturnValue({} as LoginLog);
       loginLogRepo.save.mockResolvedValue({} as LoginLog);
 
@@ -246,11 +255,15 @@ describe('AuthService', () => {
   describe('refresh', () => {
     it('should return new tokens on successful refresh', async () => {
       userRepo.findByRefreshToken.mockResolvedValue(mockUser);
-      userRepo.update.mockResolvedValue(undefined as any);
+      userRepo.update.mockResolvedValue(undefined);
       loginLogRepo.create.mockReturnValue({} as LoginLog);
       loginLogRepo.save.mockResolvedValue({} as LoginLog);
 
-      const result = await service.refresh('valid-refresh-token', '127.0.0.1', 'Chrome');
+      const result = await service.refresh(
+        'valid-refresh-token',
+        '127.0.0.1',
+        'Chrome',
+      );
 
       expect(result).toHaveProperty('accessToken');
       expect(result).toHaveProperty('refreshToken');
@@ -260,8 +273,12 @@ describe('AuthService', () => {
     it('should throw when refresh token is invalid', async () => {
       userRepo.findByRefreshToken.mockResolvedValue(null);
 
-      await expect(service.refresh('invalid-token')).rejects.toThrow(UnauthorizedException);
-      await expect(service.refresh('invalid-token')).rejects.toThrow('Refresh Token 无效');
+      await expect(service.refresh('invalid-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(service.refresh('invalid-token')).rejects.toThrow(
+        'Refresh Token 无效',
+      );
     });
 
     it('should throw when refresh token is expired', async () => {
@@ -271,9 +288,11 @@ describe('AuthService', () => {
       userRepo.findByRefreshToken.mockResolvedValue({
         ...mockUser,
         refreshTokenExpiresAt: expiredDate,
-      } as User);
+      });
 
-      await expect(service.refresh('expired-token')).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh('expired-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
       await expect(service.refresh('expired-token')).rejects.toThrow(
         'Refresh Token 已过期，请重新登录',
       );
@@ -281,7 +300,7 @@ describe('AuthService', () => {
 
     it('should update user with new refresh token', async () => {
       userRepo.findByRefreshToken.mockResolvedValue(mockUser);
-      userRepo.update.mockResolvedValue(undefined as any);
+      userRepo.update.mockResolvedValue(undefined);
       loginLogRepo.create.mockReturnValue({} as LoginLog);
       loginLogRepo.save.mockResolvedValue({} as LoginLog);
 
@@ -302,7 +321,7 @@ describe('AuthService', () => {
   describe('logout', () => {
     it('should clear refreshToken on logout', async () => {
       userRepo.findById.mockResolvedValue(mockUser);
-      userRepo.update.mockResolvedValue(undefined as any);
+      userRepo.update.mockResolvedValue(undefined);
       loginLogRepo.create.mockReturnValue({} as LoginLog);
       loginLogRepo.save.mockResolvedValue({} as LoginLog);
 
@@ -316,7 +335,7 @@ describe('AuthService', () => {
 
     it('should create a LOGOUT log entry', async () => {
       userRepo.findById.mockResolvedValue(mockUser);
-      userRepo.update.mockResolvedValue(undefined as any);
+      userRepo.update.mockResolvedValue(undefined);
       loginLogRepo.create.mockReturnValue({} as LoginLog);
       loginLogRepo.save.mockResolvedValue({} as LoginLog);
 
@@ -349,7 +368,7 @@ describe('AuthService', () => {
       userRepo.findById
         .mockResolvedValueOnce(admin)
         .mockResolvedValueOnce(target);
-      userRepo.update.mockResolvedValue(undefined as any);
+      userRepo.update.mockResolvedValue(undefined);
       loginLogRepo.create.mockReturnValue({} as LoginLog);
       loginLogRepo.save.mockResolvedValue({} as LoginLog);
 
@@ -406,7 +425,7 @@ describe('AuthService', () => {
       userRepo.findById
         .mockResolvedValueOnce(admin)
         .mockResolvedValueOnce(target);
-      userRepo.update.mockResolvedValue(undefined as any);
+      userRepo.update.mockResolvedValue(undefined);
       loginLogRepo.create.mockReturnValue({} as LoginLog);
       loginLogRepo.save.mockResolvedValue({} as LoginLog);
 
@@ -430,7 +449,7 @@ describe('AuthService', () => {
       userRepo.findById
         .mockResolvedValueOnce(admin)
         .mockResolvedValueOnce(target);
-      userRepo.update.mockResolvedValue(undefined as any);
+      userRepo.update.mockResolvedValue(undefined);
       loginLogRepo.create.mockReturnValue({} as LoginLog);
       loginLogRepo.save.mockResolvedValue({} as LoginLog);
 
@@ -462,7 +481,7 @@ describe('AuthService', () => {
       userRepo.findById
         .mockResolvedValueOnce(admin)
         .mockResolvedValueOnce(target);
-      userRepo.update.mockResolvedValue(undefined as any);
+      userRepo.update.mockResolvedValue(undefined);
       loginLogRepo.create.mockReturnValue({} as LoginLog);
       loginLogRepo.save.mockResolvedValue({} as LoginLog);
 
@@ -488,7 +507,9 @@ describe('AuthService', () => {
     it('should throw when user not found', async () => {
       userRepo.findById.mockResolvedValue(null);
 
-      await expect(service.getCurrentUser(999)).rejects.toThrow(UnauthorizedException);
+      await expect(service.getCurrentUser(999)).rejects.toThrow(
+        UnauthorizedException,
+      );
       await expect(service.getCurrentUser(999)).rejects.toThrow('用户不存在');
     });
   });
@@ -515,7 +536,7 @@ describe('AuthService', () => {
         name: '测试家长',
         role: 'Parent',
         password: 'hashed-abc',
-      } as unknown as User;
+      };
       userRepo.save.mockResolvedValue(created);
 
       const result = await service.register(registerDto);
@@ -535,17 +556,27 @@ describe('AuthService', () => {
     });
 
     it('should throw ConflictException when username already exists', async () => {
-      userRepo.findByUsername.mockResolvedValue({ ...mockUser, username: 'parent1' } as User);
+      userRepo.findByUsername.mockResolvedValue({
+        ...mockUser,
+        username: 'parent1',
+      });
 
-      await expect(service.register(registerDto)).rejects.toThrow(ConflictException);
+      await expect(service.register(registerDto)).rejects.toThrow(
+        ConflictException,
+      );
       expect(userRepo.save).not.toHaveBeenCalled();
     });
 
     it('should throw ConflictException when mobile already registered', async () => {
       userRepo.findByUsername.mockResolvedValue(null);
-      userRepo.findByMobile.mockResolvedValue({ ...mockUser, mobile: '13800000001' } as User);
+      userRepo.findByMobile.mockResolvedValue({
+        ...mockUser,
+        mobile: '13800000001',
+      });
 
-      await expect(service.register(registerDto)).rejects.toThrow(ConflictException);
+      await expect(service.register(registerDto)).rejects.toThrow(
+        ConflictException,
+      );
       expect(userRepo.save).not.toHaveBeenCalled();
     });
 
@@ -585,7 +616,12 @@ describe('AuthService', () => {
     }
 
     function mockOperator() {
-      return { ...mockUser, id: 1, username: 'admin', role: 'SuperAdmin' } as User;
+      return {
+        ...mockUser,
+        id: 1,
+        username: 'admin',
+        role: 'SuperAdmin',
+      };
     }
 
     it('should create parent user and link to student within one transaction', async () => {
@@ -594,11 +630,19 @@ describe('AuthService', () => {
         .mockResolvedValueOnce(null) // username unique check
         .mockResolvedValueOnce(null) // mobile unique check
         .mockResolvedValueOnce({ id: 5, name: '学生' } as any); // student exists
-      const savedParent = { ...mockUser, id: 20, username: 'parent9', role: 'Parent', password: 'hashed' } as any;
+      const savedParent = {
+        ...mockUser,
+        id: 20,
+        username: 'parent9',
+        role: 'Parent',
+        password: 'hashed',
+      } as any;
       manager.save
         .mockResolvedValueOnce(savedParent) // parent user
         .mockResolvedValueOnce({ id: 1 } as any); // student_parent link
-      manager.create.mockImplementation((_entity: any, data: any) => ({ ...data }));
+      manager.create.mockImplementation((_entity: any, data: any) => ({
+        ...data,
+      }));
       dataSource.transaction.mockImplementation((cb) => cb(manager));
 
       userRepo.findById.mockResolvedValue(mockOperator());
@@ -607,12 +651,20 @@ describe('AuthService', () => {
 
       const result = await service.adminCreateParent(createDto, 1);
 
-      expect(result).toMatchObject({ id: 20, username: 'parent9', role: 'Parent' });
+      expect(result).toMatchObject({
+        id: 20,
+        username: 'parent9',
+        role: 'Parent',
+      });
       expect(result).not.toHaveProperty('password');
       expect(dataSource.transaction).toHaveBeenCalled();
       expect(manager.save).toHaveBeenCalledTimes(2);
       expect(manager.save).toHaveBeenLastCalledWith(
-        expect.objectContaining({ studentId: 5, parentId: 20, relation: 'father' }),
+        expect.objectContaining({
+          studentId: 5,
+          parentId: 20,
+          relation: 'father',
+        }),
       );
     });
 
@@ -626,18 +678,25 @@ describe('AuthService', () => {
 
       userRepo.findById.mockResolvedValue(mockOperator());
 
-      await expect(service.adminCreateParent(createDto, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.adminCreateParent(createDto, 1)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(manager.save).not.toHaveBeenCalled();
     });
 
     it('should throw ConflictException when username exists (inside transaction)', async () => {
       const manager = mockTransactionManager();
-      manager.findOne.mockResolvedValueOnce({ ...mockUser, username: 'parent9' } as any);
+      manager.findOne.mockResolvedValueOnce({
+        ...mockUser,
+        username: 'parent9',
+      } as any);
       dataSource.transaction.mockImplementation((cb) => cb(manager));
 
       userRepo.findById.mockResolvedValue(mockOperator());
 
-      await expect(service.adminCreateParent(createDto, 1)).rejects.toThrow(ConflictException);
+      await expect(service.adminCreateParent(createDto, 1)).rejects.toThrow(
+        ConflictException,
+      );
       expect(manager.save).not.toHaveBeenCalled();
     });
 
@@ -657,9 +716,17 @@ describe('AuthService', () => {
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({ id: 5 } as any);
       manager.save
-        .mockResolvedValueOnce({ ...mockUser, id: 20, username: 'parent9', role: 'Parent', password: 'hashed' } as any)
+        .mockResolvedValueOnce({
+          ...mockUser,
+          id: 20,
+          username: 'parent9',
+          role: 'Parent',
+          password: 'hashed',
+        } as any)
         .mockResolvedValueOnce({ id: 1 } as any);
-      manager.create.mockImplementation((_entity: any, data: any) => ({ ...data }));
+      manager.create.mockImplementation((_entity: any, data: any) => ({
+        ...data,
+      }));
       dataSource.transaction.mockImplementation((cb) => cb(manager));
 
       userRepo.findById.mockResolvedValue(mockOperator());
@@ -692,7 +759,9 @@ describe('AuthService', () => {
         password: 'hashed',
       } as any;
       manager.save.mockResolvedValueOnce(savedParent);
-      manager.create.mockImplementation((_entity: any, data: any) => ({ ...data }));
+      manager.create.mockImplementation((_entity: any, data: any) => ({
+        ...data,
+      }));
       dataSource.transaction.mockImplementation((cb) => cb(manager));
 
       userRepo.findById.mockResolvedValue(mockOperator());
@@ -702,7 +771,11 @@ describe('AuthService', () => {
         1,
       );
 
-      expect(result).toMatchObject({ id: 21, username: 'parent10', role: 'Parent' });
+      expect(result).toMatchObject({
+        id: 21,
+        username: 'parent10',
+        role: 'Parent',
+      });
       expect(manager.findOne).toHaveBeenCalledTimes(2);
       expect(manager.save).toHaveBeenCalledTimes(1);
     });
@@ -729,8 +802,24 @@ describe('AuthService', () => {
   describe('listParents', () => {
     it('should return paginated parent users with safe fields', async () => {
       const items = [
-        { ...mockUser, id: 10, username: 'p1', role: 'Parent', password: 'x', refreshToken: 'rt', mobile: '13800000001' },
-        { ...mockUser, id: 11, username: 'p2', role: 'Parent', password: 'x', refreshToken: null, mobile: '13800000002' },
+        {
+          ...mockUser,
+          id: 10,
+          username: 'p1',
+          role: 'Parent',
+          password: 'x',
+          refreshToken: 'rt',
+          mobile: '13800000001',
+        },
+        {
+          ...mockUser,
+          id: 11,
+          username: 'p2',
+          role: 'Parent',
+          password: 'x',
+          refreshToken: null,
+          mobile: '13800000002',
+        },
       ] as unknown as User[];
       userRepo.findAndCountByRole.mockResolvedValue({ items, total: 2 });
 
@@ -750,6 +839,219 @@ describe('AuthService', () => {
       await service.listParents();
 
       expect(userRepo.findAndCountByRole).toHaveBeenCalledWith('Parent', 1, 20);
+    });
+  });
+
+  // ─── changePassword ───
+
+  describe('changePassword', () => {
+    it('should hash the new password and clear refresh token on success', async () => {
+      userRepo.findByIdWithPassword.mockResolvedValue(mockUser);
+      mockedBcrypt.compare.mockResolvedValue(true as never);
+      mockedBcrypt.hash.mockResolvedValue('new-hashed' as never);
+      userRepo.update.mockResolvedValue(undefined);
+      loginLogRepo.create.mockReturnValue({} as LoginLog);
+      loginLogRepo.save.mockResolvedValue({} as LoginLog);
+
+      await service.changePassword(1, 'old-pass', 'NewPass123', '127.0.0.1');
+
+      expect(mockedBcrypt.compare).toHaveBeenCalledWith(
+        'old-pass',
+        'hashed-password',
+      );
+      expect(mockedBcrypt.hash).toHaveBeenCalledWith('NewPass123', 10);
+      expect(userRepo.update).toHaveBeenCalledWith(1, {
+        password: 'new-hashed',
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+      });
+      expect(loginLogRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 1,
+          action: 'CHANGE_PASSWORD',
+          success: true,
+          ip: '127.0.0.1',
+        }),
+      );
+      expect(loginLogRepo.save).toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException when user not found', async () => {
+      userRepo.findByIdWithPassword.mockResolvedValue(null);
+
+      await expect(
+        service.changePassword(999, 'old-pass', 'NewPass123'),
+      ).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.changePassword(999, 'old-pass', 'NewPass123'),
+      ).rejects.toThrow('用户不存在');
+    });
+
+    it('should throw UnauthorizedException when old password is wrong', async () => {
+      userRepo.findByIdWithPassword.mockResolvedValue(mockUser);
+      mockedBcrypt.compare.mockResolvedValue(false as never);
+
+      await expect(
+        service.changePassword(1, 'wrong-old', 'NewPass123'),
+      ).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.changePassword(1, 'wrong-old', 'NewPass123'),
+      ).rejects.toThrow('原密码错误');
+      expect(userRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when new password equals old password', async () => {
+      userRepo.findByIdWithPassword.mockResolvedValue(mockUser);
+      mockedBcrypt.compare.mockResolvedValue(true as never);
+
+      await expect(
+        service.changePassword(1, 'SamePass1', 'SamePass1'),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.changePassword(1, 'SamePass1', 'SamePass1'),
+      ).rejects.toThrow('新密码不能与原密码相同');
+      expect(userRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should not change password when old password mismatch even if hashing would succeed', async () => {
+      userRepo.findByIdWithPassword.mockResolvedValue(mockUser);
+      mockedBcrypt.compare.mockResolvedValue(false as never);
+      mockedBcrypt.hash.mockResolvedValue('never-called' as never);
+
+      await expect(
+        service.changePassword(1, 'wrong', 'NewPass123'),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(mockedBcrypt.hash).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── adminResetPassword ───
+
+  describe('adminResetPassword', () => {
+    function mockSuperAdmin() {
+      return {
+        ...mockUser,
+        id: 1,
+        username: 'admin',
+        role: 'SuperAdmin',
+      };
+    }
+    function mockTeacher() {
+      return {
+        ...mockUser,
+        id: 3,
+        username: 'teacher1',
+        role: 'Teacher',
+      };
+    }
+
+    it('should reset target password and clear refresh token on success', async () => {
+      userRepo.findByIdWithPassword.mockResolvedValue(mockSuperAdmin());
+      userRepo.findById.mockResolvedValue(mockTeacher());
+      mockedBcrypt.compare.mockResolvedValue(true as never);
+      mockedBcrypt.hash.mockResolvedValue('reset-hashed' as never);
+      userRepo.update.mockResolvedValue(undefined);
+      loginLogRepo.create.mockReturnValue({} as LoginLog);
+      loginLogRepo.save.mockResolvedValue({} as LoginLog);
+
+      await service.adminResetPassword(1, 'admin-pass', 3, 'NewPass456');
+
+      expect(mockedBcrypt.hash).toHaveBeenCalledWith('NewPass456', 10);
+      expect(userRepo.update).toHaveBeenCalledWith(3, {
+        password: 'reset-hashed',
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+      });
+      expect(loginLogRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 1,
+          username: 'admin',
+          role: 'SuperAdmin',
+          action: 'ADMIN_RESET_PASSWORD',
+          success: true,
+        }),
+      );
+      expect(loginLogRepo.save).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when operator resets self', async () => {
+      await expect(
+        service.adminResetPassword(1, 'admin-pass', 1, 'NewPass456'),
+      ).rejects.toThrow(BadRequestException);
+      expect(userRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException when operator does not exist', async () => {
+      userRepo.findByIdWithPassword.mockResolvedValue(null);
+
+      await expect(
+        service.adminResetPassword(999, 'admin-pass', 3, 'NewPass456'),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw NotFoundException when target does not exist', async () => {
+      userRepo.findByIdWithPassword.mockResolvedValue(mockSuperAdmin());
+      userRepo.findById.mockResolvedValue(null);
+
+      await expect(
+        service.adminResetPassword(1, 'admin-pass', 999, 'NewPass456'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException when operator password verification fails', async () => {
+      userRepo.findByIdWithPassword.mockResolvedValue(mockSuperAdmin());
+      userRepo.findById.mockResolvedValue(mockTeacher());
+      mockedBcrypt.compare.mockResolvedValue(false as never);
+
+      await expect(
+        service.adminResetPassword(1, 'wrong-admin-pass', 3, 'NewPass456'),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.adminResetPassword(1, 'wrong-admin-pass', 3, 'NewPass456'),
+      ).rejects.toThrow('操作员密码验证失败');
+      expect(userRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenException when Admin targets Admin', async () => {
+      const admin = { ...mockUser, id: 1, role: 'Admin' };
+      const targetAdmin = { ...mockUser, id: 2, role: 'Admin' };
+      userRepo.findByIdWithPassword.mockResolvedValue(admin);
+      userRepo.findById.mockResolvedValue(targetAdmin);
+      mockedBcrypt.compare.mockResolvedValue(true as never);
+
+      await expect(
+        service.adminResetPassword(1, 'admin-pass', 2, 'NewPass456'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw ForbiddenException when Admin targets SuperAdmin', async () => {
+      const admin = { ...mockUser, id: 1, role: 'Admin' };
+      const targetSuper = { ...mockUser, id: 2, role: 'SuperAdmin' };
+      userRepo.findByIdWithPassword.mockResolvedValue(admin);
+      userRepo.findById.mockResolvedValue(targetSuper);
+      mockedBcrypt.compare.mockResolvedValue(true as never);
+
+      await expect(
+        service.adminResetPassword(1, 'admin-pass', 2, 'NewPass456'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should allow Admin to reset a Teacher (role pass branch)', async () => {
+      const admin = { ...mockUser, id: 1, role: 'Admin' };
+      userRepo.findByIdWithPassword.mockResolvedValue(admin);
+      userRepo.findById.mockResolvedValue(mockTeacher());
+      mockedBcrypt.compare.mockResolvedValue(true as never);
+      mockedBcrypt.hash.mockResolvedValue('reset-hashed' as never);
+      userRepo.update.mockResolvedValue(undefined);
+      loginLogRepo.create.mockReturnValue({} as LoginLog);
+      loginLogRepo.save.mockResolvedValue({} as LoginLog);
+
+      await service.adminResetPassword(1, 'admin-pass', 3, 'NewPass456');
+
+      expect(userRepo.update).toHaveBeenCalledWith(
+        3,
+        expect.objectContaining({ password: 'reset-hashed' }),
+      );
     });
   });
 });
