@@ -31,3 +31,11 @@ export interface LoginResult {
   expiresIn: number
   user: UserInfo
 }
+
+/** 分页响应 */
+export interface Paginated<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+}

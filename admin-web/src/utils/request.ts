@@ -48,6 +48,12 @@ async function unwrap<T>(promise: Promise<AxiosResponse<ApiResponse<T>>>): Promi
   return response.data.data as T
 }
 
+/** 二进制下载（导出接口返回文件流，不走 ApiResponse 解包） */
+async function download<T>(promise: Promise<AxiosResponse<T>>): Promise<T> {
+  const response = await promise
+  return response.data
+}
+
 /** 类型化的请求对象：调用方直接拿到解包后的 data（ApiResponse.data） */
 export const http = {
   get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
@@ -64,5 +70,9 @@ export const http = {
   },
   delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     return unwrap<T>(request.delete(url, config))
+  },
+  /** 返回二进制内容（文件导出） */
+  postBlob<T = Blob>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    return download<T>(request.post(url, data, { ...config, responseType: 'blob' }))
   },
 }
