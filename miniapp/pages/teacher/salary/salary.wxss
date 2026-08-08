@@ -1,0 +1,253 @@
+.container {
+  padding: 20rpx;
+  background: #FAF6F0;
+  min-height: 100vh;
+}
+
+/* 加载中 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #EDE5DA;
+  border-top-color: #D97B3E;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #9B9084;
+}
+
+/* 错误状态 */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 40rpx;
+}
+
+.error-text {
+  font-size: 28rpx;
+  color: #9B9084;
+  margin-bottom: 20rpx;
+}
+
+.retry-btn {
+  font-size: 28rpx;
+  color: #D97B3E;
+  padding: 12rpx 40rpx;
+  border: 2rpx solid #D97B3E;
+  border-radius: 16rpx;
+}
+
+/* 月份选择 */
+.month-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 20rpx 0;
+  margin-bottom: 20rpx;
+}
+
+.month-text {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #2E2A25;
+}
+
+.month-caret {
+  font-size: 24rpx;
+  color: #9B9084;
+  margin-left: 12rpx;
+}
+
+/* 月度汇总 */
+.summary-card {
+  background: #D97B3E;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+}
+
+.summary-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 20rpx;
+}
+
+.summary-label {
+  font-size: 24rpx;
+  color: #FCE8D8;
+}
+
+.summary-amount {
+  font-size: 56rpx;
+  font-weight: bold;
+  color: #fff;
+  margin-top: 6rpx;
+}
+
+.summary-row {
+  display: flex;
+  border-top: 2rpx solid rgba(255, 255, 255, 0.25);
+  padding-top: 20rpx;
+}
+
+.summary-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sum-num {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+.sum-label {
+  font-size: 22rpx;
+  color: #FCE8D8;
+  margin-top: 4rpx;
+}
+
+/* 记录列表 */
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #9B9084;
+}
+
+.record-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 20rpx 24rpx;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.source-text {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #2E2A25;
+}
+
+.card-date {
+  font-size: 22rpx;
+  color: #9B9084;
+  margin-top: 4rpx;
+}
+
+.card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.amount {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #2E2A25;
+}
+
+.amount-deduct {
+  color: #C4483F;
+}
+
+.status-tag {
+  font-size: 20rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 12rpx;
+  margin-top: 6rpx;
+}
+
+.status-PENDING {
+  background: #FCF0DF;
+  color: #D98E2B;
+}
+
+.status-APPROVED {
+  background: #FBEEE2;
+  color: #D97B3E;
+}
+
+.status-PAID {
+  background: #E6F2E6;
+  color: #3D8B3D;
+}
+
+.status-UNKNOWN {
+  background: #F0EDE8;
+  color: #6F675D;
+}
+
+.card-meta {
+  display: flex;
+  gap: 24rpx;
+  margin-top: 12rpx;
+  padding-top: 12rpx;
+  border-top: 2rpx solid #FAF6F0;
+}
+
+.meta-text {
+  font-size: 24rpx;
+  color: #6F675D;
+}
+
+.card-remark {
+  margin-top: 8rpx;
+}
+
+.remark-text {
+  font-size: 22rpx;
+  color: #D98E2B;
+}
+
+/* 加载更多 */
+.load-more {
+  text-align: center;
+  padding: 20rpx 0;
+}
+
+.load-text {
+  font-size: 24rpx;
+  color: #9B9084;
+}

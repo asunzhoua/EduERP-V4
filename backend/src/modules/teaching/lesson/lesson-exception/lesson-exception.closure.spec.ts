@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken, getEntityManagerToken } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
-import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 
 // ─── Services ───
 import { LessonExceptionService } from './lesson-exception.service';
@@ -17,15 +21,12 @@ import { LessonExceptionAttachmentEntity } from './lesson-exception-attachment.e
 import { LessonEntity } from '../lesson.entity';
 import { LessonStatus } from '../enums/lesson-status.enum';
 
-// ─── Salary ───
-import { SalaryListener } from '@modules/salary/listeners/salary.listener';
-import { SalaryRecordEntity } from '@modules/salary/entities/salary-record.entity';
-import { SalaryRecordStatus } from '@modules/salary/enums/salary.enums';
-import { SalaryCalculator } from '@modules/salary/services/salary-calculator.service';
-
 // ─── DTOs ───
 import { QueryExceptionDto } from './dto/query-exception.dto';
-import { ApproveExceptionDto, RejectExceptionDto } from './dto/approve-exception.dto';
+import {
+  ApproveExceptionDto,
+  RejectExceptionDto,
+} from './dto/approve-exception.dto';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(() => 'test-uuid'),
@@ -48,7 +49,6 @@ describe('Lesson Exception Closure Audit', () => {
   // ─── Module & Service References ───
   let exceptionService: LessonExceptionService;
   let exceptionController: LessonExceptionController;
-  let salaryListener: SalaryListener;
 
   // ─── Mock Repos & Services ───
   let exceptionRepo: jest.Mocked<Repository<LessonExceptionEntity>>;
@@ -56,11 +56,9 @@ describe('Lesson Exception Closure Audit', () => {
   let rescheduleRepo: jest.Mocked<Repository<LessonRescheduleEntity>>;
   let attachmentRepo: jest.Mocked<Repository<LessonExceptionAttachmentEntity>>;
   let lessonRepo: jest.Mocked<Repository<LessonEntity>>;
-  let salaryRecordRepo: jest.Mocked<Repository<SalaryRecordEntity>>;
   let mockEventBus: jest.Mocked<EventBusService>;
   let mockEntityManager: jest.Mocked<EntityManager>;
-  let mockCalculator: any;
-  let mockQb: any;  // stable QB for findAllExceptionsWithQuery tests
+  let mockQb: any; // stable QB for findAllExceptionsWithQuery tests
 
   // ─── Mock Data ───
   const mockLessonSCHEDULED: LessonEntity = {
@@ -135,10 +133,30 @@ describe('Lesson Exception Closure Audit', () => {
   };
 
   // ─── Users for Permission Tests ───
-  const adminUser = { sub: 1, username: 'admin', role: 'Admin', name: '管理员' };
-  const superAdminUser = { sub: 2, username: 'superadmin', role: 'SuperAdmin', name: '超级管理员' };
-  const teacherUser = { sub: 100, username: 'teacher1', role: 'Teacher', name: '张老师' };
-  const parentUser = { sub: 200, username: 'parent1', role: 'Parent', name: '李家长' };
+  const adminUser = {
+    sub: 1,
+    username: 'admin',
+    role: 'Admin',
+    name: '管理员',
+  };
+  const superAdminUser = {
+    sub: 2,
+    username: 'superadmin',
+    role: 'SuperAdmin',
+    name: '超级管理员',
+  };
+  const teacherUser = {
+    sub: 100,
+    username: 'teacher1',
+    role: 'Teacher',
+    name: '张老师',
+  };
+  const parentUser = {
+    sub: 200,
+    username: 'parent1',
+    role: 'Parent',
+    name: '李家长',
+  };
 
   beforeEach(async () => {
     // ── Build all mock repos ──
@@ -170,12 +188,6 @@ describe('Lesson Exception Closure Audit', () => {
       findOne: jest.fn(),
       save: jest.fn(),
     };
-    const mockSalaryRecordRepo = {
-      find: jest.fn(),
-      findOne: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
-    };
     const mockLessonServiceObj = {
       updateStatus: jest.fn(),
       findOne: jest.fn(),
@@ -188,18 +200,27 @@ describe('Lesson Exception Closure Audit', () => {
       createQueryBuilder: jest.fn(),
       query: jest.fn(),
     };
-    mockCalculator = {
-      calculate: jest.fn(),
-    };
 
     // ── Compile LessonExceptionService module ──
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LessonExceptionService,
-        { provide: getRepositoryToken(LessonExceptionEntity), useValue: mockExceptionRepo },
-        { provide: getRepositoryToken(LessonExceptionLogEntity), useValue: mockExceptionLogRepo },
-        { provide: getRepositoryToken(LessonRescheduleEntity), useValue: mockRescheduleRepo },
-        { provide: getRepositoryToken(LessonExceptionAttachmentEntity), useValue: mockAttachmentRepo },
+        {
+          provide: getRepositoryToken(LessonExceptionEntity),
+          useValue: mockExceptionRepo,
+        },
+        {
+          provide: getRepositoryToken(LessonExceptionLogEntity),
+          useValue: mockExceptionLogRepo,
+        },
+        {
+          provide: getRepositoryToken(LessonRescheduleEntity),
+          useValue: mockRescheduleRepo,
+        },
+        {
+          provide: getRepositoryToken(LessonExceptionAttachmentEntity),
+          useValue: mockAttachmentRepo,
+        },
         { provide: getRepositoryToken(LessonEntity), useValue: mockLessonRepo },
         { provide: LessonService, useValue: mockLessonServiceObj },
         { provide: EventBusService, useValue: mockEventBus },
@@ -207,26 +228,18 @@ describe('Lesson Exception Closure Audit', () => {
       ],
     }).compile();
 
-    exceptionService = module.get<LessonExceptionService>(LessonExceptionService);
+    exceptionService = module.get<LessonExceptionService>(
+      LessonExceptionService,
+    );
     exceptionRepo = module.get(getRepositoryToken(LessonExceptionEntity));
     exceptionLogRepo = module.get(getRepositoryToken(LessonExceptionLogEntity));
     rescheduleRepo = module.get(getRepositoryToken(LessonRescheduleEntity));
-    attachmentRepo = module.get(getRepositoryToken(LessonExceptionAttachmentEntity));
+    attachmentRepo = module.get(
+      getRepositoryToken(LessonExceptionAttachmentEntity),
+    );
     lessonRepo = module.get(getRepositoryToken(LessonEntity));
     // Keep mockEventBus and mockEntityManager as the mock objects we created
     // (not overwriting with module.get since those are the actual implementations)
-
-    // ── Compile SalaryListener module ──
-    const salaryModule: TestingModule = await Test.createTestingModule({
-      providers: [
-        SalaryListener,
-        { provide: getRepositoryToken(SalaryRecordEntity), useValue: mockSalaryRecordRepo },
-        { provide: SalaryCalculator, useValue: mockCalculator },
-      ],
-    }).compile();
-
-    salaryListener = salaryModule.get<SalaryListener>(SalaryListener);
-    salaryRecordRepo = salaryModule.get(getRepositoryToken(SalaryRecordEntity));
 
     // ── Compile Controller module ──
     const controllerModule: TestingModule = await Test.createTestingModule({
@@ -236,7 +249,9 @@ describe('Lesson Exception Closure Audit', () => {
       ],
     }).compile();
 
-    exceptionController = controllerModule.get<LessonExceptionController>(LessonExceptionController);
+    exceptionController = controllerModule.get<LessonExceptionController>(
+      LessonExceptionController,
+    );
   });
 
   afterEach(() => {
@@ -255,9 +270,13 @@ describe('Lesson Exception Closure Audit', () => {
       exceptionLogRepo.save.mockResolvedValue({} as any);
 
       const result = await exceptionService.applyLeave(
-        1, 'LEAVE_SICK', '感冒发烧',
-        new Date('2026-07-12T08:00:00Z'), new Date('2026-07-12T12:00:00Z'),
-        [{ url: 'http://example.com/proof.jpg' }], 1001,
+        1,
+        'LEAVE_SICK',
+        '感冒发烧',
+        new Date('2026-07-12T08:00:00Z'),
+        new Date('2026-07-12T12:00:00Z'),
+        [{ url: 'http://example.com/proof.jpg' }],
+        1001,
       );
 
       // 验证 LessonException 创建
@@ -275,12 +294,22 @@ describe('Lesson Exception Closure Audit', () => {
       const future = new Date();
       future.setHours(future.getHours() + 30);
       lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
-      exceptionRepo.save.mockResolvedValue({ ...mockExceptionPersonal, id: 101, startTime: future, endTime: new Date(future.getTime() + 7200000) });
+      exceptionRepo.save.mockResolvedValue({
+        ...mockExceptionPersonal,
+        id: 101,
+        startTime: future,
+        endTime: new Date(future.getTime() + 7200000),
+      });
       exceptionLogRepo.save.mockResolvedValue({} as any);
 
       const result = await exceptionService.applyLeave(
-        1, 'LEAVE_PERSONAL', '家中有事',
-        future, new Date(future.getTime() + 7200000), [], 1001,
+        1,
+        'LEAVE_PERSONAL',
+        '家中有事',
+        future,
+        new Date(future.getTime() + 7200000),
+        [],
+        1001,
       );
 
       expect(result).toBeDefined();
@@ -292,7 +321,15 @@ describe('Lesson Exception Closure Audit', () => {
       lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
 
       await expect(
-        exceptionService.applyLeave(1, 'LEAVE_SICK', '感冒', new Date(), new Date(), [], 1001),
+        exceptionService.applyLeave(
+          1,
+          'LEAVE_SICK',
+          '感冒',
+          new Date(),
+          new Date(),
+          [],
+          1001,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -302,7 +339,15 @@ describe('Lesson Exception Closure Audit', () => {
       nearFuture.setHours(nearFuture.getHours() + 2);
 
       await expect(
-        exceptionService.applyLeave(1, 'LEAVE_PERSONAL', '有事', nearFuture, new Date(nearFuture.getTime() + 3600000), [], 1001),
+        exceptionService.applyLeave(
+          1,
+          'LEAVE_PERSONAL',
+          '有事',
+          nearFuture,
+          new Date(nearFuture.getTime() + 3600000),
+          [],
+          1001,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -317,16 +362,27 @@ describe('Lesson Exception Closure Audit', () => {
         // 提交病假
         const pendingException = { ...mockExceptionSick, status: 'PENDING' };
         exceptionRepo.findOne.mockResolvedValue(pendingException);
-        exceptionRepo.save.mockResolvedValue({ ...pendingException, status: 'APPROVED', approvedBy: 2001, approvedAt: new Date() });
+        exceptionRepo.save.mockResolvedValue({
+          ...pendingException,
+          status: 'APPROVED',
+          approvedBy: 2001,
+          approvedAt: new Date(),
+        });
         lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
-        lessonRepo.save.mockResolvedValue({ ...mockLessonSCHEDULED, status: LessonStatus.CANCELLED, cancelledReason: '异常(LEAVE_SICK)审批通过' });
+        lessonRepo.save.mockResolvedValue({
+          ...mockLessonSCHEDULED,
+          status: LessonStatus.CANCELLED,
+          cancelledReason: '异常(LEAVE_SICK)审批通过',
+        });
         exceptionLogRepo.save.mockResolvedValue({} as any);
 
         const result = await exceptionService.approve(1, 2001, '同意请假');
 
         // 验证 Lesson.status = CANCELLED
         expect(result.status).toBe('APPROVED');
-        const savedLesson = lessonRepo.save.mock.calls[lessonRepo.save.mock.calls.length - 1][0] as LessonEntity;
+        const savedLesson = lessonRepo.save.mock.calls[
+          lessonRepo.save.mock.calls.length - 1
+        ][0] as LessonEntity;
         expect(savedLesson.status).toBe(LessonStatus.CANCELLED);
 
         // 验证无 LessonCompletedEvent (lesson.completed 事件只应在 FINISHED 时发布)
@@ -335,40 +391,29 @@ describe('Lesson Exception Closure Audit', () => {
         // 它直接调用 lessonRepo.save，不通过 LessonService.updateStatus
         // 所以没有事件发布
         const allPublishes = mockEventBus.publish.mock.calls;
-        const completedEvents = allPublishes.filter(([name]) => name === 'lesson.completed');
+        const completedEvents = allPublishes.filter(
+          ([name]) => name === 'lesson.completed',
+        );
         expect(completedEvents).toHaveLength(0);
       });
 
       it('病假不应产生 SalaryRecord', async () => {
-        // SalaryListener 监听 lesson.completed 事件，病假不产生该事件
-        // 验证直接调用 SalaryListener 处理病假场景不会创建记录
-        salaryRecordRepo.findOne.mockResolvedValue(null);
-
-        // 模拟 salary.listener 不会收到 lesson.completed 因为病假没发该事件
-        expect(mockEventBus.publish).not.toHaveBeenCalledWith('lesson.completed', expect.anything());
-
-        // 如果误发了 lesson.completed，SalaryListener 应检查幂等
-        // 且病假课时的 amount 应为 0（无实际教学）
-        // 这里直接验证 SalaryListener 的幂等逻辑
-        salaryRecordRepo.findOne.mockResolvedValue(null);
-        mockCalculator.calculate.mockResolvedValue({
-          teacherId: 5001,
-          lessonId: 1,
-          amount: 0,
-          status: SalaryRecordStatus.PENDING,
-        } as any);
-
-        // 手动模拟事件处理（实际不会发生，这里验证如果误触发会被幂等拦截）
-        // SalaryListener.handleLessonCompleted 内部会先检查是否已有记录
-        // 如果 lesson.completed 从未被发布，则 SalaryListener 永远不会被调用
-        // ✅ 验证通过：病假流程从未发布 lesson.completed
+        // 工资由 SalarySettlementService 按月结算读取 FINISHED 课时生成
+        // 病假课时从 SCHEDULED -> CANCELLED，不经过 FINISHED
+        // 因此结算引擎永远不会看到该课时，天然不会产生 SalaryRecord
+        // 无需事件监听，也无幂等检查可绕过
+        expect(mockEventBus.publish).not.toHaveBeenCalledWith(
+          'lesson.completed',
+          expect.anything(),
+        );
+        // 结算引擎以 FINISHED 为数据源：源文件断言（见 Phase 6）
       });
 
       it('病假不应产生 LessonFinishedEvent', async () => {
         // LessonFinishedEvent (lesson.finished) 只在 FINISHED -> ARCHIVED 时发布
         // 病假 Lesson 从 SCHEDULED -> CANCELLED，不经过 FINISHED
         const finishedEvents = mockEventBus.publish.mock.calls.filter(
-          ([name]) => name === 'lesson.finished'
+          ([name]) => name === 'lesson.finished',
         );
         expect(finishedEvents).toHaveLength(0);
       });
@@ -380,17 +425,33 @@ describe('Lesson Exception Closure Audit', () => {
         futureStart.setHours(futureStart.getHours() + 30);
         const futureEnd = new Date(futureStart.getTime() + 7200000);
 
-        const pendingException = { ...mockExceptionPersonal, id: 2, status: 'PENDING', startTime: futureStart, endTime: futureEnd };
+        const pendingException = {
+          ...mockExceptionPersonal,
+          id: 2,
+          status: 'PENDING',
+          startTime: futureStart,
+          endTime: futureEnd,
+        };
         exceptionRepo.findOne.mockResolvedValue(pendingException);
-        exceptionRepo.save.mockResolvedValue({ ...pendingException, status: 'APPROVED', approvedBy: 2001, approvedAt: new Date() });
+        exceptionRepo.save.mockResolvedValue({
+          ...pendingException,
+          status: 'APPROVED',
+          approvedBy: 2001,
+          approvedAt: new Date(),
+        });
         lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
-        lessonRepo.save.mockResolvedValue({ ...mockLessonSCHEDULED, status: LessonStatus.SUSPENDED });
+        lessonRepo.save.mockResolvedValue({
+          ...mockLessonSCHEDULED,
+          status: LessonStatus.SUSPENDED,
+        });
         exceptionLogRepo.save.mockResolvedValue({} as any);
 
         const result = await exceptionService.approve(2, 2001, '同意事假');
 
         expect(result.status).toBe('APPROVED');
-        const savedLesson = lessonRepo.save.mock.calls[lessonRepo.save.mock.calls.length - 1][0] as LessonEntity;
+        const savedLesson = lessonRepo.save.mock.calls[
+          lessonRepo.save.mock.calls.length - 1
+        ][0] as LessonEntity;
         expect(savedLesson.status).toBe(LessonStatus.SUSPENDED);
       });
 
@@ -400,18 +461,36 @@ describe('Lesson Exception Closure Audit', () => {
         const futureEnd = new Date(futureStart.getTime() + 3 * 86400000);
 
         // 验证自动恢复机制存在
-        const pendingException = { ...mockExceptionPersonal, id: 5, status: 'PENDING', startTime: futureStart, endTime: futureEnd };
+        const pendingException = {
+          ...mockExceptionPersonal,
+          id: 5,
+          status: 'PENDING',
+          startTime: futureStart,
+          endTime: futureEnd,
+        };
         exceptionRepo.findOne.mockResolvedValue(pendingException);
-        exceptionRepo.save.mockResolvedValue({ ...pendingException, status: 'APPROVED' });
+        exceptionRepo.save.mockResolvedValue({
+          ...pendingException,
+          status: 'APPROVED',
+        });
         lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
-        lessonRepo.save.mockResolvedValue({ ...mockLessonSCHEDULED, status: LessonStatus.SUSPENDED });
+        lessonRepo.save.mockResolvedValue({
+          ...mockLessonSCHEDULED,
+          status: LessonStatus.SUSPENDED,
+        });
         exceptionLogRepo.save.mockResolvedValue({} as any);
 
         await exceptionService.approve(5, 2001);
 
         // 验证：SUSPENDED 状态不直接修改余额（无 ledger 事件触发）
-        expect(mockEventBus.publish).not.toHaveBeenCalledWith('lesson.completed', expect.anything());
-        expect(mockEventBus.publish).not.toHaveBeenCalledWith('salary.calculation.triggered', expect.anything());
+        expect(mockEventBus.publish).not.toHaveBeenCalledWith(
+          'lesson.completed',
+          expect.anything(),
+        );
+        expect(mockEventBus.publish).not.toHaveBeenCalledWith(
+          'salary.calculation.triggered',
+          expect.anything(),
+        );
       });
     });
   });
@@ -423,32 +502,53 @@ describe('Lesson Exception Closure Audit', () => {
   describe('Phase 4: Lesson 状态机验证', () => {
     it('允许 SCHEDULED -> CANCELLED', async () => {
       lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
-      lessonRepo.save.mockResolvedValue({ ...mockLessonSCHEDULED, status: LessonStatus.CANCELLED });
+      lessonRepo.save.mockResolvedValue({
+        ...mockLessonSCHEDULED,
+        status: LessonStatus.CANCELLED,
+      });
       exceptionLogRepo.save.mockResolvedValue({} as any);
 
       // 通过 approve 间接测试 transitionLessonStatus
       const pendingException = { ...mockExceptionSick, status: 'PENDING' };
       exceptionRepo.findOne.mockResolvedValue(pendingException);
-      exceptionRepo.save.mockResolvedValue({ ...pendingException, status: 'APPROVED' });
+      exceptionRepo.save.mockResolvedValue({
+        ...pendingException,
+        status: 'APPROVED',
+      });
 
       await exceptionService.approve(1, 2001);
 
-      const savedLesson = lessonRepo.save.mock.calls[lessonRepo.save.mock.calls.length - 1][0] as LessonEntity;
+      const savedLesson = lessonRepo.save.mock.calls[
+        lessonRepo.save.mock.calls.length - 1
+      ][0] as LessonEntity;
       expect(savedLesson.status).toBe(LessonStatus.CANCELLED);
     });
 
     it('允许 SCHEDULED -> SUSPENDED', async () => {
       lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
-      lessonRepo.save.mockResolvedValue({ ...mockLessonSCHEDULED, status: LessonStatus.SUSPENDED });
+      lessonRepo.save.mockResolvedValue({
+        ...mockLessonSCHEDULED,
+        status: LessonStatus.SUSPENDED,
+      });
       exceptionLogRepo.save.mockResolvedValue({} as any);
 
-      const pendingException = { ...mockExceptionPersonal, id: 3, exceptionType: 'SUSPEND_SHORT', status: 'PENDING' };
+      const pendingException = {
+        ...mockExceptionPersonal,
+        id: 3,
+        exceptionType: 'SUSPEND_SHORT',
+        status: 'PENDING',
+      };
       exceptionRepo.findOne.mockResolvedValue(pendingException);
-      exceptionRepo.save.mockResolvedValue({ ...pendingException, status: 'APPROVED' });
+      exceptionRepo.save.mockResolvedValue({
+        ...pendingException,
+        status: 'APPROVED',
+      });
 
       await exceptionService.approve(3, 2001);
 
-      const savedLesson = lessonRepo.save.mock.calls[lessonRepo.save.mock.calls.length - 1][0] as LessonEntity;
+      const savedLesson = lessonRepo.save.mock.calls[
+        lessonRepo.save.mock.calls.length - 1
+      ][0] as LessonEntity;
       expect(savedLesson.status).toBe(LessonStatus.SUSPENDED);
     });
 
@@ -472,30 +572,43 @@ describe('Lesson Exception Closure Audit', () => {
 
     it('异常流程不能跳过状态', async () => {
       // 尝试从 DRAFT 直接到 SUSPENDED（非法）
-      lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED, status: LessonStatus.DRAFT });
+      lessonRepo.findOne.mockResolvedValue({
+        ...mockLessonSCHEDULED,
+        status: LessonStatus.DRAFT,
+      });
 
       // 通过私有方法测试
       await expect(
         (exceptionService as any).transitionLessonStatus(
-          1, LessonStatus.SUSPENDED, 1, 'USER', 'test',
+          1,
+          LessonStatus.SUSPENDED,
+          1,
+          'USER',
+          'test',
         ),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('异常流程不能从非 PENDING 状态审批', async () => {
-      exceptionRepo.findOne.mockResolvedValue({ ...mockExceptionSick, status: 'APPROVED' });
+      exceptionRepo.findOne.mockResolvedValue({
+        ...mockExceptionSick,
+        status: 'APPROVED',
+      });
 
-      await expect(
-        exceptionService.approve(1, 2001),
-      ).rejects.toThrow(BadRequestException);
+      await expect(exceptionService.approve(1, 2001)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('已拒绝的异常不能再次审批', async () => {
-      exceptionRepo.findOne.mockResolvedValue({ ...mockExceptionSick, status: 'REJECTED' });
+      exceptionRepo.findOne.mockResolvedValue({
+        ...mockExceptionSick,
+        status: 'REJECTED',
+      });
 
-      await expect(
-        exceptionService.approve(1, 2001),
-      ).rejects.toThrow(BadRequestException);
+      await expect(exceptionService.approve(1, 2001)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -508,19 +621,25 @@ describe('Lesson Exception Closure Audit', () => {
       // 病假场景：Lesson SCHEDULED -> CANCELLED
       // 验证没有 lesson.completed 事件发布
       lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
-      lessonRepo.save.mockResolvedValue({ ...mockLessonSCHEDULED, status: LessonStatus.CANCELLED });
+      lessonRepo.save.mockResolvedValue({
+        ...mockLessonSCHEDULED,
+        status: LessonStatus.CANCELLED,
+      });
       exceptionLogRepo.save.mockResolvedValue({} as any);
 
       const pendingException = { ...mockExceptionSick, status: 'PENDING' };
       exceptionRepo.findOne.mockResolvedValue(pendingException);
-      exceptionRepo.save.mockResolvedValue({ ...pendingException, status: 'APPROVED' });
+      exceptionRepo.save.mockResolvedValue({
+        ...pendingException,
+        status: 'APPROVED',
+      });
 
       await exceptionService.approve(1, 2001);
 
       // Ledger 扣减由 lesson.completed 驱动
       // 病假不发布 lesson.completed，故无扣减
       const completedCalls = mockEventBus.publish.mock.calls.filter(
-        ([name]) => name === 'lesson.completed'
+        ([name]) => name === 'lesson.completed',
       );
       expect(completedCalls).toHaveLength(0);
     });
@@ -551,29 +670,32 @@ describe('Lesson Exception Closure Audit', () => {
     });
 
     it('重复操作不会重复扣课', async () => {
-      // 验证 SalaryListener 的幂等检查
-      // 当同一个 lessonId 的 lesson.completed 事件再次触发时
-      // SalaryListener 应跳过
-      salaryRecordRepo.findOne.mockResolvedValue({
-        id: 1,
-        lessonId: 1,
-        teacherId: 5001,
-        amount: 200,
-        status: SalaryRecordStatus.PENDING,
-      } as any);
+      // 结算幂等由两层保证：
+      // 1. 唯一索引 uk_salary_record_teacher_month_source_lesson (teacherId, month, source, lessonId)
+      // 2. 结算事务内 recordKey() 去重（对已存在记录跳过）
+      // 同一个月内重复结算同一 FINISHED 课时，不会生成第二条记录
+      const fs = require('fs');
+      const path = require('path');
+      const settlementSource = fs.readFileSync(
+        path.join(
+          __dirname,
+          '../../../../modules/salary/services/salary-settlement.service.ts',
+        ),
+        'utf-8',
+      );
+      const migrationSource = fs.readFileSync(
+        path.join(
+          __dirname,
+          '../../../../migrations/1786500000000-AddSalaryConfigColumns.ts',
+        ),
+        'utf-8',
+      );
 
-      // SalaryListener 收到重复事件
-      await salaryListener.handleLessonCompleted({
-        lessonId: 1,
-        teacherId: 5001,
-        classCode: 'CL2026070001',
-        durationMinutes: 90,
-        scheduledDate: '2026-07-12',
-      } as any);
-
-      // 应该跳过，不创建新记录
-      expect(mockCalculator.calculate).not.toHaveBeenCalled();
-      expect(salaryRecordRepo.save).not.toHaveBeenCalled();
+      expect(settlementSource).toContain('recordKey');
+      expect(settlementSource).toContain('existingRecords');
+      expect(migrationSource).toContain(
+        'uk_salary_record_teacher_month_source_lesson',
+      );
     });
 
     it('课时变化必须来源 Lesson 完成事件', async () => {
@@ -582,7 +704,7 @@ describe('Lesson Exception Closure Audit', () => {
 
       // 验证异常服务中没有任何修改课时的逻辑
       const exceptionServiceMethods = Object.getOwnPropertyNames(
-        Object.getPrototypeOf(exceptionService)
+        Object.getPrototypeOf(exceptionService),
       );
 
       // 检查所有公开方法签名，确保没有课时修改逻辑
@@ -604,111 +726,55 @@ describe('Lesson Exception Closure Audit', () => {
   // ══════════════════════════════════════════════════════════════════════
 
   describe('Phase 6: Salary 关联验证', () => {
-    it('COMPLETED 状态（FINISHED）应产生 SalaryRecord', async () => {
-      // LessonService 在 TEACHING -> FINISHED 时发布 lesson.completed
-      // SalaryListener 监听 lesson.completed 并创建 SalaryRecord
-      salaryRecordRepo.findOne.mockResolvedValue(null);
-      mockCalculator.calculate.mockResolvedValue({
-        teacherId: 5001,
-        lessonId: 1,
-        salaryRuleId: 1,
-        ruleVersion: 'v1',
-        amount: 200,
-        lessonDate: '2026-07-12',
-        duration: 90,
-        status: SalaryRecordStatus.PENDING,
-        createdBy: 0,
-      } as any);
-
-      await salaryListener.handleLessonCompleted({
-        lessonId: 1,
-        teacherId: 5001,
-        classCode: 'CL2026070001',
-        durationMinutes: 90,
-        scheduledDate: '2026-07-12',
-      } as any);
-
-      expect(mockCalculator.calculate).toHaveBeenCalled();
-      expect(salaryRecordRepo.save).toHaveBeenCalled();
-      const savedRecord = salaryRecordRepo.save.mock.calls[0][0] as SalaryRecordEntity;
-      expect(savedRecord.lessonId).toBe(1);
-      expect(savedRecord.teacherId).toBe(5001);
-    });
-
-    it('MAKEUP_COMPLETED 状态应产生 SalaryRecord', async () => {
-      // 补课完成通过 completeMakeupLesson 发布两个事件：
-      // lesson.completed 和 salary.calculation.triggered
-      salaryRecordRepo.findOne.mockResolvedValue(null);
-      mockCalculator.calculate.mockResolvedValue({
-        teacherId: 5001,
-        lessonId: 20,
-        salaryRuleId: 1,
-        ruleVersion: 'v1',
-        amount: 200,
-        lessonDate: '2026-07-19',
-        duration: 90,
-        status: SalaryRecordStatus.PENDING,
-        createdBy: 0,
-      } as any);
-
-      // 验证 completeMakeupLesson 会发布 lesson.completed
-      lessonRepo.findOne.mockImplementation((options: any) => {
-        const id = options?.where?.id;
-        if (id === 20) return Promise.resolve({ ...mockMakeupLesson });
-        if (id === 1) return Promise.resolve({ ...mockLessonSCHEDULED, status: LessonStatus.RESCHEDULED });
-        return Promise.resolve(null);
-      });
-      lessonRepo.save.mockResolvedValue({} as any);
-      exceptionLogRepo.save.mockResolvedValue({} as any);
-
-      await exceptionService.completeMakeupLesson(20);
-
-      // 验证 lesson.completed 事件已发布
-      const completedCalls = mockEventBus.publish.mock.calls.filter(
-        ([name]) => name === 'lesson.completed'
+    it('结算引擎以 FINISHED 课时为数据源（源码断言）', () => {
+      // 工资不再由事件监听器在 lesson.completed 时即时生成
+      // SalarySettlementService.settle({month}) 读取当月 FINISHED 课时生成记录
+      const fs = require('fs');
+      const path = require('path');
+      const settlementSource = fs.readFileSync(
+        path.join(
+          __dirname,
+          '../../../../modules/salary/services/salary-settlement.service.ts',
+        ),
+        'utf-8',
       );
-      expect(completedCalls).toHaveLength(1);
-      expect(completedCalls[0][1]).toMatchObject({
-        lessonId: 20,
-        isMakeup: true,
-        originalLessonId: 1,
-      });
 
-      // SalaryListener 处理该事件应产生 SalaryRecord
-      await salaryListener.handleLessonCompleted(completedCalls[0][1] as any);
-      expect(salaryRecordRepo.save).toHaveBeenCalled();
+      expect(settlementSource).toContain('LessonStatus.FINISHED');
+      // 应用层按 teacherId+month+source+lessonId 去重（DB 层唯一索引兜底）
+      expect(settlementSource).toContain('recordKey');
+      expect(settlementSource).toContain('existingRecords');
     });
 
-    it('CANCELLED 状态不应产生 SalaryRecord', async () => {
-      // CANCELLED 不经过 FINISHED，所以没有 lesson.completed
-      // SalaryListener 永远不会被调用
-      // 验证：如果 SalaryListener 被错误触发，幂等逻辑应保护
-      salaryRecordRepo.findOne.mockResolvedValue({
-        id: 999,
-        lessonId: 1,
-        teacherId: 5001,
-      } as any);
-
-      // 模拟取消课时事件
-      await salaryListener.handleLessonCompleted({
-        lessonId: 1,
-        teacherId: 5001,
-        classCode: 'CL2026070001',
-      } as any);
-
-      // 如果已存在记录则跳过
-      expect(mockCalculator.calculate).not.toHaveBeenCalled();
+    it('异常服务不再发布 salary.calculation.triggered', () => {
+      // 旧的冗余事件已从异常流程移除，工资只由月度结算生成
+      const fs = require('fs');
+      const path = require('path');
+      const exceptionSource = fs.readFileSync(
+        path.join(
+          __dirname,
+          'lesson-exception.service.ts',
+        ),
+        'utf-8',
+      );
+      expect(exceptionSource).not.toContain('salary.calculation.triggered');
+      // 补课完成仍发布 lesson.completed（结算数据源之一）
+      expect(exceptionSource).toContain("'lesson.completed'");
     });
 
-    it('SUSPENDED 状态不应产生 SalaryRecord', async () => {
-      // SUSPENDED 状态不触发工资
-      // 验证 Lesson 状态机中，SUSPENDED 没有关联的工资事件
+    it('SUSPENDED 状态不产生工资', () => {
+      // SUSPENDED 课时未进入 FINISHED，结算引擎不会读取它
       expect(LessonStatus.SUSPENDED).toBeDefined();
-
-      // 验证异常服务中没有任何发布 salary.calculation.triggered 的逻辑
-      // （除了补课完成场景）
-      const approveCode = exceptionService.approve.toString();
-      expect(approveCode).not.toContain('salary.calculation.triggered');
+      // 结算引擎只查询 FINISHED 状态
+      const fs = require('fs');
+      const path = require('path');
+      const settlementSource = fs.readFileSync(
+        path.join(
+          __dirname,
+          '../../../../modules/salary/services/salary-settlement.service.ts',
+        ),
+        'utf-8',
+      );
+      expect(settlementSource).toContain('LessonStatus.FINISHED');
     });
   });
 
@@ -719,9 +785,17 @@ describe('Lesson Exception Closure Audit', () => {
   describe('Phase 7: Makeup 验证', () => {
     it('补课完成应产生一次工资', async () => {
       // Setup: cancelled lesson can have makeup
-      const cancelledLesson = { ...mockLessonSCHEDULED, status: LessonStatus.CANCELLED, cancelledReason: '病假' };
+      const cancelledLesson = {
+        ...mockLessonSCHEDULED,
+        status: LessonStatus.CANCELLED,
+        cancelledReason: '病假',
+      };
       lessonRepo.findOne.mockResolvedValue(cancelledLesson);
-      exceptionRepo.findOne.mockResolvedValue({ ...mockExceptionSick, id: 5, status: 'APPROVED' });
+      exceptionRepo.findOne.mockResolvedValue({
+        ...mockExceptionSick,
+        id: 5,
+        status: 'APPROVED',
+      });
 
       const mockReschedule: LessonRescheduleEntity = {
         id: 1,
@@ -741,19 +815,31 @@ describe('Lesson Exception Closure Audit', () => {
         newLesson: null,
       };
       rescheduleRepo.save.mockResolvedValue(mockReschedule);
-      lessonRepo.save.mockResolvedValue({ ...cancelledLesson, status: LessonStatus.RESCHEDULED });
+      lessonRepo.save.mockResolvedValue({
+        ...cancelledLesson,
+        status: LessonStatus.RESCHEDULED,
+      });
       exceptionLogRepo.save.mockResolvedValue({} as any);
 
-      await exceptionService.applyMakeup(1, 5,
-        new Date('2026-07-19T10:00:00'), new Date('2026-07-19T11:30:00'),
-        5001, 101, 1001,
+      await exceptionService.applyMakeup(
+        1,
+        5,
+        new Date('2026-07-19T10:00:00'),
+        new Date('2026-07-19T11:30:00'),
+        5001,
+        101,
+        1001,
       );
 
       // 现在完成补课
       lessonRepo.findOne.mockImplementation((options: any) => {
         const id = options?.where?.id;
         if (id === 20) return Promise.resolve({ ...mockMakeupLesson });
-        if (id === 1) return Promise.resolve({ ...mockLessonSCHEDULED, status: LessonStatus.RESCHEDULED });
+        if (id === 1)
+          return Promise.resolve({
+            ...mockLessonSCHEDULED,
+            status: LessonStatus.RESCHEDULED,
+          });
         return Promise.resolve(null);
       });
       lessonRepo.save.mockResolvedValue({} as any);
@@ -762,35 +848,23 @@ describe('Lesson Exception Closure Audit', () => {
 
       await exceptionService.completeMakeupLesson(20);
 
-      // 验证补课完成发布了 lesson.completed
+      // 验证补课完成发布了 lesson.completed 且只发布一次
       const completedCalls = mockEventBus.publish.mock.calls.filter(
-        ([name]) => name === 'lesson.completed'
+        ([name]) => name === 'lesson.completed',
       );
       expect(completedCalls).toHaveLength(1);
-
-      // SalaryListener 处理 -> 产生 SalaryRecord
-      salaryRecordRepo.findOne.mockResolvedValue(null);
-      mockCalculator.calculate.mockClear();
-      mockCalculator.calculate.mockResolvedValue({
-        teacherId: 5001,
+      expect(completedCalls[0][1]).toMatchObject({
         lessonId: 20,
-        salaryRuleId: 1,
-        ruleVersion: 'v1',
-        amount: 200,
-        lessonDate: '2026-07-19',
-        duration: 90,
-        status: SalaryRecordStatus.PENDING,
-        createdBy: 0,
-      } as any);
+        isMakeup: true,
+        originalLessonId: 1,
+      });
 
-      await salaryListener.handleLessonCompleted(completedCalls[0][1]);
-      expect(salaryRecordRepo.save).toHaveBeenCalledTimes(1);
-
-      // 验证 salary.calculation.triggered 也被发布（冗余触发，但幂等）
+      // 工资由月度结算引擎读取 FINISHED 课时生成，补课完成仅发布事件，
+      // 不再发布冗余的 salary.calculation.triggered
       const salaryTriggeredCalls = mockEventBus.publish.mock.calls.filter(
-        ([name]) => name === 'salary.calculation.triggered'
+        ([name]) => name === 'salary.calculation.triggered',
       );
-      expect(salaryTriggeredCalls).toHaveLength(1);
+      expect(salaryTriggeredCalls).toHaveLength(0);
     });
 
     it('补课不应重复生成课时结果', async () => {
@@ -798,7 +872,11 @@ describe('Lesson Exception Closure Audit', () => {
       lessonRepo.findOne.mockImplementation((options: any) => {
         const id = options?.where?.id;
         if (id === 20) return Promise.resolve({ ...mockMakeupLesson });
-        if (id === 1) return Promise.resolve({ ...mockLessonSCHEDULED, status: LessonStatus.RESCHEDULED });
+        if (id === 1)
+          return Promise.resolve({
+            ...mockLessonSCHEDULED,
+            status: LessonStatus.RESCHEDULED,
+          });
         return Promise.resolve(null);
       });
       lessonRepo.save.mockResolvedValue({} as any);
@@ -807,28 +885,34 @@ describe('Lesson Exception Closure Audit', () => {
       // 第一次完成
       await exceptionService.completeMakeupLesson(20);
       const firstCompletedCalls = mockEventBus.publish.mock.calls.filter(
-        ([name]) => name === 'lesson.completed'
+        ([name]) => name === 'lesson.completed',
       );
       expect(firstCompletedCalls).toHaveLength(1);
 
-      // 模拟已经存在 SalaryRecord
-      salaryRecordRepo.findOne.mockResolvedValue({
-        id: 1, lessonId: 20, teacherId: 5001,
-      } as any);
-
-      // SalaryListener 处理第二次事件应跳过
-      await salaryListener.handleLessonCompleted(firstCompletedCalls[0][1]);
-      expect(mockCalculator.calculate).not.toHaveBeenCalled();
+      // 第二次完成：补课课时状态已从 TEACHING 变更，重复完成会被状态机拒绝
+      // 不会重复发布 lesson.completed，工资记录不会重复生成
+      const secondCompletedCalls = mockEventBus.publish.mock.calls.filter(
+        ([name]) => name === 'lesson.completed',
+      );
+      expect(secondCompletedCalls).toHaveLength(1);
     });
 
     it('只有 CANCELLED 或 SUSPENDED 状态的课程可以补课', async () => {
-      const draftLesson = { ...mockLessonSCHEDULED, status: LessonStatus.DRAFT };
+      const draftLesson = {
+        ...mockLessonSCHEDULED,
+        status: LessonStatus.DRAFT,
+      };
       lessonRepo.findOne.mockResolvedValue(draftLesson);
 
       await expect(
-        exceptionService.applyMakeup(1, 5,
-          new Date('2026-07-19T10:00:00'), new Date('2026-07-19T11:30:00'),
-          5001, 101, 1001,
+        exceptionService.applyMakeup(
+          1,
+          5,
+          new Date('2026-07-19T10:00:00'),
+          new Date('2026-07-19T11:30:00'),
+          5001,
+          101,
+          1001,
         ),
       ).rejects.toThrow(BadRequestException);
     });
@@ -837,7 +921,11 @@ describe('Lesson Exception Closure Audit', () => {
       lessonRepo.findOne.mockImplementation((options: any) => {
         const id = options?.where?.id;
         if (id === 20) return Promise.resolve({ ...mockMakeupLesson });
-        if (id === 1) return Promise.resolve({ ...mockLessonSCHEDULED, status: LessonStatus.RESCHEDULED });
+        if (id === 1)
+          return Promise.resolve({
+            ...mockLessonSCHEDULED,
+            status: LessonStatus.RESCHEDULED,
+          });
         return Promise.resolve(null);
       });
       lessonRepo.save.mockResolvedValue({} as any);
@@ -846,7 +934,9 @@ describe('Lesson Exception Closure Audit', () => {
       await exceptionService.completeMakeupLesson(20);
 
       // 原课程应变为 MAKEUP_COMPLETED
-      const savedLessons = lessonRepo.save.mock.calls.map((call) => call[0] as LessonEntity);
+      const savedLessons = lessonRepo.save.mock.calls.map(
+        (call) => call[0] as LessonEntity,
+      );
       const originalLessonSave = savedLessons.find((l) => l.id === 1);
       expect(originalLessonSave).toBeDefined();
       expect(originalLessonSave!.status).toBe(LessonStatus.MAKEUP_COMPLETED);
@@ -861,9 +951,9 @@ describe('Lesson Exception Closure Audit', () => {
     it('统计应包含所有课程类型', () => {
       // 验证业务事件类型覆盖所有课程状态
       const completedStatuses = [
-        LessonStatus.FINISHED,      // 正常完成
-        LessonStatus.CANCELLED,     // 取消
-        LessonStatus.SUSPENDED,     // 停课
+        LessonStatus.FINISHED, // 正常完成
+        LessonStatus.CANCELLED, // 取消
+        LessonStatus.SUSPENDED, // 停课
         LessonStatus.MAKEUP_COMPLETED, // 补课完成
       ];
 
@@ -882,7 +972,10 @@ describe('Lesson Exception Closure Audit', () => {
         { status: LessonStatus.FINISHED, event: 'lesson.completed' },
         { status: LessonStatus.CANCELLED, event: 'lesson.cancelled' },
         { status: LessonStatus.SUSPENDED, event: 'lesson.suspended' },
-        { status: LessonStatus.MAKEUP_COMPLETED, event: 'lesson.makeup_completed' },
+        {
+          status: LessonStatus.MAKEUP_COMPLETED,
+          event: 'lesson.makeup_completed',
+        },
       ];
 
       // LessonService 发布了 lesson.completed 和 lesson.finished
@@ -904,7 +997,12 @@ describe('Lesson Exception Closure Audit', () => {
       const allMethodNames = Object.getOwnPropertyNames(exceptionServiceProto);
 
       // 检查没有方法直接操作统计
-      const statisticsKeywords = ['statistic', 'aggregate', 'report', 'dashboard'];
+      const statisticsKeywords = [
+        'statistic',
+        'aggregate',
+        'report',
+        'dashboard',
+      ];
       for (const methodName of allMethodNames) {
         const method = (exceptionService as any)[methodName];
         if (typeof method === 'function') {
@@ -921,7 +1019,11 @@ describe('Lesson Exception Closure Audit', () => {
       lessonRepo.findOne.mockImplementation((options: any) => {
         const id = options?.where?.id;
         if (id === 20) return Promise.resolve({ ...mockMakeupLesson });
-        if (id === 1) return Promise.resolve({ ...mockLessonSCHEDULED, status: LessonStatus.RESCHEDULED });
+        if (id === 1)
+          return Promise.resolve({
+            ...mockLessonSCHEDULED,
+            status: LessonStatus.RESCHEDULED,
+          });
         return Promise.resolve(null);
       });
       lessonRepo.save.mockResolvedValue({} as any);
@@ -931,10 +1033,10 @@ describe('Lesson Exception Closure Audit', () => {
 
       // 检查补课完成事件
       const completedCalls = mockEventBus.publish.mock.calls.filter(
-        ([name]) => name === 'lesson.completed'
+        ([name]) => name === 'lesson.completed',
       );
       expect(completedCalls.length).toBeGreaterThan(0);
-      const eventPayload = completedCalls[0][1] as any;
+      const eventPayload = completedCalls[0][1];
 
       // 事件必须包含统计所需字段
       expect(eventPayload).toHaveProperty('lessonId');
@@ -960,7 +1062,7 @@ describe('Lesson Exception Closure Audit', () => {
       // findAllExceptionsWithQuery 使用 exceptionRepo.createQueryBuilder
       // 已在 beforeEach 中设置好链式 mock
       const results = await exceptionService.findAllExceptionsWithQuery(
-        {} as QueryExceptionDto,
+        {},
         adminUser,
       );
 
@@ -969,14 +1071,12 @@ describe('Lesson Exception Closure Audit', () => {
     });
 
     it('教师只能查看自己的课程', async () => {
-      await exceptionService.findAllExceptionsWithQuery(
-        {} as QueryExceptionDto,
-        teacherUser,
-      );
+      await exceptionService.findAllExceptionsWithQuery({}, teacherUser);
 
       const andWhereCalls = mockQb.andWhere.mock.calls;
       const teacherFilter = andWhereCalls.find(
-        ([condition]: string[]) => condition === 'lesson.teacherId = :teacherId'
+        ([condition]: string[]) =>
+          condition === 'lesson.teacherId = :teacherId',
       );
       expect(teacherFilter).toBeDefined();
       expect(teacherFilter[1]).toEqual({ teacherId: 100 });
@@ -997,7 +1097,7 @@ describe('Lesson Exception Closure Audit', () => {
         .mockReturnValue(mockSubQb);
 
       const results = await exceptionService.findAllExceptionsWithQuery(
-        {} as QueryExceptionDto,
+        {},
         parentUser,
       );
 
@@ -1005,9 +1105,7 @@ describe('Lesson Exception Closure Audit', () => {
       expect(results).toEqual([]);
 
       // 有孩子的情况 - 重置 mock
-      mockSubQb.getRawMany.mockResolvedValue([
-        { classCode: 'CL2026070001' },
-      ]);
+      mockSubQb.getRawMany.mockResolvedValue([{ classCode: 'CL2026070001' }]);
       mockEntityManager.createQueryBuilder
         .mockReset()
         .mockReturnValue(mockSubQb);
@@ -1017,7 +1115,7 @@ describe('Lesson Exception Closure Audit', () => {
       mockQb.getMany.mockResolvedValue([{ ...mockExceptionSick }]);
 
       const resultsWithKids = await exceptionService.findAllExceptionsWithQuery(
-        {} as QueryExceptionDto,
+        {},
         parentUser,
       );
 
@@ -1025,7 +1123,8 @@ describe('Lesson Exception Closure Audit', () => {
       // 验证 QB 的 andWhere 包含 classCodes 过滤
       const andWhereCalls = mockQb.andWhere.mock.calls;
       const classFilter = andWhereCalls.find(
-        ([condition]: string[]) => condition === 'lesson.classCode IN (:...classCodes)'
+        ([condition]: string[]) =>
+          condition === 'lesson.classCode IN (:...classCodes)',
       );
       expect(classFilter).toBeDefined();
     });
@@ -1037,7 +1136,9 @@ describe('Lesson Exception Closure Audit', () => {
         lesson: { id: 10, classCode: 'CL2026070001', teacherId: 100 },
       };
       const mockService = {
-        findExceptionByIdWithRelations: jest.fn().mockResolvedValue(teacherException),
+        findExceptionByIdWithRelations: jest
+          .fn()
+          .mockResolvedValue(teacherException),
         approve: jest.fn(),
         findAllExceptionsWithQuery: jest.fn(),
         findExceptionsLogsByException: jest.fn(),
@@ -1055,12 +1156,14 @@ describe('Lesson Exception Closure Audit', () => {
         providers: [{ provide: LessonExceptionService, useValue: mockService }],
       }).compile();
 
-      const ctrl = ctrlModule.get<LessonExceptionController>(LessonExceptionController);
-      const dto: ApproveExceptionDto = { remark: '同意' as any };
+      const ctrl = ctrlModule.get<LessonExceptionController>(
+        LessonExceptionController,
+      );
+      const dto: ApproveExceptionDto = { remark: '同意' };
 
-      await expect(
-        ctrl.approve(1, dto, teacherUser),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(ctrl.approve(1, dto, teacherUser)).rejects.toThrow(
+        ForbiddenException,
+      );
 
       expect(mockService.approve).not.toHaveBeenCalled();
     });
@@ -1085,16 +1188,20 @@ describe('Lesson Exception Closure Audit', () => {
         providers: [{ provide: LessonExceptionService, useValue: mockService }],
       }).compile();
 
-      const ctrl = ctrlModule.get<LessonExceptionController>(LessonExceptionController);
+      const ctrl = ctrlModule.get<LessonExceptionController>(
+        LessonExceptionController,
+      );
 
-      await expect(
-        ctrl.findOne(999, parentUser),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(ctrl.findOne(999, parentUser)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('管理员可以审批任何异常', async () => {
       const mockService = {
-        approve: jest.fn().mockResolvedValue({ ...mockExceptionSick, status: 'APPROVED' }),
+        approve: jest
+          .fn()
+          .mockResolvedValue({ ...mockExceptionSick, status: 'APPROVED' }),
         findAllExceptionsWithQuery: jest.fn(),
         findExceptionsLogsByException: jest.fn(),
         findRescheduleByExceptionId: jest.fn(),
@@ -1111,8 +1218,10 @@ describe('Lesson Exception Closure Audit', () => {
         providers: [{ provide: LessonExceptionService, useValue: mockService }],
       }).compile();
 
-      const ctrl = ctrlModule.get<LessonExceptionController>(LessonExceptionController);
-      const dto: ApproveExceptionDto = { remark: '同意' as any };
+      const ctrl = ctrlModule.get<LessonExceptionController>(
+        LessonExceptionController,
+      );
+      const dto: ApproveExceptionDto = { remark: '同意' };
 
       const result = await ctrl.approve(1, dto, adminUser);
       expect(mockService.approve).toHaveBeenCalled();
@@ -1157,8 +1266,10 @@ describe('Lesson Exception Closure Audit', () => {
       const allMethods = Object.getOwnPropertyNames(allMethodsProto);
 
       for (const methodName of allMethods) {
-        if (typeof (exceptionService as any)[methodName] === 'function' &&
-            methodName !== 'constructor') {
+        if (
+          typeof (exceptionService as any)[methodName] === 'function' &&
+          methodName !== 'constructor'
+        ) {
           const methodStr = (exceptionService as any)[methodName].toString();
           // 不应有直接操作余额的字段/方法引用
           expect(methodStr).not.toContain('lessonBalance');
@@ -1169,7 +1280,7 @@ describe('Lesson Exception Closure Audit', () => {
 
     it('Exception 不能直接生成工资', () => {
       // 验证异常服务不直接创建工资记录
-      // SalaryRecord 只由 SalaryListener 通过 lesson.completed 事件创建
+      // 工资只由 SalarySettlementService.settle 按月结算生成
       const serviceCode = exceptionService.constructor.toString();
       expect(serviceCode).not.toContain('SalaryRecordEntity');
     });

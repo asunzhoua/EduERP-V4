@@ -26,7 +26,7 @@ describe('SalaryService.getStatistics', () => {
       groupBy: jest.fn().mockReturnThis(),
       getRawMany: jest.fn().mockResolvedValue([
         { status: 'PENDING', amount: '800' },
-        { status: 'CONFIRMED', amount: '700' },
+        { status: 'APPROVED', amount: '700' },
         { status: 'PAID', amount: '500' },
       ]),
     };
@@ -55,7 +55,10 @@ describe('SalaryService.getStatistics', () => {
     const now = new Date();
     const res = await service.getStatistics({});
     expect(res.year).toBe(now.getFullYear());
-    expect(res.month).toBe(now.getMonth() + 1);
+    expect(res.monthNum).toBe(now.getMonth() + 1);
+    expect(res.month).toBe(
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
+    );
   });
 
   it('返回 paid/pending 拆分、recordCount 与 teacherCount', async () => {
@@ -64,6 +67,7 @@ describe('SalaryService.getStatistics', () => {
     expect(res.recordCount).toBe(10);
     expect(res.teacherCount).toBe(3);
     expect(res.paidAmount).toBe(500);
-    expect(res.pendingAmount).toBe(1500); // PENDING 800 + CONFIRMED 700
+    expect(res.pendingAmount).toBe(1500); // PENDING 800 + APPROVED 700
+    expect(res.month).toBe('2026-08');
   });
 });

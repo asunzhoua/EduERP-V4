@@ -25,12 +25,15 @@ import { LessonRepository } from '../lesson/lesson.repository';
 import { LessonEntity } from '../lesson/lesson.entity';
 import { LessonStatus } from '../lesson/enums/lesson-status.enum';
 import { EventBusService } from '@events/event-bus.service';
-import { SalaryListener } from '@modules/salary/listeners/salary.listener';
 import { SalaryCalculator } from '@modules/salary/services/salary-calculator.service';
+import { SalarySettlementService } from '@modules/salary/services/salary-settlement.service';
 import { SalaryRecordEntity } from '@modules/salary/entities/salary-record.entity';
 import { SalaryRuleEntity } from '@modules/salary/entities/salary-rule.entity';
-import { SalaryRecordStatus, SalaryRuleType } from '@modules/salary/enums/salary.enums';
-import { LessonCompletedEvent as SalaryLessonCompletedEvent } from '@modules/salary/events/lesson-completed.event';
+import {
+  SalaryRecordStatus,
+  SalaryRecordSource,
+  SalaryRuleType,
+} from '@modules/salary/enums/salary.enums';
 import { LessonAttendanceService } from '../lesson-attendance/lesson-attendance.service';
 import { LessonAttendanceEntity } from '../lesson-attendance/lesson-attendance.entity';
 import { AttendanceStatus } from '../lesson-attendance/enums/attendance-status.enum';
@@ -51,12 +54,23 @@ import { Subject } from '@common/enums/subject.enum';
 
 const VALID_TRANSITIONS: Record<LessonStatus, LessonStatus[]> = {
   [LessonStatus.DRAFT]: [LessonStatus.SCHEDULED, LessonStatus.CANCELLED],
-  [LessonStatus.SCHEDULED]: [LessonStatus.TEACHING, LessonStatus.CANCELLED, LessonStatus.SUSPENDED],
+  [LessonStatus.SCHEDULED]: [
+    LessonStatus.TEACHING,
+    LessonStatus.CANCELLED,
+    LessonStatus.SUSPENDED,
+  ],
   [LessonStatus.TEACHING]: [LessonStatus.FINISHED, LessonStatus.CANCELLED],
   [LessonStatus.FINISHED]: [LessonStatus.ARCHIVED, LessonStatus.SCHEDULED],
   [LessonStatus.ARCHIVED]: [LessonStatus.FINISHED],
-  [LessonStatus.CANCELLED]: [LessonStatus.SCHEDULED, LessonStatus.MAKEUP_PENDING],
-  [LessonStatus.SUSPENDED]: [LessonStatus.SCHEDULED, LessonStatus.RESCHEDULED, LessonStatus.MAKEUP_PENDING],
+  [LessonStatus.CANCELLED]: [
+    LessonStatus.SCHEDULED,
+    LessonStatus.MAKEUP_PENDING,
+  ],
+  [LessonStatus.SUSPENDED]: [
+    LessonStatus.SCHEDULED,
+    LessonStatus.RESCHEDULED,
+    LessonStatus.MAKEUP_PENDING,
+  ],
   [LessonStatus.RESCHEDULED]: [LessonStatus.TEACHING],
   [LessonStatus.MAKEUP_PENDING]: [LessonStatus.RESCHEDULED],
   [LessonStatus.MAKEUP_COMPLETED]: [],
@@ -104,35 +118,45 @@ function createMockLessonRepo() {
     findOneByClassCodeAndLessonNumber: jest.fn().mockResolvedValue(null),
     findByClassCode: jest.fn().mockImplementation((classCode: string) => {
       return Promise.resolve(
-        Array.from(store.values()).filter(l => l.classCode === classCode),
+        Array.from(store.values()).filter((l) => l.classCode === classCode),
       );
     }),
     findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
     findMaxLessonNumber: jest.fn().mockResolvedValue(null),
     countByClassCode: jest.fn().mockResolvedValue(0),
-    countByClassCodeAndStatus: jest.fn().mockImplementation(
-      (classCode: string, status: LessonStatus) => {
+    countByClassCodeAndStatus: jest
+      .fn()
+      .mockImplementation((classCode: string, status: LessonStatus) => {
         const count = Array.from(store.values()).filter(
-          l => l.classCode === classCode && l.status === status,
+          (l) => l.classCode === classCode && l.status === status,
         ).length;
         return Promise.resolve(count);
-      },
-    ),
+      }),
     countFinishedByClassCodes: jest.fn().mockResolvedValue(new Map()),
     findMaxScheduledDateByClassCode: jest.fn().mockResolvedValue(null),
     findMaxScheduledDateByClassCodes: jest.fn().mockResolvedValue(new Map()),
     findUpcomingLessons: jest.fn().mockResolvedValue([]),
+    find: jest.fn().mockImplementation((opts: any) => {
+      const where = opts?.where ?? {};
+      return Promise.resolve(
+        Array.from(store.values()).filter((l) => {
+          if (where.status && l.status !== where.status) return false;
+          if (where.teacherId && l.teacherId !== where.teacherId) return false;
+          return true;
+        }),
+      );
+    }),
   };
 }
 
 function createMockClassRepo() {
   return {
     findOneByCode: jest.fn().mockImplementation((code: string) => {
-      if (code === 'CL-NOT-ACTIVE') {
-        return Promise.resolve({ status: ClassStatus.INACTIVE, courseCode: 'MATH' });
-      }
       if (code === 'CL-MISMATCH') {
-        return Promise.resolve({ status: ClassStatus.ACTIVE, courseCode: 'WRONG' });
+        return Promise.resolve({
+          status: ClassStatus.ACTIVE,
+          courseCode: 'WRONG',
+        });
       }
       return Promise.resolve({
         status: ClassStatus.ACTIVE,
@@ -167,16 +191,25 @@ function createMockContractRepo() {
   return {
     _store: store,
     save: jest.fn().mockImplementation((entity: any) => {
-      const idx = store.findIndex(c => c.contractCode === entity.contractCode);
+      const idx = store.findIndex(
+        (c) => c.contractCode === entity.contractCode,
+      );
       if (idx >= 0) store[idx] = entity;
       else store.push(entity);
       return Promise.resolve(entity);
     }),
-    findActiveByStudentCodeAndSubject: jest.fn().mockImplementation((code: string, subject: Subject) => {
-      return Promise.resolve(
-        store.find(c => c.studentCode === code && c.subject === subject && c.status === 'ACTIVE') || null,
-      );
-    }),
+    findActiveByStudentCodeAndSubject: jest
+      .fn()
+      .mockImplementation((code: string, subject: Subject) => {
+        return Promise.resolve(
+          store.find(
+            (c) =>
+              c.studentCode === code &&
+              c.subject === subject &&
+              c.status === 'ACTIVE',
+          ) || null,
+        );
+      }),
     findOneByCode: jest.fn().mockResolvedValue(null),
     findOneById: jest.fn().mockResolvedValue(null),
     findByStudentCode: jest.fn().mockResolvedValue([]),
@@ -190,41 +223,52 @@ function createMockAttendanceRepo() {
     _records: records,
     save: jest.fn().mockImplementation((entity: LessonAttendanceEntity) => {
       const idx = records.findIndex(
-        r => r.lessonId === entity.lessonId && r.studentCode === entity.studentCode,
+        (r) =>
+          r.lessonId === entity.lessonId &&
+          r.studentCode === entity.studentCode,
       );
       if (idx >= 0) records[idx] = entity;
       else records.push(entity);
       return Promise.resolve(entity);
     }),
-    saveAll: jest.fn().mockImplementation((entities: LessonAttendanceEntity[]) => {
-      for (const entity of entities) {
-        const idx = records.findIndex(
-          r => r.lessonId === entity.lessonId && r.studentCode === entity.studentCode,
-        );
-        if (idx >= 0) records[idx] = entity;
-        else records.push(entity);
-      }
-      return Promise.resolve(entities);
-    }),
+    saveAll: jest
+      .fn()
+      .mockImplementation((entities: LessonAttendanceEntity[]) => {
+        for (const entity of entities) {
+          const idx = records.findIndex(
+            (r) =>
+              r.lessonId === entity.lessonId &&
+              r.studentCode === entity.studentCode,
+          );
+          if (idx >= 0) records[idx] = entity;
+          else records.push(entity);
+        }
+        return Promise.resolve(entities);
+      }),
     findByLessonId: jest.fn().mockImplementation((lessonId: number) => {
       return Promise.resolve(
-        records.filter(r => r.lessonId === lessonId).map(r => ({ ...r })),
+        records.filter((r) => r.lessonId === lessonId).map((r) => ({ ...r })),
       );
     }),
-    findByLessonAndStudent: jest.fn().mockImplementation(
-      (lessonId: number, studentCode: string) => {
+    findByLessonAndStudent: jest
+      .fn()
+      .mockImplementation((lessonId: number, studentCode: string) => {
         return Promise.resolve(
-          records.find(r => r.lessonId === lessonId && r.studentCode === studentCode) || null,
+          records.find(
+            (r) => r.lessonId === lessonId && r.studentCode === studentCode,
+          ) || null,
         );
-      },
-    ),
-    findByLessonIdAndStudentCodes: jest.fn().mockImplementation(
-      (lessonId: number, studentCodes: string[]) => {
+      }),
+    findByLessonIdAndStudentCodes: jest
+      .fn()
+      .mockImplementation((lessonId: number, studentCodes: string[]) => {
         return Promise.resolve(
-          records.filter(r => r.lessonId === lessonId && studentCodes.includes(r.studentCode)),
+          records.filter(
+            (r) =>
+              r.lessonId === lessonId && studentCodes.includes(r.studentCode),
+          ),
         );
-      },
-    ),
+      }),
     countUnconfirmedByLessonId: jest.fn().mockResolvedValue(0),
     countPendingByLessonId: jest.fn().mockResolvedValue(0),
     findByStudentCode: jest.fn().mockResolvedValue([]),
@@ -243,44 +287,101 @@ function createMockStudentRepo() {
 
 function createMockSalaryRecordRepo() {
   const records: Map<number, SalaryRecordEntity> = new Map();
+  let nextId = 1;
   return {
     _records: records,
     findOne: jest.fn().mockImplementation(({ where }: any) => {
       if (where?.lessonId !== undefined) {
-        const found = Array.from(records.values()).find(r => r.lessonId === where.lessonId);
+        const found = Array.from(records.values()).find(
+          (r) => r.lessonId === where.lessonId,
+        );
         return Promise.resolve(found || null);
       }
       return Promise.resolve(null);
     }),
-    find: jest.fn().mockResolvedValue([]),
+    find: jest.fn().mockImplementation(({ where }: any) => {
+      if (where?.month) {
+        return Promise.resolve(
+          Array.from(records.values()).filter((r) => r.month === where.month),
+        );
+      }
+      return Promise.resolve([]);
+    }),
     save: jest.fn().mockImplementation((entity: SalaryRecordEntity) => {
-      records.set(entity.lessonId, entity);
+      records.set(entity.lessonId ?? nextId++, entity);
       return Promise.resolve(entity);
     }),
-    create: jest.fn().mockImplementation((data: any) => data as SalaryRecordEntity),
+    create: jest
+      .fn()
+      .mockImplementation((data: any) => data as SalaryRecordEntity),
+    manager: {
+      transaction: jest.fn().mockImplementation(async (cb: any) => {
+        return cb({
+          save: async (_cls: any, arr: SalaryRecordEntity[]) => {
+            for (const e of arr) {
+              records.set(e.lessonId ?? nextId++, e);
+            }
+            return arr;
+          },
+        });
+      }),
+    },
   };
 }
 
 function createMockSalaryRuleRepo() {
+  const rule: any = {
+    id: 1,
+    name: '固定课时费',
+    type: SalaryRuleType.PER_LESSON,
+    baseAmount: 100,
+    multiplier: 1.0,
+    isActive: true,
+    courseType: null,
+    teacherLevel: null,
+    config: { lessonPrice: 100 },
+    createTime: new Date('2026-08-01'),
+    updateTime: new Date('2026-08-01'),
+  };
   return {
-    find: jest.fn().mockResolvedValue([
-      {
-        id: 1,
-        type: SalaryRuleType.PER_LESSON,
-        baseAmount: 100,
-        multiplier: 1.0,
-        isActive: true,
-        courseType: null,
-        teacherLevel: null,
-        updatedAt: new Date(),
-      },
-    ]),
+    _rules: [rule],
+    find: jest.fn().mockResolvedValue([rule]),
     findOne: jest.fn().mockResolvedValue(null),
   };
 }
 
+function createSettlementAttendanceRepo() {
+  const rows: LessonAttendanceEntity[] = [];
+  return {
+    _rows: rows,
+    find: jest.fn().mockImplementation(({ where }: any) => {
+      const ids = where?.lessonId?._value;
+      if (Array.isArray(ids)) {
+        return Promise.resolve(rows.filter((r) => ids.includes(r.lessonId)));
+      }
+      return Promise.resolve(rows);
+    }),
+  };
+}
+
+function createMockCourseRepo() {
+  const rows: any[] = [];
+  return {
+    _rows: rows,
+    find: jest.fn().mockImplementation(({ where }: any) => {
+      const codes = where?.courseCode?._value;
+      if (Array.isArray(codes)) {
+        return Promise.resolve(rows.filter((r) => codes.includes(r.courseCode)));
+      }
+      return Promise.resolve(rows);
+    }),
+  };
+}
+
 /** Helper: create a basic LessonEntity */
-function createLessonEntity(overrides: Partial<LessonEntity> = {}): LessonEntity {
+function createLessonEntity(
+  overrides: Partial<LessonEntity> = {},
+): LessonEntity {
   const entity = new LessonEntity();
   entity.id = overrides.id ?? 1;
   entity.classCode = overrides.classCode ?? 'CL001';
@@ -316,7 +417,8 @@ function createAttendanceEntity(
   entity.studentCode = studentCode;
   entity.classCode = overrides.classCode ?? 'CL001';
   entity.teacherId = overrides.teacherId ?? 100;
-  entity.workflowState = overrides.workflowState ?? AttendanceWorkflowState.PENDING;
+  entity.workflowState =
+    overrides.workflowState ?? AttendanceWorkflowState.PENDING;
   entity.status = overrides.status ?? null;
   entity.checkInTime = overrides.checkInTime ?? null;
   entity.operator = overrides.operator ?? 0;
@@ -360,16 +462,25 @@ describe('Core Business Consistency Audit', () => {
           { provide: EventBusService, useValue: mockEventBus },
           { provide: LessonRepository, useValue: mockLessonRepo },
           { provide: ClassRepository, useValue: createMockClassRepo() },
-          { provide: EnrollmentRepository, useValue: createMockEnrollmentRepo() },
+          {
+            provide: EnrollmentRepository,
+            useValue: createMockEnrollmentRepo(),
+          },
           { provide: ReminderService, useValue: createMockReminderService() },
-          { provide: getRepositoryToken(Student), useValue: createMockStudentRepo() },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: createMockStudentRepo(),
+          },
         ],
       }).compile();
 
       lessonService = module.get<LessonService>(LessonService);
 
       // Seed a lesson with initial status
-      const lesson = createLessonEntity({ id: 1, status: LessonStatus.SCHEDULED });
+      const lesson = createLessonEntity({
+        id: 1,
+        status: LessonStatus.SCHEDULED,
+      });
       mockLessonRepo._store.set(1, lesson);
     });
 
@@ -379,7 +490,9 @@ describe('Core Business Consistency Audit', () => {
       await lessonService.updateStatus(1, LessonStatus.FINISHED, 100);
 
       // Assert: EventBus.publish called with lesson.completed
-      const completedEvent = publishedEvents.find(e => e.name === 'lesson.completed');
+      const completedEvent = publishedEvents.find(
+        (e) => e.name === 'lesson.completed',
+      );
       expect(completedEvent).toBeDefined();
       expect(completedEvent!.payload).toMatchObject({
         lessonId: 1,
@@ -398,7 +511,9 @@ describe('Core Business Consistency Audit', () => {
       await lessonService.updateStatus(1, LessonStatus.ARCHIVED, 100);
 
       // Assert: EventBus.publish called with lesson.finished
-      const finishedEvent = publishedEvents.find(e => e.name === 'lesson.finished');
+      const finishedEvent = publishedEvents.find(
+        (e) => e.name === 'lesson.finished',
+      );
       expect(finishedEvent).toBeDefined();
       expect(finishedEvent!.payload).toMatchObject({
         lessonId: 1,
@@ -408,12 +523,22 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('Lesson Cancelled 应通过 EventBus 触发 lesson.cancelled 事件', async () => {
-      const lesson2 = createLessonEntity({ id: 2, status: LessonStatus.SCHEDULED });
+      const lesson2 = createLessonEntity({
+        id: 2,
+        status: LessonStatus.SCHEDULED,
+      });
       mockLessonRepo._store.set(2, lesson2);
 
-      await lessonService.updateStatus(2, LessonStatus.CANCELLED, 100, 'Schedule conflict');
+      await lessonService.updateStatus(
+        2,
+        LessonStatus.CANCELLED,
+        100,
+        'Schedule conflict',
+      );
 
-      const cancelledEvent = publishedEvents.find(e => e.name === 'lesson.cancelled');
+      const cancelledEvent = publishedEvents.find(
+        (e) => e.name === 'lesson.cancelled',
+      );
       expect(cancelledEvent).toBeDefined();
       expect(cancelledEvent!.payload).toMatchObject({
         lessonId: 2,
@@ -434,28 +559,25 @@ describe('Core Business Consistency Audit', () => {
       ).rejects.toThrow(BadRequestException);
 
       // No duplicate event published
-      const completedEvents = publishedEvents.filter(e => e.name === 'lesson.completed');
+      const completedEvents = publishedEvents.filter(
+        (e) => e.name === 'lesson.completed',
+      );
       expect(completedEvents).toHaveLength(0);
     });
 
-    it('Event 不应重复触发 — SalaryListener 有幂等检查', async () => {
-      const salaryRecordRepo = createMockSalaryRecordRepo();
-      const calculator = new SalaryCalculator(
-        createMockSalaryRuleRepo() as any,
-        salaryRecordRepo as any,
+    it('Event 不应重复触发 — 工资幂等由结算唯一索引保证', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const source = fs.readFileSync(
+        path.join(
+          __dirname,
+          '../../../modules/salary/entities/salary-record.entity.ts',
+        ),
+        'utf-8',
       );
-      const listener = new SalaryListener(salaryRecordRepo as any, calculator);
-
-      const event = new SalaryLessonCompletedEvent(5, 100, 1, new Date());
-
-      jest.spyOn(calculator, 'calculate');
-      await listener.handleLessonCompleted(event);
-      expect(calculator.calculate).toHaveBeenCalledTimes(1);
-
-      // Second call with same lessonId: should skip (idempotent)
-      (calculator.calculate as jest.Mock).mockClear();
-      await listener.handleLessonCompleted(event);
-      expect(calculator.calculate).not.toHaveBeenCalled();
+      // 唯一索引 (teacherId, month, source, lessonId) 保证 LESSON_FEE 幂等
+      expect(source).toContain('@Unique');
+      expect(source).toContain("teacherId', 'month', 'source', 'lessonId");
     });
 
     it('LessonService 无直接 SalaryService 调用', async () => {
@@ -494,9 +616,15 @@ describe('Core Business Consistency Audit', () => {
           { provide: EventBusService, useValue: mockEventBus },
           { provide: LessonRepository, useValue: mockLessonRepo },
           { provide: ClassRepository, useValue: createMockClassRepo() },
-          { provide: EnrollmentRepository, useValue: createMockEnrollmentRepo() },
+          {
+            provide: EnrollmentRepository,
+            useValue: createMockEnrollmentRepo(),
+          },
           { provide: ReminderService, useValue: createMockReminderService() },
-          { provide: getRepositoryToken(Student), useValue: createMockStudentRepo() },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: createMockStudentRepo(),
+          },
         ],
       }).compile();
 
@@ -504,34 +632,63 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('SCHEDULED → TEACHING → FINISHED（相当于 COMPLETED）允许', async () => {
-      const lesson = createLessonEntity({ id: 1, status: LessonStatus.SCHEDULED });
+      const lesson = createLessonEntity({
+        id: 1,
+        status: LessonStatus.SCHEDULED,
+      });
       mockLessonRepo._store.set(1, lesson);
 
-      const afterTeaching = await lessonService.updateStatus(1, LessonStatus.TEACHING, 100);
+      const afterTeaching = await lessonService.updateStatus(
+        1,
+        LessonStatus.TEACHING,
+        100,
+      );
       expect(afterTeaching.status).toBe(LessonStatus.TEACHING);
 
-      const afterFinished = await lessonService.updateStatus(1, LessonStatus.FINISHED, 100);
+      const afterFinished = await lessonService.updateStatus(
+        1,
+        LessonStatus.FINISHED,
+        100,
+      );
       expect(afterFinished.status).toBe(LessonStatus.FINISHED);
     });
 
     it('SCHEDULED → CANCELLED 允许', async () => {
-      const lesson = createLessonEntity({ id: 2, status: LessonStatus.SCHEDULED });
+      const lesson = createLessonEntity({
+        id: 2,
+        status: LessonStatus.SCHEDULED,
+      });
       mockLessonRepo._store.set(2, lesson);
 
-      const result = await lessonService.updateStatus(2, LessonStatus.CANCELLED, 100, 'Reason');
+      const result = await lessonService.updateStatus(
+        2,
+        LessonStatus.CANCELLED,
+        100,
+        'Reason',
+      );
       expect(result.status).toBe(LessonStatus.CANCELLED);
     });
 
     it('SCHEDULED → SUSPENDED 允许', async () => {
-      const lesson = createLessonEntity({ id: 3, status: LessonStatus.SCHEDULED });
+      const lesson = createLessonEntity({
+        id: 3,
+        status: LessonStatus.SCHEDULED,
+      });
       mockLessonRepo._store.set(3, lesson);
 
-      const result = await lessonService.updateStatus(3, LessonStatus.SUSPENDED, 100);
+      const result = await lessonService.updateStatus(
+        3,
+        LessonStatus.SUSPENDED,
+        100,
+      );
       expect(result.status).toBe(LessonStatus.SUSPENDED);
     });
 
     it('CANCELLED → SUSPENDED 禁止（非法转换）', async () => {
-      const lesson = createLessonEntity({ id: 4, status: LessonStatus.CANCELLED });
+      const lesson = createLessonEntity({
+        id: 4,
+        status: LessonStatus.CANCELLED,
+      });
       mockLessonRepo._store.set(4, lesson);
 
       await expect(
@@ -540,7 +697,10 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('FINISHED → SCHEDULED 禁止（需要 reopen reason）', async () => {
-      const lesson = createLessonEntity({ id: 5, status: LessonStatus.FINISHED });
+      const lesson = createLessonEntity({
+        id: 5,
+        status: LessonStatus.FINISHED,
+      });
       mockLessonRepo._store.set(5, lesson);
 
       await expect(
@@ -549,7 +709,10 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('CANCELLED 必须提供 reason', async () => {
-      const lesson = createLessonEntity({ id: 6, status: LessonStatus.SCHEDULED });
+      const lesson = createLessonEntity({
+        id: 6,
+        status: LessonStatus.SCHEDULED,
+      });
       mockLessonRepo._store.set(6, lesson);
 
       await expect(
@@ -558,7 +721,10 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('禁止跳过状态（SCHEDULED → ARCHIVED 非法）', async () => {
-      const lesson = createLessonEntity({ id: 7, status: LessonStatus.SCHEDULED });
+      const lesson = createLessonEntity({
+        id: 7,
+        status: LessonStatus.SCHEDULED,
+      });
       mockLessonRepo._store.set(7, lesson);
 
       await expect(
@@ -578,7 +744,9 @@ describe('Core Business Consistency Audit', () => {
         expect(Array.isArray(VALID_TRANSITIONS[status])).toBe(true);
       }
       // Verify total status count matches
-      expect(definedStatuses.length).toBe(Object.keys(VALID_TRANSITIONS).length);
+      expect(definedStatuses.length).toBe(
+        Object.keys(VALID_TRANSITIONS).length,
+      );
     });
 
     it('禁止直接修改状态 — 不通过 updateStatus 方法', () => {
@@ -587,7 +755,10 @@ describe('Core Business Consistency Audit', () => {
       // This should be prevented at the architecture level.
       // Test verifies LessonRepository.save can be called with direct status set,
       // which is a GAP — the entity has no guard against direct status modification
-      const lesson = createLessonEntity({ id: 50, status: LessonStatus.SCHEDULED });
+      const lesson = createLessonEntity({
+        id: 50,
+        status: LessonStatus.SCHEDULED,
+      });
       // Direct modification bypasses state machine — this is technically possible
       lesson.status = LessonStatus.FINISHED;
       // The fact this is allowed is a finding (see evidence doc)
@@ -615,11 +786,19 @@ describe('Core Business Consistency Audit', () => {
       const mockReminderService = createMockReminderService();
       const mockClassRepo = {
         findOne: jest.fn().mockImplementation(({ where }: any) =>
-          Promise.resolve({ classCode: where.classCode, courseCode: 'MATH001' })),
+          Promise.resolve({
+            classCode: where.classCode,
+            courseCode: 'MATH001',
+          }),
+        ),
       } as any;
       const mockCourseRepo = {
         findOne: jest.fn().mockImplementation(({ where }: any) =>
-          Promise.resolve({ courseCode: where.courseCode, subject: Subject.MATH })),
+          Promise.resolve({
+            courseCode: where.courseCode,
+            subject: Subject.MATH,
+          }),
+        ),
       } as any;
 
       attendanceService = new LessonAttendanceService(
@@ -637,9 +816,15 @@ describe('Core Business Consistency Audit', () => {
           { provide: EventBusService, useValue: mockEventBus },
           { provide: LessonRepository, useValue: mockLessonRepo },
           { provide: ClassRepository, useValue: createMockClassRepo() },
-          { provide: EnrollmentRepository, useValue: createMockEnrollmentRepo() },
+          {
+            provide: EnrollmentRepository,
+            useValue: createMockEnrollmentRepo(),
+          },
           { provide: ReminderService, useValue: mockReminderService },
-          { provide: getRepositoryToken(Student), useValue: createMockStudentRepo() },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: createMockStudentRepo(),
+          },
         ],
       }).compile();
 
@@ -649,7 +834,10 @@ describe('Core Business Consistency Audit', () => {
     it('课时变化唯一来源 — LessonService 不直接管理课时余额', () => {
       const fs = require('fs');
       const path = require('path');
-      const source = fs.readFileSync(path.join(__dirname, '../lesson/lesson.service.ts'), 'utf-8');
+      const source = fs.readFileSync(
+        path.join(__dirname, '../lesson/lesson.service.ts'),
+        'utf-8',
+      );
 
       expect(source).not.toContain('remainingLessons');
       expect(source).not.toContain('deductLesson');
@@ -664,7 +852,10 @@ describe('Core Business Consistency Audit', () => {
       const fs = require('fs');
       const path = require('path');
       const attendanceSource = fs.readFileSync(
-        path.join(__dirname, '../lesson-attendance/lesson-attendance.service.ts'),
+        path.join(
+          __dirname,
+          '../lesson-attendance/lesson-attendance.service.ts',
+        ),
         'utf-8',
       );
       expect(attendanceSource).toContain('deductLessonFromContract');
@@ -695,7 +886,9 @@ describe('Core Business Consistency Audit', () => {
       });
 
       // Verify: 5 → 4
-      const afterFirst = mockContractRepo._store.find(c => c.contractCode === 'CT-IDEMP-001');
+      const afterFirst = mockContractRepo._store.find(
+        (c) => c.contractCode === 'CT-IDEMP-001',
+      );
       expect(afterFirst.remainingLessons).toBe(4);
 
       // Second check-in: blocked by workflow state machine (PENDING → CHECKED_IN already done)
@@ -709,15 +902,20 @@ describe('Core Business Consistency Audit', () => {
       ).rejects.toThrow(BadRequestException);
 
       // Verify: still 4 (no double deduction)
-      const afterSecond = mockContractRepo._store.find(c => c.contractCode === 'CT-IDEMP-001');
+      const afterSecond = mockContractRepo._store.find(
+        (c) => c.contractCode === 'CT-IDEMP-001',
+      );
       expect(afterSecond.remainingLessons).toBe(4);
     });
 
-    it('课时变化唯一来源 — SalaryListener 不能修改课时余额', () => {
+    it('课时变化唯一来源 — SalarySettlementService 不能修改课时余额', () => {
       const fs = require('fs');
       const path = require('path');
       const source = fs.readFileSync(
-        path.join(__dirname, '../../../modules/salary/listeners/salary.listener.ts'),
+        path.join(
+          __dirname,
+          '../../../modules/salary/services/salary-settlement.service.ts',
+        ),
         'utf-8',
       );
       expect(source).not.toContain('remainingLessons');
@@ -734,25 +932,18 @@ describe('Core Business Consistency Audit', () => {
     let lessonService: LessonService;
     let mockEventBus: ReturnType<typeof createMockEventBus>;
     let mockLessonRepo: ReturnType<typeof createMockLessonRepo>;
-    let salaryListener: SalaryListener;
-    let salaryCalculator: SalaryCalculator;
     let mockSalaryRecordRepo: ReturnType<typeof createMockSalaryRecordRepo>;
     let mockSalaryRuleRepo: ReturnType<typeof createMockSalaryRuleRepo>;
+    let mockAttendanceRepo: ReturnType<typeof createSettlementAttendanceRepo>;
+    let mockCourseRepo: ReturnType<typeof createMockCourseRepo>;
 
     beforeEach(async () => {
       mockEventBus = createMockEventBus();
       mockLessonRepo = createMockLessonRepo();
       mockSalaryRecordRepo = createMockSalaryRecordRepo();
       mockSalaryRuleRepo = createMockSalaryRuleRepo();
-
-      salaryCalculator = new SalaryCalculator(
-        mockSalaryRuleRepo as any,
-        mockSalaryRecordRepo as any,
-      );
-      salaryListener = new SalaryListener(
-        mockSalaryRecordRepo as any,
-        salaryCalculator,
-      );
+      mockAttendanceRepo = createSettlementAttendanceRepo();
+      mockCourseRepo = createMockCourseRepo();
 
       const module: TestingModule = await Test.createTestingModule({
         providers: [
@@ -760,18 +951,37 @@ describe('Core Business Consistency Audit', () => {
           { provide: EventBusService, useValue: mockEventBus },
           { provide: LessonRepository, useValue: mockLessonRepo },
           { provide: ClassRepository, useValue: createMockClassRepo() },
-          { provide: EnrollmentRepository, useValue: createMockEnrollmentRepo() },
+          {
+            provide: EnrollmentRepository,
+            useValue: createMockEnrollmentRepo(),
+          },
           { provide: ReminderService, useValue: createMockReminderService() },
-          { provide: getRepositoryToken(Student), useValue: createMockStudentRepo() },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: createMockStudentRepo(),
+          },
         ],
       }).compile();
 
       lessonService = module.get<LessonService>(LessonService);
     });
 
+    function createSettlement() {
+      return new SalarySettlementService(
+        mockSalaryRecordRepo as any,
+        mockSalaryRuleRepo as any,
+        mockLessonRepo as any,
+        mockAttendanceRepo as any,
+        mockCourseRepo as any,
+      );
+    }
+
     it('FINISHED 状态应通过 EventBus 触发工资生成', async () => {
       // Follow correct state machine
-      const lesson = createLessonEntity({ id: 10, status: LessonStatus.SCHEDULED });
+      const lesson = createLessonEntity({
+        id: 10,
+        status: LessonStatus.SCHEDULED,
+      });
       mockLessonRepo._store.set(10, lesson);
 
       const events: any[] = [];
@@ -787,25 +997,81 @@ describe('Core Business Consistency Audit', () => {
       expect(events[0].lessonId).toBe(10);
     });
 
-    it('FINISHED 发布的事件可被 SalaryListener 接收并生成工资记录', async () => {
-      const lessonEvent = new SalaryLessonCompletedEvent(20, 100, 1, new Date());
+    it('结算基于 FINISHED 课时生成 LESSON_FEE 记录（Money Must Have A Lesson）', async () => {
+      const lesson = createLessonEntity({
+        id: 20,
+        status: LessonStatus.FINISHED,
+        scheduledDate: '2026-08-05',
+      });
+      mockLessonRepo._store.set(20, lesson);
+      mockAttendanceRepo._rows.push(
+        createAttendanceEntity(20, 'S1', { status: AttendanceStatus.PRESENT }),
+        createAttendanceEntity(20, 'S2', { status: AttendanceStatus.PRESENT }),
+      );
+      mockCourseRepo._rows.push({ courseCode: 'MATH', type: 'GROUP' });
 
-      const record = await salaryCalculator.calculate(lessonEvent);
-      expect(record).toBeDefined();
-      expect(record.teacherId).toBe(100);
-      expect(record.lessonId).toBe(20);
-      expect(record.amount).toBeGreaterThan(0);
-      expect(record.status).toBe(SalaryRecordStatus.PENDING);
+      const settlement = createSettlement();
+      const result = await settlement.settle('2026-08');
 
-      await salaryListener.handleLessonCompleted(lessonEvent);
+      expect(result.lessons).toBe(1);
+      expect(result.created).toBe(1);
+      const created = Array.from(mockSalaryRecordRepo._records.values());
+      expect(created[0].amount).toBe(100);
+      expect(created[0].source).toBe(SalaryRecordSource.LESSON_FEE);
+      expect(created[0].lessonId).toBe(20);
+      expect(created[0].status).toBe(SalaryRecordStatus.PENDING);
+      expect(created[0].studentCount).toBe(2);
+    });
 
-      const saved = await mockSalaryRecordRepo.findOne({ where: { lessonId: 20 } });
-      expect(saved).toBeDefined();
-      expect(saved!.amount).toBeGreaterThan(0);
+    it('结算幂等 — 重复结算不重复生成记录', async () => {
+      const lesson = createLessonEntity({
+        id: 21,
+        status: LessonStatus.FINISHED,
+        scheduledDate: '2026-08-06',
+      });
+      mockLessonRepo._store.set(21, lesson);
+      mockAttendanceRepo._rows.push(
+        createAttendanceEntity(21, 'S1', { status: AttendanceStatus.PRESENT }),
+      );
+      mockCourseRepo._rows.push({ courseCode: 'MATH', type: 'GROUP' });
+
+      const settlement = createSettlement();
+      const first = await settlement.settle('2026-08');
+      expect(first.created).toBe(1);
+
+      const second = await settlement.settle('2026-08');
+      expect(second.created).toBe(0);
+      expect(Array.from(mockSalaryRecordRepo._records.values())).toHaveLength(1);
+    });
+
+    it('无适用规则 → 生成 needsReview 兜底记录而非静默丢失', async () => {
+      const lesson = createLessonEntity({
+        id: 22,
+        status: LessonStatus.FINISHED,
+        scheduledDate: '2026-08-07',
+      });
+      mockLessonRepo._store.set(22, lesson);
+      mockAttendanceRepo._rows.push(
+        createAttendanceEntity(22, 'S1', { status: AttendanceStatus.PRESENT }),
+      );
+      mockCourseRepo._rows.push({ courseCode: 'MATH', type: 'GROUP' });
+      mockSalaryRuleRepo.find = jest.fn().mockResolvedValue([]); // 无活跃规则
+
+      const settlement = createSettlement();
+      const result = await settlement.settle('2026-08');
+
+      expect(result.created).toBe(1);
+      const created = Array.from(mockSalaryRecordRepo._records.values());
+      expect(created[0].amount).toBe(0);
+      expect(created[0].needsReview).toBe(true);
+      expect(created[0].notes).toBe('无适用工资规则');
     });
 
     it('CANCELLED 状态不应生成工资', async () => {
-      const lesson = createLessonEntity({ id: 30, status: LessonStatus.SCHEDULED });
+      const lesson = createLessonEntity({
+        id: 30,
+        status: LessonStatus.SCHEDULED,
+      });
       mockLessonRepo._store.set(30, lesson);
 
       const events: any[] = [];
@@ -813,14 +1079,24 @@ describe('Core Business Consistency Audit', () => {
         events.push({ name, payload });
       });
 
-      await lessonService.updateStatus(30, LessonStatus.CANCELLED, 100, 'No teacher');
+      await lessonService.updateStatus(
+        30,
+        LessonStatus.CANCELLED,
+        100,
+        'No teacher',
+      );
 
-      const completedEvents = events.filter(e => e.name === 'lesson.completed');
+      const completedEvents = events.filter(
+        (e) => e.name === 'lesson.completed',
+      );
       expect(completedEvents).toHaveLength(0);
     });
 
     it('SUSPENDED 状态不应生成工资', async () => {
-      const lesson = createLessonEntity({ id: 40, status: LessonStatus.SCHEDULED });
+      const lesson = createLessonEntity({
+        id: 40,
+        status: LessonStatus.SCHEDULED,
+      });
       mockLessonRepo._store.set(40, lesson);
 
       const events: any[] = [];
@@ -830,12 +1106,17 @@ describe('Core Business Consistency Audit', () => {
 
       await lessonService.updateStatus(40, LessonStatus.SUSPENDED, 100);
 
-      const completedEvents = events.filter(e => e.name === 'lesson.completed');
+      const completedEvents = events.filter(
+        (e) => e.name === 'lesson.completed',
+      );
       expect(completedEvents).toHaveLength(0);
     });
 
     it('ARCHIVED（lesson.finished）事件不会触发工资生成', async () => {
-      const lesson = createLessonEntity({ id: 50, status: LessonStatus.FINISHED });
+      const lesson = createLessonEntity({
+        id: 50,
+        status: LessonStatus.FINISHED,
+      });
       mockLessonRepo._store.set(50, lesson);
 
       const events: any[] = [];
@@ -845,23 +1126,33 @@ describe('Core Business Consistency Audit', () => {
 
       await lessonService.updateStatus(50, LessonStatus.ARCHIVED, 100);
 
-      const completedEvents = events.filter(e => e.name === 'lesson.completed');
+      const completedEvents = events.filter(
+        (e) => e.name === 'lesson.completed',
+      );
       expect(completedEvents).toHaveLength(0);
-      const finishedEvents = events.filter(e => e.name === 'lesson.finished');
+      const finishedEvents = events.filter((e) => e.name === 'lesson.finished');
       expect(finishedEvents).toHaveLength(1);
     });
 
-    it('幂等 — 重复的 lesson.completed 事件不会重复生成工资', async () => {
-      const lessonEvent = new SalaryLessonCompletedEvent(60, 100, 1, new Date());
-
-      await salaryListener.handleLessonCompleted(lessonEvent);
-      const firstRecords = Array.from(mockSalaryRecordRepo._records.values());
-      expect(firstRecords.length).toBe(1);
-
-      // Second call: should skip (idempotent)
-      await salaryListener.handleLessonCompleted(lessonEvent);
-      const secondRecords = Array.from(mockSalaryRecordRepo._records.values());
-      expect(secondRecords.length).toBe(1);
+    it('工资不再由 lesson.completed 事件即时生成，改由月度结算读取 FINISHED 课时（源码分析）', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const salaryModuleSource = fs.readFileSync(
+        path.join(__dirname, '../../../modules/salary/salary.module.ts'),
+        'utf-8',
+      );
+      const settlementSource = fs.readFileSync(
+        path.join(
+          __dirname,
+          '../../../modules/salary/services/salary-settlement.service.ts',
+        ),
+        'utf-8',
+      );
+      // 无事件监听器
+      expect(salaryModuleSource).not.toContain('SalaryListener');
+      expect(salaryModuleSource).not.toContain('EventEmitter');
+      // 结算引擎以 FINISHED 课时为数据源
+      expect(settlementSource).toContain('LessonStatus.FINISHED');
     });
   });
 
@@ -873,7 +1164,10 @@ describe('Core Business Consistency Audit', () => {
     it('Lesson 不应直接调用 Salary Service（通过源码分析）', () => {
       const fs = require('fs');
       const path = require('path');
-      const source = fs.readFileSync(path.join(__dirname, '../lesson/lesson.service.ts'), 'utf-8');
+      const source = fs.readFileSync(
+        path.join(__dirname, '../lesson/lesson.service.ts'),
+        'utf-8',
+      );
 
       // No direct salary dependencies
       expect(source).not.toContain('SalaryService');
@@ -883,53 +1177,66 @@ describe('Core Business Consistency Audit', () => {
       expect(source).toContain('EventBusService');
     });
 
-    it('Salary 不应直接调用 Lesson Service（通过源码分析）', () => {
+    it('Salary 不调用 Lesson Service / LessonModule（通过源码分析）', () => {
       const fs = require('fs');
       const path = require('path');
-      const listenerSource = fs.readFileSync(
-        path.join(__dirname, '../../../modules/salary/listeners/salary.listener.ts'),
+      const settlementSource = fs.readFileSync(
+        path.join(
+          __dirname,
+          '../../../modules/salary/services/salary-settlement.service.ts',
+        ),
         'utf-8',
       );
       const calculatorSource = fs.readFileSync(
-        path.join(__dirname, '../../../modules/salary/services/salary-calculator.service.ts'),
+        path.join(
+          __dirname,
+          '../../../modules/salary/services/salary-calculator.service.ts',
+        ),
         'utf-8',
       );
 
-      // Neither imports LessonService/LessonEntity/LessonRepository
-      expect(listenerSource).not.toContain('LessonService');
-      expect(listenerSource).not.toContain('LessonEntity');
+      // 结算引擎通过 TypeOrmModule.forFeature 读实体，不直接调 Lesson Service/Module
+      expect(settlementSource).not.toContain('LessonService');
+      expect(settlementSource).not.toContain('LessonModule');
       expect(calculatorSource).not.toContain('LessonService');
       expect(calculatorSource).not.toContain('LessonEntity');
       expect(calculatorSource).not.toContain('LessonRepository');
 
-      // Both use salary domain classes
-      expect(listenerSource).toContain('SalaryRecord');
+      // 使用 salary 领域实体
+      expect(settlementSource).toContain('SalaryRecord');
       expect(calculatorSource).toContain('SalaryRule');
     });
 
-    it('Lesson → EventBus → Listener 链路完整（源码分析）', () => {
+    it('工资链路 — Lesson FINISHED → 月度结算读取课时 → 生成记录（源码分析）', () => {
       const fs = require('fs');
       const path = require('path');
       const lessonSource = fs.readFileSync(
         path.join(__dirname, '../lesson/lesson.service.ts'),
         'utf-8',
       );
-      const salaryListenerSource = fs.readFileSync(
-        path.join(__dirname, '../../../modules/salary/listeners/salary.listener.ts'),
+      const settlementSource = fs.readFileSync(
+        path.join(
+          __dirname,
+          '../../../modules/salary/services/salary-settlement.service.ts',
+        ),
         'utf-8',
       );
 
-      // LessonService publishes via EventBus
+      // LessonService 发布 lesson.completed（驱动考勤/通知）
       expect(lessonSource).toContain('eventBus.publish');
-      // SalaryListener receives via @OnEvent decorator
-      expect(salaryListenerSource).toContain('OnEvent');
-      expect(salaryListenerSource).toContain("'lesson.completed'");
+      expect(lessonSource).toContain("'lesson.completed'");
+      // 结算引擎读取 FINISHED 课时作为工资数据源
+      expect(settlementSource).toContain('LessonStatus.FINISHED');
+      expect(settlementSource).toContain('scheduledDate');
     });
 
     it('LessonModule 不导入 SalaryModule', () => {
       const fs = require('fs');
       const path = require('path');
-      const source = fs.readFileSync(path.join(__dirname, '../lesson/lesson.module.ts'), 'utf-8');
+      const source = fs.readFileSync(
+        path.join(__dirname, '../lesson/lesson.module.ts'),
+        'utf-8',
+      );
       expect(source).not.toContain('SalaryModule');
       expect(source).not.toContain('SalaryService');
       expect(source).toContain('EventBusModule');
@@ -950,7 +1257,10 @@ describe('Core Business Consistency Audit', () => {
       const fs = require('fs');
       const path = require('path');
       const source = fs.readFileSync(
-        path.join(__dirname, '../lesson-attendance/lesson-attendance.service.ts'),
+        path.join(
+          __dirname,
+          '../lesson-attendance/lesson-attendance.service.ts',
+        ),
         'utf-8',
       );
       // Should NOT import salary service directly
@@ -969,7 +1279,11 @@ describe('Core Business Consistency Audit', () => {
   // ═══════════════════════════════════════════════════════════
 
   describe('6. 架构完整性检查 — 缺失组件检测', () => {
-    function findFiles(dir: string, namePattern: RegExp, excludePattern?: RegExp): string[] {
+    function findFiles(
+      dir: string,
+      namePattern: RegExp,
+      excludePattern?: RegExp,
+    ): string[] {
       const fs = require('fs');
       const path = require('path');
       const results: string[] = [];
@@ -977,12 +1291,13 @@ describe('Core Business Consistency Audit', () => {
         const entries = fs.readdirSync(dir, { withFileTypes: true });
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
-          if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
-            results.push(...findFiles(fullPath, namePattern, excludePattern));
-          } else if (
-            entry.isFile() &&
-            namePattern.test(entry.name)
+          if (
+            entry.isDirectory() &&
+            !entry.name.startsWith('.') &&
+            entry.name !== 'node_modules'
           ) {
+            results.push(...findFiles(fullPath, namePattern, excludePattern));
+          } else if (entry.isFile() && namePattern.test(entry.name)) {
             if (!excludePattern || !excludePattern.test(entry.name)) {
               results.push(fullPath);
             }
@@ -998,7 +1313,7 @@ describe('Core Business Consistency Audit', () => {
       const searchDir = path.join(__dirname, '../../..');
       // Search specifically for *listener* files related to points
       const listenerFiles = findFiles(searchDir, /\.listener\.ts$/i);
-      const pointListeners = listenerFiles.filter(f => /point/i.test(f));
+      const pointListeners = listenerFiles.filter((f) => /point/i.test(f));
       expect(pointListeners).toHaveLength(0);
     });
 
@@ -1007,7 +1322,9 @@ describe('Core Business Consistency Audit', () => {
       const path = require('path');
       const searchDir = path.join(__dirname, '../../..');
       const listenerFiles = findFiles(searchDir, /\.listener\.ts$/i);
-      const notificationListeners = listenerFiles.filter(f => /notification/i.test(f));
+      const notificationListeners = listenerFiles.filter((f) =>
+        /notification/i.test(f),
+      );
       expect(notificationListeners).toHaveLength(0);
     });
 
@@ -1016,7 +1333,9 @@ describe('Core Business Consistency Audit', () => {
       const path = require('path');
       const teachingDir = path.join(__dirname, '..');
       const entries = fs.readdirSync(teachingDir, { withFileTypes: true });
-      const submodules = entries.filter(e => e.isDirectory()).map(e => e.name);
+      const submodules = entries
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name);
       expect(submodules).not.toContain('ledger');
     });
   });

@@ -5,24 +5,30 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  Unique,
 } from 'typeorm';
-import { SalaryRecordStatus } from '../enums/salary.enums';
+import {
+  SalaryRecordStatus,
+  SalaryRecordSource,
+} from '../enums/salary.enums';
 
 /**
  * 工资记录实体
  *
- * 每次 Lesson Finished 事件触发产生的工资计算结果。
- * 每条记录对应一个具体课时（Lesson），关联考勤（Attendance）和使用的规则（SalaryRule）。
+ * 月度结算服务（SalarySettlementService.settle）基于当月 FINISHED 课时 + 出勤
+ * 统一批量生成，不再由 lesson.completed 事件即时写入。
  *
- * 核心原则：工资不是输入数据，而是 Lesson Finished 事件产生的业务结果。
- * - 当 Lesson 状态变为 FINISHED 时，系统根据教师的 ACTIVE SalaryRule 自动计算工资
- * - 记录包含完整的计算依据（规则版本号、使用的规则 ID）
- * - 支持状态流转：PENDING → CONFIRMED → PAID
+ * - LESSON_FEE：每课一条，lessonId 非空，amount 为单课课时费
+ * - BASE：底薪一条，lessonId 空，按 (teacherId, month) 唯一
+ * - DAY：按天一条，lessonId 空，按 (teacherId, month, 日期) 唯一
+ * - BONUS / DEDUCTION：绩效/扣款，lessonId 空
  *
- * @see docs/SALARY-DATA-MODEL-DESIGN.md
- * @see docs/SALARY-DATABASE-DESIGN.md
+ * 状态机：PENDING → APPROVED → PAID；PAID 锁定不可改。
+ * 幂等：唯一索引 (teacherId, month, source, lessonId) + settle 先查重再插。
+ * 审计：detail JSON 记录 { ruleId, ruleSnapshot, headcount, feeMode, tierLevel, amount, calcFormula }。
  */
 @Entity('salary_record')
+@Unique(['teacherId', 'month', 'source', 'lessonId'])
 export class SalaryRecordEntity {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
@@ -33,9 +39,10 @@ export class SalaryRecordEntity {
   @Index()
   teacherId: number;
 
-  @Column({ type: 'bigint' })
+  /** LESSON_FEE 记录 = 课时 id；BASE/DAY/BONUS/DEDUCTION 记录为 NULL */
+  @Column({ type: 'bigint', nullable: true })
   @Index()
-  lessonId: number;
+  lessonId: number | null;
 
   @Column({ type: 'bigint', nullable: true })
   attendanceId: number | null;
@@ -44,9 +51,21 @@ export class SalaryRecordEntity {
   @Index()
   salaryRuleId: number;
 
+  // ─── 结算维度 ───
+
+  /** 记录来源：LESSON_FEE / BASE / DAY / BONUS / DEDUCTION */
+  @Column({ type: 'varchar', length: 20, default: SalaryRecordSource.LESSON_FEE })
+  @Index()
+  source: SalaryRecordSource;
+
+  /** 结算月份 'YYYY-MM'（结算维度，唯一索引组成部分） */
+  @Column({ type: 'char', length: 7 })
+  @Index()
+  month: string;
+
   // ─── 规则版本 ───
 
-  @Column({ type: 'varchar', length: 20 })
+  @Column({ type: 'varchar', length: 50 })
   ruleVersion: string;
 
   // ─── 金额 ───
@@ -56,14 +75,29 @@ export class SalaryRecordEntity {
 
   // ─── 课时信息 ───
 
-  @Column({ type: 'date' })
+  @Column({ type: 'date', nullable: true })
   @Index()
-  lessonDate: string;
+  lessonDate: string | null;
 
-  @Column({ type: 'int' })
-  duration: number;
+  @Column({ type: 'int', nullable: true })
+  duration: number | null;
+
+  /** 该课出勤学生数（DEDUCTIBLE_STATUSES 计数），PER_HEAD / 审计用 */
+  @Column({ type: 'int', nullable: true })
+  studentCount: number | null;
+
+  // ─── 审计明细 ───
+
+  /** 计算过程审计：{ ruleId, ruleSnapshot, headcount, feeMode, tierLevel, amount, calcFormula } */
+  @Column({ type: 'json', nullable: true })
+  detail: Record<string, any> | null;
 
   // ─── 状态 ───
+
+  /** 无适用规则等异常场景标记为待人工审核（不静默丢失） */
+  @Column({ type: 'boolean', default: false })
+  @Index()
+  needsReview: boolean;
 
   @Column({
     type: 'enum',

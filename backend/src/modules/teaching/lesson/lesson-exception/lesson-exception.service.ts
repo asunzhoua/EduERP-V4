@@ -86,25 +86,21 @@ export class LessonExceptionService {
     if (exceptionType === 'LEAVE_SICK') {
       // 病假：需要附件（医院证明）
       if (!attachments || attachments.length === 0) {
-        throw new BadRequestException(
-          '病假必须上传附件（医院证明）',
-        );
+        throw new BadRequestException('病假必须上传附件（医院证明）');
       }
     } else if (exceptionType === 'LEAVE_PERSONAL') {
       // 事假：至少提前24小时
-      const hoursBefore = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      const hoursBefore =
+        (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
       if (hoursBefore < 24) {
-        throw new BadRequestException(
-          '事假必须至少提前24小时申请',
-        );
+        throw new BadRequestException('事假必须至少提前24小时申请');
       }
     } else if (exceptionType === 'LEAVE_TRAINING') {
       // 培训假：至少提前48小时
-      const hoursBefore = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      const hoursBefore =
+        (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
       if (hoursBefore < 48) {
-        throw new BadRequestException(
-          '培训假必须至少提前48小时申请',
-        );
+        throw new BadRequestException('培训假必须至少提前48小时申请');
       }
     }
 
@@ -159,16 +155,12 @@ export class LessonExceptionService {
     if (exceptionType === 'SUSPEND_SHORT') {
       // 短期停课：1-7天
       if (durationDays < 1 || durationDays > 7) {
-        throw new BadRequestException(
-          '短期停课天数必须在1-7天之间',
-        );
+        throw new BadRequestException('短期停课天数必须在1-7天之间');
       }
     } else if (exceptionType === 'SUSPEND_LONG') {
       // 长期停课：7天以上
       if (durationDays <= 7) {
-        throw new BadRequestException(
-          '长期停课天数必须大于7天',
-        );
+        throw new BadRequestException('长期停课天数必须大于7天');
       }
     }
 
@@ -179,9 +171,7 @@ export class LessonExceptionService {
     if (lessons.length !== lessonIds.length) {
       const foundIds = lessons.map((l) => l.id);
       const missingIds = lessonIds.filter((id) => !foundIds.includes(id));
-      throw new NotFoundException(
-        `课程不存在: ${missingIds.join(', ')}`,
-      );
+      throw new NotFoundException(`课程不存在: ${missingIds.join(', ')}`);
     }
 
     // 4. Create exception records
@@ -510,9 +500,7 @@ export class LessonExceptionService {
     const makeupLesson = await this.findLessonOrThrow(makeupLessonId);
 
     if (!makeupLesson.isMakeup) {
-      throw new BadRequestException(
-        `课程 ${makeupLessonId} 不是补课课程`,
-      );
+      throw new BadRequestException(`课程 ${makeupLessonId} 不是补课课程`);
     }
 
     // 2. Change makeup lesson status to FINISHED
@@ -573,16 +561,6 @@ export class LessonExceptionService {
       originalLessonId: originalLessonId,
     });
 
-    // 6. Publish salary calculation event
-    this.eventBus.publish('salary.calculation.triggered', {
-      lessonId: makeupLesson.id,
-      teacherId: makeupLesson.teacherId,
-      classCode: makeupLesson.classCode,
-      scheduledDate: makeupLesson.scheduledDate,
-      durationMinutes: makeupDuration,
-      isMakeup: true,
-    });
-
     this.logger.log(
       `Makeup lesson completed: makeupLessonId=${makeupLessonId}, originalLessonId=${originalLessonId}`,
     );
@@ -592,7 +570,9 @@ export class LessonExceptionService {
   // Query Methods
   // ═══════════════════════════════════════════════════
 
-  async findExceptionsByLesson(lessonId: number): Promise<LessonExceptionEntity[]> {
+  async findExceptionsByLesson(
+    lessonId: number,
+  ): Promise<LessonExceptionEntity[]> {
     return this.exceptionRepo.find({
       where: { lessonId },
       order: { createdAt: 'DESC' },
@@ -639,7 +619,8 @@ export class LessonExceptionService {
     query: QueryExceptionDto,
     user: any,
   ): Promise<LessonExceptionEntity[]> {
-    const qb = this.exceptionRepo.createQueryBuilder('e')
+    const qb = this.exceptionRepo
+      .createQueryBuilder('e')
       .leftJoinAndSelect('e.lesson', 'lesson')
       .orderBy('e.createdAt', 'DESC');
 
@@ -675,7 +656,9 @@ export class LessonExceptionService {
       qb.andWhere('e.status = :status', { status: query.status });
     }
     if (query.exceptionType) {
-      qb.andWhere('e.exceptionType = :exceptionType', { exceptionType: query.exceptionType });
+      qb.andWhere('e.exceptionType = :exceptionType', {
+        exceptionType: query.exceptionType,
+      });
     }
     if (query.startDate) {
       qb.andWhere('e.startTime >= :startDate', { startDate: query.startDate });
@@ -691,10 +674,12 @@ export class LessonExceptionService {
    * Find a single exception by id, with full relations loaded:
    * lesson, approval logs, and reschedule records.
    */
-  async findExceptionByIdWithRelations(id: number): Promise<LessonExceptionEntity> {
+  async findExceptionByIdWithRelations(
+    id: number,
+  ): Promise<LessonExceptionEntity> {
     const exception = await this.exceptionRepo.findOne({
       where: { id },
-      relations: { lesson: true } as any,
+      relations: { lesson: true },
     });
     if (!exception) {
       throw new NotFoundException(`异常记录不存在: id=${id}`);
@@ -713,7 +698,7 @@ export class LessonExceptionService {
 
     const exception = await this.exceptionRepo.findOne({
       where: { id: exceptionId },
-      relations: { lesson: true } as any,
+      relations: { lesson: true },
     });
     if (!exception || !exception.lesson) {
       return false;
@@ -730,7 +715,9 @@ export class LessonExceptionService {
         .from('enrollment', 'enr')
         .innerJoin('student', 's', 's.studentCode = enr.studentCode')
         .innerJoin('student_parent', 'sp', 'sp.studentId = s.id')
-        .where('enr.classCode = :classCode', { classCode: exception.lesson.classCode })
+        .where('enr.classCode = :classCode', {
+          classCode: exception.lesson.classCode,
+        })
         .andWhere('sp.parentId = :parentId', { parentId: Number(user.sub) })
         .getCount();
       return count > 0;
@@ -747,7 +734,11 @@ export class LessonExceptionService {
   ): Promise<LessonRescheduleEntity | null> {
     const reschedules = await this.rescheduleRepo.find({
       where: { exceptionId },
-      relations: { originalLesson: true, newLesson: true, exception: true } as any,
+      relations: {
+        originalLesson: true,
+        newLesson: true,
+        exception: true,
+      },
       order: { createdAt: 'DESC' },
       take: 1,
     });

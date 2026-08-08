@@ -46,6 +46,18 @@ export class SalaryRuleEntity {
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 1.0 })
   multiplier: number;
 
+  /**
+   * 扩展配置（强类型 SalaryRuleConfigDto 校验后落库）。
+   * 不同 type 只使用本对象内的相关字段：
+   *   PER_LESSON/PART_TIME/OUTING/PER_DAY → lessonPrice
+   *   PER_HEAD                              → pricePerHead / headcountTiers
+   *   TIER                                  → lessonTiers
+   *   任意                                  → baseSalary / minLessonForBase（可选）
+   *   任意                                  → bonus / deductions（可选绩效与扣款）
+   */
+  @Column({ type: 'json', nullable: true })
+  config: Record<string, any> | null;
+
   // ─── 适用范围 ───
 
   @Column({ type: 'varchar', length: 50, nullable: true })

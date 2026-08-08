@@ -27,12 +27,6 @@ import { ClassRepository } from '../class/class.repository';
 import { EnrollmentRepository } from '../enrollment/enrollment.repository';
 import { ClassStatus } from '../class/enums/class-status.enum';
 import { ReminderService } from '@modules/reminder/reminder.service';
-import { SalaryListener } from '@modules/salary/listeners/salary.listener';
-import { SalaryCalculator } from '@modules/salary/services/salary-calculator.service';
-import { SalaryRecordEntity } from '@modules/salary/entities/salary-record.entity';
-import { SalaryRuleEntity } from '@modules/salary/entities/salary-rule.entity';
-import { SalaryRecordStatus, SalaryRuleType } from '@modules/salary/enums/salary.enums';
-import { LessonCompletedEvent } from '@modules/salary/events/lesson-completed.event';
 import { ContractRepository } from '../contract/contract.repository';
 import { Subject } from '@common/enums/subject.enum';
 import { Student } from '@modules/student/entities/student.entity';
@@ -48,68 +42,22 @@ function createMockEventBus() {
   return {
     _published: published,
     _handlers: handlers,
-    publish: jest.fn().mockImplementation(async (eventName: string, payload: any) => {
-      published.push({ name: eventName, payload });
-      const handler = handlers.get(eventName);
-      if (handler) await handler(payload);
-    }),
+    publish: jest
+      .fn()
+      .mockImplementation(async (eventName: string, payload: any) => {
+        published.push({ name: eventName, payload });
+        const handler = handlers.get(eventName);
+        if (handler) await handler(payload);
+      }),
     subscribe: jest.fn((eventName: string, handler: (payload: any) => void) => {
       handlers.set(eventName, handler);
     }),
   };
 }
 
-function createMockSalaryRecordRepo() {
-  const records: Map<number, SalaryRecordEntity> = new Map();
-  let nextId = 1;
-
-  return {
-    _records: records,
-    findOne: jest.fn().mockImplementation(({ where }: any) => {
-      if (where?.lessonId !== undefined) {
-        const found = Array.from(records.values()).find(r => r.lessonId === where.lessonId);
-        return Promise.resolve(found || null);
-      }
-      return Promise.resolve(null);
-    }),
-    find: jest.fn().mockImplementation(({ where }: any) => {
-      if (where?.lessonId !== undefined) {
-        const found = Array.from(records.values()).filter(r => r.lessonId === where.lessonId);
-        return Promise.resolve(found);
-      }
-      return Promise.resolve([]);
-    }),
-    save: jest.fn().mockImplementation((entity: SalaryRecordEntity) => {
-      if (!entity.id) entity.id = nextId++;
-      records.set(entity.lessonId, entity);
-      return Promise.resolve(entity);
-    }),
-    create: jest.fn().mockImplementation((data: any) => {
-      const record = new SalaryRecordEntity();
-      Object.assign(record, data);
-      return record;
-    }),
-  };
-}
-
-function createMockSalaryRuleRepo() {
-  return {
-    find: jest.fn().mockResolvedValue([
-      {
-        id: 1,
-        type: SalaryRuleType.PER_LESSON,
-        baseAmount: 100,
-        multiplier: 1.0,
-        courseType: null,
-        teacherLevel: null,
-        isActive: true,
-        updatedAt: new Date('2026-07-01'),
-      },
-    ]),
-  };
-}
-
-function getMockLessonEntity(overrides: Partial<LessonEntity> = {}): LessonEntity {
+function getMockLessonEntity(
+  overrides: Partial<LessonEntity> = {},
+): LessonEntity {
   return {
     id: 1,
     classCode: 'CL2026070001',
@@ -166,26 +114,33 @@ function createMockAttendanceRepo() {
   const records: LessonAttendanceEntity[] = [];
   return {
     _records: records,
-    saveAll: jest.fn().mockImplementation((entities: LessonAttendanceEntity[]) => {
-      for (const entity of entities) {
-        const idx = records.findIndex(
-          r => r.lessonId === entity.lessonId && r.studentCode === entity.studentCode,
-        );
-        if (idx >= 0) records[idx] = entity;
-        else records.push(entity);
-      }
-      return Promise.resolve(entities);
-    }),
+    saveAll: jest
+      .fn()
+      .mockImplementation((entities: LessonAttendanceEntity[]) => {
+        for (const entity of entities) {
+          const idx = records.findIndex(
+            (r) =>
+              r.lessonId === entity.lessonId &&
+              r.studentCode === entity.studentCode,
+          );
+          if (idx >= 0) records[idx] = entity;
+          else records.push(entity);
+        }
+        return Promise.resolve(entities);
+      }),
     findByLessonId: jest.fn().mockImplementation((lessonId: number) => {
-      return Promise.resolve(records.filter(r => r.lessonId === lessonId));
+      return Promise.resolve(records.filter((r) => r.lessonId === lessonId));
     }),
-    findByLessonIdAndStudentCodes: jest.fn().mockImplementation(
-      (lessonId: number, studentCodes: string[]) => {
+    findByLessonIdAndStudentCodes: jest
+      .fn()
+      .mockImplementation((lessonId: number, studentCodes: string[]) => {
         return Promise.resolve(
-          records.filter(r => r.lessonId === lessonId && studentCodes.includes(r.studentCode)),
+          records.filter(
+            (r) =>
+              r.lessonId === lessonId && studentCodes.includes(r.studentCode),
+          ),
         );
-      },
-    ),
+      }),
     findByLessonAndStudent: jest.fn().mockResolvedValue(null),
   };
 }
@@ -198,7 +153,9 @@ function createMockReminderService() {
 
 function createMockClassRepo() {
   return {
-    findOneByCode: jest.fn().mockResolvedValue({ status: ClassStatus.ACTIVE, courseCode: 'MATH' }),
+    findOneByCode: jest
+      .fn()
+      .mockResolvedValue({ status: ClassStatus.ACTIVE, courseCode: 'MATH' }),
     save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
   };
 }
@@ -236,40 +193,19 @@ function createMockStudentRepo() {
 describe('Lesson Completed Event Source', () => {
   let lessonService: LessonService;
   let attendanceService: LessonAttendanceService;
-  let salaryListener: SalaryListener;
   let mockEventBus: ReturnType<typeof createMockEventBus>;
-  let mockSalaryRecordRepo: ReturnType<typeof createMockSalaryRecordRepo>;
   let mockAttendanceRepo: ReturnType<typeof createMockAttendanceRepo>;
   let mockLessonRepo: ReturnType<typeof createMockLessonRepo>;
 
   beforeEach(async () => {
     mockEventBus = createMockEventBus();
-    mockSalaryRecordRepo = createMockSalaryRecordRepo();
     mockAttendanceRepo = createMockAttendanceRepo();
     mockLessonRepo = createMockLessonRepo();
-    const mockSalaryRuleRepo = createMockSalaryRuleRepo();
     const mockReminderService = createMockReminderService();
     const mockClassRepo = createMockClassRepo();
     const mockEnrollmentRepo = createMockEnrollmentRepo();
     const mockContractRepo = createMockContractRepo();
     const mockStudentRepo = createMockStudentRepo();
-
-    // Build SalaryCalculator
-    const salaryCalculator = new SalaryCalculator(
-      mockSalaryRuleRepo as any,
-      mockSalaryRecordRepo as any,
-    );
-
-    // Build SalaryListener
-    salaryListener = new SalaryListener(
-      mockSalaryRecordRepo as any,
-      salaryCalculator,
-    );
-
-    // Manually register handler: SalaryListener listens for 'lesson.completed'
-    mockEventBus.subscribe('lesson.completed', async (payload: any) => {
-      await salaryListener.handleLessonCompleted(payload);
-    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -288,11 +224,19 @@ describe('Lesson Completed Event Source', () => {
     // Build LessonAttendanceService (without eventEmitter)
     const mockLessonClassRepo = {
       findOne: jest.fn().mockImplementation(({ where }: any) =>
-        Promise.resolve({ classCode: where.classCode, courseCode: 'MATH001' })),
+        Promise.resolve({
+          classCode: where.classCode,
+          courseCode: 'MATH001',
+        }),
+      ),
     } as any;
     const mockLessonCourseRepo = {
       findOne: jest.fn().mockImplementation(({ where }: any) =>
-        Promise.resolve({ courseCode: where.courseCode, subject: Subject.MATH })),
+        Promise.resolve({
+          courseCode: where.courseCode,
+          subject: Subject.MATH,
+        }),
+      ),
     } as any;
     attendanceService = new LessonAttendanceService(
       mockAttendanceRepo as any,
@@ -378,14 +322,18 @@ describe('Lesson Completed Event Source', () => {
       // 验证没有 lesson.completed 事件从 attendance 发出
       // (lesson.completed 应该只由 LessonService.updateStatus 发射)
       // 这里我们验证 attendance 没有发布事件的能力 — eventEmitter 已被移除
-      expect(mockEventBus._published.filter((e: any) => e.name === 'lesson.completed')).toHaveLength(0);
+      expect(
+        mockEventBus._published.filter(
+          (e: any) => e.name === 'lesson.completed',
+        ),
+      ).toHaveLength(0);
     });
   });
 
   // ─── Test 2: Salary 幂等 ───
 
   describe('Salary 幂等性', () => {
-    it('Salary 只生成一次', async () => {
+    it('lesson.completed 事件携带结算所需字段', async () => {
       const lessonId = 30;
 
       // 模拟 LessonService 完成课程
@@ -411,48 +359,35 @@ describe('Lesson Completed Event Source', () => {
       );
       expect(completedEvents).toHaveLength(1);
       expect(completedEvents[0].payload.lessonId).toBe(lessonId);
-
-      // 等待 SalaryListener 异步处理完成
-      await new Promise<void>(resolve => setTimeout(resolve, 50));
-
-      // 验证 SalaryRecord 只有一条
-      const records = Array.from(mockSalaryRecordRepo._records.values()).filter(
-        (r: any) => r.lessonId === lessonId,
-      );
-      expect(records).toHaveLength(1);
+      // 结算引擎需要 teacherId / courseCode / scheduledDate / durationMinutes
+      expect(completedEvents[0].payload.teacherId).toBeDefined();
+      expect(completedEvents[0].payload.courseCode).toBeDefined();
+      expect(completedEvents[0].payload.scheduledDate).toBeDefined();
     });
 
-    it('重复事件不重复创建 SalaryRecord（幂等）', async () => {
-      const lessonId = 40;
-
-      // 直接模拟两个重复的 lesson.completed 事件
-      const eventPayload = {
-        lessonId,
-        teacherId: 5001,
-        classCode: 'CL001',
-        courseCode: 'CS001',
-        scheduledDate: '2026-07-12',
-        actualStartTime: '2026-07-14T09:00:00Z',
-        actualEndTime: '2026-07-14T10:30:00Z',
-        completedAt: new Date('2026-07-14T10:30:00Z'),
-        durationMinutes: 90,
-        eventId: 'test-uuid-1',
-        timestamp: '2026-07-14T10:30:00Z',
-      };
-
-      // 第一次处理 — 创建记录
-      await salaryListener.handleLessonCompleted(eventPayload);
-      const firstRecords = Array.from(mockSalaryRecordRepo._records.values()).filter(
-        (r: any) => r.lessonId === lessonId,
+    it('工资不再由 lesson.completed 即时生成 — 由月度结算读取 FINISHED 课时（源码分析）', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const salaryModuleSource = fs.readFileSync(
+        path.join(
+          __dirname,
+          '../../../modules/salary/salary.module.ts',
+        ),
+        'utf-8',
       );
-      expect(firstRecords).toHaveLength(1);
-
-      // 第二次处理（重复事件）— 应跳过
-      await salaryListener.handleLessonCompleted(eventPayload);
-      const secondRecords = Array.from(mockSalaryRecordRepo._records.values()).filter(
-        (r: any) => r.lessonId === lessonId,
+      const settlementSource = fs.readFileSync(
+        path.join(
+          __dirname,
+          '../../../modules/salary/services/salary-settlement.service.ts',
+        ),
+        'utf-8',
       );
-      expect(secondRecords).toHaveLength(1);
+      // 无事件监听器 → 无即时工资写入
+      expect(salaryModuleSource).not.toContain('SalaryListener');
+      expect(salaryModuleSource).not.toContain('EventEmitter');
+      // 结算引擎以 FINISHED 课时为数据源，应用层 recordKey 去重
+      expect(settlementSource).toContain('LessonStatus.FINISHED');
+      expect(settlementSource).toContain('recordKey');
     });
 
     it('重复请求幂等 — 再次 FINISHED 应被拒绝', async () => {
@@ -487,11 +422,33 @@ describe('Lesson Completed Event Source', () => {
         lessonService.updateStatus(lessonId, LessonStatus.FINISHED, 1),
       ).rejects.toThrow();
 
-      // 验证只有一条 SalaryRecord
-      const records = Array.from(mockSalaryRecordRepo._records.values()).filter(
-        (r: any) => r.lessonId === lessonId,
+      // lesson.completed 只发射一次（状态机拦截重复完成）
+      const completedEvents = mockEventBus._published.filter(
+        (e: any) => e.name === 'lesson.completed',
       );
-      expect(records).toHaveLength(1);
+      expect(completedEvents).toHaveLength(1);
+
+      // 工资记录幂等由结算引擎保证：唯一索引 + recordKey 去重
+      const fs = require('fs');
+      const path = require('path');
+      const settlementSource = fs.readFileSync(
+        path.join(
+          __dirname,
+          '../../../modules/salary/services/salary-settlement.service.ts',
+        ),
+        'utf-8',
+      );
+      const migrationSource = fs.readFileSync(
+        path.join(
+          __dirname,
+          '../../../migrations/1786500000000-AddSalaryConfigColumns.ts',
+        ),
+        'utf-8',
+      );
+      expect(settlementSource).toContain('recordKey');
+      expect(migrationSource).toContain(
+        'uk_salary_record_teacher_month_source_lesson',
+      );
     });
   });
 
@@ -503,7 +460,10 @@ describe('Lesson Completed Event Source', () => {
       const fs = require('fs');
       const path = require('path');
       const source = fs.readFileSync(
-        path.join(__dirname, '../lesson-attendance/lesson-attendance.service.ts'),
+        path.join(
+          __dirname,
+          '../lesson-attendance/lesson-attendance.service.ts',
+        ),
         'utf-8',
       );
 
@@ -522,7 +482,10 @@ describe('Lesson Completed Event Source', () => {
       const fs = require('fs');
       const path = require('path');
       const source = fs.readFileSync(
-        path.join(__dirname, '../lesson/lesson-exception/lesson-exception.service.ts'),
+        path.join(
+          __dirname,
+          '../lesson/lesson-exception/lesson-exception.service.ts',
+        ),
         'utf-8',
       );
 

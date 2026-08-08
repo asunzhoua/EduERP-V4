@@ -1,9 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository } from 'typeorm';
 import { SalaryRuleEntity } from './entities/salary-rule.entity';
 import { SalaryRecordEntity } from './entities/salary-record.entity';
-import { SalaryRecordStatus } from './enums/salary.enums';
+import {
+  SalaryRecordStatus,
+  SalaryRecordSource,
+} from './enums/salary.enums';
+import { validateRuleConfig } from './dto/rule-config.util';
 import {
   CreateSalaryRuleDto,
   UpdateSalaryRuleDto,
@@ -23,7 +31,16 @@ export class SalaryService {
   // ==================== 工资记录查询 ====================
 
   async getRecords(query: QuerySalaryRecordDto) {
-    const { teacherId, startDate, endDate, status, page = 1, pageSize = 20 } = query;
+    const {
+      teacherId,
+      month,
+      startDate,
+      endDate,
+      status,
+      source,
+      page = 1,
+      pageSize = 20,
+    } = query;
 
     const qb = this.salaryRecordRepo.createQueryBuilder('record');
 
@@ -31,7 +48,9 @@ export class SalaryService {
       qb.andWhere('record.teacherId = :teacherId', { teacherId });
     }
 
-    if (startDate && endDate) {
+    if (month) {
+      qb.andWhere('record.month = :month', { month });
+    } else if (startDate && endDate) {
       qb.andWhere('record.lessonDate BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
@@ -42,7 +61,11 @@ export class SalaryService {
       qb.andWhere('record.status = :status', { status });
     }
 
-    qb.orderBy('record.lessonDate', 'DESC');
+    if (source) {
+      qb.andWhere('record.source = :source', { source });
+    }
+
+    qb.orderBy('record.lessonDate', 'DESC').addOrderBy('record.id', 'DESC');
     qb.skip((page - 1) * pageSize).take(pageSize);
 
     const [records, total] = await qb.getManyAndCount();
@@ -58,22 +81,17 @@ export class SalaryService {
   async getStatistics(query: SalaryStatisticsQueryDto) {
     const now = new Date();
     const year = query.year ?? now.getFullYear();
-    const month = query.month ?? now.getMonth() + 1;
+    const monthNum = query.month ?? now.getMonth() + 1;
+    const month = `${year}-${String(monthNum).padStart(2, '0')}`;
     const { teacherId } = query;
 
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0); // 月末
-
-    const base = this.salaryRecordRepo.createQueryBuilder('record');
-    base.where('record.lessonDate BETWEEN :startDate AND :endDate', {
-      startDate,
-      endDate,
-    });
+    const qb = this.salaryRecordRepo.createQueryBuilder('record');
+    qb.where('record.month = :month', { month });
     if (teacherId) {
-      base.andWhere('record.teacherId = :teacherId', { teacherId });
+      qb.andWhere('record.teacherId = :teacherId', { teacherId });
     }
 
-    const totals = await base
+    const totals = await qb
       .clone()
       .select([
         'COUNT(record.id) AS totalRecords',
@@ -83,7 +101,7 @@ export class SalaryService {
       ])
       .getRawOne();
 
-    const byStatus = await base
+    const byStatus = await qb
       .clone()
       .select(['record.status AS status', 'SUM(record.amount) AS amount'])
       .groupBy('record.status')
@@ -96,13 +114,14 @@ export class SalaryService {
       if (row.status === SalaryRecordStatus.PAID) {
         paidAmount += amount;
       } else {
-        pendingAmount += amount; // PENDING 与 CONFIRMED 均属未发放
+        pendingAmount += amount; // PENDING 与 APPROVED 均属未发放
       }
     }
 
     return {
       year,
       month,
+      monthNum,
       totalRecords: parseInt(totals.totalRecords) || 0,
       totalAmount: parseFloat(totals.totalAmount) || 0,
       totalMinutes: parseInt(totals.totalMinutes) || 0,
@@ -113,20 +132,28 @@ export class SalaryService {
     };
   }
 
-  async updateRecordStatus(id: number, status: string, notes?: string) {
+  async updateRecordStatus(
+    id: number,
+    status: string,
+    notes?: string,
+    updatedBy?: number,
+  ) {
     const record = await this.salaryRecordRepo.findOne({ where: { id } });
     if (!record) {
       throw new NotFoundException(`Salary record ${id} not found`);
     }
 
-    // 验证状态流转
+    // 状态机：PENDING → APPROVED → PAID；APPROVED → PENDING 允许重算；PAID 锁定
     const validTransitions: Record<string, string[]> = {
-      [SalaryRecordStatus.PENDING]: [SalaryRecordStatus.CONFIRMED],
-      [SalaryRecordStatus.CONFIRMED]: [SalaryRecordStatus.PAID],
+      [SalaryRecordStatus.PENDING]: [SalaryRecordStatus.APPROVED],
+      [SalaryRecordStatus.APPROVED]: [
+        SalaryRecordStatus.PAID,
+        SalaryRecordStatus.PENDING,
+      ],
       [SalaryRecordStatus.PAID]: [],
     };
 
-    if (!validTransitions[record.status]?.includes(status as SalaryRecordStatus)) {
+    if (!validTransitions[record.status]?.includes(status)) {
       throw new BadRequestException(
         `Invalid status transition from ${record.status} to ${status}`,
       );
@@ -136,30 +163,55 @@ export class SalaryService {
     if (notes) {
       record.notes = notes;
     }
+    if (updatedBy) {
+      record.updatedBy = updatedBy;
+    }
 
     return this.salaryRecordRepo.save(record);
   }
 
   // ==================== 规则管理 ====================
 
-  async createRule(dto: CreateSalaryRuleDto) {
+  async createRule(dto: CreateSalaryRuleDto, createdBy: number) {
+    const config = validateRuleConfig(dto.type, dto.config as any);
+
     const rule = this.salaryRuleRepo.create({
-      ...dto,
+      name: dto.name,
       type: dto.type as any,
-      multiplier: dto.multiplier || 1.0,
+      baseAmount: dto.baseAmount,
+      multiplier: dto.multiplier ?? 1.0,
+      courseType: dto.courseType ?? null,
+      teacherLevel: dto.teacherLevel ?? null,
       isActive: dto.isActive !== false,
+      note: dto.note ?? null,
+      config,
+      createdBy,
     });
 
     return this.salaryRuleRepo.save(rule);
   }
 
-  async updateRule(id: number, dto: UpdateSalaryRuleDto) {
+  async updateRule(id: number, dto: UpdateSalaryRuleDto, updatedBy: number) {
     const rule = await this.salaryRuleRepo.findOne({ where: { id } });
     if (!rule) {
       throw new NotFoundException(`Salary rule ${id} not found`);
     }
 
+    const nextType = dto.type ?? rule.type;
+    // config 变更时按新 type 校验；若 type 变而 config 未给，沿用旧 config 再校验
+    let config = rule.config;
+    if (dto.config !== undefined) {
+      config = validateRuleConfig(nextType as string, dto.config as any);
+    } else if (dto.type !== undefined && dto.type !== rule.type) {
+      config = validateRuleConfig(nextType as string, rule.config);
+    }
+
     Object.assign(rule, dto);
+    if (config !== undefined) {
+      rule.config = config;
+    }
+    rule.updatedBy = updatedBy;
+
     return this.salaryRuleRepo.save(rule);
   }
 

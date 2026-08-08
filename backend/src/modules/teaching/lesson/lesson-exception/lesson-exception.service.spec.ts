@@ -615,12 +615,10 @@ describe('LessonExceptionService', () => {
         }),
       );
 
-      expect(eventBus.publish).toHaveBeenCalledWith(
+      // 工资由月度结算引擎读取 FINISHED 课时生成，不再发布冗余的 salary.calculation.triggered
+      expect(eventBus.publish).not.toHaveBeenCalledWith(
         'salary.calculation.triggered',
-        expect.objectContaining({
-          lessonId: 2,
-          teacherId: 5001,
-        }),
+        expect.anything(),
       );
     });
 

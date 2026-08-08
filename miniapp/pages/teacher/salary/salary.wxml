@@ -1,0 +1,89 @@
+<!-- pages/teacher/salary/salary.wxml -->
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error-state" wx:elif="{{error}}">
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadAll">点击重试</view>
+  </view>
+
+  <block wx:else>
+    <!-- 月份选择 -->
+    <picker mode="date" fields="month" value="{{month}}" bindchange="onMonthChange">
+      <view class="month-picker">
+        <text class="month-text">{{month}}</text>
+        <text class="month-caret">▾</text>
+      </view>
+    </picker>
+
+    <!-- 月度汇总 -->
+    <view class="summary-card">
+      <view class="summary-main">
+        <text class="summary-label">本月应发</text>
+        <text class="summary-amount">¥{{statistics.totalAmount}}</text>
+      </view>
+      <view class="summary-row">
+        <view class="summary-item">
+          <text class="sum-num">{{statistics.recordCount}}</text>
+          <text class="sum-label">记录数</text>
+        </view>
+        <view class="summary-item">
+          <text class="sum-num">¥{{statistics.pendingAmount}}</text>
+          <text class="sum-label">未发放</text>
+        </view>
+        <view class="summary-item">
+          <text class="sum-num">¥{{statistics.paidAmount}}</text>
+          <text class="sum-label">已发放</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 记录列表 -->
+    <view class="record-list">
+      <view class="empty-state" wx:if="{{records.length === 0}}">
+        <text class="empty-text">本月暂无工资记录</text>
+      </view>
+
+      <view class="record-card" wx:for="{{records}}" wx:key="id">
+        <view class="card-top">
+          <view class="card-left">
+            <text class="source-text">{{item.sourceText}}</text>
+            <text class="card-date" wx:if="{{item.lessonDate !== '--'}}">{{item.lessonDate}}</text>
+          </view>
+          <view class="card-right">
+            <text class="amount {{item.isDeduction ? 'amount-deduct' : ''}}">{{item.amountText}}</text>
+            <text class="status-tag {{item.statusCls}}">{{item.statusText}}</text>
+          </view>
+        </view>
+
+        <view class="card-meta" wx:if="{{item.duration || item.studentCount}}">
+          <text class="meta-text" wx:if="{{item.duration}}">课时 {{item.duration}} 分钟</text>
+          <text class="meta-text" wx:if="{{item.studentCount}}">到课 {{item.studentCount}} 人</text>
+        </view>
+
+        <view class="card-remark" wx:if="{{item.needsReview}}">
+          <text class="remark-text">⚠ 无匹配规则，金额待人工确认</text>
+        </view>
+        <view class="card-remark" wx:elif="{{item.notes}}">
+          <text class="remark-text">{{item.notes}}</text>
+        </view>
+      </view>
+
+      <!-- 加载更多 -->
+      <view class="load-more" wx:if="{{loadingMore}}">
+        <text class="load-text">加载中...</text>
+      </view>
+      <view class="load-more" wx:elif="{{hasMore}}">
+        <text class="load-text">上拉加载更多</text>
+      </view>
+      <view class="load-more" wx:elif="{{records.length > 0}}">
+        <text class="load-text">已全部加载</text>
+      </view>
+    </view>
+  </block>
+</view>
