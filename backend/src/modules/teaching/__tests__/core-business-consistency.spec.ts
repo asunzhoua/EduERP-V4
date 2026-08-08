@@ -628,6 +628,7 @@ describe('Core Business Consistency Audit', () => {
         mockContractRepo as any,
         mockClassRepo,
         mockCourseRepo,
+        { credit: jest.fn().mockResolvedValue({ balance: 10 }) } as any,
       );
 
       const module: TestingModule = await Test.createTestingModule({

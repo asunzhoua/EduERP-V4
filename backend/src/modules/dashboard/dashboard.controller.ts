@@ -15,6 +15,7 @@ import {
   TeacherStatsDto,
   FinanceStatsDto,
   DashboardSummaryDto,
+  DashboardCardsDto,
 } from './dto/dashboard-response.dto';
 
 @ApiTags('Dashboard')
@@ -24,6 +25,12 @@ import {
 @Roles('SuperAdmin', 'Admin')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
+
+  @Get('cards')
+  @ApiOperation({ summary: '获取首页 12 数据卡（今日/本月/人数/待审批/库存）' })
+  async getCards(): Promise<DashboardCardsDto> {
+    return this.dashboardService.getCards();
+  }
 
   @Get('summary')
   @ApiOperation({ summary: '获取综合概览（总量 + 合同课时 + 实际出勤消耗）' })

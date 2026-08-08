@@ -9,6 +9,8 @@ import { TeacherAssignmentEntity } from '../teaching/teacher-assignment/teacher-
 import { ClassEntity } from '../teaching/class/class.entity';
 import { CourseEntity } from '../teaching/course/course.entity';
 import { User } from '../identity/entities/user.entity';
+import { PointsService } from '../points/points.service';
+import { FeedbackService } from '../feedback/feedback.service';
 import { ApiResponse } from '@common/dto/api-response';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -44,6 +46,14 @@ describe('StudentController', () => {
   const mockCourseRepository = {
     find: jest.fn().mockResolvedValue([]),
   };
+  const mockPointsService = {
+    getSummary: jest.fn().mockResolvedValue({ balance: 0, totalEarned: 0, totalSpent: 0, transactions: [] }),
+    listOnSaleProducts: jest.fn().mockResolvedValue([]),
+    exchange: jest.fn().mockResolvedValue({ id: 1 }),
+  };
+  const mockFeedbackService = {
+    findByStudentCode: jest.fn().mockResolvedValue([]),
+  };
 
   beforeAll(async () => {
     service = {
@@ -73,6 +83,8 @@ describe('StudentController', () => {
         { provide: getRepositoryToken(User), useValue: mockUserRepository },
         { provide: getRepositoryToken(ClassEntity), useValue: mockClassRepository },
         { provide: getRepositoryToken(CourseEntity), useValue: mockCourseRepository },
+        { provide: PointsService, useValue: mockPointsService },
+        { provide: FeedbackService, useValue: mockFeedbackService },
       ],
     }).compile();
 
@@ -183,10 +195,55 @@ describe('StudentController', () => {
 
     const result = await controller.getSelfAttendance(mockReq);
     expect(result.code).toBe(0);
-    expect(result.data[0]).toMatchObject({
+    expect(result.data![0]).toMatchObject({
       id: 1,
       status: 'PRESENT',
       deductionSkippedReason: 'NO_ACTIVE_CONTRACT',
     });
+  });
+
+  it('GET self/lessons - returns all records sorted by date desc when no date params', async () => {
+    service.findByUserId.mockResolvedValue(mockStudent);
+    mockAttendanceRepository.findByStudentCode.mockResolvedValue([
+      { id: 1, lessonId: 10, studentCode: 'STU20240001', status: 'PRESENT' },
+      { id: 2, lessonId: 11, studentCode: 'STU20240001', status: 'ABSENT' },
+      { id: 3, lessonId: 12, studentCode: 'STU20240001', status: 'LATE' },
+    ]);
+    mockLessonRepository.find.mockResolvedValue([
+      { id: 10, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-05', startTime: '09:00', endTime: '10:00' },
+      { id: 11, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-07', startTime: '09:00', endTime: '10:00' },
+      { id: 12, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-10', startTime: '09:00', endTime: '10:00' },
+    ]);
+    mockClassRepository.find.mockResolvedValue([{ classCode: 'CL1', name: '一班' }]);
+    mockCourseRepository.find.mockResolvedValue([{ courseCode: 'C1', name: '数学' }]);
+
+    const result = await controller.getSelfLessons(mockReq);
+    expect(result.code).toBe(0);
+    expect(result.data).toHaveLength(3);
+    expect(result.data![0].lessonDate).toBe('2026-08-10');
+    expect(result.data![2].lessonDate).toBe('2026-08-05');
+  });
+
+  it('GET self/lessons - filters by from/to date range', async () => {
+    service.findByUserId.mockResolvedValue(mockStudent);
+    mockAttendanceRepository.findByStudentCode.mockResolvedValue([
+      { id: 1, lessonId: 10, studentCode: 'STU20240001', status: 'PRESENT' },
+      { id: 2, lessonId: 11, studentCode: 'STU20240001', status: 'ABSENT' },
+      { id: 3, lessonId: 12, studentCode: 'STU20240001', status: 'LATE' },
+    ]);
+    mockLessonRepository.find.mockResolvedValue([
+      { id: 10, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-05', startTime: '09:00', endTime: '10:00' },
+      { id: 11, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-07', startTime: '09:00', endTime: '10:00' },
+      { id: 12, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-10', startTime: '09:00', endTime: '10:00' },
+    ]);
+    mockClassRepository.find.mockResolvedValue([{ classCode: 'CL1', name: '一班' }]);
+    mockCourseRepository.find.mockResolvedValue([{ courseCode: 'C1', name: '数学' }]);
+
+    // 8/1 → 8/8 区间内应只有 8/5 与 8/7 两条，按日期倒序 8/7 在前
+    const result = await controller.getSelfLessons(mockReq, '2026-08-01', '2026-08-08');
+    expect(result.code).toBe(0);
+    expect(result.data).toHaveLength(2);
+    expect(result.data![0].lessonDate).toBe('2026-08-07');
+    expect(result.data![1].lessonDate).toBe('2026-08-05');
   });
 });

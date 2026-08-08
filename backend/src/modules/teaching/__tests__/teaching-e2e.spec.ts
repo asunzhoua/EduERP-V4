@@ -37,6 +37,7 @@ describe('Teaching E2E: Happy Path', () => {
       { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } as any,
       { findOne: jest.fn().mockImplementation(({ where }: any) => Promise.resolve({ classCode: where.classCode, courseCode: 'MATH001' })) } as any,
       { findOne: jest.fn().mockImplementation(({ where }: any) => Promise.resolve({ courseCode: where.courseCode, subject: Subject.MATH })) } as any,
+      { credit: jest.fn().mockResolvedValue({ balance: 10 }) } as any,
     );
 
     // ── Step 1: Course created (DRAFT) ──
@@ -188,6 +189,7 @@ describe('Teaching E2E: ATTEND-002 Violation', () => {
       { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } as any,
       { findOne: jest.fn().mockResolvedValue(null) } as any,
       { findOne: jest.fn().mockResolvedValue(null) } as any,
+      { credit: jest.fn().mockResolvedValue({ balance: 10 }) } as any,
     );
 
     await expect(

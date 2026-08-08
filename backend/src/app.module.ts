@@ -12,6 +12,9 @@ import { ReminderModule } from '@modules/reminder/reminder.module';
 import { SalaryModule } from '@modules/salary/salary.module';
 import { DashboardModule } from '@modules/dashboard/dashboard.module';
 import { ExportModule } from '@modules/export/export.module';
+import { AdminModule } from '@modules/admin/admin.module';
+import { PointsModule } from '@modules/points/points.module';
+import { FeedbackModule } from '@modules/feedback/feedback.module';
 import { HealthModule } from '@modules/health/health.module';
 import { SentryModule } from '@common/sentry/sentry.module';
 import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
@@ -63,6 +66,9 @@ import { appConfig } from '@config/configuration';
     SalaryModule,
     DashboardModule,
     ExportModule,
+    AdminModule,
+    PointsModule,
+    FeedbackModule,
     HealthModule,
     SentryModule,
   ],

@@ -22,6 +22,12 @@ import { User } from '@modules/identity/entities/user.entity';
 import { UserStatus } from '@modules/identity/entities/user.entity';
 import { ClassEntity } from '@modules/teaching/class/class.entity';
 import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/lesson-attendance.entity';
+import { EnrollmentEntity } from '@modules/teaching/enrollment/enrollment.entity';
+import {
+  LeaveRequestEntity,
+  LeaveRequestStatus,
+} from '@modules/teaching/leave-request/leave-request.entity';
+import { PointsMallService } from '@modules/admin/points-mall.service';
 import { DEDUCTIBLE_STATUSES } from '@modules/teaching/lesson-attendance/enums/attendance-status.enum';
 
 // DTOs
@@ -32,6 +38,7 @@ import {
   TeacherStatsDto,
   FinanceStatsDto,
   DashboardSummaryDto,
+  DashboardCardsDto,
 } from './dto/dashboard-response.dto';
 
 // getRawOne 聚合结果：COALESCE 返回的列均为字符串
@@ -63,6 +70,14 @@ export class DashboardService {
 
     @InjectRepository(LessonAttendanceEntity)
     private readonly attendanceRepo: Repository<LessonAttendanceEntity>,
+
+    @InjectRepository(EnrollmentEntity)
+    private readonly enrollmentRepo: Repository<EnrollmentEntity>,
+
+    @InjectRepository(LeaveRequestEntity)
+    private readonly leaveRequestRepo: Repository<LeaveRequestEntity>,
+
+    private readonly pointsMallService: PointsMallService,
   ) {}
 
   // ------------------------------------------------------------------
@@ -281,6 +296,102 @@ export class DashboardService {
       remainingContractHours,
       attendance: { today, week, month, year },
     };
+  }
+
+  // ------------------------------------------------------------------
+  // 2.1b getCards
+  // 首页 12 数据卡：全部由服务器聚合，前端禁止计算业务。
+  // 口径见 DTO 注释。
+  // ------------------------------------------------------------------
+
+  async getCards(): Promise<DashboardCardsDto> {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    todayStart.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(todayStart);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    monthStart.setHours(0, 0, 0, 0);
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const [todayIncome, monthIncome, todayLessons, todayAttendance, todayLeave, todayEnrollments, monthExpense, teacherCount, studentCount, pendingApprovals, stockAlerts] =
+      await Promise.all([
+        // 今日收入 = 今日新签合同 totalAmount 合计
+        this.sumContractAmount(todayStart, tomorrow),
+        // 本月收入 = 本月新签合同 totalAmount 合计
+        this.sumContractAmount(monthStart, nextMonth),
+        // 今日课时 = 今日排课数
+        this.lessonRepo.count({
+          where: { scheduledDate: Between(this.toDateStr(todayStart), this.toDateStr(tomorrow)) },
+        }),
+        // 今日签到 = 今日实际出勤消耗数
+        this.attendanceRepo.count({
+          where: {
+            status: In(Array.from(DEDUCTIBLE_STATUSES)),
+            checkInTime: Between(todayStart, tomorrow),
+          },
+        }),
+        // 今日请假 = 今日请假单数（按请假日期，含任意状态）
+        this.leaveRequestRepo.count({
+          where: { leaveDate: Between(this.toDateStr(todayStart), this.toDateStr(tomorrow)) },
+        }),
+        // 今日报名 = 今日报名记录数
+        this.enrollmentRepo.count({
+          where: { enrolledAt: Between(todayStart, tomorrow) },
+        }),
+        // 本月支出 = 本月工资记录合计
+        this.salaryRepo
+          .createQueryBuilder('salary')
+          .select('COALESCE(SUM(salary.amount), 0)', 'sum')
+          .where('salary.createTime >= :from AND salary.createTime < :to', {
+            from: monthStart,
+            to: nextMonth,
+          })
+          .getRawOne<{ sum: string }>()
+          .then((r) => Number(r?.sum || 0)),
+        // 老师人数
+        this.userRepo.count({
+          where: { role: 'Teacher', deleted: false },
+        }),
+        // 学生人数
+        this.studentRepo.count({
+          where: { deleted: false },
+        }),
+        // 待审批 = 待审批请假单数
+        this.leaveRequestRepo.count({
+          where: { status: LeaveRequestStatus.PENDING },
+        }),
+        // 库存提醒 = 积分商城低库存上架商品数
+        this.pointsMallService.getLowStockCount(),
+      ]);
+
+    const profit = Math.round((monthIncome - monthExpense) * 100) / 100;
+
+    return {
+      todayIncome,
+      todayLessons,
+      todayAttendance,
+      todayLeave,
+      todayEnrollments,
+      monthIncome,
+      monthExpense,
+      profit,
+      teacherCount,
+      studentCount,
+      pendingApprovals,
+      stockAlerts,
+    };
+  }
+
+  /** 聚合 [from, to) 区间内新签合同 totalAmount 合计（decimal → number）。 */
+  private async sumContractAmount(from: Date, to: Date): Promise<number> {
+    const row = await this.contractRepo
+      .createQueryBuilder('contract')
+      .select('COALESCE(SUM(contract.totalAmount), 0)', 'sum')
+      .where('contract.createdAt >= :from AND contract.createdAt < :to', { from, to })
+      .getRawOne<{ sum: string }>();
+    return Number(row?.sum || 0);
   }
 
   // ------------------------------------------------------------------

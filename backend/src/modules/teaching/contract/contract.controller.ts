@@ -14,6 +14,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger'
 import { ContractService } from './contract.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { QueryContractDto } from './dto/query-contract.dto';
+import { AdjustContractLessonsDto } from './dto/adjust-contract-lessons.dto';
 import { CreateContractInput } from './contract.service';
 import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
@@ -90,6 +91,19 @@ export class ContractController {
   async findOneByCode(@Param('code') code: string) {
     const result = await this.contractService.findOneByCode(code);
     return ApiResponse.success(result);
+  }
+
+  @Patch(':code/lessons')
+  @Roles('SuperAdmin', 'Admin')
+  @ApiOperation({ summary: 'Adjust contract lessons (add / reduce / set custom)' })
+  async adjustLessons(
+    @Param('code') code: string,
+    @Body() dto: AdjustContractLessonsDto,
+    @Req() req: any,
+  ) {
+    const operatorId = req.user.sub;
+    const result = await this.contractService.adjustLessons(code, dto, operatorId);
+    return ApiResponse.success(result, 'Contract lessons adjusted');
   }
 
   @Patch(':code/freeze')

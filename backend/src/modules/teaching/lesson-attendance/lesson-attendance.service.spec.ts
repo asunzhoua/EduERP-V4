@@ -17,6 +17,7 @@ import { AttendanceWorkflowState } from './enums/attendance-workflow-state.enum'
 import { ReminderService } from '@modules/reminder/reminder.service';
 import { ContractRepository } from '@modules/teaching/contract/contract.repository';
 import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
+import { PointsService } from '@modules/points/points.service';
 import { ClassEntity } from '../class/class.entity';
 import { CourseEntity } from '../course/course.entity';
 import { Subject } from '@common/enums/subject.enum';
@@ -24,6 +25,8 @@ import { Subject } from '@common/enums/subject.enum';
 describe('LessonAttendanceService', () => {
   let service: LessonAttendanceService;
   let mockContractRepo: any;
+  // 每个 TestingModule 独立注入 PointsService mock
+  const pointsServiceMock = () => ({ credit: jest.fn().mockResolvedValue({ balance: 10 }) });
 
   beforeEach(async () => {
     const mockRepo = {
@@ -51,6 +54,9 @@ describe('LessonAttendanceService', () => {
 
     const mockClassRepo = { findOne: jest.fn().mockResolvedValue(null) };
     const mockCourseRepo = { findOne: jest.fn().mockResolvedValue(null) };
+    const mockPointsService = {
+      credit: jest.fn().mockResolvedValue({ balance: 10 }),
+    };
 
     const mockEventEmitter = {
       emit: jest.fn(),
@@ -64,6 +70,7 @@ describe('LessonAttendanceService', () => {
         { provide: ContractRepository, useValue: mockContractRepo },
         { provide: getRepositoryToken(ClassEntity), useValue: mockClassRepo },
         { provide: getRepositoryToken(CourseEntity), useValue: mockCourseRepo },
+        { provide: PointsService, useValue: mockPointsService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
@@ -355,6 +362,7 @@ describe('LessonAttendanceService', () => {
             provide: getRepositoryToken(CourseEntity),
             useValue: { findOne: jest.fn().mockResolvedValue(null) },
           },
+          { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -421,6 +429,7 @@ describe('LessonAttendanceService', () => {
             provide: getRepositoryToken(CourseEntity),
             useValue: { findOne: jest.fn().mockResolvedValue(null) },
           },
+          { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -550,6 +559,7 @@ describe('LessonAttendanceService', () => {
             provide: getRepositoryToken(CourseEntity),
             useValue: { findOne: jest.fn().mockResolvedValue(null) },
           },
+          { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -631,6 +641,7 @@ describe('LessonAttendanceService', () => {
             provide: getRepositoryToken(CourseEntity),
             useValue: { findOne: jest.fn().mockResolvedValue(null) },
           },
+          { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -704,6 +715,7 @@ describe('LessonAttendanceService', () => {
             provide: getRepositoryToken(CourseEntity),
             useValue: { findOne: jest.fn().mockResolvedValue(null) },
           },
+          { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -774,6 +786,7 @@ describe('LessonAttendanceService', () => {
             provide: getRepositoryToken(CourseEntity),
             useValue: { findOne: jest.fn().mockResolvedValue(null) },
           },
+          { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -834,6 +847,7 @@ describe('LessonAttendanceService', () => {
             provide: getRepositoryToken(CourseEntity),
             useValue: { findOne: jest.fn().mockResolvedValue(null) },
           },
+          { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -899,6 +913,7 @@ describe('LessonAttendanceService', () => {
             provide: getRepositoryToken(CourseEntity),
             useValue: { findOne: jest.fn().mockResolvedValue(null) },
           },
+          { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -967,6 +982,7 @@ describe('LessonAttendanceService', () => {
             provide: getRepositoryToken(CourseEntity),
             useValue: { findOne: jest.fn().mockResolvedValue(null) },
           },
+          { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -1037,6 +1053,7 @@ describe('LessonAttendanceService', () => {
             provide: getRepositoryToken(CourseEntity),
             useValue: { findOne: jest.fn().mockResolvedValue(null) },
           },
+          { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -1424,6 +1441,7 @@ describe('LessonAttendanceService', () => {
           { provide: ContractRepository, useValue: contractRepo },
           { provide: getRepositoryToken(ClassEntity), useValue: classRepo },
           { provide: getRepositoryToken(CourseEntity), useValue: courseRepo },
+          { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -1522,6 +1540,7 @@ describe('LessonAttendanceService', () => {
               findOne: jest.fn().mockResolvedValue({ subject: Subject.MATH }),
             },
           },
+          { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();
@@ -1655,6 +1674,7 @@ describe('LessonAttendanceService', () => {
           { provide: ContractRepository, useValue: contractRepo },
           { provide: getRepositoryToken(ClassEntity), useValue: classRepo },
           { provide: getRepositoryToken(CourseEntity), useValue: courseRepo },
+          { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         ],
       }).compile();

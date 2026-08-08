@@ -104,6 +104,70 @@ export class ContractService {
     });
   }
 
+  // ─── Lesson Adjustment (Admin: add / reduce / set custom) ───
+
+  /**
+   * Adjust a contract's lesson counts.
+   * totalLessons / remainingLessons: omitted fields keep current value.
+   * Invariants: remaining >= 0, remaining <= total.
+   * Reason required when reducing remaining lessons.
+   * Status: remaining hits 0 → EXHAUSTED; EXHAUSTED topped up → ACTIVE.
+   */
+  async adjustLessons(
+    contractCode: string,
+    input: { totalLessons?: number; remainingLessons?: number; reason?: string },
+    operatedBy: number,
+  ): Promise<ContractEntity> {
+    const contract = await this.findOneByCode(contractCode);
+
+    if (contract.status === ContractStatus.REFUNDED) {
+      throw new BadRequestException('Refunded contract cannot be adjusted');
+    }
+
+    const newTotal = input.totalLessons ?? contract.totalLessons;
+    const newRemaining = input.remainingLessons ?? contract.remainingLessons;
+
+    if (
+      newTotal === contract.totalLessons &&
+      newRemaining === contract.remainingLessons
+    ) {
+      throw new BadRequestException('No lesson change provided');
+    }
+
+    if (newRemaining < 0) {
+      throw new BadRequestException('remainingLessons cannot be negative');
+    }
+
+    if (newRemaining > newTotal) {
+      throw new BadRequestException(
+        'remainingLessons cannot exceed totalLessons',
+      );
+    }
+
+    const reduced = newRemaining < contract.remainingLessons;
+    if (reduced && (!input.reason || input.reason.trim().length === 0)) {
+      throw new BadRequestException('Reason required when reducing lessons');
+    }
+
+    contract.totalLessons = newTotal;
+    contract.remainingLessons = newRemaining;
+
+    if (newRemaining === 0 && contract.status !== ContractStatus.EXHAUSTED) {
+      contract.status = ContractStatus.EXHAUSTED;
+    } else if (
+      newRemaining > 0 &&
+      contract.status === ContractStatus.EXHAUSTED
+    ) {
+      contract.status = ContractStatus.ACTIVE;
+    }
+
+    const saved = await this.contractRepo.save(contract);
+    this.logger.log(
+      `Contract lessons adjusted: code=${contractCode} total=${newTotal} remaining=${newRemaining} by=${operatedBy}`,
+    );
+    return saved;
+  }
+
   // ─── Status Transitions ───
 
   async freeze(

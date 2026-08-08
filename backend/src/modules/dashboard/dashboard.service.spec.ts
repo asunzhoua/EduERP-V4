@@ -15,6 +15,9 @@ import { SalaryRecordEntity } from '@modules/salary/entities/salary-record.entit
 import { User } from '@modules/identity/entities/user.entity';
 import { ClassEntity } from '@modules/teaching/class/class.entity';
 import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/lesson-attendance.entity';
+import { EnrollmentEntity } from '@modules/teaching/enrollment/enrollment.entity';
+import { LeaveRequestEntity } from '@modules/teaching/leave-request/leave-request.entity';
+import { PointsMallService } from '@modules/admin/points-mall.service';
 import { LessonStatus } from '@modules/teaching/lesson/enums/lesson-status.enum';
 import { StudentStatus } from '@modules/student/enums/student-status.enum';
 import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
@@ -76,6 +79,22 @@ describe('DashboardService', () => {
         {
           provide: getRepositoryToken(LessonAttendanceEntity),
           useValue: attendanceRepo,
+        },
+        {
+          provide: getRepositoryToken(EnrollmentEntity),
+          useValue: mockRepository(),
+        },
+        {
+          provide: getRepositoryToken(LeaveRequestEntity),
+          useValue: mockRepository(),
+        },
+        {
+          provide: PointsMallService,
+          useValue: {
+            getLowStockCount: jest.fn().mockResolvedValue(0),
+            findProducts: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+            findExchangeRecords: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+          },
         },
       ],
     }).compile();

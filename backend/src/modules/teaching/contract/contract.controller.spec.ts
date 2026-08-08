@@ -40,6 +40,11 @@ describe('ContractController', () => {
       ...mockContract,
       status: 'ACTIVE',
     }),
+    adjustLessons: jest.fn().mockResolvedValue({
+      ...mockContract,
+      totalLessons: 35,
+      remainingLessons: 35,
+    }),
   };
 
   const mockDataScopeService = {
@@ -79,6 +84,11 @@ describe('ContractController', () => {
     mockService.unfreeze.mockResolvedValue({
       ...mockContract,
       status: 'ACTIVE',
+    });
+    mockService.adjustLessons.mockResolvedValue({
+      ...mockContract,
+      totalLessons: 35,
+      remainingLessons: 35,
     });
   });
 
@@ -208,6 +218,29 @@ describe('ContractController', () => {
       expect(result.data.status).toBe('ACTIVE');
       expect(mockService.unfreeze).toHaveBeenCalledWith(
         'CTR2026070001',
+        42,
+      );
+    });
+  });
+
+  // ─── adjustLessons - PATCH /contracts/:code/lessons ───
+
+  describe('adjustLessons', () => {
+    it('should adjust lessons with operator id from req.user', async () => {
+      const mockReq = { user: { sub: 42 } };
+      const dto = {
+        totalLessons: 35,
+        remainingLessons: 35,
+        reason: '家长续费',
+      } as any;
+
+      const result = await controller.adjustLessons('CTR2026070001', dto, mockReq);
+
+      expect(result.data.totalLessons).toBe(35);
+      expect(result.data.remainingLessons).toBe(35);
+      expect(mockService.adjustLessons).toHaveBeenCalledWith(
+        'CTR2026070001',
+        dto,
         42,
       );
     });

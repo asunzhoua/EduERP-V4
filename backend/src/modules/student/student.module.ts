@@ -12,6 +12,8 @@ import { ImportHistory } from './entities/import-history.entity';
 import { ImportService } from '@utils/services/import.service';
 import { ContractModule } from '../teaching/contract/contract.module';
 import { LessonAttendanceModule } from '../teaching/lesson-attendance/lesson-attendance.module';
+import { PointsModule } from '../points/points.module';
+import { FeedbackModule } from '../feedback/feedback.module';
 import { LessonEntity } from '../teaching/lesson/lesson.entity';
 import { User } from '../identity/entities/user.entity';
 import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
@@ -30,6 +32,8 @@ import { LeaveRequestEntity } from '../teaching/leave-request/leave-request.enti
     }),
     ContractModule,
     LessonAttendanceModule,
+    PointsModule,
+    FeedbackModule,
   ],
   controllers: [StudentController],
   providers: [

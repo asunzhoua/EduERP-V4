@@ -10,6 +10,7 @@ import { ReminderModule } from '@modules/reminder/reminder.module';
 import { ContractModule } from '@modules/teaching/contract/contract.module';
 import { LessonModule } from '@modules/teaching/lesson/lesson.module';
 import { EnrollmentModule } from '@modules/teaching/enrollment/enrollment.module';
+import { PointsModule } from '@modules/points/points.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { EnrollmentModule } from '@modules/teaching/enrollment/enrollment.module
     ContractModule,
     forwardRef(() => LessonModule),
     EnrollmentModule,
+    PointsModule,
   ],
   controllers: [LessonAttendanceController],
   providers: [LessonAttendanceService, LessonAttendanceRepository],

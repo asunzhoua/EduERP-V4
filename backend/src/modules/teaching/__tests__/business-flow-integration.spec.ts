@@ -168,6 +168,7 @@ function createAttendanceService(
     mockContractRepo as any,
     mockClassRepo,
     mockCourseRepo,
+    { credit: jest.fn().mockResolvedValue({ balance: 10 }) } as any,
   );
 }
 

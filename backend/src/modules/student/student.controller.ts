@@ -40,6 +40,8 @@ import { Roles } from '@common/decorators/roles.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { ApiResponse } from '@common/dto/api-response';
 import { CreateParentLeaveRequestDto } from './dto/create-parent-leave-request.dto';
+import { PointsService } from '../points/points.service';
+import { FeedbackService } from '../feedback/feedback.service';
 
 @Controller('students')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -60,6 +62,8 @@ export class StudentController {
     private classRepository: Repository<ClassEntity>,
     @InjectRepository(CourseEntity)
     private courseRepository: Repository<CourseEntity>,
+    private pointsService: PointsService,
+    private feedbackService: FeedbackService,
   ) {}
 
   @Post()
@@ -164,7 +168,11 @@ export class StudentController {
 
   @Get('self/lessons')
   @Roles('Student', 'Parent')
-  async getSelfLessons(@Req() req: any) {
+  async getSelfLessons(
+    @Req() req: any,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
     const userId = req.user.sub;
     const student = await this.studentService.findByUserId(userId);
     if (!student) {
@@ -198,8 +206,11 @@ export class StudentController {
         : [];
     const courseMap = new Map(courses.map((c) => [c.courseCode, c.name]));
 
-    return ApiResponse.success(
-      attendanceRecords.slice(0, 20).map((a) => {
+    // 历史课时日期查询：lesson.scheduledDate 为 'YYYY-MM-DD' 字符串，
+    // 直接按字典序比较即可。from/to 可选，缺省返回全部。
+    // 去掉原 20 条上限，保证按日期区间能查到完整历史。
+    const result = attendanceRecords
+      .map((a) => {
         const lesson = lessonMap.get(a.lessonId);
         return {
           lessonId: a.lessonId,
@@ -211,8 +222,25 @@ export class StudentController {
           className: lesson ? classMap.get(lesson.classCode) || null : null,
           courseName: lesson ? courseMap.get(lesson.courseCode) || null : null,
         };
-      }),
-    );
+      })
+      .filter((r) => {
+        if (!r.lessonDate) return true; // 无日期记录保留，避免数据丢失
+        if (from && r.lessonDate < from) return false;
+        if (to && r.lessonDate > to) return false;
+        return true;
+      });
+
+    // 按日期倒序（历史课时：最近在前），同日期按开始时间倒序
+    result.sort((a, b) => {
+      const ad = a.lessonDate || '';
+      const bd = b.lessonDate || '';
+      if (ad !== bd) return bd.localeCompare(ad);
+      const as = a.startTime || '';
+      const bs = b.startTime || '';
+      return bs.localeCompare(as);
+    });
+
+    return ApiResponse.success(result);
   }
 
   @Get('self/attendance')
@@ -274,6 +302,57 @@ export class StudentController {
     });
 
     return ApiResponse.success(result);
+  }
+
+  // --- Parent/Student Points & Feedback (积分/课程反馈) ---
+
+  @Get('self/points')
+  @Roles('Student', 'Parent')
+  async getSelfPoints(@Req() req: any) {
+    const student = await this.studentService.findByUserId(req.user.sub);
+    if (!student) {
+      return ApiResponse.error(404, '未找到关联的学生信息');
+    }
+    const data = await this.pointsService.getSummary(student.studentCode);
+    return ApiResponse.success(data);
+  }
+
+  @Get('self/points-mall/products')
+  @Roles('Student', 'Parent')
+  async getSelfPointsMallProducts() {
+    const products = await this.pointsService.listOnSaleProducts();
+    return ApiResponse.success(products);
+  }
+
+  @Post('self/points-mall/exchange')
+  @Roles('Student', 'Parent')
+  async exchangePoints(@Req() req: any, @Body() body: { productId?: number; quantity?: number }) {
+    const student = await this.studentService.findByUserId(req.user.sub);
+    if (!student) {
+      return ApiResponse.error(404, '未找到关联的学生信息');
+    }
+    if (!body || !body.productId) {
+      return ApiResponse.error(400, '请选择要兑换的商品');
+    }
+    const record = await this.pointsService.exchange(
+      student.studentCode,
+      student.name,
+      Number(body.productId),
+      Number(body.quantity) || 1,
+      Number(req.user.sub),
+    );
+    return ApiResponse.success(record, '兑换成功');
+  }
+
+  @Get('self/feedback')
+  @Roles('Student', 'Parent')
+  async getSelfFeedback(@Req() req: any) {
+    const student = await this.studentService.findByUserId(req.user.sub);
+    if (!student) {
+      return ApiResponse.error(404, '未找到关联的学生信息');
+    }
+    const list = await this.feedbackService.findByStudentCode(student.studentCode);
+    return ApiResponse.success(list);
   }
 
   // --- Parent Child-Scoped API (GAP-001) ---

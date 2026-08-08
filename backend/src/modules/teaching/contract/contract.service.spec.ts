@@ -165,6 +165,177 @@ describe('ContractService', () => {
     });
   });
 
+  // ─── Lesson Adjustment ───
+
+  describe('adjustLessons', () => {
+    const baseContract: ContractEntity = {
+      ...mockContract,
+      totalLessons: 20,
+      remainingLessons: 20,
+      status: ContractStatus.ACTIVE,
+    };
+
+    beforeEach(() => {
+      contractRepo.save.mockImplementation((c: ContractEntity) =>
+        Promise.resolve(c),
+      );
+    });
+
+    it('should add lessons (total & remaining increase)', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({ ...baseContract });
+
+      const result = await service.adjustLessons(
+        'CT2026070001',
+        { totalLessons: 25, remainingLessons: 25, reason: '家长续费' },
+        1,
+      );
+
+      expect(result.totalLessons).toBe(25);
+      expect(result.remainingLessons).toBe(25);
+      expect(result.status).toBe(ContractStatus.ACTIVE);
+    });
+
+    it('should reduce lessons when reason provided', async () => {
+      const partial = { ...baseContract, remainingLessons: 15 };
+      contractRepo.findOneByCode.mockResolvedValue(partial);
+
+      const result = await service.adjustLessons(
+        'CT2026070001',
+        { totalLessons: 20, remainingLessons: 10, reason: '退款 5 节' },
+        1,
+      );
+
+      expect(result.totalLessons).toBe(20);
+      expect(result.remainingLessons).toBe(10);
+    });
+
+    it('should reject reducing without reason', async () => {
+      const partial = { ...baseContract, remainingLessons: 15 };
+      contractRepo.findOneByCode.mockResolvedValue(partial);
+
+      await expect(
+        service.adjustLessons(
+          'CT2026070001',
+          { remainingLessons: 10 },
+          1,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject negative remaining', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({ ...baseContract });
+
+      await expect(
+        service.adjustLessons(
+          'CT2026070001',
+          { remainingLessons: -1 },
+          1,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject remaining exceeding total', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({ ...baseContract });
+
+      await expect(
+        service.adjustLessons(
+          'CT2026070001',
+          { totalLessons: 20, remainingLessons: 25 },
+          1,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject no lesson change', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({ ...baseContract });
+
+      await expect(
+        service.adjustLessons(
+          'CT2026070001',
+          { totalLessons: 20, remainingLessons: 20 },
+          1,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject REFUNDED contract', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({
+        ...baseContract,
+        status: ContractStatus.REFUNDED,
+      });
+
+      await expect(
+        service.adjustLessons(
+          'CT2026070001',
+          { remainingLessons: 25 },
+          1,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should revive EXHAUSTED -> ACTIVE when topped up', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({
+        ...baseContract,
+        totalLessons: 20,
+        remainingLessons: 0,
+        status: ContractStatus.EXHAUSTED,
+      });
+
+      const result = await service.adjustLessons(
+        'CT2026070001',
+        { totalLessons: 25, remainingLessons: 5, reason: '续费' },
+        1,
+      );
+
+      expect(result.status).toBe(ContractStatus.ACTIVE);
+      expect(result.remainingLessons).toBe(5);
+    });
+
+    it('should set status EXHAUSTED when remaining hits 0', async () => {
+      const partial = { ...baseContract, remainingLessons: 5 };
+      contractRepo.findOneByCode.mockResolvedValue(partial);
+
+      const result = await service.adjustLessons(
+        'CT2026070001',
+        { remainingLessons: 0, reason: '退完剩余课时' },
+        1,
+      );
+
+      expect(result.status).toBe(ContractStatus.EXHAUSTED);
+      expect(result.remainingLessons).toBe(0);
+    });
+
+    it('should allow changing only total', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({ ...baseContract });
+
+      const result = await service.adjustLessons(
+        'CT2026070001',
+        { totalLessons: 30 },
+        1,
+      );
+
+      expect(result.totalLessons).toBe(30);
+      expect(result.remainingLessons).toBe(20);
+    });
+
+    it('should allow changing only remaining', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({
+        ...baseContract,
+        totalLessons: 30,
+        remainingLessons: 20,
+      });
+
+      const result = await service.adjustLessons(
+        'CT2026070001',
+        { remainingLessons: 22 },
+        1,
+      );
+
+      expect(result.totalLessons).toBe(30);
+      expect(result.remainingLessons).toBe(22);
+    });
+  });
+
   // ─── Status Transitions ───
 
   describe('freeze', () => {

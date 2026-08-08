@@ -300,6 +300,7 @@ describe('Lesson Completed Event Source', () => {
       mockContractRepo as any,
       mockLessonClassRepo,
       mockLessonCourseRepo,
+      { credit: jest.fn().mockResolvedValue({ balance: 10 }) } as any,
     );
   });
 

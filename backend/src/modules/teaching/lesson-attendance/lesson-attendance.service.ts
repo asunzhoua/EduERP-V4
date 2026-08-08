@@ -18,6 +18,7 @@ import { DeductionSkipReason } from './enums/deduction-skip-reason.enum';
 import { ReminderService } from '@modules/reminder/reminder.service';
 import { ReminderType } from '@modules/reminder/enums/reminder-type.enum';
 import { TargetType } from '@modules/reminder/enums/target-type.enum';
+import { PointsService, POINTS_PER_ATTENDED_LESSON } from '@modules/points/points.service';
 import { ContractRepository } from '@modules/teaching/contract/contract.repository';
 import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
 import { ContractEntity } from '@modules/teaching/contract/contract.entity';
@@ -93,6 +94,7 @@ export class LessonAttendanceService {
     private readonly classRepo: Repository<ClassEntity>,
     @InjectRepository(CourseEntity)
     private readonly courseRepo: Repository<CourseEntity>,
+    private readonly pointsService: PointsService,
   ) {}
 
   // ─── Auto-Creation ───
@@ -206,6 +208,20 @@ export class LessonAttendanceService {
       !entity.deductedContractId &&
       DEDUCTIBLE_STATUSES.has(input.status)
     ) {
+      // 课程完成奖励积分（与扣课同源触发，仅首次签到；失败不影响考勤主流程）
+      this.pointsService
+        .credit(
+          input.studentCode,
+          POINTS_PER_ATTENDED_LESSON,
+          `完成课时 lesson=${input.lessonId}`,
+          { type: 'LESSON', id: input.lessonId },
+        )
+        .catch((err) =>
+          this.logger.warn(
+            `Failed to credit points for student ${input.studentCode}: ${err.message}`,
+          ),
+        );
+
       // Subject resolution may throw on a repo/DB error; guard so an infra
       // failure never propagates (the attendance is already saved). Distinguish
       // from a genuine "no subject" business case: infra errors get no badge.
@@ -347,6 +363,20 @@ export class LessonAttendanceService {
         DEDUCTIBLE_STATUSES.has(entity.status) &&
         !entity.deductedContractId
       ) {
+        // 课程完成奖励积分（首次签到即可扣课状态；失败不影响考勤主流程）
+        this.pointsService
+          .credit(
+            entity.studentCode,
+            POINTS_PER_ATTENDED_LESSON,
+            `完成课时 lesson=${input.lessonId}`,
+            { type: 'LESSON', id: input.lessonId },
+          )
+          .catch((err) =>
+            this.logger.warn(
+              `Failed to credit points for student ${entity.studentCode}: ${err.message}`,
+            ),
+          );
+
         if (!subject) {
           if (!resolveFailed) {
             entity.deductionSkippedReason = DeductionSkipReason.NO_SUBJECT;

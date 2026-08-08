@@ -19,9 +19,13 @@ import { SalaryRecordEntity } from '@modules/salary/entities/salary-record.entit
 import { User } from '@modules/identity/entities/user.entity';
 import { ClassEntity } from '@modules/teaching/class/class.entity';
 import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/lesson-attendance.entity';
+import { EnrollmentEntity } from '@modules/teaching/enrollment/enrollment.entity';
+import { LeaveRequestEntity } from '@modules/teaching/leave-request/leave-request.entity';
+import { AdminModule } from '@modules/admin/admin.module';
 
 @Module({
   imports: [
+    AdminModule,
     TypeOrmModule.forFeature([
       LessonEntity,
       Student,
@@ -31,6 +35,8 @@ import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/less
       User,
       ClassEntity,
       LessonAttendanceEntity,
+      EnrollmentEntity,
+      LeaveRequestEntity,
     ]),
   ],
   controllers: [DashboardController],
