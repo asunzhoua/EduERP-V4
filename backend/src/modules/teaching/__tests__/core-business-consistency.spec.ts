@@ -967,12 +967,14 @@ describe('Core Business Consistency Audit', () => {
     });
 
     function createSettlement() {
+      const mockUserRepo = { find: jest.fn().mockResolvedValue([]) };
       return new SalarySettlementService(
         mockSalaryRecordRepo as any,
         mockSalaryRuleRepo as any,
         mockLessonRepo as any,
         mockAttendanceRepo as any,
         mockCourseRepo as any,
+        mockUserRepo as any,
       );
     }
 

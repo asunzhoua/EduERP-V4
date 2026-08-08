@@ -11,6 +11,7 @@ import {
   DEDUCTIBLE_STATUSES,
 } from '@modules/teaching/lesson-attendance/enums/attendance-status.enum';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
+import { User } from '@modules/identity/entities/user.entity';
 import {
   SalaryRecordStatus,
   SalaryRecordSource,
@@ -61,6 +62,8 @@ export class SalarySettlementService {
     private readonly attendanceRepo: Repository<LessonAttendanceEntity>,
     @InjectRepository(CourseEntity)
     private readonly courseRepo: Repository<CourseEntity>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) {}
 
   async settle(month: string, teacherId?: number, operatedBy = 0): Promise<SettleResult> {
@@ -91,6 +94,14 @@ export class SalarySettlementService {
 
     // 按教师分组
     const teacherIds = [...new Set(lessons.map((l) => l.teacherId))];
+
+    // 教师等级（salary_rule.teacherLevel 精确匹配依据）
+    const teacherLevelByUser = new Map<number, string | null>();
+    if (teacherIds.length > 0) {
+      const users = await this.userRepo.find({ where: { id: In(teacherIds) } });
+      for (const u of users) teacherLevelByUser.set(Number(u.id), u.teacherLevel ?? null);
+    }
+
     const existingRecords = teacherId
       ? await this.recordRepo.find({ where: { month, teacherId } })
       : await this.recordRepo.find({ where: { month } });
@@ -120,7 +131,7 @@ export class SalarySettlementService {
       const matched: MatchedLesson[] = [];
       for (const lesson of teacherLessons) {
         const courseType = courseTypeByCode.get(lesson.courseCode) ?? null;
-        const teacherLevel: string | null = null; // 无教师等级数据源
+        const teacherLevel = teacherLevelByUser.get(lesson.teacherId) ?? null;
         let best: SalaryRuleEntity | null = null;
         let bestScore = 0;
         for (const rule of activeRules) {

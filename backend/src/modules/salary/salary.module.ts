@@ -9,6 +9,7 @@ import { SalarySettlementService } from './services/salary-settlement.service';
 import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
 import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/lesson-attendance.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
+import { User } from '@modules/identity/entities/user.entity';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CourseEntity } from '@modules/teaching/course/course.entity';
       LessonEntity,
       LessonAttendanceEntity,
       CourseEntity,
+      User,
     ]),
   ],
   controllers: [SalaryController],

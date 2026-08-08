@@ -93,6 +93,18 @@ function createMockRuleRepo(rules: any[]) {
   return { find: jest.fn().mockResolvedValue(rules) };
 }
 
+function createMockUserRepo(users: any[]) {
+  return {
+    find: jest.fn().mockImplementation(({ where }: any) => {
+      const ids = where?.id?._value;
+      if (Array.isArray(ids)) {
+        return Promise.resolve(users.filter((u) => ids.includes(Number(u.id))));
+      }
+      return Promise.resolve(users);
+    }),
+  };
+}
+
 function createMockRecordRepo(existing: any[] = []) {
   const saved: any[] = [];
   const manager = {
@@ -125,20 +137,23 @@ function buildService(opts: {
   courses?: any[];
   rules?: any[];
   existing?: any[];
+  users?: any[];
 } = {}) {
   const lessonRepo = createMockLessonRepo(opts.lessons ?? []);
   const attendanceRepo = createMockAttendanceRepo(opts.attendances ?? []);
   const courseRepo = createMockCourseRepo(opts.courses ?? []);
   const ruleRepo = createMockRuleRepo(opts.rules ?? []);
   const recordRepo = createMockRecordRepo(opts.existing ?? []);
+  const userRepo = createMockUserRepo(opts.users ?? []);
   const service = new SalarySettlementService(
     recordRepo as any,
     ruleRepo as any,
     lessonRepo as any,
     attendanceRepo as any,
     courseRepo as any,
+    userRepo as any,
   );
-  return { service, recordRepo, lessonRepo, attendanceRepo, courseRepo, ruleRepo };
+  return { service, recordRepo, lessonRepo, attendanceRepo, courseRepo, ruleRepo, userRepo };
 }
 
 // ─── Tests ───
@@ -342,5 +357,71 @@ describe('SalarySettlementService.settle', () => {
     });
     await service.settle('2026-07');
     expect(recordRepo._saved[0].ruleVersion).toBe('2026-07-05');
+  });
+
+  it('teacherLevel 精确匹配：教师等级命中等级规则（score 2）', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson()],
+      attendances: [createAttendance()],
+      courses: [createCourse()],
+      rules: [createRule({ teacherLevel: '中级', config: { lessonPrice: 120 } })],
+      users: [{ id: 5001, teacherLevel: '中级' }],
+    });
+    const res = await service.settle('2026-07');
+    expect(res.created).toBe(1);
+    const rec = recordRepo._saved[0];
+    expect(rec.needsReview).toBe(false);
+    expect(rec.amount).toBe(120);
+  });
+
+  it('teacherLevel 不匹配 → 规则不命中 → needsReview 兜底', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson()],
+      attendances: [createAttendance()],
+      courses: [createCourse()],
+      rules: [createRule({ teacherLevel: '高级', config: { lessonPrice: 150 } })],
+      users: [{ id: 5001, teacherLevel: '中级' }],
+    });
+    const res = await service.settle('2026-07');
+    expect(res.created).toBe(1);
+    const rec = recordRepo._saved[0];
+    expect(rec.needsReview).toBe(true);
+    expect(rec.amount).toBe(0);
+  });
+
+  it('courseType + teacherLevel 双匹配（score 4）优先于仅 courseType（score 3）', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson()],
+      attendances: [createAttendance()],
+      courses: [createCourse()],
+      rules: [
+        createRule({ id: 1, courseType: '1v1', config: { lessonPrice: 100 } }),
+        createRule({ id: 2, courseType: '1v1', teacherLevel: '中级', config: { lessonPrice: 130 } }),
+      ],
+      users: [{ id: 5001, teacherLevel: '中级' }],
+    });
+    const res = await service.settle('2026-07');
+    expect(res.created).toBe(1);
+    const rec = recordRepo._saved[0];
+    expect(rec.salaryRuleId).toBe(2);
+    expect(rec.amount).toBe(130);
+  });
+
+  it('教师等级未知时，等级规则不命中，通用规则兜底', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson()],
+      attendances: [createAttendance()],
+      courses: [createCourse()],
+      rules: [
+        createRule({ id: 1, teacherLevel: '高级', config: { lessonPrice: 150 } }),
+        createRule({ id: 2, config: { lessonPrice: 80 } }),
+      ],
+      users: [{ id: 5001, teacherLevel: null }],
+    });
+    const res = await service.settle('2026-07');
+    expect(res.created).toBe(1);
+    const rec = recordRepo._saved[0];
+    expect(rec.salaryRuleId).toBe(2);
+    expect(rec.amount).toBe(80);
   });
 });
