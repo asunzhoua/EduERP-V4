@@ -24,7 +24,7 @@ describe('TeacherAssignmentController', () => {
     assignedBy: 0,
     reason: null,
     createTime: new Date('2026-07-15'),
-  } as TeacherAssignmentEntity;
+  };
 
   const mockService = {
     assign: jest.fn<Promise<TeacherAssignmentEntity>, [any]>(),
@@ -84,7 +84,9 @@ describe('TeacherAssignmentController', () => {
 
       const result = await controller.create(dto, mockReq);
 
-      expect(result).toEqual(ApiResponse.success(mockAssignment, 'Teacher assigned'));
+      expect(result).toEqual(
+        ApiResponse.success(mockAssignment, 'Teacher assigned'),
+      );
       expect(service.assign).toHaveBeenCalledWith({
         classCode: 'CLS-001',
         teacherId: 100,
@@ -159,7 +161,9 @@ describe('TeacherAssignmentController', () => {
       const mockReq = { user: { sub: 42, role: 'Admin' } };
       mockRepo.findOneBy.mockResolvedValue(null);
 
-      await expect(controller.findOne(999, mockReq)).rejects.toThrow(NotFoundException);
+      await expect(controller.findOne(999, mockReq)).rejects.toThrow(
+        NotFoundException,
+      );
       await expect(controller.findOne(999, mockReq)).rejects.toThrow(
         'Teacher assignment #999 not found',
       );
@@ -187,7 +191,9 @@ describe('TeacherAssignmentController', () => {
       const result = await controller.remove(1);
 
       expect(service.unassign).toHaveBeenCalledWith(1);
-      expect(result).toEqual(ApiResponse.success(undefined, 'Teacher assignment ended'));
+      expect(result).toEqual(
+        ApiResponse.success(undefined, 'Teacher assignment ended'),
+      );
     });
   });
 });

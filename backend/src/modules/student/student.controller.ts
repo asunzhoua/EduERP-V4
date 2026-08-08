@@ -100,7 +100,9 @@ export class StudentController {
     if (!student) {
       return ApiResponse.error(404, '未找到关联的学生信息');
     }
-    const contracts = await this.contractRepository.findByStudentCode(student.studentCode);
+    const contracts = await this.contractRepository.findByStudentCode(
+      student.studentCode,
+    );
 
     if (contracts.length === 0) {
       return ApiResponse.success([]);
@@ -115,7 +117,7 @@ export class StudentController {
 
     // ── Step 2: Get teacher assignments for all classes ──
     const classCodes = [...new Set(enrollments.map((e) => e.classCode))];
-    let teacherAssignmentMap = new Map<string, TeacherAssignmentEntity>();
+    const teacherAssignmentMap = new Map<string, TeacherAssignmentEntity>();
     let teacherMap = new Map<number, string>();
 
     if (classCodes.length > 0) {
@@ -128,13 +130,18 @@ export class StudentController {
         const existing = teacherAssignmentMap.get(ta.classCode);
         if (!existing) {
           teacherAssignmentMap.set(ta.classCode, ta);
-        } else if (ta.role === TeacherRole.PRIMARY && existing.role !== TeacherRole.PRIMARY) {
+        } else if (
+          ta.role === TeacherRole.PRIMARY &&
+          existing.role !== TeacherRole.PRIMARY
+        ) {
           teacherAssignmentMap.set(ta.classCode, ta);
         }
       }
 
       // ── Step 3: Get teacher names from User table ──
-      const teacherIds = [...new Set(teacherAssignments.map((ta) => ta.teacherId))];
+      const teacherIds = [
+        ...new Set(teacherAssignments.map((ta) => ta.teacherId)),
+      ];
       if (teacherIds.length > 0) {
         const teachers = await this.userRepository.find({
           where: { id: In(teacherIds) },
@@ -180,7 +187,9 @@ export class StudentController {
     }
 
     const attendanceRecords =
-      await this.lessonAttendanceRepository.findByStudentCode(student.studentCode);
+      await this.lessonAttendanceRepository.findByStudentCode(
+        student.studentCode,
+      );
 
     // Fetch lesson details
     const lessonIds = [...new Set(attendanceRecords.map((r) => r.lessonId))];
@@ -194,7 +203,9 @@ export class StudentController {
     const classCodes = [...new Set(lessons.map((l) => l.classCode))];
     const classes =
       classCodes.length > 0
-        ? await this.classRepository.find({ where: { classCode: In(classCodes) } })
+        ? await this.classRepository.find({
+            where: { classCode: In(classCodes) },
+          })
         : [];
     const classMap = new Map(classes.map((c) => [c.classCode, c.name]));
 
@@ -202,7 +213,9 @@ export class StudentController {
     const courseCodes = [...new Set(lessons.map((l) => l.courseCode))];
     const courses =
       courseCodes.length > 0
-        ? await this.courseRepository.find({ where: { courseCode: In(courseCodes) } })
+        ? await this.courseRepository.find({
+            where: { courseCode: In(courseCodes) },
+          })
         : [];
     const courseMap = new Map(courses.map((c) => [c.courseCode, c.name]));
 
@@ -253,42 +266,44 @@ export class StudentController {
     }
 
     // 1. Get all attendance records for this student
-    const attendances = await this.lessonAttendanceRepository.findByStudentCode(student.studentCode);
+    const attendances = await this.lessonAttendanceRepository.findByStudentCode(
+      student.studentCode,
+    );
     if (attendances.length === 0) {
       return ApiResponse.success([]);
     }
 
     // 2. Get all related lessons
-    const lessonIds = attendances.map(a => a.lessonId);
+    const lessonIds = attendances.map((a) => a.lessonId);
     const lessons = await this.lessonRepository.find({
       where: { id: In(lessonIds) },
     });
-    const lessonMap = new Map(lessons.map(l => [l.id, l]));
+    const lessonMap = new Map(lessons.map((l) => [l.id, l]));
 
     // 3. Get class names
-    const classCodes = [...new Set(lessons.map(l => l.classCode))];
+    const classCodes = [...new Set(lessons.map((l) => l.classCode))];
     const classes = await this.classRepository.find({
       where: { classCode: In(classCodes) },
     });
-    const classMap = new Map(classes.map(c => [c.classCode, c.name]));
+    const classMap = new Map(classes.map((c) => [c.classCode, c.name]));
 
     // 4. Get course names
-    const courseCodes = [...new Set(lessons.map(l => l.courseCode))];
+    const courseCodes = [...new Set(lessons.map((l) => l.courseCode))];
     const courses = await this.courseRepository.find({
       where: { courseCode: In(courseCodes) },
     });
-    const courseMap = new Map(courses.map(c => [c.courseCode, c.name]));
+    const courseMap = new Map(courses.map((c) => [c.courseCode, c.name]));
 
     // 5. Assemble response
-    const result = attendances.map(a => {
+    const result = attendances.map((a) => {
       const lesson = lessonMap.get(a.lessonId);
       return {
         id: a.id,
         lessonDate: lesson?.scheduledDate || null,
         startTime: lesson?.startTime || null,
         endTime: lesson?.endTime || null,
-        courseName: lesson ? (courseMap.get(lesson.courseCode) || null) : null,
-        className: lesson ? (classMap.get(lesson.classCode) || null) : null,
+        courseName: lesson ? courseMap.get(lesson.courseCode) || null : null,
+        className: lesson ? classMap.get(lesson.classCode) || null : null,
         status: a.status || 'PENDING',
         deductionSkippedReason: a.deductionSkippedReason || null,
       };
@@ -326,7 +341,10 @@ export class StudentController {
 
   @Post('self/points-mall/exchange')
   @Roles('Student', 'Parent')
-  async exchangePoints(@Req() req: any, @Body() body: { productId?: number; quantity?: number }) {
+  async exchangePoints(
+    @Req() req: any,
+    @Body() body: { productId?: number; quantity?: number },
+  ) {
     const student = await this.studentService.findByUserId(req.user.sub);
     if (!student) {
       return ApiResponse.error(404, '未找到关联的学生信息');
@@ -351,7 +369,9 @@ export class StudentController {
     if (!student) {
       return ApiResponse.error(404, '未找到关联的学生信息');
     }
-    const list = await this.feedbackService.findByStudentCode(student.studentCode);
+    const list = await this.feedbackService.findByStudentCode(
+      student.studentCode,
+    );
     return ApiResponse.success(list);
   }
 
@@ -363,7 +383,10 @@ export class StudentController {
     @Param('childId', ParseIntPipe) childId: number,
     @CurrentUser() parent: any,
   ) {
-    const result = await this.studentService.getChildCourses(parent.sub, childId);
+    const result = await this.studentService.getChildCourses(
+      parent.sub,
+      childId,
+    );
     return ApiResponse.success(result);
   }
 
@@ -373,7 +396,10 @@ export class StudentController {
     @Param('childId', ParseIntPipe) childId: number,
     @CurrentUser() parent: any,
   ) {
-    const result = await this.studentService.getChildAttendance(parent.sub, childId);
+    const result = await this.studentService.getChildAttendance(
+      parent.sub,
+      childId,
+    );
     return ApiResponse.success(result);
   }
 
@@ -383,7 +409,10 @@ export class StudentController {
     @Param('childId', ParseIntPipe) childId: number,
     @CurrentUser() parent: any,
   ) {
-    const result = await this.studentService.getChildContracts(parent.sub, childId);
+    const result = await this.studentService.getChildContracts(
+      parent.sub,
+      childId,
+    );
     return ApiResponse.success(result);
   }
 
@@ -395,7 +424,10 @@ export class StudentController {
     @CurrentUser() parent: any,
     @Body() dto: CreateParentLeaveRequestDto,
   ) {
-    const result = await this.studentService.createLeaveRequest(parent.sub, dto);
+    const result = await this.studentService.createLeaveRequest(
+      parent.sub,
+      dto,
+    );
     return ApiResponse.success(result, 'Leave request submitted');
   }
 
@@ -411,7 +443,8 @@ export class StudentController {
   @Roles('SuperAdmin', 'Admin', 'Teacher')
   async findAll(@Query() query: QueryStudentDto, @Req() req: any) {
     // Teacher 只能看到自己负责的班级里的学生
-    const teacherId = req.user.role === 'Teacher' ? Number(req.user.sub) : undefined;
+    const teacherId =
+      req.user.role === 'Teacher' ? Number(req.user.sub) : undefined;
     const result = await this.studentService.findAll(query, teacherId);
     return ApiResponse.success(result);
   }
@@ -465,7 +498,12 @@ export class StudentController {
     @Body('relation') relation?: string,
     @Body('isPrimary') isPrimary?: boolean,
   ) {
-    const link = await this.studentService.linkParent(studentId, parentId, relation, isPrimary);
+    const link = await this.studentService.linkParent(
+      studentId,
+      parentId,
+      relation,
+      isPrimary,
+    );
     return ApiResponse.success(link);
   }
 
@@ -499,10 +537,7 @@ export class StudentController {
   @Roles('SuperAdmin', 'Admin')
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
-  async import(
-    @UploadedFile() file: any,
-    @Req() req: any,
-  ) {
+  async import(@UploadedFile() file: any, @Req() req: any) {
     if (!file) {
       return ApiResponse.error(400, '请上传文件');
     }

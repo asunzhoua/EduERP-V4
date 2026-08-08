@@ -123,8 +123,20 @@ describe('LessonService', () => {
         { provide: ClassRepository, useValue: mockClassRepo },
         { provide: EnrollmentRepository, useValue: mockEnrollmentRepo },
         { provide: EventBusService, useValue: mockEventBus },
-        { provide: ReminderService, useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } },
-        { provide: getRepositoryToken(Student), useValue: { createQueryBuilder: jest.fn().mockReturnValue({ where: jest.fn().mockReturnThis(), andWhere: jest.fn().mockReturnThis(), getMany: jest.fn().mockResolvedValue([]) }) } },
+        {
+          provide: ReminderService,
+          useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) },
+        },
+        {
+          provide: getRepositoryToken(Student),
+          useValue: {
+            createQueryBuilder: jest.fn().mockReturnValue({
+              where: jest.fn().mockReturnThis(),
+              andWhere: jest.fn().mockReturnThis(),
+              getMany: jest.fn().mockResolvedValue([]),
+            }),
+          },
+        },
       ],
     }).compile();
 
@@ -157,9 +169,12 @@ describe('LessonService', () => {
         status: LessonStatus.SCHEDULED,
       });
 
-      await service.create({ ...mockLessonInput, status: LessonStatus.SCHEDULED });
+      await service.create({
+        ...mockLessonInput,
+        status: LessonStatus.SCHEDULED,
+      });
 
-      const savedLesson = lessonRepo.save.mock.calls[0][0] as LessonEntity;
+      const savedLesson = lessonRepo.save.mock.calls[0][0];
       expect(savedLesson.status).toBe(LessonStatus.SCHEDULED);
     });
 
@@ -197,9 +212,7 @@ describe('LessonService', () => {
       const input = { ...mockLessonInput, lessonNumber: 0 };
 
       await expect(service.create(input)).rejects.toThrow(BadRequestException);
-      await expect(service.create(input)).rejects.toThrow(
-        'positive integer',
-      );
+      await expect(service.create(input)).rejects.toThrow('positive integer');
     });
 
     it('should throw BadRequestException when lessonNumber > 999', async () => {
@@ -237,14 +250,17 @@ describe('LessonService', () => {
       const input = { ...mockLessonInput, courseCode: 'WRONG_COURSE' };
 
       await expect(service.create(input)).rejects.toThrow(BadRequestException);
-      await expect(service.create(input)).rejects.toThrow('courseCode mismatch');
+      await expect(service.create(input)).rejects.toThrow(
+        'courseCode mismatch',
+      );
     });
 
     it('should throw BadRequestException when lessonNumber already exists', async () => {
       classRepo.findOneByCode.mockResolvedValue({ ...mockActiveClass });
-      lessonRepo.findOneByClassCodeAndLessonNumber.mockResolvedValue(
-        { ...mockLesson, lessonNumber: 1 },
-      );
+      lessonRepo.findOneByClassCodeAndLessonNumber.mockResolvedValue({
+        ...mockLesson,
+        lessonNumber: 1,
+      });
 
       await expect(service.create(mockLessonInput)).rejects.toThrow(
         BadRequestException,
@@ -256,9 +272,12 @@ describe('LessonService', () => {
 
     it('should pass when lessonNumber exists but is CANCELLED (can reuse)', async () => {
       classRepo.findOneByCode.mockResolvedValue({ ...mockActiveClass });
-      lessonRepo.findOneByClassCodeAndLessonNumber.mockResolvedValue(
-        { ...mockLesson, id: 5, lessonNumber: 1, status: LessonStatus.CANCELLED },
-      );
+      lessonRepo.findOneByClassCodeAndLessonNumber.mockResolvedValue({
+        ...mockLesson,
+        id: 5,
+        lessonNumber: 1,
+        status: LessonStatus.CANCELLED,
+      });
       lessonRepo.save.mockResolvedValue({ ...mockLesson });
 
       const result = await service.create(mockLessonInput);
@@ -294,7 +313,9 @@ describe('LessonService', () => {
     });
 
     it('should throw BadRequestException for empty inputs', async () => {
-      await expect(service.createBatch([])).rejects.toThrow(BadRequestException);
+      await expect(service.createBatch([])).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should validate time format in batch', async () => {

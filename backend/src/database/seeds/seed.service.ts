@@ -32,7 +32,6 @@ import { AttendanceStatus } from '../../modules/teaching/lesson-attendance/enums
 import { AttendanceWorkflowState } from '../../modules/teaching/lesson-attendance/enums/attendance-workflow-state.enum';
 import { AttendanceSource } from '../../modules/teaching/lesson-attendance/enums/attendance-source.enum';
 
-
 @Injectable()
 export class SeedService {
   private logger = new AppLogger();
@@ -104,10 +103,16 @@ export class SeedService {
       await this.seedTestTeacherAssignments(manager);
 
       await queryRunner.commitTransaction();
-      this.logger.log('Seed data initialization complete (transaction committed)', 'Seed');
+      this.logger.log(
+        'Seed data initialization complete (transaction committed)',
+        'Seed',
+      );
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error('Seed failed, transaction rolled back: ' + error.message, 'Seed');
+      this.logger.error(
+        'Seed failed, transaction rolled back: ' + error.message,
+        'Seed',
+      );
       throw error;
     } finally {
       await queryRunner.release();
@@ -130,17 +135,72 @@ export class SeedService {
     const repo = manager.getRepository(Permission);
     const permissions = [
       { code: 'user:read', name: '查看用户', module: 'user', action: 'read' },
-      { code: 'user:create', name: '创建用户', module: 'user', action: 'create' },
-      { code: 'user:update', name: '修改用户', module: 'user', action: 'update' },
-      { code: 'student:read', name: '查看学生', module: 'student', action: 'read' },
-      { code: 'student:create', name: '创建学生', module: 'student', action: 'create' },
-      { code: 'student:update', name: '修改学生', module: 'student', action: 'update' },
-      { code: 'lesson:read', name: '查看课程', module: 'lesson', action: 'read' },
-      { code: 'lesson:checkin', name: '签到', module: 'lesson', action: 'checkin' },
-      { code: 'salary:read', name: '查看工资', module: 'salary', action: 'read' },
-      { code: 'finance:read', name: '查看财务', module: 'finance', action: 'read' },
-      { code: 'dashboard:read', name: '查看仪表盘', module: 'dashboard', action: 'read' },
-      { code: 'system:config', name: '系统配置', module: 'system', action: 'config' },
+      {
+        code: 'user:create',
+        name: '创建用户',
+        module: 'user',
+        action: 'create',
+      },
+      {
+        code: 'user:update',
+        name: '修改用户',
+        module: 'user',
+        action: 'update',
+      },
+      {
+        code: 'student:read',
+        name: '查看学生',
+        module: 'student',
+        action: 'read',
+      },
+      {
+        code: 'student:create',
+        name: '创建学生',
+        module: 'student',
+        action: 'create',
+      },
+      {
+        code: 'student:update',
+        name: '修改学生',
+        module: 'student',
+        action: 'update',
+      },
+      {
+        code: 'lesson:read',
+        name: '查看课程',
+        module: 'lesson',
+        action: 'read',
+      },
+      {
+        code: 'lesson:checkin',
+        name: '签到',
+        module: 'lesson',
+        action: 'checkin',
+      },
+      {
+        code: 'salary:read',
+        name: '查看工资',
+        module: 'salary',
+        action: 'read',
+      },
+      {
+        code: 'finance:read',
+        name: '查看财务',
+        module: 'finance',
+        action: 'read',
+      },
+      {
+        code: 'dashboard:read',
+        name: '查看仪表盘',
+        module: 'dashboard',
+        action: 'read',
+      },
+      {
+        code: 'system:config',
+        name: '系统配置',
+        module: 'system',
+        action: 'config',
+      },
     ];
 
     for (const perm of permissions) {
@@ -163,7 +223,10 @@ export class SeedService {
     if (!admin) {
       const adminPassword = process.env.ADMIN_PASSWORD;
       if (!adminPassword) {
-        this.logger.error('ADMIN_PASSWORD environment variable is required for seeding', 'Seed');
+        this.logger.error(
+          'ADMIN_PASSWORD environment variable is required for seeding',
+          'Seed',
+        );
         throw new Error('ADMIN_PASSWORD must be set in environment variables');
       }
       const hashedPassword = await bcrypt.hash(adminPassword, 10);
@@ -183,13 +246,18 @@ export class SeedService {
     }
 
     // Always ensure role association exists (fixes partial seed from previous runs)
-    const superAdminRole = await roleRepo.findOne({ where: { name: 'SuperAdmin' } });
+    const superAdminRole = await roleRepo.findOne({
+      where: { name: 'SuperAdmin' },
+    });
     if (superAdminRole) {
       const existingRoleLink = await userRoleRepo.findOne({
         where: { userId: Number(admin.id), roleId: superAdminRole.id },
       });
       if (!existingRoleLink) {
-        await userRoleRepo.save({ userId: Number(admin.id), roleId: superAdminRole.id });
+        await userRoleRepo.save({
+          userId: Number(admin.id),
+          roleId: superAdminRole.id,
+        });
         this.logger.log('Admin SuperAdmin role association ensured', 'Seed');
       }
     }
@@ -205,12 +273,17 @@ export class SeedService {
     let savedParent: User | null = null;
 
     // 1. Teacher user
-    let existingTeacher = await userRepo.findOne({ where: { username: 'teacher1' } });
+    const existingTeacher = await userRepo.findOne({
+      where: { username: 'teacher1' },
+    });
     if (existingTeacher) {
       this.logger.log('Teacher user already exists, skipping creation', 'Seed');
       savedTeacher = existingTeacher;
     } else {
-      const teacherPassword = await bcrypt.hash(process.env.SEED_TEACHER_PASSWORD || 'Teacher@Dev2026', 10);
+      const teacherPassword = await bcrypt.hash(
+        process.env.SEED_TEACHER_PASSWORD || 'Teacher@Dev2026',
+        10,
+      );
       const teacher = userRepo.create({
         username: 'teacher1',
         password: teacherPassword,
@@ -231,18 +304,29 @@ export class SeedService {
         where: { userId: Number(savedTeacher.id), roleId: teacherRole.id },
       });
       if (!existingLink) {
-        await userRoleRepo.save({ userId: Number(savedTeacher.id), roleId: teacherRole.id });
-        this.logger.log('Teacher role association ensured for teacher1', 'Seed');
+        await userRoleRepo.save({
+          userId: Number(savedTeacher.id),
+          roleId: teacherRole.id,
+        });
+        this.logger.log(
+          'Teacher role association ensured for teacher1',
+          'Seed',
+        );
       }
     }
 
     // 2. Student user
-    let existingStudent = await userRepo.findOne({ where: { username: 'student1' } });
+    const existingStudent = await userRepo.findOne({
+      where: { username: 'student1' },
+    });
     if (existingStudent) {
       this.logger.log('Student user already exists, skipping creation', 'Seed');
       savedStudent = existingStudent;
     } else {
-      const studentPassword = await bcrypt.hash(process.env.SEED_STUDENT_PASSWORD || 'Student@Dev2026', 10);
+      const studentPassword = await bcrypt.hash(
+        process.env.SEED_STUDENT_PASSWORD || 'Student@Dev2026',
+        10,
+      );
       const student = userRepo.create({
         username: 'student1',
         password: studentPassword,
@@ -263,18 +347,29 @@ export class SeedService {
         where: { userId: Number(savedStudent.id), roleId: studentRole.id },
       });
       if (!existingLink) {
-        await userRoleRepo.save({ userId: Number(savedStudent.id), roleId: studentRole.id });
-        this.logger.log('Student role association ensured for student1', 'Seed');
+        await userRoleRepo.save({
+          userId: Number(savedStudent.id),
+          roleId: studentRole.id,
+        });
+        this.logger.log(
+          'Student role association ensured for student1',
+          'Seed',
+        );
       }
     }
 
     // 3. Parent user
-    let existingParent = await userRepo.findOne({ where: { username: 'parent1' } });
+    const existingParent = await userRepo.findOne({
+      where: { username: 'parent1' },
+    });
     if (existingParent) {
       this.logger.log('Parent user already exists, skipping creation', 'Seed');
       savedParent = existingParent;
     } else {
-      const parentPassword = await bcrypt.hash(process.env.SEED_PARENT_PASSWORD || 'Parent@Dev2026', 10);
+      const parentPassword = await bcrypt.hash(
+        process.env.SEED_PARENT_PASSWORD || 'Parent@Dev2026',
+        10,
+      );
       const parent = userRepo.create({
         username: 'parent1',
         password: parentPassword,
@@ -295,12 +390,18 @@ export class SeedService {
         where: { userId: Number(savedParent.id), roleId: parentRole.id },
       });
       if (!existingLink) {
-        await userRoleRepo.save({ userId: Number(savedParent.id), roleId: parentRole.id });
+        await userRoleRepo.save({
+          userId: Number(savedParent.id),
+          roleId: parentRole.id,
+        });
         this.logger.log('Parent role association ensured for parent1', 'Seed');
       }
     }
 
-    this.logger.log('Test users ready (teacher1/Teacher@Dev2026, student1/Student@Dev2026, parent1/Parent@Dev2026; overridable via SEED_*_PASSWORD)', 'Seed');
+    this.logger.log(
+      'Test users ready (teacher1/Teacher@Dev2026, student1/Student@Dev2026, parent1/Parent@Dev2026; overridable via SEED_*_PASSWORD)',
+      'Seed',
+    );
   }
 
   /** 创建测试班级 — 2 个 ACTIVE 班级 */
@@ -311,7 +412,9 @@ export class SeedService {
     const adminId = admin ? Number(admin.id) : 0;
 
     // 班级1：周六上午班 — 数学思维
-    const class1Exists = await repo.findOne({ where: { classCode: 'CL2026070001' } });
+    const class1Exists = await repo.findOne({
+      where: { classCode: 'CL2026070001' },
+    });
     if (!class1Exists) {
       const class1 = repo.create({
         classCode: 'CL2026070001',
@@ -332,7 +435,9 @@ export class SeedService {
     }
 
     // 班级2：周日下午班 — 英语口语
-    const class2Exists = await repo.findOne({ where: { classCode: 'CL2026070002' } });
+    const class2Exists = await repo.findOne({
+      where: { classCode: 'CL2026070002' },
+    });
     if (!class2Exists) {
       const class2 = repo.create({
         classCode: 'CL2026070002',
@@ -361,7 +466,9 @@ export class SeedService {
     const adminId = admin ? Number(admin.id) : 0;
 
     // 动态查找 student1 用户的实际 ID（避免硬编码）
-    const student1User = await userRepo.findOne({ where: { username: 'student1' } });
+    const student1User = await userRepo.findOne({
+      where: { username: 'student1' },
+    });
     const student1UserId = student1User ? Number(student1User.id) : null;
 
     const students = [
@@ -390,7 +497,9 @@ export class SeedService {
     ];
 
     for (const data of students) {
-      const exists = await repo.findOne({ where: { studentCode: data.studentCode } });
+      const exists = await repo.findOne({
+        where: { studentCode: data.studentCode },
+      });
       if (!exists) {
         const student = repo.create({
           ...data,
@@ -399,7 +508,10 @@ export class SeedService {
           createdSource: CreatedSource.ADMIN,
         });
         await repo.save(student);
-        this.logger.log(`Test student created: ${data.name} (${data.studentCode})`, 'Seed');
+        this.logger.log(
+          `Test student created: ${data.name} (${data.studentCode})`,
+          'Seed',
+        );
       }
     }
   }
@@ -410,16 +522,26 @@ export class SeedService {
     const userRepo = manager.getRepository(User);
     const studentRepo = manager.getRepository(Student);
 
-    const parent1User = await userRepo.findOne({ where: { username: 'parent1' } });
+    const parent1User = await userRepo.findOne({
+      where: { username: 'parent1' },
+    });
     if (!parent1User) {
-      this.logger.warn('parent1 user not found, skipping parent-student links', 'Seed');
+      this.logger.warn(
+        'parent1 user not found, skipping parent-student links',
+        'Seed',
+      );
       return;
     }
     const parentId = Number(parent1User.id);
 
-    const student = await studentRepo.findOne({ where: { studentCode: 'STU001' } });
+    const student = await studentRepo.findOne({
+      where: { studentCode: 'STU001' },
+    });
     if (!student) {
-      this.logger.warn('STU001 not found, skipping parent-student links', 'Seed');
+      this.logger.warn(
+        'STU001 not found, skipping parent-student links',
+        'Seed',
+      );
       return;
     }
     const studentId = Number(student.id);
@@ -433,7 +555,10 @@ export class SeedService {
         isPrimary: true,
       });
       await repo.save(link);
-      this.logger.log(`Parent-student link created: parent1 → STU001 (father)`, 'Seed');
+      this.logger.log(
+        `Parent-student link created: parent1 → STU001 (father)`,
+        'Seed',
+      );
     } else {
       this.logger.log('Parent-student link already exists, skipping', 'Seed');
     }
@@ -454,8 +579,8 @@ export class SeedService {
         subject: Subject.MATH,
         totalLessons: 50,
         remainingLessons: 50,
-        unitPrice: 150.00,
-        totalAmount: 7500.00,
+        unitPrice: 150.0,
+        totalAmount: 7500.0,
       },
       {
         contractCode: 'CT2026070002',
@@ -463,8 +588,8 @@ export class SeedService {
         subject: Subject.MATH,
         totalLessons: 50,
         remainingLessons: 50,
-        unitPrice: 150.00,
-        totalAmount: 7500.00,
+        unitPrice: 150.0,
+        totalAmount: 7500.0,
       },
       {
         contractCode: 'CT2026070003',
@@ -472,13 +597,15 @@ export class SeedService {
         subject: Subject.ENGLISH,
         totalLessons: 50,
         remainingLessons: 50,
-        unitPrice: 180.00,
-        totalAmount: 9000.00,
+        unitPrice: 180.0,
+        totalAmount: 9000.0,
       },
     ];
 
     for (const data of contracts) {
-      const exists = await repo.findOne({ where: { contractCode: data.contractCode } });
+      const exists = await repo.findOne({
+        where: { contractCode: data.contractCode },
+      });
       if (!exists) {
         const contract = repo.create({
           ...data,
@@ -488,7 +615,10 @@ export class SeedService {
           createdBy: adminId,
         });
         await repo.save(contract);
-        this.logger.log(`Test contract created: ${data.contractCode} (${data.studentCode})`, 'Seed');
+        this.logger.log(
+          `Test contract created: ${data.contractCode} (${data.studentCode})`,
+          'Seed',
+        );
       }
     }
   }
@@ -534,11 +664,16 @@ export class SeedService {
     ];
 
     for (const data of courses) {
-      const exists = await repo.findOne({ where: { courseCode: data.courseCode } });
+      const exists = await repo.findOne({
+        where: { courseCode: data.courseCode },
+      });
       if (!exists) {
         const course = repo.create(data);
         await repo.save(course);
-        this.logger.log('Test course created: ' + data.name + ' (' + data.courseCode + ')', 'Seed');
+        this.logger.log(
+          'Test course created: ' + data.name + ' (' + data.courseCode + ')',
+          'Seed',
+        );
       }
     }
   }
@@ -560,7 +695,9 @@ export class SeedService {
 
     for (const [index, lesson] of class1Lessons.entries()) {
       const lessonNumber = index + 1;
-      const exists = await repo.findOne({ where: { classCode: 'CL2026070001', lessonNumber } });
+      const exists = await repo.findOne({
+        where: { classCode: 'CL2026070001', lessonNumber },
+      });
       if (!exists) {
         const entity = repo.create({
           classCode: 'CL2026070001',
@@ -574,7 +711,10 @@ export class SeedService {
           createdBy: adminId,
         });
         await repo.save(entity);
-        this.logger.log('Test lesson created: CL2026070001 ' + lesson.scheduledDate, 'Seed');
+        this.logger.log(
+          'Test lesson created: CL2026070001 ' + lesson.scheduledDate,
+          'Seed',
+        );
       }
     }
 
@@ -588,7 +728,9 @@ export class SeedService {
 
     for (const [index, lesson] of class2Lessons.entries()) {
       const lessonNumber = index + 1;
-      const exists = await repo.findOne({ where: { classCode: 'CL2026070002', lessonNumber } });
+      const exists = await repo.findOne({
+        where: { classCode: 'CL2026070002', lessonNumber },
+      });
       if (!exists) {
         const entity = repo.create({
           classCode: 'CL2026070002',
@@ -602,7 +744,10 @@ export class SeedService {
           createdBy: adminId,
         });
         await repo.save(entity);
-        this.logger.log('Test lesson created: CL2026070002 ' + lesson.scheduledDate, 'Seed');
+        this.logger.log(
+          'Test lesson created: CL2026070002 ' + lesson.scheduledDate,
+          'Seed',
+        );
       }
     }
   }
@@ -617,33 +762,71 @@ export class SeedService {
 
     // date → lessonNumber mapping
     const dateToLesson: Record<string, number> = {
-      '2026-07-04': 1, '2026-07-11': 2, '2026-07-18': 3,
-      '2026-07-05': 1, '2026-07-12': 2, '2026-07-19': 3,
+      '2026-07-04': 1,
+      '2026-07-11': 2,
+      '2026-07-18': 3,
+      '2026-07-05': 1,
+      '2026-07-12': 2,
+      '2026-07-19': 3,
     };
 
     // CL2026070001: STU001 + STU002
     const class1Attendance = [
-      { scheduledDate: '2026-07-04', studentCode: 'STU001', status: AttendanceStatus.PRESENT },
-      { scheduledDate: '2026-07-04', studentCode: 'STU002', status: AttendanceStatus.PRESENT },
-      { scheduledDate: '2026-07-11', studentCode: 'STU001', status: AttendanceStatus.PRESENT },
-      { scheduledDate: '2026-07-11', studentCode: 'STU002', status: AttendanceStatus.LATE },
-      { scheduledDate: '2026-07-18', studentCode: 'STU001', status: AttendanceStatus.ABSENT },
-      { scheduledDate: '2026-07-18', studentCode: 'STU002', status: AttendanceStatus.PRESENT },
+      {
+        scheduledDate: '2026-07-04',
+        studentCode: 'STU001',
+        status: AttendanceStatus.PRESENT,
+      },
+      {
+        scheduledDate: '2026-07-04',
+        studentCode: 'STU002',
+        status: AttendanceStatus.PRESENT,
+      },
+      {
+        scheduledDate: '2026-07-11',
+        studentCode: 'STU001',
+        status: AttendanceStatus.PRESENT,
+      },
+      {
+        scheduledDate: '2026-07-11',
+        studentCode: 'STU002',
+        status: AttendanceStatus.LATE,
+      },
+      {
+        scheduledDate: '2026-07-18',
+        studentCode: 'STU001',
+        status: AttendanceStatus.ABSENT,
+      },
+      {
+        scheduledDate: '2026-07-18',
+        studentCode: 'STU002',
+        status: AttendanceStatus.PRESENT,
+      },
     ];
 
     for (const data of class1Attendance) {
       const lessonNumber = dateToLesson[data.scheduledDate];
       if (!lessonNumber) {
-        this.logger.warn(`No lessonNumber mapping for date ${data.scheduledDate}, skipping attendance`, 'Seed');
+        this.logger.warn(
+          `No lessonNumber mapping for date ${data.scheduledDate}, skipping attendance`,
+          'Seed',
+        );
         continue;
       }
-      const lesson = await lessonRepo.findOne({ where: { classCode: 'CL2026070001', lessonNumber } });
+      const lesson = await lessonRepo.findOne({
+        where: { classCode: 'CL2026070001', lessonNumber },
+      });
       if (!lesson) {
-        this.logger.warn(`Lesson not found for CL2026070001 lessonNumber=${lessonNumber}, skipping attendance`, 'Seed');
+        this.logger.warn(
+          `Lesson not found for CL2026070001 lessonNumber=${lessonNumber}, skipping attendance`,
+          'Seed',
+        );
         continue;
       }
       const lessonId = Number(lesson.id);
-      const exists = await repo.findOne({ where: { lessonId, studentCode: data.studentCode } });
+      const exists = await repo.findOne({
+        where: { lessonId, studentCode: data.studentCode },
+      });
       if (!exists) {
         const entity = repo.create({
           lessonId,
@@ -657,30 +840,60 @@ export class SeedService {
           workflowState: AttendanceWorkflowState.CONFIRMED,
         });
         await repo.save(entity);
-        this.logger.log('Test attendance created: CL2026070001 lesson=' + lessonNumber + ' ' + data.studentCode + '=' + data.status, 'Seed');
+        this.logger.log(
+          'Test attendance created: CL2026070001 lesson=' +
+            lessonNumber +
+            ' ' +
+            data.studentCode +
+            '=' +
+            data.status,
+          'Seed',
+        );
       }
     }
 
     // CL2026070002: STU003
     const class2Attendance = [
-      { scheduledDate: '2026-07-05', studentCode: 'STU003', status: AttendanceStatus.PRESENT },
-      { scheduledDate: '2026-07-12', studentCode: 'STU003', status: AttendanceStatus.PRESENT },
-      { scheduledDate: '2026-07-19', studentCode: 'STU003', status: AttendanceStatus.LEAVE },
+      {
+        scheduledDate: '2026-07-05',
+        studentCode: 'STU003',
+        status: AttendanceStatus.PRESENT,
+      },
+      {
+        scheduledDate: '2026-07-12',
+        studentCode: 'STU003',
+        status: AttendanceStatus.PRESENT,
+      },
+      {
+        scheduledDate: '2026-07-19',
+        studentCode: 'STU003',
+        status: AttendanceStatus.LEAVE,
+      },
     ];
 
     for (const data of class2Attendance) {
       const lessonNumber = dateToLesson[data.scheduledDate];
       if (!lessonNumber) {
-        this.logger.warn(`No lessonNumber mapping for date ${data.scheduledDate}, skipping attendance`, 'Seed');
+        this.logger.warn(
+          `No lessonNumber mapping for date ${data.scheduledDate}, skipping attendance`,
+          'Seed',
+        );
         continue;
       }
-      const lesson = await lessonRepo.findOne({ where: { classCode: 'CL2026070002', lessonNumber } });
+      const lesson = await lessonRepo.findOne({
+        where: { classCode: 'CL2026070002', lessonNumber },
+      });
       if (!lesson) {
-        this.logger.warn(`Lesson not found for CL2026070002 lessonNumber=${lessonNumber}, skipping attendance`, 'Seed');
+        this.logger.warn(
+          `Lesson not found for CL2026070002 lessonNumber=${lessonNumber}, skipping attendance`,
+          'Seed',
+        );
         continue;
       }
       const lessonId = Number(lesson.id);
-      const exists = await repo.findOne({ where: { lessonId, studentCode: data.studentCode } });
+      const exists = await repo.findOne({
+        where: { lessonId, studentCode: data.studentCode },
+      });
       if (!exists) {
         const entity = repo.create({
           lessonId,
@@ -694,7 +907,15 @@ export class SeedService {
           workflowState: AttendanceWorkflowState.CONFIRMED,
         });
         await repo.save(entity);
-        this.logger.log('Test attendance created: CL2026070002 lesson=' + lessonNumber + ' ' + data.studentCode + '=' + data.status, 'Seed');
+        this.logger.log(
+          'Test attendance created: CL2026070002 lesson=' +
+            lessonNumber +
+            ' ' +
+            data.studentCode +
+            '=' +
+            data.status,
+          'Seed',
+        );
       }
     }
   }
@@ -707,13 +928,27 @@ export class SeedService {
     const adminId = admin ? Number(admin.id) : 0;
 
     const enrollments = [
-      { classCode: 'CL2026070001', studentCode: 'STU001', contractCode: 'CT2026070001' },
-      { classCode: 'CL2026070001', studentCode: 'STU002', contractCode: 'CT2026070002' },
-      { classCode: 'CL2026070002', studentCode: 'STU003', contractCode: 'CT2026070003' },
+      {
+        classCode: 'CL2026070001',
+        studentCode: 'STU001',
+        contractCode: 'CT2026070001',
+      },
+      {
+        classCode: 'CL2026070001',
+        studentCode: 'STU002',
+        contractCode: 'CT2026070002',
+      },
+      {
+        classCode: 'CL2026070002',
+        studentCode: 'STU003',
+        contractCode: 'CT2026070003',
+      },
     ];
 
     for (const data of enrollments) {
-      const exists = await repo.findOne({ where: { classCode: data.classCode, studentCode: data.studentCode } });
+      const exists = await repo.findOne({
+        where: { classCode: data.classCode, studentCode: data.studentCode },
+      });
       if (!exists) {
         const enrollment = repo.create({
           ...data,
@@ -738,7 +973,10 @@ export class SeedService {
 
     const teacher = await userRepo.findOne({ where: { username: 'teacher1' } });
     if (!teacher) {
-      this.logger.warn('teacher1 not found, skipping teacher assignments', 'Seed');
+      this.logger.warn(
+        'teacher1 not found, skipping teacher assignments',
+        'Seed',
+      );
       return;
     }
     const teacherId = Number(teacher.id);
@@ -751,7 +989,11 @@ export class SeedService {
 
     for (const data of assignments) {
       const exists = await repo.findOne({
-        where: { classCode: data.classCode, teacherId: data.teacherId, role: TeacherRole.PRIMARY },
+        where: {
+          classCode: data.classCode,
+          teacherId: data.teacherId,
+          role: TeacherRole.PRIMARY,
+        },
       });
       if (!exists) {
         const assignment = repo.create({

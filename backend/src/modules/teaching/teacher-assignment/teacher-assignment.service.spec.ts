@@ -68,7 +68,10 @@ describe('TeacherAssignmentService', () => {
       });
 
       expect(result).toEqual(mockAssignment);
-      expect(repo.findActiveByClassAndTeacher).toHaveBeenCalledWith('CLS-001', 100);
+      expect(repo.findActiveByClassAndTeacher).toHaveBeenCalledWith(
+        'CLS-001',
+        100,
+      );
       expect(repo.save).toHaveBeenCalled();
     });
 
@@ -95,7 +98,10 @@ describe('TeacherAssignmentService', () => {
 
     it('should throw when assigning PRIMARY but one already exists', async () => {
       repo.findActiveByClassAndTeacher.mockResolvedValue(null);
-      repo.findActivePrimary.mockResolvedValue({ ...mockAssignment, teacherId: 200 } as TeacherAssignmentEntity);
+      repo.findActivePrimary.mockResolvedValue({
+        ...mockAssignment,
+        teacherId: 200,
+      });
 
       await expect(
         service.assign({
@@ -117,9 +123,18 @@ describe('TeacherAssignmentService', () => {
 
     it('should allow SUBSTITUTE when PRIMARY exists', async () => {
       repo.findActiveByClassAndTeacher.mockResolvedValue(null);
-      repo.findActivePrimary.mockResolvedValue({ ...mockAssignment, teacherId: 200 } as TeacherAssignmentEntity);
-      (repo.create as jest.Mock).mockReturnValue({ ...mockAssignment, role: TeacherRole.SUBSTITUTE });
-      repo.save.mockResolvedValue({ ...mockAssignment, role: TeacherRole.SUBSTITUTE } as TeacherAssignmentEntity);
+      repo.findActivePrimary.mockResolvedValue({
+        ...mockAssignment,
+        teacherId: 200,
+      });
+      (repo.create as jest.Mock).mockReturnValue({
+        ...mockAssignment,
+        role: TeacherRole.SUBSTITUTE,
+      });
+      repo.save.mockResolvedValue({
+        ...mockAssignment,
+        role: TeacherRole.SUBSTITUTE,
+      });
 
       const result = await service.assign({
         classCode: 'CLS-001',

@@ -54,7 +54,9 @@ describe('LessonController', () => {
   const mockLessonAttendanceService = {
     autoCreateForLesson: jest.fn(),
     batchRollCall: jest.fn(),
-    cancelByLessonId: jest.fn().mockResolvedValue({ deletedCount: 0, rollbackResults: [] }),
+    cancelByLessonId: jest
+      .fn()
+      .mockResolvedValue({ deletedCount: 0, rollbackResults: [] }),
   };
 
   beforeEach(async () => {
@@ -92,10 +94,15 @@ describe('LessonController', () => {
 
   describe('findOne', () => {
     it('should call findByClassCodeAndLessonNumber with code and lessonNumber', async () => {
-      service.findByClassCodeAndLessonNumber.mockResolvedValue(mockLesson as any);
+      service.findByClassCodeAndLessonNumber.mockResolvedValue(
+        mockLesson as any,
+      );
       const result = await controller.findOne('TEST01', 3);
 
-      expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 3);
+      expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith(
+        'TEST01',
+        3,
+      );
       expect(result).toEqual(ApiResponse.success(mockLesson));
     });
 
@@ -104,8 +111,13 @@ describe('LessonController', () => {
         new Error('Lesson not found'),
       );
 
-      await expect(controller.findOne('TEST01', 99)).rejects.toThrow('Lesson not found');
-      expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 99);
+      await expect(controller.findOne('TEST01', 99)).rejects.toThrow(
+        'Lesson not found',
+      );
+      expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith(
+        'TEST01',
+        99,
+      );
     });
   });
 
@@ -113,15 +125,24 @@ describe('LessonController', () => {
 
   describe('start', () => {
     it('should look up the lesson then call updateStatus with TEACHING', async () => {
-      service.findByClassCodeAndLessonNumber.mockResolvedValue(mockLesson as any);
+      service.findByClassCodeAndLessonNumber.mockResolvedValue(
+        mockLesson as any,
+      );
       const updated = { ...mockLesson, status: LessonStatus.TEACHING };
       service.updateStatus.mockResolvedValue(updated as any);
       const mockReq = { user: { sub: 42 } };
 
       const result = await controller.start('TEST01', 3, mockReq);
 
-      expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 3);
-      expect(service.updateStatus).toHaveBeenCalledWith(42, LessonStatus.TEACHING, 42);
+      expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith(
+        'TEST01',
+        3,
+      );
+      expect(service.updateStatus).toHaveBeenCalledWith(
+        42,
+        LessonStatus.TEACHING,
+        42,
+      );
       expect(result).toEqual(ApiResponse.success(updated, 'Lesson started'));
     });
 
@@ -131,7 +152,9 @@ describe('LessonController', () => {
       );
       const mockReq = { user: { sub: 42 } };
 
-      await expect(controller.start('TEST01', 99, mockReq)).rejects.toThrow('Lesson not found');
+      await expect(controller.start('TEST01', 99, mockReq)).rejects.toThrow(
+        'Lesson not found',
+      );
       expect(service.updateStatus).not.toHaveBeenCalled();
     });
   });
@@ -140,15 +163,24 @@ describe('LessonController', () => {
 
   describe('complete', () => {
     it('should look up the lesson then call updateStatus with FINISHED', async () => {
-      service.findByClassCodeAndLessonNumber.mockResolvedValue(mockLesson as any);
+      service.findByClassCodeAndLessonNumber.mockResolvedValue(
+        mockLesson as any,
+      );
       const updated = { ...mockLesson, status: LessonStatus.FINISHED };
       service.updateStatus.mockResolvedValue(updated as any);
       const mockReq = { user: { sub: 42 } };
 
       const result = await controller.complete('TEST01', 3, mockReq);
 
-      expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 3);
-      expect(service.updateStatus).toHaveBeenCalledWith(42, LessonStatus.FINISHED, 42);
+      expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith(
+        'TEST01',
+        3,
+      );
+      expect(service.updateStatus).toHaveBeenCalledWith(
+        42,
+        LessonStatus.FINISHED,
+        42,
+      );
       expect(result).toEqual(ApiResponse.success(updated, 'Lesson completed'));
     });
 
@@ -158,7 +190,9 @@ describe('LessonController', () => {
       );
       const mockReq = { user: { sub: 42 } };
 
-      await expect(controller.complete('TEST01', 99, mockReq)).rejects.toThrow('Lesson not found');
+      await expect(controller.complete('TEST01', 99, mockReq)).rejects.toThrow(
+        'Lesson not found',
+      );
       expect(service.updateStatus).not.toHaveBeenCalled();
     });
   });
@@ -167,15 +201,24 @@ describe('LessonController', () => {
 
   describe('confirm', () => {
     it('should look up the lesson then call updateStatus with ARCHIVED', async () => {
-      service.findByClassCodeAndLessonNumber.mockResolvedValue(mockLesson as any);
+      service.findByClassCodeAndLessonNumber.mockResolvedValue(
+        mockLesson as any,
+      );
       const updated = { ...mockLesson, status: LessonStatus.ARCHIVED };
       service.updateStatus.mockResolvedValue(updated as any);
       const mockReq = { user: { sub: 42 } };
 
       const result = await controller.confirm('TEST01', 3, mockReq);
 
-      expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 3);
-      expect(service.updateStatus).toHaveBeenCalledWith(42, LessonStatus.ARCHIVED, 42);
+      expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith(
+        'TEST01',
+        3,
+      );
+      expect(service.updateStatus).toHaveBeenCalledWith(
+        42,
+        LessonStatus.ARCHIVED,
+        42,
+      );
       expect(result).toEqual(ApiResponse.success(updated, 'Lesson confirmed'));
     });
 
@@ -185,7 +228,9 @@ describe('LessonController', () => {
       );
       const mockReq = { user: { sub: 42 } };
 
-      await expect(controller.confirm('TEST01', 99, mockReq)).rejects.toThrow('Lesson not found');
+      await expect(controller.confirm('TEST01', 99, mockReq)).rejects.toThrow(
+        'Lesson not found',
+      );
       expect(service.updateStatus).not.toHaveBeenCalled();
     });
   });
@@ -194,22 +239,35 @@ describe('LessonController', () => {
 
   describe('cancel', () => {
     it('should look up the lesson then call updateStatus with CANCELLED and reason', async () => {
-      service.findByClassCodeAndLessonNumber.mockResolvedValue(mockLesson as any);
+      service.findByClassCodeAndLessonNumber.mockResolvedValue(
+        mockLesson as any,
+      );
       const updated = { ...mockLesson, status: LessonStatus.CANCELLED };
       service.updateStatus.mockResolvedValue(updated as any);
       const mockReq = { user: { sub: 42 } };
 
       const body = { reason: '教师请假' };
-      const result = await controller.cancel('TEST01', 3, body as any, mockReq);
+      const result = await controller.cancel('TEST01', 3, body, mockReq);
 
-      expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith('TEST01', 3);
+      expect(service.findByClassCodeAndLessonNumber).toHaveBeenCalledWith(
+        'TEST01',
+        3,
+      );
       expect(service.updateStatus).toHaveBeenCalledWith(
         42,
         LessonStatus.CANCELLED,
         42,
         '教师请假',
       );
-      expect(result).toEqual(ApiResponse.success({ lesson: updated, attendanceCleanup: { deletedCount: 0, rollbackResults: [] } }, 'Lesson cancelled'));
+      expect(result).toEqual(
+        ApiResponse.success(
+          {
+            lesson: updated,
+            attendanceCleanup: { deletedCount: 0, rollbackResults: [] },
+          },
+          'Lesson cancelled',
+        ),
+      );
     });
 
     it('should throw if lesson is not found', async () => {
@@ -225,13 +283,15 @@ describe('LessonController', () => {
     });
 
     it('should propagate the reason from the request body', async () => {
-      service.findByClassCodeAndLessonNumber.mockResolvedValue(mockLesson as any);
+      service.findByClassCodeAndLessonNumber.mockResolvedValue(
+        mockLesson as any,
+      );
       const updated = { ...mockLesson, status: LessonStatus.CANCELLED };
       service.updateStatus.mockResolvedValue(updated as any);
       const mockReq = { user: { sub: 42 } };
 
       const reason = '教室不可用，需要调课';
-      await controller.cancel('TEST01', 3, { reason } as any, mockReq);
+      await controller.cancel('TEST01', 3, { reason }, mockReq);
 
       expect(service.updateStatus).toHaveBeenCalledWith(
         42,
@@ -272,7 +332,7 @@ describe('LessonController', () => {
         originLessonId: 42,
       };
 
-      const result = await controller.createMakeup('TEST01', body as any, mockReq);
+      const result = await controller.createMakeup('TEST01', body, mockReq);
 
       expect(service.create).toHaveBeenCalledWith({
         classCode: 'TEST01',
@@ -286,7 +346,9 @@ describe('LessonController', () => {
         originLessonId: 42,
         createdBy: 42,
       });
-      expect(result).toEqual(ApiResponse.success(makeupLesson, 'Makeup lesson created'));
+      expect(result).toEqual(
+        ApiResponse.success(makeupLesson, 'Makeup lesson created'),
+      );
     });
 
     it('should pass originLessonId as undefined when not provided', async () => {
@@ -303,7 +365,7 @@ describe('LessonController', () => {
         teacherId: 1,
       };
 
-      await controller.createMakeup('TEST01', body as any, mockReq);
+      await controller.createMakeup('TEST01', body, mockReq);
 
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -315,9 +377,9 @@ describe('LessonController', () => {
     });
 
     it('should propagate errors from the service', async () => {
-      service.create = jest.fn().mockRejectedValue(
-        new Error('Class not found: TEST01'),
-      );
+      service.create = jest
+        .fn()
+        .mockRejectedValue(new Error('Class not found: TEST01'));
       const mockReq = { user: { sub: 42 } };
 
       const body = {
@@ -342,9 +404,11 @@ describe('LessonController', () => {
       mockClassService.findByCode = jest
         .fn()
         .mockResolvedValue({ courseCode: 'CS101' } as any);
-      mockClassService.getTeachers = jest.fn().mockResolvedValue([
-        { teacherId: 7, role: TeacherRole.PRIMARY },
-      ] as any);
+      mockClassService.getTeachers = jest
+        .fn()
+        .mockResolvedValue([
+          { teacherId: 7, role: TeacherRole.PRIMARY },
+        ] as any);
       mockLessonRepository.findMaxLessonNumber.mockResolvedValue(2);
 
       const created = {
@@ -357,7 +421,9 @@ describe('LessonController', () => {
       mockLessonAttendanceService.autoCreateForLesson = jest
         .fn()
         .mockResolvedValue([]);
-      mockLessonAttendanceService.batchRollCall = jest.fn().mockResolvedValue([]);
+      mockLessonAttendanceService.batchRollCall = jest
+        .fn()
+        .mockResolvedValue([]);
 
       const mockReq = { user: { sub: 42 } };
       const dto = {

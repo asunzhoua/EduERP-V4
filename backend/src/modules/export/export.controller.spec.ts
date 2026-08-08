@@ -55,7 +55,8 @@ describe('ExportController', () => {
 
     expect(res.set).toHaveBeenCalledWith(
       expect.objectContaining({
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Type':
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       }),
     );
     expect(res.send).toHaveBeenCalled();
@@ -67,7 +68,7 @@ describe('ExportController', () => {
       send: jest.fn(),
     };
 
-    await controller.exportLessons({} as any, res as any);
+    await controller.exportLessons({}, res as any);
 
     expect(res.set).toHaveBeenCalled();
     expect(res.send).toHaveBeenCalled();
@@ -79,7 +80,7 @@ describe('ExportController', () => {
       send: jest.fn(),
     };
 
-    await controller.exportConsumption({} as any, res as any);
+    await controller.exportConsumption({}, res as any);
 
     expect(res.set).toHaveBeenCalled();
     expect(res.send).toHaveBeenCalled();
@@ -91,7 +92,7 @@ describe('ExportController', () => {
       send: jest.fn(),
     };
 
-    await controller.exportSalary({} as any, res as any);
+    await controller.exportSalary({}, res as any);
 
     expect(res.set).toHaveBeenCalled();
     expect(res.send).toHaveBeenCalled();
@@ -103,7 +104,7 @@ describe('ExportController', () => {
       send: jest.fn(),
     };
 
-    await controller.exportFinance({} as any, res as any);
+    await controller.exportFinance({}, res as any);
 
     expect(res.set).toHaveBeenCalled();
     expect(res.send).toHaveBeenCalled();
@@ -115,7 +116,7 @@ describe('ExportController', () => {
       send: jest.fn(),
     };
 
-    await controller.exportStudents({} as any, res as any);
+    await controller.exportStudents({}, res as any);
 
     expect(res.set).toHaveBeenCalledWith(
       expect.objectContaining({

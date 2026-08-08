@@ -77,7 +77,7 @@ let studentCode: string;
 let contractCode: string;
 let classCode: string;
 let courseCode: string;
-let createdIds: {
+const createdIds: {
   userIds: number[];
   studentIds: number[];
   contractIds: number[];
@@ -145,14 +145,10 @@ async function cleanupTestData() {
     )`,
     [TEST_STUDENT_NAME],
   );
-  await dataSource.query(
-    `DELETE FROM class WHERE name = ?`,
-    [TEST_CLASS_NAME],
-  );
-  await dataSource.query(
-    `DELETE FROM course WHERE name = ?`,
-    [TEST_COURSE_NAME],
-  );
+  await dataSource.query(`DELETE FROM class WHERE name = ?`, [TEST_CLASS_NAME]);
+  await dataSource.query(`DELETE FROM course WHERE name = ?`, [
+    TEST_COURSE_NAME,
+  ]);
   await dataSource.query(
     `DELETE FROM student_audit_log WHERE studentId IN (
       SELECT id FROM student WHERE name = ?
@@ -165,12 +161,15 @@ async function cleanupTestData() {
     )`,
     [TEST_STUDENT_NAME],
   );
-  await dataSource.query(
-    `DELETE FROM student WHERE name = ?`,
-    [TEST_STUDENT_NAME],
-  );
+  await dataSource.query(`DELETE FROM student WHERE name = ?`, [
+    TEST_STUDENT_NAME,
+  ]);
   // Clean up test users
-  for (const username of [TEST_TEACHER_USERNAME, TEST_ADMIN_USERNAME, TEST_PARENT_USERNAME]) {
+  for (const username of [
+    TEST_TEACHER_USERNAME,
+    TEST_ADMIN_USERNAME,
+    TEST_PARENT_USERNAME,
+  ]) {
     await dataSource.query(
       `DELETE FROM user_role WHERE userId IN (SELECT id FROM user WHERE username = ?)`,
       [username],
@@ -180,10 +179,11 @@ async function cleanupTestData() {
     `DELETE FROM login_log WHERE userId IN (SELECT id FROM user WHERE username IN (?, ?, ?))`,
     [TEST_TEACHER_USERNAME, TEST_ADMIN_USERNAME, TEST_PARENT_USERNAME],
   );
-  await dataSource.query(
-    `DELETE FROM user WHERE username IN (?, ?, ?)`,
-    [TEST_TEACHER_USERNAME, TEST_ADMIN_USERNAME, TEST_PARENT_USERNAME],
-  );
+  await dataSource.query(`DELETE FROM user WHERE username IN (?, ?, ?)`, [
+    TEST_TEACHER_USERNAME,
+    TEST_ADMIN_USERNAME,
+    TEST_PARENT_USERNAME,
+  ]);
 }
 
 // ─── Helper: Create test users ───
@@ -462,13 +462,26 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
             password: config.get('app.database.password'),
             database: config.get('app.database.database'),
             entities: [
-              User, LoginLog, Role, Permission, UserRole, RolePermission,
-              Student, StudentAuditLog, StudentParent,
-              ClassEntity, CourseEntity, CourseAuditLog,
-              ContractEntity, EnrollmentEntity,
-              LessonEntity, LessonAttendanceEntity, LessonChangeRequestEntity,
+              User,
+              LoginLog,
+              Role,
+              Permission,
+              UserRole,
+              RolePermission,
+              Student,
+              StudentAuditLog,
+              StudentParent,
+              ClassEntity,
+              CourseEntity,
+              CourseAuditLog,
+              ContractEntity,
+              EnrollmentEntity,
+              LessonEntity,
+              LessonAttendanceEntity,
+              LessonChangeRequestEntity,
               TeacherAssignmentEntity,
-              Reminder, ImportHistory,
+              Reminder,
+              ImportHistory,
             ],
             synchronize: false,
             logging: false,
@@ -779,7 +792,9 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
       expect(data.length).toBeGreaterThanOrEqual(2); // 原合同 + 耗尽合同
 
       // Find the original contract
-      const originalContract = data.find((c: any) => c.contractCode === contractCode);
+      const originalContract = data.find(
+        (c: any) => c.contractCode === contractCode,
+      );
       expect(originalContract).toBeDefined();
       expect(originalContract.remainingLessons).toBe(8);
       expect(originalContract.status).toBe('ACTIVE');
@@ -848,28 +863,36 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
   describe('场景5: 后台统计变化', () => {
     it('5.1 机构统计：学生总数包含测试学生', async () => {
       const metrics = await getInstitutionMetrics();
-      const totalStudents = metrics.metrics.find((m: any) => m.name === 'totalStudents');
+      const totalStudents = metrics.metrics.find(
+        (m: any) => m.name === 'totalStudents',
+      );
       expect(totalStudents).toBeDefined();
       expect(totalStudents.value).toBeGreaterThanOrEqual(1);
     });
 
     it('5.2 机构统计：活跃学生数包含测试学生', async () => {
       const metrics = await getInstitutionMetrics();
-      const activeStudents = metrics.metrics.find((m: any) => m.name === 'activeStudents');
+      const activeStudents = metrics.metrics.find(
+        (m: any) => m.name === 'activeStudents',
+      );
       expect(activeStudents).toBeDefined();
       expect(activeStudents.value).toBeGreaterThanOrEqual(1);
     });
 
     it('5.3 机构统计：课程总数包含测试课程', async () => {
       const metrics = await getInstitutionMetrics();
-      const totalCourses = metrics.metrics.find((m: any) => m.name === 'totalCourses');
+      const totalCourses = metrics.metrics.find(
+        (m: any) => m.name === 'totalCourses',
+      );
       expect(totalCourses).toBeDefined();
       expect(totalCourses.value).toBeGreaterThanOrEqual(2); // 2 test courses
     });
 
     it('5.4 机构统计：班级总数包含测试班级', async () => {
       const metrics = await getInstitutionMetrics();
-      const totalClasses = metrics.metrics.find((m: any) => m.name === 'totalClasses');
+      const totalClasses = metrics.metrics.find(
+        (m: any) => m.name === 'totalClasses',
+      );
       expect(totalClasses).toBeDefined();
       expect(totalClasses.value).toBeGreaterThanOrEqual(2); // 2 test classes
     });
@@ -879,12 +902,16 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
       const metrics = analytics.metrics;
 
       // totalAttendance should reflect PRESENT + LATE (both count as present)
-      const totalAttendance = metrics.find((m: any) => m.name === 'totalAttendance');
+      const totalAttendance = metrics.find(
+        (m: any) => m.name === 'totalAttendance',
+      );
       expect(totalAttendance).toBeDefined();
       expect(totalAttendance.value).toBeGreaterThanOrEqual(2); // At least 2 PRESENT + 1 LATE
 
       // attendanceRate should be > 0
-      const attendanceRate = metrics.find((m: any) => m.name === 'attendanceRate');
+      const attendanceRate = metrics.find(
+        (m: any) => m.name === 'attendanceRate',
+      );
       expect(attendanceRate).toBeDefined();
       expect(attendanceRate.value).toBeGreaterThan(0);
     });
@@ -894,7 +921,9 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
       const metrics = analytics.metrics;
 
       // consumedLessons should reflect deducted lessons
-      const consumedLessons = metrics.find((m: any) => m.name === 'consumedLessons');
+      const consumedLessons = metrics.find(
+        (m: any) => m.name === 'consumedLessons',
+      );
       expect(consumedLessons).toBeDefined();
       expect(consumedLessons.value).toBeGreaterThanOrEqual(2); // At least 2 deducted from original contract
     });
@@ -903,7 +932,9 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
       const analytics = await getStudentAnalytics();
       const metrics = analytics.metrics;
 
-      const remainingLessons = metrics.find((m: any) => m.name === 'remainingLessons');
+      const remainingLessons = metrics.find(
+        (m: any) => m.name === 'remainingLessons',
+      );
       expect(remainingLessons).toBeDefined();
       expect(remainingLessons.value).toBeGreaterThanOrEqual(0);
     });
@@ -935,7 +966,10 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
   describe('场景6: 端到端数据一致性综合验证', () => {
     it('6.1 合同剩余课时 = 总课时 - 已消耗课时', async () => {
       const contract = await getContractInfo();
-      expect(contract.remainingLessons).toBe(contract.totalLessons - (contract.totalLessons - contract.remainingLessons));
+      expect(contract.remainingLessons).toBe(
+        contract.totalLessons -
+          (contract.totalLessons - contract.remainingLessons),
+      );
       // More specifically: original contract had 10, deducted 2 (PRESENT + LATE), ABSENT not deducted
       expect(contract.remainingLessons).toBe(8);
     });
@@ -946,11 +980,15 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
 
       // Parent view
       const parentContracts = await getParentContracts();
-      const parentContract = parentContracts.find((c: any) => c.contractCode === contractCode);
+      const parentContract = parentContracts.find(
+        (c: any) => c.contractCode === contractCode,
+      );
 
       expect(parentContract).toBeDefined();
       expect(parentContract.status).toBe(adminContract.status);
-      expect(parentContract.remainingLessons).toBe(adminContract.remainingLessons);
+      expect(parentContract.remainingLessons).toBe(
+        adminContract.remainingLessons,
+      );
     });
 
     it('6.3 教师端 Dashboard 与课时记录一致', async () => {

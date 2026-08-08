@@ -107,14 +107,26 @@ describe('StudentService', () => {
       providers: [
         StudentService,
         { provide: StudentRepository, useValue: mockStudentRepo },
-        { provide: getRepositoryToken(StudentParent), useValue: mockParentRepo },
-        { provide: getRepositoryToken(StudentAuditLog), useValue: mockAuditLogRepo },
+        {
+          provide: getRepositoryToken(StudentParent),
+          useValue: mockParentRepo,
+        },
+        {
+          provide: getRepositoryToken(StudentAuditLog),
+          useValue: mockAuditLogRepo,
+        },
         { provide: StudentCodeGeneratorService, useValue: mockCodeGenerator },
         { provide: ImportService, useValue: mockImportService },
         { provide: ContractRepository, useValue: mockContractRepo },
         { provide: LessonAttendanceRepository, useValue: mockAttendanceRepo },
-        { provide: getRepositoryToken(LeaveRequestEntity), useValue: mockLeaveRequestRepo },
-        { provide: getRepositoryToken(EnrollmentEntity), useValue: mockEnrollmentRepo },
+        {
+          provide: getRepositoryToken(LeaveRequestEntity),
+          useValue: mockLeaveRequestRepo,
+        },
+        {
+          provide: getRepositoryToken(EnrollmentEntity),
+          useValue: mockEnrollmentRepo,
+        },
         { provide: getRepositoryToken(CourseEntity), useValue: mockCourseRepo },
         { provide: getRepositoryToken(LessonEntity), useValue: mockLessonRepo },
       ],
@@ -139,7 +151,7 @@ describe('StudentService', () => {
       studentRepo.save.mockResolvedValue(mockStudent);
 
       const result = await service.create(
-        { name: '张三', gender: 'MALE' as any, birthDate: '2015-01-01' } as any,
+        { name: '张三', gender: 'MALE' as any, birthDate: '2015-01-01' },
         1,
       );
 
@@ -187,9 +199,12 @@ describe('StudentService', () => {
   describe('update', () => {
     it('should update student fields', async () => {
       studentRepo.findById.mockResolvedValue(mockStudent);
-      studentRepo.save.mockResolvedValue({ ...mockStudent, name: '李四' } as Student);
+      studentRepo.save.mockResolvedValue({
+        ...mockStudent,
+        name: '李四',
+      });
 
-      const result = await service.update(1, { name: '李四' } as any, 1);
+      const result = await service.update(1, { name: '李四' }, 1);
 
       expect(result.name).toBe('李四');
       expect(studentRepo.save).toHaveBeenCalled();
@@ -201,15 +216,25 @@ describe('StudentService', () => {
   describe('updateStatus', () => {
     it('should update status', async () => {
       studentRepo.findById.mockResolvedValue(mockStudent);
-      studentRepo.save.mockResolvedValue({ ...mockStudent, status: StudentStatus.PAUSED } as Student);
+      studentRepo.save.mockResolvedValue({
+        ...mockStudent,
+        status: StudentStatus.PAUSED,
+      });
 
-      const result = await service.updateStatus(1, { status: StudentStatus.PAUSED } as any, 1);
+      const result = await service.updateStatus(
+        1,
+        { status: StudentStatus.PAUSED },
+        1,
+      );
 
       expect(result.status).toBe(StudentStatus.PAUSED);
     });
 
     it('should throw when student is GRADUATED', async () => {
-      studentRepo.findById.mockResolvedValue({ ...mockStudent, status: StudentStatus.GRADUATED } as Student);
+      studentRepo.findById.mockResolvedValue({
+        ...mockStudent,
+        status: StudentStatus.GRADUATED,
+      });
 
       await expect(
         service.updateStatus(1, { status: StudentStatus.ACTIVE } as any, 1),
@@ -225,12 +250,15 @@ describe('StudentService', () => {
   describe('softDelete', () => {
     it('should soft delete student', async () => {
       studentRepo.findById.mockResolvedValue(mockStudent);
-      studentRepo.save.mockResolvedValue({ ...mockStudent, deleted: true } as Student);
+      studentRepo.save.mockResolvedValue({
+        ...mockStudent,
+        deleted: true,
+      });
 
       await service.softDelete(1, 1);
 
       expect(studentRepo.save).toHaveBeenCalled();
-      const savedStudent = studentRepo.save.mock.calls[0][0] as Student;
+      const savedStudent = studentRepo.save.mock.calls[0][0];
       expect(savedStudent.deleted).toBe(true);
     });
   });

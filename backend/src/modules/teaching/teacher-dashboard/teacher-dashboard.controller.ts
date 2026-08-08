@@ -32,12 +32,12 @@ export class TeacherDashboardController {
   @ApiOperation({ summary: 'Get dashboard stats for teacher' })
   async getDashboard(@Req() req: any) {
     const userId = req.user.sub;
-    
+
     // Get teacher's active assigned class codes (effectiveTo IS NULL = active)
     const assignments = await this.teacherAssignmentRepository.find({
       where: { teacherId: userId, effectiveTo: IsNull() },
     });
-    const classCodes = assignments.map(a => a.classCode);
+    const classCodes = assignments.map((a) => a.classCode);
 
     let todayLessons = 0;
     let pendingAttendance = 0;
@@ -48,15 +48,15 @@ export class TeacherDashboardController {
 
       // Count today's lessons
       todayLessons = await this.lessonRepository.count({
-        where: { classCode: In(classCodes), scheduledDate: today } as any,
+        where: { classCode: In(classCodes), scheduledDate: today },
       });
 
       // Count today's lessons without attendance
       const todayLessonsData = await this.lessonRepository.find({
-        where: { classCode: In(classCodes), scheduledDate: today } as any,
+        where: { classCode: In(classCodes), scheduledDate: today },
       });
-      const todayLessonIds = todayLessonsData.map(l => l.id);
-      
+      const todayLessonIds = todayLessonsData.map((l) => l.id);
+
       if (todayLessonIds.length > 0) {
         // Count lessons that have at least one attendance record
         const lessonsWithAttendance = await this.lessonAttendanceRepository
@@ -65,21 +65,28 @@ export class TeacherDashboardController {
           .where('la.lessonId IN (:...ids)', { ids: todayLessonIds })
           .distinct(true)
           .getRawMany();
-        
+
         pendingAttendance = todayLessons - lessonsWithAttendance.length;
       }
 
       // Count distinct students with ACTIVE enrollments in the teacher's classes
-      const activeStudentCodes = await this.enrollmentRepository.findActiveStudentCodesByClassCodes(classCodes);
+      const activeStudentCodes =
+        await this.enrollmentRepository.findActiveStudentCodesByClassCodes(
+          classCodes,
+        );
       totalStudents = activeStudentCodes.length;
     }
 
     // Count FINISHED lessons in the teacher's classes
-    const completedLessons = classCodes.length > 0
-      ? await this.lessonRepository.count({
-          where: { classCode: In(classCodes), status: LessonStatus.FINISHED } as any,
-        })
-      : 0;
+    const completedLessons =
+      classCodes.length > 0
+        ? await this.lessonRepository.count({
+            where: {
+              classCode: In(classCodes),
+              status: LessonStatus.FINISHED,
+            },
+          })
+        : 0;
 
     return ApiResponse.success({
       todayLessons,

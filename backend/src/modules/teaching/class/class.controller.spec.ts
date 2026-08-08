@@ -66,10 +66,14 @@ describe('ClassController', () => {
         startTime: '10:00',
         endTime: '11:30',
       };
-      const created = { classCode: 'CLS20260712001', ...dto, status: ClassStatus.DRAFT };
+      const created = {
+        classCode: 'CLS20260712001',
+        ...dto,
+        status: ClassStatus.DRAFT,
+      };
       mockClassService.create.mockResolvedValue(created);
 
-      const result = await controller.create(dto as any, mockRequest);
+      const result = await controller.create(dto, mockRequest);
 
       expect(result).toBeInstanceOf(ApiResponse);
       expect(result.code).toBe(0);
@@ -85,11 +89,20 @@ describe('ClassController', () => {
     it('should return paginated class list with enrichment', async () => {
       const query = { page: 1, pageSize: 20 };
       const rawItems = [{ classCode: 'CLS001', name: 'Test Class' }];
-      const enrichedItems = [{ classCode: 'CLS001', name: 'Test Class', courseName: '数学', currentStudents: 5 }];
+      const enrichedItems = [
+        {
+          classCode: 'CLS001',
+          name: 'Test Class',
+          courseName: '数学',
+          currentStudents: 5,
+        },
+      ];
       mockClassService.findAll.mockResolvedValue({ items: rawItems, total: 1 });
       mockClassService.enrichClasses.mockResolvedValue(enrichedItems);
 
-      const result = await controller.findAll(query as any, { user: { role: 'Admin', sub: 1 } });
+      const result = await controller.findAll(query, {
+        user: { role: 'Admin', sub: 1 },
+      });
 
       expect(result.code).toBe(0);
       expect(result.data).toEqual({ items: enrichedItems, total: 1 });
@@ -102,8 +115,17 @@ describe('ClassController', () => {
 
   describe('findOne', () => {
     it('should return a class enriched by code', async () => {
-      const cls = { classCode: 'CLS001', name: 'Test Class', status: ClassStatus.DRAFT };
-      const enriched = { ...cls, courseName: '数学', currentStudents: 5, schedule: '周六 10:00-11:30' };
+      const cls = {
+        classCode: 'CLS001',
+        name: 'Test Class',
+        status: ClassStatus.DRAFT,
+      };
+      const enriched = {
+        ...cls,
+        courseName: '数学',
+        currentStudents: 5,
+        schedule: '周六 10:00-11:30',
+      };
       mockClassService.findByCode.mockResolvedValue(cls);
       mockClassService.enrichClass.mockResolvedValue(enriched);
 
@@ -121,10 +143,14 @@ describe('ClassController', () => {
   describe('update', () => {
     it('should update a class and return success response', async () => {
       const dto = { name: 'Updated Class' };
-      const updated = { classCode: 'CLS001', name: 'Updated Class', status: ClassStatus.DRAFT };
+      const updated = {
+        classCode: 'CLS001',
+        name: 'Updated Class',
+        status: ClassStatus.DRAFT,
+      };
       mockClassService.update.mockResolvedValue(updated);
 
-      const result = await controller.update('CLS001', dto as any, mockRequest);
+      const result = await controller.update('CLS001', dto, mockRequest);
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('Class updated');
@@ -141,7 +167,7 @@ describe('ClassController', () => {
       const updated = { classCode: 'CLS001', status: ClassStatus.ACTIVE };
       mockClassService.updateStatus.mockResolvedValue(updated);
 
-      const result = await controller.updateStatus('CLS001', dto as any, mockRequest);
+      const result = await controller.updateStatus('CLS001', dto, mockRequest);
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('Status updated');
@@ -159,11 +185,20 @@ describe('ClassController', () => {
 
   describe('assignTeacher', () => {
     it('should assign a teacher to a class', async () => {
-      const dto = { teacherId: 5001, role: TeacherRole.PRIMARY, reason: '主讲教师' };
-      const assignment = { id: 1, classCode: 'CLS001', teacherId: 5001, role: TeacherRole.PRIMARY };
+      const dto = {
+        teacherId: 5001,
+        role: TeacherRole.PRIMARY,
+        reason: '主讲教师',
+      };
+      const assignment = {
+        id: 1,
+        classCode: 'CLS001',
+        teacherId: 5001,
+        role: TeacherRole.PRIMARY,
+      };
       mockClassService.assignTeacher.mockResolvedValue(assignment);
 
-      const result = await controller.assignTeacher('CLS001', dto as any, mockRequest);
+      const result = await controller.assignTeacher('CLS001', dto, mockRequest);
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('Teacher assigned');
@@ -184,7 +219,11 @@ describe('ClassController', () => {
     it('should remove a teacher assignment from a class', async () => {
       mockClassService.removeTeacher.mockResolvedValue(undefined);
 
-      const result = await controller.removeTeacher('CLS001', '10', mockRequest);
+      const result = await controller.removeTeacher(
+        'CLS001',
+        '10',
+        mockRequest,
+      );
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('Teacher assignment ended');

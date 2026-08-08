@@ -22,12 +22,23 @@ import { Student } from '@modules/student/entities/student.entity';
 /** Allowed status transitions per LessonStateMachine */
 const VALID_TRANSITIONS: Record<LessonStatus, LessonStatus[]> = {
   [LessonStatus.DRAFT]: [LessonStatus.SCHEDULED, LessonStatus.CANCELLED],
-  [LessonStatus.SCHEDULED]: [LessonStatus.TEACHING, LessonStatus.CANCELLED, LessonStatus.SUSPENDED],
+  [LessonStatus.SCHEDULED]: [
+    LessonStatus.TEACHING,
+    LessonStatus.CANCELLED,
+    LessonStatus.SUSPENDED,
+  ],
   [LessonStatus.TEACHING]: [LessonStatus.FINISHED, LessonStatus.CANCELLED],
   [LessonStatus.FINISHED]: [LessonStatus.ARCHIVED, LessonStatus.SCHEDULED],
   [LessonStatus.ARCHIVED]: [LessonStatus.FINISHED], // Reopen (requires reason, may need financial rollback)
-  [LessonStatus.CANCELLED]: [LessonStatus.SCHEDULED, LessonStatus.MAKEUP_PENDING],
-  [LessonStatus.SUSPENDED]: [LessonStatus.SCHEDULED, LessonStatus.RESCHEDULED, LessonStatus.MAKEUP_PENDING],
+  [LessonStatus.CANCELLED]: [
+    LessonStatus.SCHEDULED,
+    LessonStatus.MAKEUP_PENDING,
+  ],
+  [LessonStatus.SUSPENDED]: [
+    LessonStatus.SCHEDULED,
+    LessonStatus.RESCHEDULED,
+    LessonStatus.MAKEUP_PENDING,
+  ],
   [LessonStatus.RESCHEDULED]: [LessonStatus.TEACHING],
   [LessonStatus.MAKEUP_PENDING]: [LessonStatus.RESCHEDULED],
   [LessonStatus.MAKEUP_COMPLETED]: [],
@@ -83,13 +94,15 @@ export class LessonService {
     this.validateTimeFormat(input.endTime, 'endTime');
 
     if (input.endTime <= input.startTime) {
-      throw new BadRequestException(
-        'endTime must be greater than startTime',
-      );
+      throw new BadRequestException('endTime must be greater than startTime');
     }
 
     // ─── 1.5. Status whitelist: lessons may only be created as DRAFT or SCHEDULED ───
-    if (input.status && input.status !== LessonStatus.DRAFT && input.status !== LessonStatus.SCHEDULED) {
+    if (
+      input.status &&
+      input.status !== LessonStatus.DRAFT &&
+      input.status !== LessonStatus.SCHEDULED
+    ) {
       throw new BadRequestException(
         `Invalid lesson status for creation: ${input.status}. Allowed: DRAFT, SCHEDULED`,
       );
@@ -102,9 +115,7 @@ export class LessonService {
       );
     }
     if (input.lessonNumber > 999) {
-      throw new BadRequestException(
-        'lessonNumber must be <= 999',
-      );
+      throw new BadRequestException('lessonNumber must be <= 999');
     }
 
     // ─── 3. Check class exists & is ACTIVE ───
@@ -127,10 +138,11 @@ export class LessonService {
 
     // ─── 5. Check lessonNumber uniqueness within class ───
     // Optimization: use targeted query instead of loading ALL lessons for the class
-    const existingLesson = await this.lessonRepo.findOneByClassCodeAndLessonNumber(
-      input.classCode,
-      input.lessonNumber,
-    );
+    const existingLesson =
+      await this.lessonRepo.findOneByClassCodeAndLessonNumber(
+        input.classCode,
+        input.lessonNumber,
+      );
     if (existingLesson && existingLesson.status !== LessonStatus.CANCELLED) {
       throw new BadRequestException(
         `Lesson number ${input.lessonNumber} already exists for class ${input.classCode} (lesson id=${existingLesson.id}, status=${existingLesson.status})`,
@@ -183,7 +195,7 @@ export class LessonService {
     );
 
     // ─── 8. Create class reminders for enrolled students ───
-    this.createClassReminders(saved).catch(err =>
+    this.createClassReminders(saved).catch((err) =>
       this.logger.warn(`Failed to create class reminders: ${err.message}`),
     );
 
@@ -309,9 +321,12 @@ export class LessonService {
 
     // Guard: All reopen (reverse) transitions require reason
     const isReopenTransition =
-      (lesson.status === LessonStatus.ARCHIVED && targetStatus === LessonStatus.FINISHED) ||
-      (lesson.status === LessonStatus.FINISHED && targetStatus === LessonStatus.SCHEDULED) ||
-      (lesson.status === LessonStatus.CANCELLED && targetStatus === LessonStatus.SCHEDULED);
+      (lesson.status === LessonStatus.ARCHIVED &&
+        targetStatus === LessonStatus.FINISHED) ||
+      (lesson.status === LessonStatus.FINISHED &&
+        targetStatus === LessonStatus.SCHEDULED) ||
+      (lesson.status === LessonStatus.CANCELLED &&
+        targetStatus === LessonStatus.SCHEDULED);
     if (isReopenTransition) {
       if (!reason || reason.trim().length === 0) {
         throw new BadRequestException(
@@ -396,7 +411,10 @@ export class LessonService {
    * Check that a student is actively enrolled in the given class.
    * Throws BadRequestException if not enrolled.
    */
-  async ensureStudentEnrolled(classCode: string, studentCode: string): Promise<void> {
+  async ensureStudentEnrolled(
+    classCode: string,
+    studentCode: string,
+  ): Promise<void> {
     const enrollment = await this.enrollmentRepo.findByClassAndStudent(
       classCode,
       studentCode,
@@ -421,9 +439,13 @@ export class LessonService {
     classCode: string,
     studentCodes: string[],
   ): Promise<void> {
-    const enrollments = await this.enrollmentRepo.findActiveByClassAndStudentCodes(classCode, studentCodes);
-    const enrolledSet = new Set(enrollments.map(e => e.studentCode));
-    const unenrolled = studentCodes.filter(sc => !enrolledSet.has(sc));
+    const enrollments =
+      await this.enrollmentRepo.findActiveByClassAndStudentCodes(
+        classCode,
+        studentCodes,
+      );
+    const enrolledSet = new Set(enrollments.map((e) => e.studentCode));
+    const unenrolled = studentCodes.filter((sc) => !enrolledSet.has(sc));
     if (unenrolled.length > 0) {
       throw new BadRequestException(
         `Students not actively enrolled in class ${classCode}: ${unenrolled.join(', ')}`,
@@ -462,14 +484,16 @@ export class LessonService {
   async createClassReminders(lesson: LessonEntity): Promise<number> {
     try {
       // 1. Find active enrollments for this class
-      const enrollments = await this.enrollmentRepo.findByClassCode(lesson.classCode);
+      const enrollments = await this.enrollmentRepo.findByClassCode(
+        lesson.classCode,
+      );
       const activeEnrollments = enrollments.filter(
-        e => e.status === EnrollmentStatus.ACTIVE,
+        (e) => e.status === EnrollmentStatus.ACTIVE,
       );
       if (activeEnrollments.length === 0) return 0;
 
       // 2. Get studentCodes and look up userIds
-      const studentCodes = activeEnrollments.map(e => e.studentCode);
+      const studentCodes = activeEnrollments.map((e) => e.studentCode);
       const students = await this.studentRepo
         .createQueryBuilder('s')
         .where('s.studentCode IN (:...codes)', { codes: studentCodes })
@@ -487,7 +511,7 @@ export class LessonService {
           type: ReminderType.CLASS_REMINDER,
           title: `课程提醒：${lesson.classCode} 第${lesson.lessonNumber}节`,
           content: `课程 ${lesson.classCode} 第${lesson.lessonNumber}节将于 ${lesson.scheduledDate} ${lesson.startTime}-${lesson.endTime} 开始，请准时上课。`,
-          targetUserId: student.userId!,
+          targetUserId: student.userId,
           targetType: TargetType.STUDENT,
           relatedEntityId: lesson.id,
           relatedEntityType: 'Lesson',
@@ -500,7 +524,9 @@ export class LessonService {
       );
       return created;
     } catch (err) {
-      this.logger.warn(`createClassReminders failed for lesson ${lesson.id}: ${err.message}`);
+      this.logger.warn(
+        `createClassReminders failed for lesson ${lesson.id}: ${err.message}`,
+      );
       return 0;
     }
   }

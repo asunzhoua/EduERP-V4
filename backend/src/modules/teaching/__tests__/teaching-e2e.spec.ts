@@ -34,9 +34,26 @@ describe('Teaching E2E: Happy Path', () => {
     const attendanceService = new LessonAttendanceService(
       mockAttendanceRepo as any,
       { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } as any,
-      { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } as any,
-      { findOne: jest.fn().mockImplementation(({ where }: any) => Promise.resolve({ classCode: where.classCode, courseCode: 'MATH001' })) } as any,
-      { findOne: jest.fn().mockImplementation(({ where }: any) => Promise.resolve({ courseCode: where.courseCode, subject: Subject.MATH })) } as any,
+      {
+        findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null),
+        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+      } as any,
+      {
+        findOne: jest.fn().mockImplementation(({ where }: any) =>
+          Promise.resolve({
+            classCode: where.classCode,
+            courseCode: 'MATH001',
+          }),
+        ),
+      } as any,
+      {
+        findOne: jest.fn().mockImplementation(({ where }: any) =>
+          Promise.resolve({
+            courseCode: where.courseCode,
+            subject: Subject.MATH,
+          }),
+        ),
+      } as any,
       { credit: jest.fn().mockResolvedValue({ balance: 10 }) } as any,
     );
 
@@ -65,24 +82,63 @@ describe('Teaching E2E: Happy Path', () => {
     // Trigger: autoCreateForLesson
     const enrolledStudents = ['STU001', 'STU002', 'STU003'];
     const attendanceRecords = await attendanceService.autoCreateForLesson(
-      1, enrolledStudents, 'CL001', 10,
+      1,
+      enrolledStudents,
+      'CL001',
+      10,
     );
 
     expect(attendanceRecords).toHaveLength(3);
-    expect(attendanceRecords.every(r => r.workflowState === AttendanceWorkflowState.PENDING)).toBe(true);
+    expect(
+      attendanceRecords.every(
+        (r) => r.workflowState === AttendanceWorkflowState.PENDING,
+      ),
+    ).toBe(true);
 
     // ── Step 9: Roll call (CHECKED_IN) ──
-    const e1 = { workflowState: AttendanceWorkflowState.PENDING, lessonId: 1, studentCode: 'STU001' };
-    const e2 = { workflowState: AttendanceWorkflowState.PENDING, lessonId: 1, studentCode: 'STU002' };
-    const e3 = { workflowState: AttendanceWorkflowState.PENDING, lessonId: 1, studentCode: 'STU003' };
-    mockAttendanceRepo.findByLessonIdAndStudentCodes.mockResolvedValue([e1, e2, e3]);
+    const e1 = {
+      workflowState: AttendanceWorkflowState.PENDING,
+      lessonId: 1,
+      studentCode: 'STU001',
+    };
+    const e2 = {
+      workflowState: AttendanceWorkflowState.PENDING,
+      lessonId: 1,
+      studentCode: 'STU002',
+    };
+    const e3 = {
+      workflowState: AttendanceWorkflowState.PENDING,
+      lessonId: 1,
+      studentCode: 'STU003',
+    };
+    mockAttendanceRepo.findByLessonIdAndStudentCodes.mockResolvedValue([
+      e1,
+      e2,
+      e3,
+    ]);
 
     const rollResults = await attendanceService.batchRollCall({
       lessonId: 1,
       records: [
-        { lessonId: 1, studentCode: 'STU001', status: AttendanceStatus.PRESENT, operator: 10 },
-        { lessonId: 1, studentCode: 'STU002', status: AttendanceStatus.PRESENT, operator: 10 },
-        { lessonId: 1, studentCode: 'STU003', status: AttendanceStatus.LATE, reason: 'Traffic', operator: 10 },
+        {
+          lessonId: 1,
+          studentCode: 'STU001',
+          status: AttendanceStatus.PRESENT,
+          operator: 10,
+        },
+        {
+          lessonId: 1,
+          studentCode: 'STU002',
+          status: AttendanceStatus.PRESENT,
+          operator: 10,
+        },
+        {
+          lessonId: 1,
+          studentCode: 'STU003',
+          status: AttendanceStatus.LATE,
+          reason: 'Traffic',
+          operator: 10,
+        },
       ],
     });
 
@@ -91,22 +147,34 @@ describe('Teaching E2E: Happy Path', () => {
     expect(rollResults[2].status).toBe(AttendanceStatus.LATE);
 
     // ── Step 10: Confirm attendance (CONFIRMED) ──
-    const checkedInRecords = rollResults.map(r => ({ ...r, workflowState: AttendanceWorkflowState.CHECKED_IN }));
+    const checkedInRecords = rollResults.map((r) => ({
+      ...r,
+      workflowState: AttendanceWorkflowState.CHECKED_IN,
+    }));
     mockAttendanceRepo.findByLessonId.mockResolvedValue(checkedInRecords);
 
     const confirmedRecords = await attendanceService.confirmAll(1, 10);
     expect(confirmedRecords).toHaveLength(3);
-    expect(confirmedRecords.every(r => r.workflowState === AttendanceWorkflowState.CONFIRMED)).toBe(true);
+    expect(
+      confirmedRecords.every(
+        (r) => r.workflowState === AttendanceWorkflowState.CONFIRMED,
+      ),
+    ).toBe(true);
 
     // ── Step 11: Complete lesson (FINISHED) → lesson.completed Event ──
     // (Verified by existing LessonService tests)
 
     // ── Step 12: Lock attendance (LOCKED) ──
-    const confirmedForLock = confirmedRecords.map(r => ({ ...r, workflowState: AttendanceWorkflowState.CONFIRMED }));
+    const confirmedForLock = confirmedRecords.map((r) => ({
+      ...r,
+      workflowState: AttendanceWorkflowState.CONFIRMED,
+    }));
     mockAttendanceRepo.findByLessonId.mockResolvedValue(confirmedForLock);
 
     await attendanceService.lockByLessonId(1);
-    expect(confirmedForLock[0].workflowState).toBe(AttendanceWorkflowState.LOCKED);
+    expect(confirmedForLock[0].workflowState).toBe(
+      AttendanceWorkflowState.LOCKED,
+    );
 
     // ── Step 13: Archive lesson (ARCHIVED) → lesson.finished Event ──
     // (Verified by existing LessonService tests)
@@ -186,7 +254,10 @@ describe('Teaching E2E: ATTEND-002 Violation', () => {
     const service = new LessonAttendanceService(
       mockRepo as any,
       { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } as any,
-      { findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null), save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)) } as any,
+      {
+        findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null),
+        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+      } as any,
       { findOne: jest.fn().mockResolvedValue(null) } as any,
       { findOne: jest.fn().mockResolvedValue(null) } as any,
       { credit: jest.fn().mockResolvedValue({ balance: 10 }) } as any,
@@ -194,8 +265,10 @@ describe('Teaching E2E: ATTEND-002 Violation', () => {
 
     await expect(
       service.recordAttendance({
-        lessonId: 1, studentCode: 'STU001',
-        status: AttendanceStatus.LATE, operator: 10,
+        lessonId: 1,
+        studentCode: 'STU001',
+        status: AttendanceStatus.LATE,
+        operator: 10,
       }),
     ).rejects.toThrow('requires a reason');
   });
@@ -221,14 +294,20 @@ describe('Teaching E2E: Attendance Reverse', () => {
   it('should allow CONFIRMED → CHECKED_IN transition per state machine', async () => {
     // The state machine allows CONFIRMED → CHECKED_IN (admin override)
     // This is validated by VALID_WORKFLOW_TRANSITIONS in the service
-    const { VALID_WORKFLOW_TRANSITIONS } = require('../lesson-attendance/lesson-attendance.service');
-    const allowed = VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED];
+    const {
+      VALID_WORKFLOW_TRANSITIONS,
+    } = require('../lesson-attendance/lesson-attendance.service');
+    const allowed =
+      VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED];
     expect(allowed).toContain(AttendanceWorkflowState.CHECKED_IN);
   });
 
   it('should allow CHECKED_IN → PENDING transition per state machine', async () => {
-    const { VALID_WORKFLOW_TRANSITIONS } = require('../lesson-attendance/lesson-attendance.service');
-    const allowed = VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN];
+    const {
+      VALID_WORKFLOW_TRANSITIONS,
+    } = require('../lesson-attendance/lesson-attendance.service');
+    const allowed =
+      VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN];
     expect(allowed).toContain(AttendanceWorkflowState.PENDING);
   });
 });

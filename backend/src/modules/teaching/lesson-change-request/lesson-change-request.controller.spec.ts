@@ -26,8 +26,10 @@ describe('LessonChangeRequestController', () => {
       ],
     }).compile();
 
-    controller = module.get<LessonChangeRequestController>(LessonChangeRequestController);
-    service = module.get(LessonChangeRequestService) as any;
+    controller = module.get<LessonChangeRequestController>(
+      LessonChangeRequestController,
+    );
+    service = module.get(LessonChangeRequestService);
   });
 
   it('should be defined', () => {
@@ -62,7 +64,9 @@ describe('LessonChangeRequestController', () => {
         previousTeacherId: undefined,
         newTeacherId: undefined,
       });
-      expect(result).toEqual(ApiResponse.success(entity, 'Change request submitted'));
+      expect(result).toEqual(
+        ApiResponse.success(entity, 'Change request submitted'),
+      );
     });
   });
 
@@ -99,7 +103,11 @@ describe('LessonChangeRequestController', () => {
       service.reject.mockResolvedValue(entity);
 
       const mockReq = { user: { sub: 42 } };
-      const result = await controller.reject(1, { reason: '拒绝理由' }, mockReq);
+      const result = await controller.reject(
+        1,
+        { reason: '拒绝理由' },
+        mockReq,
+      );
 
       expect(service.reject).toHaveBeenCalledWith(1, 42, '拒绝理由');
       expect(result.data.status).toBe(ChangeRequestStatus.REJECTED);

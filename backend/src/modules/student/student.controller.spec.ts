@@ -47,7 +47,12 @@ describe('StudentController', () => {
     find: jest.fn().mockResolvedValue([]),
   };
   const mockPointsService = {
-    getSummary: jest.fn().mockResolvedValue({ balance: 0, totalEarned: 0, totalSpent: 0, transactions: [] }),
+    getSummary: jest.fn().mockResolvedValue({
+      balance: 0,
+      totalEarned: 0,
+      totalSpent: 0,
+      transactions: [],
+    }),
     listOnSaleProducts: jest.fn().mockResolvedValue([]),
     exchange: jest.fn().mockResolvedValue({ id: 1 }),
   };
@@ -64,7 +69,9 @@ describe('StudentController', () => {
       update: jest.fn().mockResolvedValue(mockStudent),
       updateStatus: jest.fn().mockResolvedValue(mockStudent),
       softDelete: jest.fn().mockResolvedValue(undefined),
-      linkParent: jest.fn().mockResolvedValue({ id: 1, studentId: 1, parentId: 2 }),
+      linkParent: jest
+        .fn()
+        .mockResolvedValue({ id: 1, studentId: 1, parentId: 2 }),
       unlinkParent: jest.fn().mockResolvedValue(undefined),
       getParents: jest.fn().mockResolvedValue([{ id: 2, name: '李四' }]),
       getStudentsByParent: jest.fn().mockResolvedValue([mockStudent]),
@@ -76,13 +83,31 @@ describe('StudentController', () => {
       providers: [
         { provide: StudentService, useValue: service },
         { provide: ContractRepository, useValue: mockContractRepository },
-        { provide: LessonAttendanceRepository, useValue: mockAttendanceRepository },
-        { provide: getRepositoryToken(LessonEntity), useValue: mockLessonRepository },
-        { provide: getRepositoryToken(EnrollmentEntity), useValue: mockEnrollmentRepository },
-        { provide: getRepositoryToken(TeacherAssignmentEntity), useValue: mockTeacherAssignmentRepository },
+        {
+          provide: LessonAttendanceRepository,
+          useValue: mockAttendanceRepository,
+        },
+        {
+          provide: getRepositoryToken(LessonEntity),
+          useValue: mockLessonRepository,
+        },
+        {
+          provide: getRepositoryToken(EnrollmentEntity),
+          useValue: mockEnrollmentRepository,
+        },
+        {
+          provide: getRepositoryToken(TeacherAssignmentEntity),
+          useValue: mockTeacherAssignmentRepository,
+        },
         { provide: getRepositoryToken(User), useValue: mockUserRepository },
-        { provide: getRepositoryToken(ClassEntity), useValue: mockClassRepository },
-        { provide: getRepositoryToken(CourseEntity), useValue: mockCourseRepository },
+        {
+          provide: getRepositoryToken(ClassEntity),
+          useValue: mockClassRepository,
+        },
+        {
+          provide: getRepositoryToken(CourseEntity),
+          useValue: mockCourseRepository,
+        },
         { provide: PointsService, useValue: mockPointsService },
         { provide: FeedbackService, useValue: mockFeedbackService },
       ],
@@ -100,7 +125,12 @@ describe('StudentController', () => {
   });
 
   it('GET /students - findAll', async () => {
-    const result = await controller.findAll({ page: 1 } as any, { user: { role: 'Admin', sub: 1 } });
+    const result = await controller.findAll(
+      { page: 1 },
+      {
+        user: { role: 'Admin', sub: 1 },
+      },
+    );
     expect(result.code).toBe(0);
     expect(result.data!.items).toHaveLength(1);
   });
@@ -114,7 +144,7 @@ describe('StudentController', () => {
 
   it('PUT /students/:id - update', async () => {
     const dto = { name: '张三丰' };
-    const result = await controller.update(1, dto as any, mockReq);
+    const result = await controller.update(1, dto, mockReq);
     expect(result.code).toBe(0);
     expect(result.data).toEqual(mockStudent);
     expect(service.update).toHaveBeenCalledWith(1, dto, 1);
@@ -166,7 +196,11 @@ describe('StudentController', () => {
     const result = await controller.import(file as any, mockReq);
     expect(result.code).toBe(0);
     expect(result.data).toEqual({ success: 1, failed: 0 });
-    expect(service.importStudents).toHaveBeenCalledWith(file.buffer, file.originalname, 1);
+    expect(service.importStudents).toHaveBeenCalledWith(
+      file.buffer,
+      file.originalname,
+      1,
+    );
   });
 
   it('GET self/attendance - maps deductionSkippedReason', async () => {
@@ -190,8 +224,12 @@ describe('StudentController', () => {
         endTime: '10:00',
       },
     ]);
-    mockClassRepository.find.mockResolvedValue([{ classCode: 'CL1', name: '一班' }]);
-    mockCourseRepository.find.mockResolvedValue([{ courseCode: 'C1', name: '数学' }]);
+    mockClassRepository.find.mockResolvedValue([
+      { classCode: 'CL1', name: '一班' },
+    ]);
+    mockCourseRepository.find.mockResolvedValue([
+      { courseCode: 'C1', name: '数学' },
+    ]);
 
     const result = await controller.getSelfAttendance(mockReq);
     expect(result.code).toBe(0);
@@ -210,12 +248,37 @@ describe('StudentController', () => {
       { id: 3, lessonId: 12, studentCode: 'STU20240001', status: 'LATE' },
     ]);
     mockLessonRepository.find.mockResolvedValue([
-      { id: 10, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-05', startTime: '09:00', endTime: '10:00' },
-      { id: 11, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-07', startTime: '09:00', endTime: '10:00' },
-      { id: 12, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-10', startTime: '09:00', endTime: '10:00' },
+      {
+        id: 10,
+        classCode: 'CL1',
+        courseCode: 'C1',
+        scheduledDate: '2026-08-05',
+        startTime: '09:00',
+        endTime: '10:00',
+      },
+      {
+        id: 11,
+        classCode: 'CL1',
+        courseCode: 'C1',
+        scheduledDate: '2026-08-07',
+        startTime: '09:00',
+        endTime: '10:00',
+      },
+      {
+        id: 12,
+        classCode: 'CL1',
+        courseCode: 'C1',
+        scheduledDate: '2026-08-10',
+        startTime: '09:00',
+        endTime: '10:00',
+      },
     ]);
-    mockClassRepository.find.mockResolvedValue([{ classCode: 'CL1', name: '一班' }]);
-    mockCourseRepository.find.mockResolvedValue([{ courseCode: 'C1', name: '数学' }]);
+    mockClassRepository.find.mockResolvedValue([
+      { classCode: 'CL1', name: '一班' },
+    ]);
+    mockCourseRepository.find.mockResolvedValue([
+      { courseCode: 'C1', name: '数学' },
+    ]);
 
     const result = await controller.getSelfLessons(mockReq);
     expect(result.code).toBe(0);
@@ -232,15 +295,44 @@ describe('StudentController', () => {
       { id: 3, lessonId: 12, studentCode: 'STU20240001', status: 'LATE' },
     ]);
     mockLessonRepository.find.mockResolvedValue([
-      { id: 10, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-05', startTime: '09:00', endTime: '10:00' },
-      { id: 11, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-07', startTime: '09:00', endTime: '10:00' },
-      { id: 12, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-10', startTime: '09:00', endTime: '10:00' },
+      {
+        id: 10,
+        classCode: 'CL1',
+        courseCode: 'C1',
+        scheduledDate: '2026-08-05',
+        startTime: '09:00',
+        endTime: '10:00',
+      },
+      {
+        id: 11,
+        classCode: 'CL1',
+        courseCode: 'C1',
+        scheduledDate: '2026-08-07',
+        startTime: '09:00',
+        endTime: '10:00',
+      },
+      {
+        id: 12,
+        classCode: 'CL1',
+        courseCode: 'C1',
+        scheduledDate: '2026-08-10',
+        startTime: '09:00',
+        endTime: '10:00',
+      },
     ]);
-    mockClassRepository.find.mockResolvedValue([{ classCode: 'CL1', name: '一班' }]);
-    mockCourseRepository.find.mockResolvedValue([{ courseCode: 'C1', name: '数学' }]);
+    mockClassRepository.find.mockResolvedValue([
+      { classCode: 'CL1', name: '一班' },
+    ]);
+    mockCourseRepository.find.mockResolvedValue([
+      { courseCode: 'C1', name: '数学' },
+    ]);
 
     // 8/1 → 8/8 区间内应只有 8/5 与 8/7 两条，按日期倒序 8/7 在前
-    const result = await controller.getSelfLessons(mockReq, '2026-08-01', '2026-08-08');
+    const result = await controller.getSelfLessons(
+      mockReq,
+      '2026-08-01',
+      '2026-08-08',
+    );
     expect(result.code).toBe(0);
     expect(result.data).toHaveLength(2);
     expect(result.data![0].lessonDate).toBe('2026-08-07');

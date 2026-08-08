@@ -29,10 +29,22 @@ describe('CourseController', () => {
     findAll: jest.fn().mockResolvedValue({ items: [mockCourse], total: 1 }),
     findByCode: jest.fn().mockResolvedValue(mockCourse),
     update: jest.fn().mockResolvedValue({ ...mockCourse, name: 'Updated' }),
-    updateStatus: jest.fn().mockResolvedValue({ ...mockCourse, status: CourseStatus.PUBLISHED }),
+    updateStatus: jest
+      .fn()
+      .mockResolvedValue({ ...mockCourse, status: CourseStatus.PUBLISHED }),
     remove: jest.fn().mockResolvedValue(undefined),
-    enrichCourses: jest.fn().mockImplementation(items => items.map(c => ({ ...c, lessonCount: c.totalLessons, enrolledClasses: 0 }))),
-    enrichCourse: jest.fn().mockImplementation(c => ({ ...c, lessonCount: c.totalLessons, enrolledClasses: 0 })),
+    enrichCourses: jest.fn().mockImplementation((items) =>
+      items.map((c) => ({
+        ...c,
+        lessonCount: c.totalLessons,
+        enrolledClasses: 0,
+      })),
+    ),
+    enrichCourse: jest.fn().mockImplementation((c) => ({
+      ...c,
+      lessonCount: c.totalLessons,
+      enrolledClasses: 0,
+    })),
   };
 
   beforeAll(async () => {
@@ -59,13 +71,32 @@ describe('CourseController', () => {
     jest.clearAllMocks();
     // Re-apply resolved values after clearAllMocks
     mockCourseService.create.mockResolvedValue(mockCourse);
-    mockCourseService.findAll.mockResolvedValue({ items: [mockCourse], total: 1 });
+    mockCourseService.findAll.mockResolvedValue({
+      items: [mockCourse],
+      total: 1,
+    });
     mockCourseService.findByCode.mockResolvedValue(mockCourse);
-    mockCourseService.update.mockResolvedValue({ ...mockCourse, name: 'Updated' });
-    mockCourseService.updateStatus.mockResolvedValue({ ...mockCourse, status: CourseStatus.PUBLISHED });
+    mockCourseService.update.mockResolvedValue({
+      ...mockCourse,
+      name: 'Updated',
+    });
+    mockCourseService.updateStatus.mockResolvedValue({
+      ...mockCourse,
+      status: CourseStatus.PUBLISHED,
+    });
     mockCourseService.remove.mockResolvedValue(undefined);
-    mockCourseService.enrichCourses.mockImplementation(items => items.map(c => ({ ...c, lessonCount: c.totalLessons, enrolledClasses: 0 })));
-    mockCourseService.enrichCourse.mockImplementation(c => ({ ...c, lessonCount: c.totalLessons, enrolledClasses: 0 }));
+    mockCourseService.enrichCourses.mockImplementation((items) =>
+      items.map((c) => ({
+        ...c,
+        lessonCount: c.totalLessons,
+        enrolledClasses: 0,
+      })),
+    );
+    mockCourseService.enrichCourse.mockImplementation((c) => ({
+      ...c,
+      lessonCount: c.totalLessons,
+      enrolledClasses: 0,
+    }));
   });
 
   const fakeReq = { user: { sub: 'admin-1' } };
@@ -144,12 +175,23 @@ describe('CourseController', () => {
     it('should update course status', async () => {
       const dto = { status: CourseStatus.PUBLISHED };
 
-      const result = await controller.updateStatus('ENG101', dto as any, fakeReq as any);
+      const result = await controller.updateStatus(
+        'ENG101',
+        dto,
+        fakeReq as any,
+      );
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('Status updated');
-      expect(result.data).toEqual({ ...mockCourse, status: CourseStatus.PUBLISHED });
-      expect(service.updateStatus).toHaveBeenCalledWith('ENG101', CourseStatus.PUBLISHED, 'admin-1');
+      expect(result.data).toEqual({
+        ...mockCourse,
+        status: CourseStatus.PUBLISHED,
+      });
+      expect(service.updateStatus).toHaveBeenCalledWith(
+        'ENG101',
+        CourseStatus.PUBLISHED,
+        'admin-1',
+      );
     });
   });
 

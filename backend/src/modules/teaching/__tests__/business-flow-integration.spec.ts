@@ -24,7 +24,10 @@
 
 import { LessonAttendanceService } from '../lesson-attendance/lesson-attendance.service';
 import { LessonAttendanceEntity } from '../lesson-attendance/lesson-attendance.entity';
-import { AttendanceStatus, DEDUCTIBLE_STATUSES } from '../lesson-attendance/enums/attendance-status.enum';
+import {
+  AttendanceStatus,
+  DEDUCTIBLE_STATUSES,
+} from '../lesson-attendance/enums/attendance-status.enum';
 import { AttendanceWorkflowState } from '../lesson-attendance/enums/attendance-workflow-state.enum';
 import { AttendanceSource } from '../lesson-attendance/enums/attendance-source.enum';
 import { ContractEntity } from '../contract/contract.entity';
@@ -45,7 +48,9 @@ function createMockContractRepo(options?: {
   return {
     _store: store,
     save: jest.fn().mockImplementation((entity: ContractEntity) => {
-      const idx = store.findIndex(c => c.contractCode === entity.contractCode);
+      const idx = store.findIndex(
+        (c) => c.contractCode === entity.contractCode,
+      );
       if (idx >= 0) {
         store[idx] = { ...entity };
       } else {
@@ -54,20 +59,27 @@ function createMockContractRepo(options?: {
       return Promise.resolve({ ...entity });
     }),
     findOneById: jest.fn().mockImplementation((id: number) => {
-      return Promise.resolve(store.find(c => c.id === id) || null);
+      return Promise.resolve(store.find((c) => c.id === id) || null);
     }),
     findOneByCode: jest.fn().mockImplementation((code: string) => {
-      return Promise.resolve(store.find(c => c.contractCode === code) || null);
-    }),
-    findActiveByStudentCodeAndSubject: jest.fn().mockImplementation((studentCode: string, subject: Subject) => {
-      if (options?.activeContract !== undefined) {
-        return Promise.resolve(options.activeContract);
-      }
-      const found = store.find(
-        c => c.studentCode === studentCode && c.subject === subject && c.status === ContractStatus.ACTIVE,
+      return Promise.resolve(
+        store.find((c) => c.contractCode === code) || null,
       );
-      return Promise.resolve(found ? { ...found } : null);
     }),
+    findActiveByStudentCodeAndSubject: jest
+      .fn()
+      .mockImplementation((studentCode: string, subject: Subject) => {
+        if (options?.activeContract !== undefined) {
+          return Promise.resolve(options.activeContract);
+        }
+        const found = store.find(
+          (c) =>
+            c.studentCode === studentCode &&
+            c.subject === subject &&
+            c.status === ContractStatus.ACTIVE,
+        );
+        return Promise.resolve(found ? { ...found } : null);
+      }),
     findByStudentCode: jest.fn().mockResolvedValue([]),
     findMany: jest.fn().mockResolvedValue({ items: [], total: 0 }),
   };
@@ -81,7 +93,9 @@ function createMockAttendanceRepo() {
     _records: records,
     save: jest.fn().mockImplementation((entity: LessonAttendanceEntity) => {
       const idx = records.findIndex(
-        r => r.lessonId === entity.lessonId && r.studentCode === entity.studentCode,
+        (r) =>
+          r.lessonId === entity.lessonId &&
+          r.studentCode === entity.studentCode,
       );
       if (idx >= 0) {
         records[idx] = { ...entity };
@@ -90,50 +104,63 @@ function createMockAttendanceRepo() {
       }
       return Promise.resolve({ ...entity });
     }),
-    saveAll: jest.fn().mockImplementation((entities: LessonAttendanceEntity[]) => {
-      for (const entity of entities) {
-        const idx = records.findIndex(
-          r => r.lessonId === entity.lessonId && r.studentCode === entity.studentCode,
-        );
-        if (idx >= 0) {
-          records[idx] = { ...entity };
-        } else {
-          records.push({ ...entity });
+    saveAll: jest
+      .fn()
+      .mockImplementation((entities: LessonAttendanceEntity[]) => {
+        for (const entity of entities) {
+          const idx = records.findIndex(
+            (r) =>
+              r.lessonId === entity.lessonId &&
+              r.studentCode === entity.studentCode,
+          );
+          if (idx >= 0) {
+            records[idx] = { ...entity };
+          } else {
+            records.push({ ...entity });
+          }
         }
-      }
-      return Promise.resolve(entities.map(e => ({ ...e })));
-    }),
+        return Promise.resolve(entities.map((e) => ({ ...e })));
+      }),
     findByLessonId: jest.fn().mockImplementation((lessonId: number) => {
       return Promise.resolve(
-        records.filter(r => r.lessonId === lessonId).map(r => ({ ...r })),
+        records.filter((r) => r.lessonId === lessonId).map((r) => ({ ...r })),
       );
     }),
-    findByLessonAndStudent: jest.fn().mockImplementation(
-      (lessonId: number, studentCode: string) => {
+    findByLessonAndStudent: jest
+      .fn()
+      .mockImplementation((lessonId: number, studentCode: string) => {
         const found = records.find(
-          r => r.lessonId === lessonId && r.studentCode === studentCode,
+          (r) => r.lessonId === lessonId && r.studentCode === studentCode,
         );
         return Promise.resolve(found ? { ...found } : null);
-      },
-    ),
-    findByLessonIdAndStudentCodes: jest.fn().mockImplementation(
-      (lessonId: number, studentCodes: string[]) => {
+      }),
+    findByLessonIdAndStudentCodes: jest
+      .fn()
+      .mockImplementation((lessonId: number, studentCodes: string[]) => {
         return Promise.resolve(
           records
-            .filter(r => r.lessonId === lessonId && studentCodes.includes(r.studentCode))
-            .map(r => ({ ...r })),
+            .filter(
+              (r) =>
+                r.lessonId === lessonId && studentCodes.includes(r.studentCode),
+            )
+            .map((r) => ({ ...r })),
         );
-      },
-    ),
-    countUnconfirmedByLessonId: jest.fn().mockImplementation((lessonId: number) => {
-      const count = records.filter(
-        r => r.lessonId === lessonId && r.workflowState !== AttendanceWorkflowState.LOCKED,
-      ).length;
-      return Promise.resolve(count);
-    }),
+      }),
+    countUnconfirmedByLessonId: jest
+      .fn()
+      .mockImplementation((lessonId: number) => {
+        const count = records.filter(
+          (r) =>
+            r.lessonId === lessonId &&
+            r.workflowState !== AttendanceWorkflowState.LOCKED,
+        ).length;
+        return Promise.resolve(count);
+      }),
     countPendingByLessonId: jest.fn().mockImplementation((lessonId: number) => {
       const count = records.filter(
-        r => r.lessonId === lessonId && r.workflowState === AttendanceWorkflowState.PENDING,
+        (r) =>
+          r.lessonId === lessonId &&
+          r.workflowState === AttendanceWorkflowState.PENDING,
       ).length;
       return Promise.resolve(count);
     }),
@@ -155,12 +182,19 @@ function createAttendanceService(
   mockReminderService?: ReturnType<typeof createMockReminderService>,
 ) {
   const mockClassRepo = {
-    findOne: jest.fn().mockImplementation(({ where }: any) =>
-      Promise.resolve({ classCode: where.classCode, courseCode: 'MATH001' })),
+    findOne: jest
+      .fn()
+      .mockImplementation(({ where }: any) =>
+        Promise.resolve({ classCode: where.classCode, courseCode: 'MATH001' }),
+      ),
   } as any;
   const mockCourseRepo = {
     findOne: jest.fn().mockImplementation(({ where }: any) =>
-      Promise.resolve({ courseCode: where.courseCode, subject: Subject.MATH })),
+      Promise.resolve({
+        courseCode: where.courseCode,
+        subject: Subject.MATH,
+      }),
+    ),
   } as any;
   return new LessonAttendanceService(
     mockAttendanceRepo as any,
@@ -173,7 +207,9 @@ function createAttendanceService(
 }
 
 /** Helper: create a contract entity */
-function createContractEntity(overrides: Partial<ContractEntity>): ContractEntity {
+function createContractEntity(
+  overrides: Partial<ContractEntity>,
+): ContractEntity {
   const contract = new ContractEntity();
   contract.id = overrides.id ?? 1;
   contract.contractCode = overrides.contractCode ?? 'CT-20260101-001';
@@ -222,11 +258,20 @@ describe('Business Flow Integration: Scenario 1 — Happy Path', () => {
 
     // ── Step 2: Auto-create attendance records for 3 enrolled students ──
     const enrolledStudents = ['STU001', 'STU002', 'STU003'];
-    const createdRecords = await service.autoCreateForLesson(1, enrolledStudents, 'CL001', 10);
+    const createdRecords = await service.autoCreateForLesson(
+      1,
+      enrolledStudents,
+      'CL001',
+      10,
+    );
 
     expect(createdRecords).toHaveLength(3);
-    expect(createdRecords.every(r => r.workflowState === AttendanceWorkflowState.PENDING)).toBe(true);
-    expect(createdRecords.every(r => r.status === null)).toBe(true);
+    expect(
+      createdRecords.every(
+        (r) => r.workflowState === AttendanceWorkflowState.PENDING,
+      ),
+    ).toBe(true);
+    expect(createdRecords.every((r) => r.status === null)).toBe(true);
     expect(attendanceRepo.saveAll).toHaveBeenCalledTimes(1);
 
     // ── Step 3: Record attendance PRESENT for STU001 ──
@@ -244,11 +289,16 @@ describe('Business Flow Integration: Scenario 1 — Happy Path', () => {
     expect(recorded.operator).toBe(10);
 
     // Verify contract deduction happened
-    expect(contractRepo.findActiveByStudentCodeAndSubject).toHaveBeenCalledWith('STU001', Subject.MATH);
+    expect(contractRepo.findActiveByStudentCodeAndSubject).toHaveBeenCalledWith(
+      'STU001',
+      Subject.MATH,
+    );
     expect(contractRepo.save).toHaveBeenCalled();
 
     // Verify the saved contract has remainingLessons decremented
-    const savedContract = contractRepo._store.find(c => c.contractCode === 'CT-HAPPY-001');
+    const savedContract = contractRepo._store.find(
+      (c) => c.contractCode === 'CT-HAPPY-001',
+    );
     expect(savedContract).toBeDefined();
     expect(savedContract!.remainingLessons).toBe(9);
     expect(savedContract!.status).toBe(ContractStatus.ACTIVE); // still active, not exhausted
@@ -265,23 +315,49 @@ describe('Business Flow Integration: Scenario 1 — Happy Path', () => {
     contractRepo._store.push({ ...contract });
 
     // Auto-create for 3 students
-    await service.autoCreateForLesson(1, ['STU001', 'STU002', 'STU003'], 'CL001', 10);
+    await service.autoCreateForLesson(
+      1,
+      ['STU001', 'STU002', 'STU003'],
+      'CL001',
+      10,
+    );
 
     // Record all 3 as PRESENT
-    await service.recordAttendance({ lessonId: 1, studentCode: 'STU001', status: AttendanceStatus.PRESENT, operator: 10 });
-    await service.recordAttendance({ lessonId: 1, studentCode: 'STU002', status: AttendanceStatus.PRESENT, operator: 10 });
-    await service.recordAttendance({ lessonId: 1, studentCode: 'STU003', status: AttendanceStatus.PRESENT, operator: 10 });
+    await service.recordAttendance({
+      lessonId: 1,
+      studentCode: 'STU001',
+      status: AttendanceStatus.PRESENT,
+      operator: 10,
+    });
+    await service.recordAttendance({
+      lessonId: 1,
+      studentCode: 'STU002',
+      status: AttendanceStatus.PRESENT,
+      operator: 10,
+    });
+    await service.recordAttendance({
+      lessonId: 1,
+      studentCode: 'STU003',
+      status: AttendanceStatus.PRESENT,
+      operator: 10,
+    });
 
     // Verify: 3 deductions happened (one per student with their own contract)
     // Note: STU002 and STU003 don't have contracts in our mock, so deduction logs warning
     // Only STU001 has a contract
-    const stu001Contract = contractRepo._store.find(c => c.studentCode === 'STU001');
+    const stu001Contract = contractRepo._store.find(
+      (c) => c.studentCode === 'STU001',
+    );
     expect(stu001Contract!.remainingLessons).toBe(9); // 10 - 1 = 9
 
     // Verify attendance records: all CHECKED_IN
-    const allRecords = attendanceRepo._records.filter(r => r.lessonId === 1);
+    const allRecords = attendanceRepo._records.filter((r) => r.lessonId === 1);
     expect(allRecords).toHaveLength(3);
-    expect(allRecords.every(r => r.workflowState === AttendanceWorkflowState.CHECKED_IN)).toBe(true);
+    expect(
+      allRecords.every(
+        (r) => r.workflowState === AttendanceWorkflowState.CHECKED_IN,
+      ),
+    ).toBe(true);
   });
 });
 
@@ -322,7 +398,9 @@ describe('Business Flow Integration: Scenario 2 — Deduction Logic', () => {
     });
 
     // Verify: 1 deduction
-    const afterFirst = contractRepo._store.find(c => c.contractCode === 'CT-DEDUCT-001');
+    const afterFirst = contractRepo._store.find(
+      (c) => c.contractCode === 'CT-DEDUCT-001',
+    );
     expect(afterFirst!.remainingLessons).toBe(4);
 
     // Now simulate a second lesson: create new attendance record manually
@@ -347,7 +425,9 @@ describe('Business Flow Integration: Scenario 2 — Deduction Logic', () => {
       operator: 10,
     });
 
-    const afterSecond = contractRepo._store.find(c => c.contractCode === 'CT-DEDUCT-001');
+    const afterSecond = contractRepo._store.find(
+      (c) => c.contractCode === 'CT-DEDUCT-001',
+    );
     expect(afterSecond!.remainingLessons).toBe(3); // 4 - 1 = 3
   });
 
@@ -372,7 +452,9 @@ describe('Business Flow Integration: Scenario 2 — Deduction Logic', () => {
     });
 
     // Verify: NO deduction
-    const afterAbsent = contractRepo._store.find(c => c.contractCode === 'CT-ABSENT-001');
+    const afterAbsent = contractRepo._store.find(
+      (c) => c.contractCode === 'CT-ABSENT-001',
+    );
     expect(afterAbsent!.remainingLessons).toBe(5); // unchanged
     expect(contractRepo.save).not.toHaveBeenCalled(); // contract was never saved/modified
   });
@@ -396,7 +478,9 @@ describe('Business Flow Integration: Scenario 2 — Deduction Logic', () => {
       operator: 10,
     });
 
-    const afterLeave = contractRepo._store.find(c => c.contractCode === 'CT-LEAVE-001');
+    const afterLeave = contractRepo._store.find(
+      (c) => c.contractCode === 'CT-LEAVE-001',
+    );
     expect(afterLeave!.remainingLessons).toBe(5); // unchanged
   });
 
@@ -418,7 +502,9 @@ describe('Business Flow Integration: Scenario 2 — Deduction Logic', () => {
       operator: 10,
     });
 
-    const afterOnline = contractRepo._store.find(c => c.contractCode === 'CT-ONLINE-001');
+    const afterOnline = contractRepo._store.find(
+      (c) => c.contractCode === 'CT-ONLINE-001',
+    );
     expect(afterOnline!.remainingLessons).toBe(4);
 
     // Test OFFLINE (new lesson, same student, new contract)
@@ -439,50 +525,93 @@ describe('Business Flow Integration: Scenario 2 — Deduction Logic', () => {
       operator: 10,
     });
 
-    const afterOffline = contractRepo._store.find(c => c.contractCode === 'CT-OFFLINE-001');
+    const afterOffline = contractRepo._store.find(
+      (c) => c.contractCode === 'CT-OFFLINE-001',
+    );
     expect(afterOffline!.remainingLessons).toBe(4);
   });
 
   it('should handle batch roll call with mixed statuses correctly', async () => {
     // Setup: 3 students with their own contracts
     const contract1 = createContractEntity({
-      id: 1, contractCode: 'CT-BATCH-001', studentCode: 'STU001',
-      totalLessons: 5, remainingLessons: 5,
+      id: 1,
+      contractCode: 'CT-BATCH-001',
+      studentCode: 'STU001',
+      totalLessons: 5,
+      remainingLessons: 5,
     });
     const contract2 = createContractEntity({
-      id: 2, contractCode: 'CT-BATCH-002', studentCode: 'STU002',
-      totalLessons: 5, remainingLessons: 5,
+      id: 2,
+      contractCode: 'CT-BATCH-002',
+      studentCode: 'STU002',
+      totalLessons: 5,
+      remainingLessons: 5,
     });
     const contract3 = createContractEntity({
-      id: 3, contractCode: 'CT-BATCH-003', studentCode: 'STU003',
-      totalLessons: 5, remainingLessons: 5,
+      id: 3,
+      contractCode: 'CT-BATCH-003',
+      studentCode: 'STU003',
+      totalLessons: 5,
+      remainingLessons: 5,
     });
-    contractRepo._store.push({ ...contract1 }, { ...contract2 }, { ...contract3 });
+    contractRepo._store.push(
+      { ...contract1 },
+      { ...contract2 },
+      { ...contract3 },
+    );
 
     // Auto-create attendance
-    await service.autoCreateForLesson(1, ['STU001', 'STU002', 'STU003'], 'CL001', 10);
+    await service.autoCreateForLesson(
+      1,
+      ['STU001', 'STU002', 'STU003'],
+      'CL001',
+      10,
+    );
 
     // Batch roll call: STU001=PRESENT, STU002=LATE, STU003=ABSENT
     await service.batchRollCall({
       lessonId: 1,
       records: [
-        { lessonId: 1, studentCode: 'STU001', status: AttendanceStatus.PRESENT, operator: 10 },
-        { lessonId: 1, studentCode: 'STU002', status: AttendanceStatus.LATE, reason: 'Bus late', operator: 10 },
-        { lessonId: 1, studentCode: 'STU003', status: AttendanceStatus.ABSENT, reason: 'Sick', operator: 10 },
+        {
+          lessonId: 1,
+          studentCode: 'STU001',
+          status: AttendanceStatus.PRESENT,
+          operator: 10,
+        },
+        {
+          lessonId: 1,
+          studentCode: 'STU002',
+          status: AttendanceStatus.LATE,
+          reason: 'Bus late',
+          operator: 10,
+        },
+        {
+          lessonId: 1,
+          studentCode: 'STU003',
+          status: AttendanceStatus.ABSENT,
+          reason: 'Sick',
+          operator: 10,
+        },
       ],
     });
 
     // Verify deductions:
     // STU001: PRESENT → deducted (5→4)
-    const c1 = contractRepo._store.find(c => c.contractCode === 'CT-BATCH-001');
+    const c1 = contractRepo._store.find(
+      (c) => c.contractCode === 'CT-BATCH-001',
+    );
     expect(c1!.remainingLessons).toBe(4);
 
     // STU002: LATE → deducted (5→4)
-    const c2 = contractRepo._store.find(c => c.contractCode === 'CT-BATCH-002');
+    const c2 = contractRepo._store.find(
+      (c) => c.contractCode === 'CT-BATCH-002',
+    );
     expect(c2!.remainingLessons).toBe(4);
 
     // STU003: ABSENT → NOT deducted (5→5)
-    const c3 = contractRepo._store.find(c => c.contractCode === 'CT-BATCH-003');
+    const c3 = contractRepo._store.find(
+      (c) => c.contractCode === 'CT-BATCH-003',
+    );
     expect(c3!.remainingLessons).toBe(5);
   });
 });
@@ -525,7 +654,9 @@ describe('Business Flow Integration: Scenario 3 — Contract Exhaustion', () => 
     });
 
     // Verify: remainingLessons = 0, status = EXHAUSTED
-    const exhausted = contractRepo._store.find(c => c.contractCode === 'CT-EXHAUST-001');
+    const exhausted = contractRepo._store.find(
+      (c) => c.contractCode === 'CT-EXHAUST-001',
+    );
     expect(exhausted!.remainingLessons).toBe(0);
     expect(exhausted!.status).toBe(ContractStatus.EXHAUSTED);
   });
@@ -555,7 +686,9 @@ describe('Business Flow Integration: Scenario 3 — Contract Exhaustion', () => 
     });
 
     // Verify: contract unchanged (no active contract found, deduction skipped)
-    const unchanged = contractRepo._store.find(c => c.contractCode === 'CT-ZERO-001');
+    const unchanged = contractRepo._store.find(
+      (c) => c.contractCode === 'CT-ZERO-001',
+    );
     expect(unchanged!.remainingLessons).toBe(0);
     expect(unchanged!.status).toBe(ContractStatus.EXHAUSTED);
   });
@@ -574,27 +707,36 @@ describe('Business Flow Integration: Scenario 3 — Contract Exhaustion', () => 
     // Lesson 1: PRESENT → deduct (3→2)
     await service.autoCreateForLesson(1, ['STU001'], 'CL001', 10);
     await service.recordAttendance({
-      lessonId: 1, studentCode: 'STU001', status: AttendanceStatus.PRESENT, operator: 10,
+      lessonId: 1,
+      studentCode: 'STU001',
+      status: AttendanceStatus.PRESENT,
+      operator: 10,
     });
-    let c = contractRepo._store.find(x => x.contractCode === 'CT-SEQ-001');
+    let c = contractRepo._store.find((x) => x.contractCode === 'CT-SEQ-001');
     expect(c!.remainingLessons).toBe(2);
     expect(c!.status).toBe(ContractStatus.ACTIVE);
 
     // Lesson 2: PRESENT → deduct (2→1)
     await service.autoCreateForLesson(2, ['STU001'], 'CL001', 10);
     await service.recordAttendance({
-      lessonId: 2, studentCode: 'STU001', status: AttendanceStatus.PRESENT, operator: 10,
+      lessonId: 2,
+      studentCode: 'STU001',
+      status: AttendanceStatus.PRESENT,
+      operator: 10,
     });
-    c = contractRepo._store.find(x => x.contractCode === 'CT-SEQ-001');
+    c = contractRepo._store.find((x) => x.contractCode === 'CT-SEQ-001');
     expect(c!.remainingLessons).toBe(1);
     expect(c!.status).toBe(ContractStatus.ACTIVE);
 
     // Lesson 3: PRESENT → deduct (1→0) → EXHAUSTED
     await service.autoCreateForLesson(3, ['STU001'], 'CL001', 10);
     await service.recordAttendance({
-      lessonId: 3, studentCode: 'STU001', status: AttendanceStatus.PRESENT, operator: 10,
+      lessonId: 3,
+      studentCode: 'STU001',
+      status: AttendanceStatus.PRESENT,
+      operator: 10,
     });
-    c = contractRepo._store.find(x => x.contractCode === 'CT-SEQ-001');
+    c = contractRepo._store.find((x) => x.contractCode === 'CT-SEQ-001');
     expect(c!.remainingLessons).toBe(0);
     expect(c!.status).toBe(ContractStatus.EXHAUSTED);
   });
@@ -629,7 +771,9 @@ describe('Business Flow Integration: Scenario 4 — ABSENT Does Not Deduct', () 
     });
 
     // Verify: contract completely untouched
-    const c = contractRepo._store.find(x => x.contractCode === 'CT-NODEDUCT-001');
+    const c = contractRepo._store.find(
+      (x) => x.contractCode === 'CT-NODEDUCT-001',
+    );
     expect(c!.remainingLessons).toBe(5);
     expect(c!.status).toBe(ContractStatus.ACTIVE);
 
@@ -674,7 +818,7 @@ describe('Business Flow Integration: Scenario 5 — Workflow State Machine', () 
 
     // Verify first check-in succeeded
     const record = attendanceRepo._records.find(
-      r => r.lessonId === 1 && r.studentCode === 'STU001',
+      (r) => r.lessonId === 1 && r.studentCode === 'STU001',
     );
     expect(record!.workflowState).toBe(AttendanceWorkflowState.CHECKED_IN);
 
@@ -709,49 +853,73 @@ describe('Business Flow Integration: Scenario 5 — Workflow State Machine', () 
 
     // Step 1: Auto-create (PENDING)
     await service.autoCreateForLesson(1, ['STU001'], 'CL001', 10);
-    let record = attendanceRepo._records.find(r => r.lessonId === 1 && r.studentCode === 'STU001');
+    let record = attendanceRepo._records.find(
+      (r) => r.lessonId === 1 && r.studentCode === 'STU001',
+    );
     expect(record!.workflowState).toBe(AttendanceWorkflowState.PENDING);
 
     // Step 2: Record attendance (PENDING → CHECKED_IN)
     await service.recordAttendance({
-      lessonId: 1, studentCode: 'STU001', status: AttendanceStatus.PRESENT, operator: 10,
+      lessonId: 1,
+      studentCode: 'STU001',
+      status: AttendanceStatus.PRESENT,
+      operator: 10,
     });
-    record = attendanceRepo._records.find(r => r.lessonId === 1 && r.studentCode === 'STU001');
+    record = attendanceRepo._records.find(
+      (r) => r.lessonId === 1 && r.studentCode === 'STU001',
+    );
     expect(record!.workflowState).toBe(AttendanceWorkflowState.CHECKED_IN);
 
     // Step 3: Confirm (CHECKED_IN → CONFIRMED)
     attendanceRepo.findByLessonId.mockResolvedValue(
-      attendanceRepo._records.filter(r => r.lessonId === 1).map(r => ({ ...r })),
+      attendanceRepo._records
+        .filter((r) => r.lessonId === 1)
+        .map((r) => ({ ...r })),
     );
     await service.confirmAll(1, 10);
-    record = attendanceRepo._records.find(r => r.lessonId === 1 && r.studentCode === 'STU001');
+    record = attendanceRepo._records.find(
+      (r) => r.lessonId === 1 && r.studentCode === 'STU001',
+    );
     expect(record!.workflowState).toBe(AttendanceWorkflowState.CONFIRMED);
 
     // Step 4: Lock (CONFIRMED → LOCKED)
     attendanceRepo.findByLessonId.mockResolvedValue(
-      attendanceRepo._records.filter(r => r.lessonId === 1).map(r => ({ ...r })),
+      attendanceRepo._records
+        .filter((r) => r.lessonId === 1)
+        .map((r) => ({ ...r })),
     );
     await service.lockByLessonId(1);
-    record = attendanceRepo._records.find(r => r.lessonId === 1 && r.studentCode === 'STU001');
+    record = attendanceRepo._records.find(
+      (r) => r.lessonId === 1 && r.studentCode === 'STU001',
+    );
     expect(record!.workflowState).toBe(AttendanceWorkflowState.LOCKED);
   });
 
   it('should block LOCKED → anything (terminal state)', async () => {
     // Verify via the exported state machine
-    const { VALID_WORKFLOW_TRANSITIONS } = require('../lesson-attendance/lesson-attendance.service');
-    const allowedFromLocked = VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.LOCKED];
+    const {
+      VALID_WORKFLOW_TRANSITIONS,
+    } = require('../lesson-attendance/lesson-attendance.service');
+    const allowedFromLocked =
+      VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.LOCKED];
     expect(allowedFromLocked).toEqual([]);
   });
 
   it('should allow admin reverse: CONFIRMED → CHECKED_IN', async () => {
-    const { VALID_WORKFLOW_TRANSITIONS } = require('../lesson-attendance/lesson-attendance.service');
-    const allowedFromConfirmed = VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED];
+    const {
+      VALID_WORKFLOW_TRANSITIONS,
+    } = require('../lesson-attendance/lesson-attendance.service');
+    const allowedFromConfirmed =
+      VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED];
     expect(allowedFromConfirmed).toContain(AttendanceWorkflowState.CHECKED_IN);
   });
 
   it('should allow admin reverse: CHECKED_IN → PENDING', async () => {
-    const { VALID_WORKFLOW_TRANSITIONS } = require('../lesson-attendance/lesson-attendance.service');
-    const allowedFromCheckedIn = VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN];
+    const {
+      VALID_WORKFLOW_TRANSITIONS,
+    } = require('../lesson-attendance/lesson-attendance.service');
+    const allowedFromCheckedIn =
+      VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN];
     expect(allowedFromCheckedIn).toContain(AttendanceWorkflowState.PENDING);
   });
 });
@@ -782,48 +950,85 @@ describe('Business Flow Integration: Scenario 6 — Data Consistency', () => {
     contractRepo._store.push({ ...contract });
 
     // Auto-create attendance for lesson 1 (3 students)
-    await service.autoCreateForLesson(1, ['STU001', 'STU002', 'STU003'], 'CL001', 10);
+    await service.autoCreateForLesson(
+      1,
+      ['STU001', 'STU002', 'STU003'],
+      'CL001',
+      10,
+    );
 
     // Record attendance: STU001=PRESENT, STU002=LATE, STU003=ABSENT
     await service.recordAttendance({
-      lessonId: 1, studentCode: 'STU001', status: AttendanceStatus.PRESENT, operator: 10,
+      lessonId: 1,
+      studentCode: 'STU001',
+      status: AttendanceStatus.PRESENT,
+      operator: 10,
     });
     await service.recordAttendance({
-      lessonId: 1, studentCode: 'STU002', status: AttendanceStatus.LATE, reason: 'Traffic', operator: 10,
+      lessonId: 1,
+      studentCode: 'STU002',
+      status: AttendanceStatus.LATE,
+      reason: 'Traffic',
+      operator: 10,
     });
     await service.recordAttendance({
-      lessonId: 1, studentCode: 'STU003', status: AttendanceStatus.ABSENT, reason: 'Sick', operator: 10,
+      lessonId: 1,
+      studentCode: 'STU003',
+      status: AttendanceStatus.ABSENT,
+      reason: 'Sick',
+      operator: 10,
     });
 
     // ─── Three-End Verification ───
 
     // End 1: Contract side — STU001 deducted 1 lesson
-    const stu001Contract = contractRepo._store.find(c => c.studentCode === 'STU001');
+    const stu001Contract = contractRepo._store.find(
+      (c) => c.studentCode === 'STU001',
+    );
     expect(stu001Contract!.remainingLessons).toBe(9);
-    const totalDeducted = stu001Contract!.totalLessons - stu001Contract!.remainingLessons;
+    const totalDeducted =
+      stu001Contract!.totalLessons - stu001Contract!.remainingLessons;
     expect(totalDeducted).toBe(1); // Only STU001 has a contract in our test
 
     // End 2: Attendance side — all records have correct workflow state
-    const allAttendance = attendanceRepo._records.filter(r => r.lessonId === 1);
+    const allAttendance = attendanceRepo._records.filter(
+      (r) => r.lessonId === 1,
+    );
     expect(allAttendance).toHaveLength(3);
 
-    const stu001Attendance = allAttendance.find(r => r.studentCode === 'STU001');
-    expect(stu001Attendance!.workflowState).toBe(AttendanceWorkflowState.CHECKED_IN);
+    const stu001Attendance = allAttendance.find(
+      (r) => r.studentCode === 'STU001',
+    );
+    expect(stu001Attendance!.workflowState).toBe(
+      AttendanceWorkflowState.CHECKED_IN,
+    );
     expect(stu001Attendance!.status).toBe(AttendanceStatus.PRESENT);
 
-    const stu002Attendance = allAttendance.find(r => r.studentCode === 'STU002');
-    expect(stu002Attendance!.workflowState).toBe(AttendanceWorkflowState.CHECKED_IN);
+    const stu002Attendance = allAttendance.find(
+      (r) => r.studentCode === 'STU002',
+    );
+    expect(stu002Attendance!.workflowState).toBe(
+      AttendanceWorkflowState.CHECKED_IN,
+    );
     expect(stu002Attendance!.status).toBe(AttendanceStatus.LATE);
 
-    const stu003Attendance = allAttendance.find(r => r.studentCode === 'STU003');
-    expect(stu003Attendance!.workflowState).toBe(AttendanceWorkflowState.CHECKED_IN);
+    const stu003Attendance = allAttendance.find(
+      (r) => r.studentCode === 'STU003',
+    );
+    expect(stu003Attendance!.workflowState).toBe(
+      AttendanceWorkflowState.CHECKED_IN,
+    );
     expect(stu003Attendance!.status).toBe(AttendanceStatus.ABSENT);
 
     // End 3: Lesson side — verify correct attendance count
     const presentCount = allAttendance.filter(
-      r => r.status === AttendanceStatus.PRESENT || r.status === AttendanceStatus.LATE,
+      (r) =>
+        r.status === AttendanceStatus.PRESENT ||
+        r.status === AttendanceStatus.LATE,
     ).length;
-    const absentCount = allAttendance.filter(r => r.status === AttendanceStatus.ABSENT).length;
+    const absentCount = allAttendance.filter(
+      (r) => r.status === AttendanceStatus.ABSENT,
+    ).length;
     expect(presentCount).toBe(2); // PRESENT + LATE
     expect(absentCount).toBe(1); // ABSENT
   });
@@ -841,38 +1046,59 @@ describe('Business Flow Integration: Scenario 6 — Data Consistency', () => {
     // Lesson 1: PRESENT → deduct
     await service.autoCreateForLesson(1, ['STU001'], 'CL001', 10);
     await service.recordAttendance({
-      lessonId: 1, studentCode: 'STU001', status: AttendanceStatus.PRESENT, operator: 10,
+      lessonId: 1,
+      studentCode: 'STU001',
+      status: AttendanceStatus.PRESENT,
+      operator: 10,
     });
 
     // Lesson 2: ABSENT → no deduct
     await service.autoCreateForLesson(2, ['STU001'], 'CL001', 10);
     await service.recordAttendance({
-      lessonId: 2, studentCode: 'STU001', status: AttendanceStatus.ABSENT, reason: 'Sick', operator: 10,
+      lessonId: 2,
+      studentCode: 'STU001',
+      status: AttendanceStatus.ABSENT,
+      reason: 'Sick',
+      operator: 10,
     });
 
     // Lesson 3: LATE → deduct
     await service.autoCreateForLesson(3, ['STU001'], 'CL001', 10);
     await service.recordAttendance({
-      lessonId: 3, studentCode: 'STU001', status: AttendanceStatus.LATE, reason: 'Bus', operator: 10,
+      lessonId: 3,
+      studentCode: 'STU001',
+      status: AttendanceStatus.LATE,
+      reason: 'Bus',
+      operator: 10,
     });
 
     // Lesson 4: LEAVE → no deduct
     await service.autoCreateForLesson(4, ['STU001'], 'CL001', 10);
     await service.recordAttendance({
-      lessonId: 4, studentCode: 'STU001', status: AttendanceStatus.LEAVE, reason: 'Family', operator: 10,
+      lessonId: 4,
+      studentCode: 'STU001',
+      status: AttendanceStatus.LEAVE,
+      reason: 'Family',
+      operator: 10,
     });
 
     // Verify: 5 total - 2 deducted (Lesson 1 + Lesson 3) = 3 remaining
-    const c = contractRepo._store.find(x => x.contractCode === 'CT-MULTI-001');
+    const c = contractRepo._store.find(
+      (x) => x.contractCode === 'CT-MULTI-001',
+    );
     expect(c!.remainingLessons).toBe(3);
     expect(c!.status).toBe(ContractStatus.ACTIVE);
 
     // Cross-check: attendance records
-    const allRecords = attendanceRepo._records.filter(r => r.studentCode === 'STU001');
+    const allRecords = attendanceRepo._records.filter(
+      (r) => r.studentCode === 'STU001',
+    );
     expect(allRecords).toHaveLength(4);
 
     const deductibleCount = allRecords.filter(
-      r => r.status === AttendanceStatus.PRESENT || r.status === AttendanceStatus.LATE,
+      (r) =>
+        r.status === AttendanceStatus.PRESENT ||
+        r.status === AttendanceStatus.LATE,
     ).length;
     expect(deductibleCount).toBe(2); // Lesson 1 (PRESENT) + Lesson 3 (LATE)
 
@@ -1013,7 +1239,9 @@ describe('Business Flow Integration: Scenario 7 — Edge Cases', () => {
     });
 
     // Verify: no deduction
-    const c = contractRepo._store.find(x => x.contractCode === 'CT-MAKEUP-001');
+    const c = contractRepo._store.find(
+      (x) => x.contractCode === 'CT-MAKEUP-001',
+    );
     expect(c!.remainingLessons).toBe(5);
   });
 });
@@ -1080,17 +1308,39 @@ describe('Business Flow Integration: Scenario 9 — Batch Roll Call', () => {
     await service.batchRollCall({
       lessonId: 1,
       records: [
-        { lessonId: 1, studentCode: 'STU001', status: AttendanceStatus.PRESENT, operator: 10 },
-        { lessonId: 1, studentCode: 'STU002', status: AttendanceStatus.LATE, reason: 'Late', operator: 10 },
-        { lessonId: 1, studentCode: 'STU003', status: AttendanceStatus.ONLINE, operator: 10 },
-        { lessonId: 1, studentCode: 'STU004', status: AttendanceStatus.OFFLINE, operator: 10 },
+        {
+          lessonId: 1,
+          studentCode: 'STU001',
+          status: AttendanceStatus.PRESENT,
+          operator: 10,
+        },
+        {
+          lessonId: 1,
+          studentCode: 'STU002',
+          status: AttendanceStatus.LATE,
+          reason: 'Late',
+          operator: 10,
+        },
+        {
+          lessonId: 1,
+          studentCode: 'STU003',
+          status: AttendanceStatus.ONLINE,
+          operator: 10,
+        },
+        {
+          lessonId: 1,
+          studentCode: 'STU004',
+          status: AttendanceStatus.OFFLINE,
+          operator: 10,
+        },
       ],
     });
 
     // All 4 should be deducted
     for (let i = 1; i <= 4; i++) {
       const c = contractRepo._store.find(
-        x => x.contractCode === `CT-BATCHALL-${i.toString().padStart(3, '0')}`,
+        (x) =>
+          x.contractCode === `CT-BATCHALL-${i.toString().padStart(3, '0')}`,
       );
       expect(c!.remainingLessons).toBe(9);
     }
@@ -1101,7 +1351,7 @@ describe('Business Flow Integration: Scenario 9 — Batch Roll Call', () => {
 
     // Manually set STU001 to CHECKED_IN (simulating already recorded)
     const stu001Record = attendanceRepo._records.find(
-      r => r.lessonId === 1 && r.studentCode === 'STU001',
+      (r) => r.lessonId === 1 && r.studentCode === 'STU001',
     );
     stu001Record!.workflowState = AttendanceWorkflowState.CHECKED_IN;
 
@@ -1109,8 +1359,18 @@ describe('Business Flow Integration: Scenario 9 — Batch Roll Call', () => {
       service.batchRollCall({
         lessonId: 1,
         records: [
-          { lessonId: 1, studentCode: 'STU001', status: AttendanceStatus.PRESENT, operator: 10 },
-          { lessonId: 1, studentCode: 'STU002', status: AttendanceStatus.PRESENT, operator: 10 },
+          {
+            lessonId: 1,
+            studentCode: 'STU001',
+            status: AttendanceStatus.PRESENT,
+            operator: 10,
+          },
+          {
+            lessonId: 1,
+            studentCode: 'STU002',
+            status: AttendanceStatus.PRESENT,
+            operator: 10,
+          },
         ],
       }),
     ).rejects.toThrow(BadRequestException);
@@ -1123,7 +1383,12 @@ describe('Business Flow Integration: Scenario 9 — Batch Roll Call', () => {
       service.batchRollCall({
         lessonId: 1,
         records: [
-          { lessonId: 1, studentCode: 'STU001', status: AttendanceStatus.LATE, operator: 10 },
+          {
+            lessonId: 1,
+            studentCode: 'STU001',
+            status: AttendanceStatus.LATE,
+            operator: 10,
+          },
         ],
       }),
     ).rejects.toThrow(BadRequestException);
@@ -1155,7 +1420,10 @@ describe('Business Flow Integration: Scenario 10 — No Active Contract', () => 
     expect(result.status).toBe(AttendanceStatus.PRESENT);
 
     // Contract repo was queried but nothing saved
-    expect(contractRepo.findActiveByStudentCodeAndSubject).toHaveBeenCalledWith('STU001', Subject.MATH);
+    expect(contractRepo.findActiveByStudentCodeAndSubject).toHaveBeenCalledWith(
+      'STU001',
+      Subject.MATH,
+    );
     expect(contractRepo.save).not.toHaveBeenCalled();
   });
 });

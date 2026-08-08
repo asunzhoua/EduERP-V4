@@ -38,19 +38,31 @@ describe('PolicyRuntime', () => {
     it('should return true when all policies pass', () => {
       const composite = CompositePolicy.all('bothChecks', [
         new AgeCheckPolicy(),
-        { name: 'emailCheck', evaluate: (ctx: { age: number; email: string }) => ctx.email.includes('@') } as IPolicy<{ age: number; email: string }>,
+        {
+          name: 'emailCheck',
+          evaluate: (ctx: { age: number; email: string }) =>
+            ctx.email.includes('@'),
+        },
       ]);
 
-      expect(composite.evaluate({ age: 20, email: 'test@example.com' })).toBe(true);
+      expect(composite.evaluate({ age: 20, email: 'test@example.com' })).toBe(
+        true,
+      );
     });
 
     it('should return false when any policy fails', () => {
       const composite = CompositePolicy.all('bothChecks', [
         new AgeCheckPolicy(),
-        { name: 'emailCheck', evaluate: (ctx: { age: number; email: string }) => ctx.email.includes('@') } as IPolicy<{ age: number; email: string }>,
+        {
+          name: 'emailCheck',
+          evaluate: (ctx: { age: number; email: string }) =>
+            ctx.email.includes('@'),
+        },
       ]);
 
-      expect(composite.evaluate({ age: 15, email: 'test@example.com' })).toBe(false);
+      expect(composite.evaluate({ age: 15, email: 'test@example.com' })).toBe(
+        false,
+      );
     });
 
     it('should have correct name', () => {
@@ -62,8 +74,8 @@ describe('PolicyRuntime', () => {
   describe('CompositePolicy.any()', () => {
     it('should return true when at least one policy passes', () => {
       const composite = CompositePolicy.any('eitherCheck', [
-        { name: 'alwaysFail', evaluate: () => false } as IPolicy<{}>,
-        { name: 'alwaysPass', evaluate: () => true } as IPolicy<{}>,
+        { name: 'alwaysFail', evaluate: () => false },
+        { name: 'alwaysPass', evaluate: () => true },
       ]);
 
       expect(composite.evaluate({})).toBe(true);
@@ -71,8 +83,8 @@ describe('PolicyRuntime', () => {
 
     it('should return false when no policy passes', () => {
       const composite = CompositePolicy.any('eitherCheck', [
-        { name: 'alwaysFail1', evaluate: () => false } as IPolicy<{}>,
-        { name: 'alwaysFail2', evaluate: () => false } as IPolicy<{}>,
+        { name: 'alwaysFail1', evaluate: () => false },
+        { name: 'alwaysFail2', evaluate: () => false },
       ]);
 
       expect(composite.evaluate({})).toBe(false);
@@ -82,8 +94,8 @@ describe('PolicyRuntime', () => {
   describe('CompositePolicy.none()', () => {
     it('should return true when no policy passes', () => {
       const composite = CompositePolicy.none('noneCheck', [
-        { name: 'alwaysFail', evaluate: () => false } as IPolicy<{}>,
-        { name: 'alsoFail', evaluate: () => false } as IPolicy<{}>,
+        { name: 'alwaysFail', evaluate: () => false },
+        { name: 'alsoFail', evaluate: () => false },
       ]);
 
       expect(composite.evaluate({})).toBe(true);
@@ -91,8 +103,8 @@ describe('PolicyRuntime', () => {
 
     it('should return false when any policy passes', () => {
       const composite = CompositePolicy.none('noneCheck', [
-        { name: 'alwaysPass', evaluate: () => true } as IPolicy<{}>,
-        { name: 'alsoFail', evaluate: () => false } as IPolicy<{}>,
+        { name: 'alwaysPass', evaluate: () => true },
+        { name: 'alsoFail', evaluate: () => false },
       ]);
 
       expect(composite.evaluate({})).toBe(false);
@@ -103,10 +115,17 @@ describe('PolicyRuntime', () => {
     it('should return diagnostic results for each policy', () => {
       const composite = CompositePolicy.all('diagnosticTest', [
         new AgeCheckPolicy(),
-        { name: 'emailCheck', evaluate: (ctx: { age: number; email: string }) => ctx.email.includes('@') } as IPolicy<{ age: number; email: string }>,
+        {
+          name: 'emailCheck',
+          evaluate: (ctx: { age: number; email: string }) =>
+            ctx.email.includes('@'),
+        },
       ]);
 
-      const results = composite.evaluateWithDiagnostics({ age: 15, email: 'bad' });
+      const results = composite.evaluateWithDiagnostics({
+        age: 15,
+        email: 'bad',
+      });
 
       expect(results).toHaveLength(2);
       expect(results[0].satisfied).toBe(false);

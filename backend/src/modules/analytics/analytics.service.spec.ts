@@ -64,13 +64,25 @@ describe('AnalyticsService', () => {
         AnalyticsService,
         { provide: getRepositoryToken(LoginLog), useValue: mockLoginLogRepo },
         { provide: getRepositoryToken(Student), useValue: mockStudentRepo },
-        { provide: getRepositoryToken(EnrollmentEntity), useValue: mockEnrollmentRepo },
+        {
+          provide: getRepositoryToken(EnrollmentEntity),
+          useValue: mockEnrollmentRepo,
+        },
         { provide: getRepositoryToken(LessonEntity), useValue: mockLessonRepo },
-        { provide: getRepositoryToken(LessonAttendanceEntity), useValue: mockLessonAttendanceRepo },
-        { provide: getRepositoryToken(TeacherAssignmentEntity), useValue: mockTeacherAssignmentRepo },
+        {
+          provide: getRepositoryToken(LessonAttendanceEntity),
+          useValue: mockLessonAttendanceRepo,
+        },
+        {
+          provide: getRepositoryToken(TeacherAssignmentEntity),
+          useValue: mockTeacherAssignmentRepo,
+        },
         { provide: getRepositoryToken(CourseEntity), useValue: mockCourseRepo },
         { provide: getRepositoryToken(ClassEntity), useValue: mockClassRepo },
-        { provide: getRepositoryToken(ContractEntity), useValue: mockContractRepo },
+        {
+          provide: getRepositoryToken(ContractEntity),
+          useValue: mockContractRepo,
+        },
       ],
     }).compile();
 
@@ -112,9 +124,18 @@ describe('AnalyticsService', () => {
         getRawOne: jest.fn(),
       };
       mockLoginLogRepo.createQueryBuilder
-        .mockReturnValueOnce({ ...mockQbChain, getRawOne: jest.fn().mockResolvedValue({ count: '5' }) })
-        .mockReturnValueOnce({ ...mockQbChain, getRawOne: jest.fn().mockResolvedValue({ count: '20' }) })
-        .mockReturnValueOnce({ ...mockQbChain, getRawOne: jest.fn().mockResolvedValue({ count: '80' }) });
+        .mockReturnValueOnce({
+          ...mockQbChain,
+          getRawOne: jest.fn().mockResolvedValue({ count: '5' }),
+        })
+        .mockReturnValueOnce({
+          ...mockQbChain,
+          getRawOne: jest.fn().mockResolvedValue({ count: '20' }),
+        })
+        .mockReturnValueOnce({
+          ...mockQbChain,
+          getRawOne: jest.fn().mockResolvedValue({ count: '80' }),
+        });
 
       // Mock attendance data
       mockLessonAttendanceRepo.find.mockResolvedValue([
@@ -145,7 +166,9 @@ describe('AnalyticsService', () => {
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ consumed: '4', remaining: '8' }),
+        getRawOne: jest
+          .fn()
+          .mockResolvedValue({ consumed: '4', remaining: '8' }),
       };
       mockContractRepo.createQueryBuilder.mockReturnValue(mockContractQb);
 
@@ -155,13 +178,29 @@ describe('AnalyticsService', () => {
       expect(result.metrics[0]).toEqual({ name: 'dau', value: 5, unit: '人' });
       expect(result.metrics[1]).toEqual({ name: 'wau', value: 20, unit: '人' });
       expect(result.metrics[2]).toEqual({ name: 'mau', value: 80, unit: '人' });
-      expect(result.metrics[3]).toEqual({ name: 'totalAttendance', value: 4, unit: '次' }); // PRESENT+PRESENT+LATE+ONLINE
+      expect(result.metrics[3]).toEqual({
+        name: 'totalAttendance',
+        value: 4,
+        unit: '次',
+      }); // PRESENT+PRESENT+LATE+ONLINE
       expect(result.metrics[4].name).toBe('attendanceRate');
       expect(result.metrics[5].name).toBe('absenceRate');
       expect(result.metrics[6].name).toBe('lateRate');
-      expect(result.metrics[7]).toEqual({ name: 'courseProgress', value: 40, unit: '%' }); // 8/20 = 40%
-      expect(result.metrics[8]).toEqual({ name: 'consumedLessons', value: 4, unit: '节' });
-      expect(result.metrics[9]).toEqual({ name: 'remainingLessons', value: 8, unit: '节' });
+      expect(result.metrics[7]).toEqual({
+        name: 'courseProgress',
+        value: 40,
+        unit: '%',
+      }); // 8/20 = 40%
+      expect(result.metrics[8]).toEqual({
+        name: 'consumedLessons',
+        value: 4,
+        unit: '节',
+      });
+      expect(result.metrics[9]).toEqual({
+        name: 'remainingLessons',
+        value: 8,
+        unit: '节',
+      });
     });
 
     it('should handle empty attendance data (division by zero protection)', async () => {
@@ -184,7 +223,9 @@ describe('AnalyticsService', () => {
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ consumed: '0', remaining: '0' }),
+        getRawOne: jest
+          .fn()
+          .mockResolvedValue({ consumed: '0', remaining: '0' }),
       };
       mockContractRepo.createQueryBuilder.mockReturnValue(mockContractQb);
 
@@ -192,12 +233,22 @@ describe('AnalyticsService', () => {
 
       expect(result.metrics).toHaveLength(10);
       // All rates should be 0 when no records
-      expect(result.metrics.find(m => m.name === 'attendanceRate')!.value).toBe(0);
-      expect(result.metrics.find(m => m.name === 'absenceRate')!.value).toBe(0);
-      expect(result.metrics.find(m => m.name === 'lateRate')!.value).toBe(0);
-      expect(result.metrics.find(m => m.name === 'courseProgress')!.value).toBe(0);
-      expect(result.metrics.find(m => m.name === 'consumedLessons')!.value).toBe(0);
-      expect(result.metrics.find(m => m.name === 'remainingLessons')!.value).toBe(0);
+      expect(
+        result.metrics.find((m) => m.name === 'attendanceRate')!.value,
+      ).toBe(0);
+      expect(result.metrics.find((m) => m.name === 'absenceRate')!.value).toBe(
+        0,
+      );
+      expect(result.metrics.find((m) => m.name === 'lateRate')!.value).toBe(0);
+      expect(
+        result.metrics.find((m) => m.name === 'courseProgress')!.value,
+      ).toBe(0);
+      expect(
+        result.metrics.find((m) => m.name === 'consumedLessons')!.value,
+      ).toBe(0);
+      expect(
+        result.metrics.find((m) => m.name === 'remainingLessons')!.value,
+      ).toBe(0);
     });
 
     it('should calculate attendance rates correctly', async () => {
@@ -232,7 +283,9 @@ describe('AnalyticsService', () => {
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ consumed: '2', remaining: '8' }),
+        getRawOne: jest
+          .fn()
+          .mockResolvedValue({ consumed: '2', remaining: '8' }),
       };
       mockContractRepo.createQueryBuilder.mockReturnValue(mockContractQb);
 
@@ -243,11 +296,19 @@ describe('AnalyticsService', () => {
       // attendanceRate = 8/10 * 100 = 80%
       // absenceRate = 1/10 * 100 = 10%
       // lateRate = 2/10 * 100 = 20%
-      expect(result.metrics.find(m => m.name === 'attendanceRate')!.value).toBe(80);
-      expect(result.metrics.find(m => m.name === 'absenceRate')!.value).toBe(10);
-      expect(result.metrics.find(m => m.name === 'lateRate')!.value).toBe(20);
-      expect(result.metrics.find(m => m.name === 'consumedLessons')!.value).toBe(2);
-      expect(result.metrics.find(m => m.name === 'remainingLessons')!.value).toBe(8);
+      expect(
+        result.metrics.find((m) => m.name === 'attendanceRate')!.value,
+      ).toBe(80);
+      expect(result.metrics.find((m) => m.name === 'absenceRate')!.value).toBe(
+        10,
+      );
+      expect(result.metrics.find((m) => m.name === 'lateRate')!.value).toBe(20);
+      expect(
+        result.metrics.find((m) => m.name === 'consumedLessons')!.value,
+      ).toBe(2);
+      expect(
+        result.metrics.find((m) => m.name === 'remainingLessons')!.value,
+      ).toBe(8);
     });
   });
 
@@ -273,9 +334,21 @@ describe('AnalyticsService', () => {
       const result = await service.getTeacherMetrics(100);
 
       expect(result.metrics).toHaveLength(3);
-      expect(result.metrics[0]).toEqual({ name: 'teachingCount', value: 42, unit: '次' });
-      expect(result.metrics[1]).toEqual({ name: 'classCount', value: 2, unit: '个' }); // 2 distinct classes
-      expect(result.metrics[2]).toEqual({ name: 'studentCount', value: 15, unit: '人' });
+      expect(result.metrics[0]).toEqual({
+        name: 'teachingCount',
+        value: 42,
+        unit: '次',
+      });
+      expect(result.metrics[1]).toEqual({
+        name: 'classCount',
+        value: 2,
+        unit: '个',
+      }); // 2 distinct classes
+      expect(result.metrics[2]).toEqual({
+        name: 'studentCount',
+        value: 15,
+        unit: '人',
+      });
     });
 
     it('should handle teacher with no assignments', async () => {
@@ -285,9 +358,21 @@ describe('AnalyticsService', () => {
       const result = await service.getTeacherMetrics(999);
 
       expect(result.metrics).toHaveLength(3);
-      expect(result.metrics[0]).toEqual({ name: 'teachingCount', value: 0, unit: '次' });
-      expect(result.metrics[1]).toEqual({ name: 'classCount', value: 0, unit: '个' });
-      expect(result.metrics[2]).toEqual({ name: 'studentCount', value: 0, unit: '人' });
+      expect(result.metrics[0]).toEqual({
+        name: 'teachingCount',
+        value: 0,
+        unit: '次',
+      });
+      expect(result.metrics[1]).toEqual({
+        name: 'classCount',
+        value: 0,
+        unit: '个',
+      });
+      expect(result.metrics[2]).toEqual({
+        name: 'studentCount',
+        value: 0,
+        unit: '人',
+      });
     });
   });
 
@@ -309,10 +394,26 @@ describe('AnalyticsService', () => {
       const result = await service.getInstitutionMetrics();
 
       expect(result.metrics).toHaveLength(4);
-      expect(result.metrics[0]).toEqual({ name: 'totalStudents', value: 150, unit: '人' });
-      expect(result.metrics[1]).toEqual({ name: 'activeStudents', value: 85, unit: '人' });
-      expect(result.metrics[2]).toEqual({ name: 'totalCourses', value: 12, unit: '个' });
-      expect(result.metrics[3]).toEqual({ name: 'totalClasses', value: 25, unit: '个' });
+      expect(result.metrics[0]).toEqual({
+        name: 'totalStudents',
+        value: 150,
+        unit: '人',
+      });
+      expect(result.metrics[1]).toEqual({
+        name: 'activeStudents',
+        value: 85,
+        unit: '人',
+      });
+      expect(result.metrics[2]).toEqual({
+        name: 'totalCourses',
+        value: 12,
+        unit: '个',
+      });
+      expect(result.metrics[3]).toEqual({
+        name: 'totalClasses',
+        value: 25,
+        unit: '个',
+      });
     });
 
     it('should handle empty institution data', async () => {
@@ -330,7 +431,7 @@ describe('AnalyticsService', () => {
       const result = await service.getInstitutionMetrics();
 
       expect(result.metrics).toHaveLength(4);
-      expect(result.metrics.every(m => m.value === 0)).toBe(true);
+      expect(result.metrics.every((m) => m.value === 0)).toBe(true);
     });
   });
 
@@ -392,8 +493,8 @@ describe('AnalyticsService', () => {
 
       expect(result.learningTrend).toHaveLength(7);
       expect(result.attendanceTrend).toHaveLength(7);
-      expect(result.learningTrend.every(t => t.value === 0)).toBe(true);
-      expect(result.attendanceTrend.every(t => t.value === 0)).toBe(true);
+      expect(result.learningTrend.every((t) => t.value === 0)).toBe(true);
+      expect(result.attendanceTrend.every((t) => t.value === 0)).toBe(true);
     });
   });
 
@@ -409,8 +510,16 @@ describe('AnalyticsService', () => {
         return `${y}-${m}-${dd}`;
       };
       const today = new Date();
-      const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
-      const twoDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2);
+      const yesterday = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() - 1,
+      );
+      const twoDaysAgo = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() - 2,
+      );
       const yesterdayStr = fmt(yesterday);
       const twoDaysAgoStr = fmt(twoDaysAgo);
 
@@ -450,9 +559,9 @@ describe('AnalyticsService', () => {
       expect(result.lessonTrend).toHaveLength(7);
       expect(result.attendanceTrend).toHaveLength(7);
       // Verify lessonTrend has correct counts from merged query
-      const y1 = result.lessonTrend.find(t => t.date === yesterdayStr);
+      const y1 = result.lessonTrend.find((t) => t.date === yesterdayStr);
       expect(y1?.value).toBe(2);
-      const y2 = result.lessonTrend.find(t => t.date === twoDaysAgoStr);
+      const y2 = result.lessonTrend.find((t) => t.date === twoDaysAgoStr);
       expect(y2?.value).toBe(1);
     });
 
@@ -471,8 +580,8 @@ describe('AnalyticsService', () => {
 
       expect(result.lessonTrend).toHaveLength(7);
       expect(result.attendanceTrend).toHaveLength(7);
-      expect(result.lessonTrend.every(t => t.value === 0)).toBe(true);
-      expect(result.attendanceTrend.every(t => t.value === 0)).toBe(true);
+      expect(result.lessonTrend.every((t) => t.value === 0)).toBe(true);
+      expect(result.attendanceTrend.every((t) => t.value === 0)).toBe(true);
     });
   });
 
@@ -543,8 +652,8 @@ describe('AnalyticsService', () => {
 
       expect(result.lessonTrend).toHaveLength(7);
       expect(result.enrollmentTrend).toHaveLength(7);
-      expect(result.lessonTrend.every(t => t.value === 0)).toBe(true);
-      expect(result.enrollmentTrend.every(t => t.value === 0)).toBe(true);
+      expect(result.lessonTrend.every((t) => t.value === 0)).toBe(true);
+      expect(result.enrollmentTrend.every((t) => t.value === 0)).toBe(true);
     });
   });
 
@@ -560,7 +669,9 @@ describe('AnalyticsService', () => {
         if (idx < 4) {
           // Overall count queries
           return {
-            where: jest.fn().mockReturnValue({ getCount: jest.fn().mockResolvedValue(counts[idx]) }),
+            where: jest.fn().mockReturnValue({
+              getCount: jest.fn().mockResolvedValue(counts[idx]),
+            }),
           };
         }
         // byDate query
@@ -617,7 +728,9 @@ describe('AnalyticsService', () => {
     it('should return zeros when no attendance data', async () => {
       mockLessonAttendanceRepo.count.mockResolvedValue(0);
       mockLessonAttendanceRepo.createQueryBuilder.mockImplementation(() => ({
-        where: jest.fn().mockReturnValue({ getCount: jest.fn().mockResolvedValue(0) }),
+        where: jest
+          .fn()
+          .mockReturnValue({ getCount: jest.fn().mockResolvedValue(0) }),
         innerJoin: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
@@ -649,7 +762,11 @@ describe('AnalyticsService', () => {
       andWhere: jest.fn().mockReturnThis(),
       groupBy: jest.fn().mockReturnThis(),
       getRawOne: jest.fn().mockResolvedValue(
-        overrides.getRawOne || { totalLessons: '100', totalRemaining: '60', totalConsumed: '40' },
+        overrides.getRawOne || {
+          totalLessons: '100',
+          totalRemaining: '60',
+          totalConsumed: '40',
+        },
       ),
       getRawMany: jest.fn().mockResolvedValue(overrides.getRawMany || []),
     });
@@ -666,12 +783,18 @@ describe('AnalyticsService', () => {
     it('should return correct totalConsumed, totalRemaining, totalLessons', async () => {
       mockContractRepo.createQueryBuilder.mockReturnValue(
         createContractQbChain({
-          getRawOne: { totalLessons: '200', totalRemaining: '120', totalConsumed: '80' },
+          getRawOne: {
+            totalLessons: '200',
+            totalRemaining: '120',
+            totalConsumed: '80',
+          },
           getRawMany: [],
         }),
       );
       mockLessonRepo.count.mockResolvedValue(45);
-      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(createAttendanceQbChain());
+      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(
+        createAttendanceQbChain(),
+      );
 
       const result = await service.getConsumptionStatistics(7);
 
@@ -682,20 +805,38 @@ describe('AnalyticsService', () => {
 
     it('should return correct completedLessons count', async () => {
       mockContractRepo.createQueryBuilder.mockReturnValue(
-        createContractQbChain({ getRawOne: { totalLessons: '0', totalRemaining: '0', totalConsumed: '0' }, getRawMany: [] }),
+        createContractQbChain({
+          getRawOne: {
+            totalLessons: '0',
+            totalRemaining: '0',
+            totalConsumed: '0',
+          },
+          getRawMany: [],
+        }),
       );
       mockLessonRepo.count.mockResolvedValue(123);
-      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(createAttendanceQbChain());
+      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(
+        createAttendanceQbChain(),
+      );
 
       const result = await service.getConsumptionStatistics(7);
 
       expect(result.completedLessons).toBe(123);
-      expect(mockLessonRepo.count).toHaveBeenCalledWith({ where: { status: 'FINISHED' } });
+      expect(mockLessonRepo.count).toHaveBeenCalledWith({
+        where: { status: 'FINISHED' },
+      });
     });
 
     it('should return consumptionTrend with correct date range', async () => {
       mockContractRepo.createQueryBuilder.mockReturnValue(
-        createContractQbChain({ getRawOne: { totalLessons: '0', totalRemaining: '0', totalConsumed: '0' }, getRawMany: [] }),
+        createContractQbChain({
+          getRawOne: {
+            totalLessons: '0',
+            totalRemaining: '0',
+            totalConsumed: '0',
+          },
+          getRawMany: [],
+        }),
       );
       mockLessonRepo.count.mockResolvedValue(0);
 
@@ -712,14 +853,28 @@ describe('AnalyticsService', () => {
       const result = await service.getConsumptionStatistics(3);
 
       expect(result.consumptionTrend).toHaveLength(3);
-      expect(result.consumptionTrend[result.consumptionTrend.length - 1].date).toBe(todayStr);
-      expect(result.consumptionTrend[result.consumptionTrend.length - 1].value).toBe(5);
+      expect(
+        result.consumptionTrend[result.consumptionTrend.length - 1].date,
+      ).toBe(todayStr);
+      expect(
+        result.consumptionTrend[result.consumptionTrend.length - 1].value,
+      ).toBe(5);
     });
 
     it('should return byStudent grouped correctly', async () => {
       const studentRows = [
-        { studentCode: 'STU-001', total: '50', remaining: '30', consumed: '20' },
-        { studentCode: 'STU-002', total: '30', remaining: '10', consumed: '20' },
+        {
+          studentCode: 'STU-001',
+          total: '50',
+          remaining: '30',
+          consumed: '20',
+        },
+        {
+          studentCode: 'STU-002',
+          total: '30',
+          remaining: '10',
+          consumed: '20',
+        },
       ];
 
       let callCount = 0;
@@ -728,20 +883,29 @@ describe('AnalyticsService', () => {
         if (callCount === 1) {
           // aggregate query
           return createContractQbChain({
-            getRawOne: { totalLessons: '80', totalRemaining: '40', totalConsumed: '40' },
+            getRawOne: {
+              totalLessons: '80',
+              totalRemaining: '40',
+              totalConsumed: '40',
+            },
             getRawMany: [],
           });
         }
         if (callCount === 2) {
           // byStudent query
-          return createContractQbChain({ getRawOne: null, getRawMany: studentRows });
+          return createContractQbChain({
+            getRawOne: null,
+            getRawMany: studentRows,
+          });
         }
         // byCourse query
         return createContractQbChain({ getRawOne: null, getRawMany: [] });
       });
 
       mockLessonRepo.count.mockResolvedValue(0);
-      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(createAttendanceQbChain());
+      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(
+        createAttendanceQbChain(),
+      );
 
       const result = await service.getConsumptionStatistics(7);
 
@@ -771,18 +935,27 @@ describe('AnalyticsService', () => {
         callCount++;
         if (callCount === 1) {
           return createContractQbChain({
-            getRawOne: { totalLessons: '100', totalRemaining: '60', totalConsumed: '40' },
+            getRawOne: {
+              totalLessons: '100',
+              totalRemaining: '60',
+              totalConsumed: '40',
+            },
             getRawMany: [],
           });
         }
         if (callCount === 2) {
           return createContractQbChain({ getRawOne: null, getRawMany: [] });
         }
-        return createContractQbChain({ getRawOne: null, getRawMany: courseRows });
+        return createContractQbChain({
+          getRawOne: null,
+          getRawMany: courseRows,
+        });
       });
 
       mockLessonRepo.count.mockResolvedValue(0);
-      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(createAttendanceQbChain());
+      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(
+        createAttendanceQbChain(),
+      );
 
       const result = await service.getConsumptionStatistics(7);
 
@@ -804,12 +977,18 @@ describe('AnalyticsService', () => {
     it('should handle empty contracts gracefully', async () => {
       mockContractRepo.createQueryBuilder.mockReturnValue(
         createContractQbChain({
-          getRawOne: { totalLessons: '0', totalRemaining: '0', totalConsumed: '0' },
+          getRawOne: {
+            totalLessons: '0',
+            totalRemaining: '0',
+            totalConsumed: '0',
+          },
           getRawMany: [],
         }),
       );
       mockLessonRepo.count.mockResolvedValue(0);
-      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(createAttendanceQbChain());
+      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(
+        createAttendanceQbChain(),
+      );
 
       const result = await service.getConsumptionStatistics(7);
 

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, Brackets, In } from 'typeorm';
 import { Student } from '../entities/student.entity';
@@ -17,7 +22,11 @@ import { ImportService, ImportReport } from '@utils/services/import.service';
 import { Gender } from '../enums/gender.enum';
 import { ContractRepository } from '@modules/teaching/contract/contract.repository';
 import { LessonAttendanceRepository } from '@modules/teaching/lesson-attendance/lesson-attendance.repository';
-import { LeaveRequestEntity, LeaveRequestStatus, LeaveType } from '@modules/teaching/leave-request/leave-request.entity';
+import {
+  LeaveRequestEntity,
+  LeaveRequestStatus,
+  LeaveType,
+} from '@modules/teaching/leave-request/leave-request.entity';
 import { CreateParentLeaveRequestDto } from '../dto/create-parent-leave-request.dto';
 import { EnrollmentEntity } from '@modules/teaching/enrollment/enrollment.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
@@ -45,7 +54,11 @@ export class StudentService {
     private lessonRepository: Repository<LessonEntity>,
   ) {}
 
-  async create(dto: CreateStudentDto, operatorId: number, source: CreatedSource = CreatedSource.API): Promise<Student> {
+  async create(
+    dto: CreateStudentDto,
+    operatorId: number,
+    source: CreatedSource = CreatedSource.API,
+  ): Promise<Student> {
     const studentCode = await this.studentCodeGenerator.generateStudentCode();
 
     const student = new Student();
@@ -69,7 +82,7 @@ export class StudentService {
 
     // Link parents if provided (batch save, eliminates N+1)
     if (dto.parentIds && dto.parentIds.length > 0) {
-      const links = dto.parentIds.map(parentId => {
+      const links = dto.parentIds.map((parentId) => {
         const link = new StudentParent();
         link.studentId = saved.id;
         link.parentId = parentId;
@@ -92,7 +105,15 @@ export class StudentService {
     return saved;
   }
 
-  async findAll(query: QueryStudentDto, teacherId?: number): Promise<{ items: Student[]; total: number; page: number; pageSize: number }> {
+  async findAll(
+    query: QueryStudentDto,
+    teacherId?: number,
+  ): Promise<{
+    items: Student[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }> {
     const page = query.page || 1;
     const pageSize = query.pageSize || 20;
     const skip = (page - 1) * pageSize;
@@ -137,17 +158,18 @@ export class StudentService {
                 WHERE ta."teacherId" = :teacherId AND ta."effectiveTo" IS NULL AND ta."deleted" = false
               ) AND e."deleted" = false
             )`,
-            { teacherId }
+            { teacherId },
           );
         }
         if (keyword) {
           qb.andWhere(
             new Brackets((subQb) => {
-              subQb.where('student.name LIKE :kw', { kw: `%${keyword}%` })
+              subQb
+                .where('student.name LIKE :kw', { kw: `%${keyword}%` })
                 .orWhere('student.studentCode LIKE :kw', { kw: `%${keyword}%` })
                 .orWhere('student.phone LIKE :kw', { kw: `%${keyword}%` })
                 .orWhere('student.school LIKE :kw', { kw: `%${keyword}%` });
-            })
+            }),
           );
         }
       }) as any,
@@ -173,13 +195,25 @@ export class StudentService {
     return student;
   }
 
-  async update(id: number, dto: UpdateStudentDto, operatorId: number): Promise<Student> {
+  async update(
+    id: number,
+    dto: UpdateStudentDto,
+    operatorId: number,
+  ): Promise<Student> {
     const student = await this.findById(id);
-    const changes: { fieldName: string; oldValue: string; newValue: string }[] = [];
+    const changes: { fieldName: string; oldValue: string; newValue: string }[] =
+      [];
 
     const updatableFields: (keyof UpdateStudentDto)[] = [
-      'name', 'gender', 'birthDate', 'phone', 'email',
-      'school', 'grade', 'tags', 'note',
+      'name',
+      'gender',
+      'birthDate',
+      'phone',
+      'email',
+      'school',
+      'grade',
+      'tags',
+      'note',
     ];
 
     for (const field of updatableFields) {
@@ -187,7 +221,11 @@ export class StudentService {
         const oldVal = String((student as any)[field] ?? '');
         const newVal = String((dto as any)[field] ?? '');
         if (oldVal !== newVal) {
-          changes.push({ fieldName: field, oldValue: oldVal, newValue: newVal });
+          changes.push({
+            fieldName: field,
+            oldValue: oldVal,
+            newValue: newVal,
+          });
           (student as any)[field] = (dto as any)[field];
         }
       }
@@ -202,7 +240,7 @@ export class StudentService {
 
     // Audit log for each change (batch save to eliminate N+1)
     if (changes.length > 0) {
-      const audits = changes.map(change => {
+      const audits = changes.map((change) => {
         const audit = new StudentAuditLog();
         audit.studentId = id;
         audit.action = AuditAction.UPDATE;
@@ -219,7 +257,11 @@ export class StudentService {
     return saved;
   }
 
-  async updateStatus(id: number, dto: UpdateStudentStatusDto, operatorId: number): Promise<Student> {
+  async updateStatus(
+    id: number,
+    dto: UpdateStudentStatusDto,
+    operatorId: number,
+  ): Promise<Student> {
     const student = await this.findById(id);
     const oldStatus = student.status;
     const newStatus = dto.status;
@@ -267,11 +309,16 @@ export class StudentService {
 
   // --- Parent-Student relations ---
 
-  async linkParent(studentId: number, parentId: number, relation?: string, isPrimary?: boolean): Promise<StudentParent> {
+  async linkParent(
+    studentId: number,
+    parentId: number,
+    relation?: string,
+    isPrimary?: boolean,
+  ): Promise<StudentParent> {
     await this.findById(studentId);
 
     const existing = await this.studentParentRepository.findOne({
-      where: { studentId, parentId } as any,
+      where: { studentId, parentId },
     });
     if (existing) {
       throw new BadRequestException('该家长已关联此学生');
@@ -287,7 +334,7 @@ export class StudentService {
 
   async unlinkParent(studentId: number, parentId: number): Promise<void> {
     const link = await this.studentParentRepository.findOne({
-      where: { studentId, parentId } as any,
+      where: { studentId, parentId },
     });
     if (!link) {
       throw new NotFoundException('家长关联不存在');
@@ -298,15 +345,15 @@ export class StudentService {
   async getParents(studentId: number): Promise<StudentParent[]> {
     await this.findById(studentId);
     return this.studentParentRepository.find({
-      where: { studentId } as any,
-      relations: { parent: true } as any,
+      where: { studentId },
+      relations: { parent: true },
     });
   }
 
   async getStudentsByParent(parentId: number): Promise<StudentParent[]> {
     return this.studentParentRepository.find({
-      where: { parentId } as any,
-      relations: { student: true } as any,
+      where: { parentId },
+      relations: { student: true },
     });
   }
 
@@ -316,9 +363,9 @@ export class StudentService {
    */
   async getChildrenByUserId(userId: number): Promise<Student[]> {
     const studentParents = await this.studentParentRepository.find({
-      where: { parentId: userId } as any,
+      where: { parentId: userId },
     });
-    const studentIds = studentParents.map(sp => sp.studentId);
+    const studentIds = studentParents.map((sp) => sp.studentId);
     if (studentIds.length === 0) {
       return [];
     }
@@ -336,7 +383,7 @@ export class StudentService {
   async getChildCourses(parentId: number, childId: number) {
     // Verify Parent-Child relationship
     const relation = await this.studentParentRepository.findOne({
-      where: { parentId, studentId: childId } as any,
+      where: { parentId, studentId: childId },
     });
 
     if (!relation) {
@@ -350,7 +397,9 @@ export class StudentService {
     }
 
     // Find contracts for this student (represents their enrolled courses)
-    const contracts = await this.contractRepository.findByStudentCode(student.studentCode);
+    const contracts = await this.contractRepository.findByStudentCode(
+      student.studentCode,
+    );
 
     if (contracts.length === 0) {
       return [];
@@ -384,7 +433,7 @@ export class StudentService {
   async getChildAttendance(parentId: number, childId: number) {
     // Verify Parent-Child relationship
     const relation = await this.studentParentRepository.findOne({
-      where: { parentId, studentId: childId } as any,
+      where: { parentId, studentId: childId },
     });
 
     if (!relation) {
@@ -398,7 +447,9 @@ export class StudentService {
     }
 
     // Find attendance records for this student
-    const attendances = await this.lessonAttendanceRepository.findByStudentCode(student.studentCode);
+    const attendances = await this.lessonAttendanceRepository.findByStudentCode(
+      student.studentCode,
+    );
 
     if (attendances.length === 0) {
       return [];
@@ -406,9 +457,12 @@ export class StudentService {
 
     // Get lesson details
     const lessonIds = [...new Set(attendances.map((a) => a.lessonId))];
-    const lessons = lessonIds.length > 0
-      ? await this.lessonRepository.find({ where: { id: In(lessonIds) } as any })
-      : [];
+    const lessons =
+      lessonIds.length > 0
+        ? await this.lessonRepository.find({
+            where: { id: In(lessonIds) },
+          })
+        : [];
     const lessonMap = new Map(lessons.map((l) => [l.id, l]));
 
     return attendances.map((a) => {
@@ -430,7 +484,7 @@ export class StudentService {
   async getChildContracts(parentId: number, childId: number) {
     // Verify Parent-Child relationship
     const relation = await this.studentParentRepository.findOne({
-      where: { parentId, studentId: childId } as any,
+      where: { parentId, studentId: childId },
     });
 
     if (!relation) {
@@ -455,7 +509,7 @@ export class StudentService {
   async createLeaveRequest(parentId: number, dto: CreateParentLeaveRequestDto) {
     // Verify Parent-Child relationship
     const relation = await this.studentParentRepository.findOne({
-      where: { parentId, studentId: dto.studentId } as any,
+      where: { parentId, studentId: dto.studentId },
     });
 
     if (!relation) {
@@ -470,7 +524,7 @@ export class StudentService {
 
     // Resolve classCode from active enrollment
     const enrollment = await this.enrollmentRepository.findOne({
-      where: { studentCode: student.studentCode } as any,
+      where: { studentCode: student.studentCode },
       order: { enrolledAt: 'DESC' } as any,
     });
 
@@ -489,13 +543,34 @@ export class StudentService {
 
   // --- Import ---
 
-  async importStudents(buffer: Buffer, fileName: string, operatorId: number): Promise<ImportReport> {
+  async importStudents(
+    buffer: Buffer,
+    fileName: string,
+    operatorId: number,
+  ): Promise<ImportReport> {
     const rows = this.importService.parseBuffer(buffer, fileName);
 
     const columns = [
-      { header: 'name', required: true, validate: (v: string) => (v.length > 50 ? '姓名不能超过50个字符' : null) },
-      { header: 'gender', required: true, validate: (v: string) => (!['MALE', 'FEMALE', '男', '女'].includes(v) ? '性别格式错误 (MALE/FEMALE/男/女)' : null) },
-      { header: 'birthDate', required: true, validate: (v: string) => (isNaN(Date.parse(v)) ? '出生日期格式错误' : null) },
+      {
+        header: 'name',
+        required: true,
+        validate: (v: string) =>
+          v.length > 50 ? '姓名不能超过50个字符' : null,
+      },
+      {
+        header: 'gender',
+        required: true,
+        validate: (v: string) =>
+          !['MALE', 'FEMALE', '男', '女'].includes(v)
+            ? '性别格式错误 (MALE/FEMALE/男/女)'
+            : null,
+      },
+      {
+        header: 'birthDate',
+        required: true,
+        validate: (v: string) =>
+          isNaN(Date.parse(v)) ? '出生日期格式错误' : null,
+      },
       { header: 'phone', required: false },
       { header: 'email', required: false },
       { header: 'school', required: false },
@@ -504,12 +579,24 @@ export class StudentService {
       { header: 'note', required: false },
     ];
 
-    const { validRows, report } = this.importService.validateRows(rows, columns, fileName);
+    const { validRows, report } = this.importService.validateRows(
+      rows,
+      columns,
+      fileName,
+    );
 
     for (const row of validRows) {
       try {
-        const gender = row['gender'] === '男' || row['gender'] === 'MALE' ? Gender.MALE : Gender.FEMALE;
-        const tags = row['tags'] ? row['tags'].split(/[,，、]/).map((t: string) => t.trim()).filter(Boolean) : null;
+        const gender =
+          row['gender'] === '男' || row['gender'] === 'MALE'
+            ? Gender.MALE
+            : Gender.FEMALE;
+        const tags = row['tags']
+          ? row['tags']
+              .split(/[,，、]/)
+              .map((t: string) => t.trim())
+              .filter(Boolean)
+          : null;
 
         const dto = new CreateStudentDto();
         dto.name = row['name'];
@@ -526,7 +613,9 @@ export class StudentService {
       } catch (error) {
         report.failure++;
         report.success--;
-        const detail = report.details.find((d) => d.data['name'] === row['name'] && d.success);
+        const detail = report.details.find(
+          (d) => d.data['name'] === row['name'] && d.success,
+        );
         if (detail) {
           detail.success = false;
           detail.errors.push(`导入失败: ${(error as Error).message}`);
