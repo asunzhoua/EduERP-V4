@@ -1,6 +1,7 @@
 // pages/login/login.js
 const { post } = require('../../utils/request');
 const { getHomePage, setupTabBarByRole } = require('../../utils/role');
+const wxSubscribe = require('../../utils/wechat-subscribe');
 const app = getApp();
 
 Page({
@@ -106,6 +107,9 @@ Page({
           // 跳转首页
           var homePage = getHomePage(role);
           wx.switchTab({ url: homePage });
+
+          // 微信登录已有 openid，轻提示引导开启订阅消息
+          wxSubscribe.offerSubscriptionOnLogin();
         }).catch(function(err) {
           wx.showToast({ title: (err && err.message) || '微信登录失败', icon: 'none' });
         }).finally(function() {

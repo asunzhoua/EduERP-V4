@@ -15,6 +15,7 @@ import { ExportModule } from '@modules/export/export.module';
 import { AdminModule } from '@modules/admin/admin.module';
 import { PointsModule } from '@modules/points/points.module';
 import { FeedbackModule } from '@modules/feedback/feedback.module';
+import { WechatModule } from '@modules/wechat/wechat.module';
 import { HealthModule } from '@modules/health/health.module';
 import { SentryModule } from '@common/sentry/sentry.module';
 import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
@@ -37,23 +38,26 @@ import { appConfig } from '@config/configuration';
       inject: [ConfigService],
       useFactory: () => {
         return {
-        type: 'mysql',
-        host: process.env.DB_HOST || 'localhost',
-        port: Number(process.env.DB_PORT) || 3306,
-        username: process.env.DB_USERNAME || 'root',
-        password: process.env.DB_PASSWORD || 'root',
-        database: process.env.DB_DATABASE || 'EduOS',
-        entities: [__dirname + '/**/*.entity.js'],
-        synchronize: false,
-        logging: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-        extra: {
-          connectionLimit: 10,
-          connectTimeout: 10000,
-          idleTimeout: 30000,
-        },
-        retryAttempts: 1,
-        retryDelay: 1000,
-      };
+          type: 'mysql',
+          host: process.env.DB_HOST || 'localhost',
+          port: Number(process.env.DB_PORT) || 3306,
+          username: process.env.DB_USERNAME || 'root',
+          password: process.env.DB_PASSWORD || 'root',
+          database: process.env.DB_DATABASE || 'EduOS',
+          entities: [__dirname + '/**/*.entity.js'],
+          synchronize: false,
+          logging:
+            process.env.NODE_ENV === 'development'
+              ? ['error', 'warn']
+              : ['error'],
+          extra: {
+            connectionLimit: 10,
+            connectTimeout: 10000,
+            idleTimeout: 30000,
+          },
+          retryAttempts: 1,
+          retryDelay: 1000,
+        };
       },
     }),
     EventBusModule,
@@ -69,6 +73,7 @@ import { appConfig } from '@config/configuration';
     AdminModule,
     PointsModule,
     FeedbackModule,
+    WechatModule,
     HealthModule,
     SentryModule,
   ],

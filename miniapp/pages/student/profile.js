@@ -223,6 +223,10 @@ Page({
     });
   },
 
+  goToSubscribe: function () {
+    wx.navigateTo({ url: '/pages/student/subscribe/subscribe' });
+  },
+
   goBack: function () {
     wx.navigateBack({ fail: function () {
       wx.switchTab({ url: '/pages/student/index' });

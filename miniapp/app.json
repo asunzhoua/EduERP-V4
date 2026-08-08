@@ -36,7 +36,8 @@
     "pages/operation/reschedule-view/reschedule-view",
     "pages/student/points/points",
     "pages/student/points-mall/points-mall",
-    "pages/student/feedback/feedback"
+    "pages/student/feedback/feedback",
+    "pages/student/subscribe/subscribe"
   ],
   "window": {
     "navigationBarTitleText": "EduERP",

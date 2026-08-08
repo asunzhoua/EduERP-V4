@@ -275,6 +275,11 @@ Page({
     wx.navigateTo({ url: '/pages/teacher/leave-apply/leave-apply' });
   },
 
+  // 跳转消息订阅
+  goToSubscribe: function () {
+    wx.navigateTo({ url: '/pages/student/subscribe/subscribe' });
+  },
+
   // 跳转家长管理（管理员专用）
   goToParentManage: function () {
     wx.navigateTo({ url: '/pages/operation/parent-manage/parent-manage' });
