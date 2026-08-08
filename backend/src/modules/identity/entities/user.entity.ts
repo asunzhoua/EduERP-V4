@@ -45,6 +45,9 @@ export class User {
   @Column({ type: 'varchar', length: 50 })
   name: string;
 
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  teacherLevel: string | null;
+
   @Column({ type: 'varchar', length: 50 })
   @Index()
   role: string;
