@@ -95,6 +95,7 @@ export class AdminTeachersService {
       role: UserRole.TEACHER,
       status: UserStatus.ACTIVE,
       campusId: 0,
+      teacherLevel: dto.teacherLevel?.trim() ? dto.teacherLevel.trim() : null,
     });
     const saved = await this.userRepo.save(user);
     const { password: _p, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safe } = saved;
@@ -127,6 +128,9 @@ export class AdminTeachersService {
     }
     if (dto.name !== undefined) {
       user.name = dto.name;
+    }
+    if (dto.teacherLevel !== undefined) {
+      user.teacherLevel = dto.teacherLevel?.trim() ? dto.teacherLevel.trim() : null;
     }
     if (dto.password) {
       user.password = await bcrypt.hash(dto.password, 10);

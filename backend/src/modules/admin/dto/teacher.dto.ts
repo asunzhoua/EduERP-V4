@@ -27,6 +27,11 @@ export class CreateTeacherDto {
   @IsNotEmpty({ message: '初始密码不能为空' })
   @MaxLength(100)
   password: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  teacherLevel?: string;
 }
 
 export class UpdateTeacherDto {
@@ -44,6 +49,11 @@ export class UpdateTeacherDto {
   @IsString()
   @MaxLength(100)
   password?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  teacherLevel?: string;
 }
 
 export class UpdateTeacherStatusDto {
