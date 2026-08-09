@@ -2,8 +2,10 @@
 
 > 版本：v4.0
 > 状态：架构冻结
-> 最后更新：2026-07-06
+> 最后更新：2026-08-10
 > 文档编号：EDUOS-API-001
+
+> **⚠️ 版本说明（2026-08-10 核对）**：本文档为 v4.0 早期的设计草案，其中端点路径（单数资源 + body 传参）与当前实现不一致。实际接口以**后端控制器路由为准**（RESTful 复数资源 + 路径参数，如 `/students/:id`、`/lessons/:id/attendance`），事件名以小写点号为准（见 `docs/EventCatalog/EventCatalog.md`）。本文档保留作为设计意图参考，具体调用以代码为权威。
 
 ---
 
@@ -64,11 +66,11 @@ Authorization: Bearer xxxxxxxxx
 正确：
 
 ```
-POST /lesson/checkin
-POST /lesson/checkout
-POST /leave/apply
-POST /leave/cancel
-GET /student/detail
+POST /lessons/:id/attendance
+PATCH /classes/:code/lessons/:lessonNumber/complete
+POST /students/self/leave-requests
+POST /admin/leave-requests/:id/approve
+GET /students/:id
 ```
 
 错误（禁止）：
