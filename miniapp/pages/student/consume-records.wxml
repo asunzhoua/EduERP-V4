@@ -1,0 +1,64 @@
+<!-- pages/student/consume-records.wxml -->
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误 -->
+  <view class="error-state" wx:elif="{{error}}">
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="onPullDownRefresh">点击重试</view>
+  </view>
+
+  <!-- 内容 -->
+  <block wx:else>
+    <view class="summary-bar" wx:if="{{!error}}">
+      <text class="summary-count">共消耗 {{total}} 课时</text>
+      <text class="summary-code">{{contractCode}}</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{records.length === 0}}">
+      <text class="empty-text">暂无消耗记录</text>
+    </view>
+
+    <!-- 消耗流水列表 -->
+    <view class="record-list" wx:else>
+      <view class="record-card" wx:for="{{records}}" wx:key="lessonId">
+        <view class="record-head">
+          <text class="record-subject">{{item.subjectLabel || '课程'}}</text>
+          <text class="record-type {{item.lessonTypeLabel === '补课' ? 'type-makeup' : 'type-normal'}}">{{item.lessonTypeLabel}}</text>
+        </view>
+        <view class="record-row" wx:if="{{item.lessonDate}}">
+          <text class="record-label">上课时间</text>
+          <text class="record-value">{{item.lessonDate}} {{item.startTime}}-{{item.endTime}}</text>
+        </view>
+        <view class="record-row" wx:if="{{item.courseName}}">
+          <text class="record-label">课程</text>
+          <text class="record-value">{{item.courseName}}</text>
+        </view>
+        <view class="record-row" wx:if="{{item.topic}}">
+          <text class="record-label">课题</text>
+          <text class="record-value">{{item.topic}}</text>
+        </view>
+        <view class="record-row">
+          <text class="record-label">消耗课时</text>
+          <text class="record-value record-consume">-{{item.lessonsConsumed}} 节</text>
+        </view>
+        <view class="record-foot" wx:if="{{item.deductedAt}}">
+          <text class="record-time">扣课时间 {{item.deductedAt}}</text>
+        </view>
+      </view>
+
+      <!-- 上拉加载更多 -->
+      <view class="load-more" wx:if="{{loadingMore}}">
+        <text>加载中...</text>
+      </view>
+      <view class="load-more" wx:elif="{{!hasMore}}">
+        <text class="no-more">没有更多了</text>
+      </view>
+    </view>
+  </block>
+</view>

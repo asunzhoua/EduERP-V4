@@ -121,6 +121,12 @@
   gap: 8rpx;
 }
 
+.item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
 .item-title {
   font-size: 28rpx;
   color: #2E2A25;
@@ -129,6 +135,11 @@
 .item-sub {
   font-size: 24rpx;
   color: #9B9084;
+}
+
+.item-detail {
+  font-size: 24rpx;
+  color: #A64E1D;
 }
 
 .item-status text {
@@ -140,3 +151,60 @@
 .status-LATE { color: #D98E2B; }
 .status-ABSENT { color: #C4483F; }
 .status-LEAVE { color: #D97B3E; }
+
+/* 剩余课时预警徽标 */
+.warning-badge {
+  font-size: 20rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 999rpx;
+}
+
+.warning-warn {
+  color: #B9761B;
+  background: #FCF0DE;
+}
+
+.warning-critical {
+  color: #fff;
+  background: #C4483F;
+}
+
+/* 课时不足预警横幅 */
+.warn-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  background: #FCF0DE;
+  border: 1rpx solid #F0D9B8;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.warn-banner-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  flex: 1;
+}
+
+.warn-banner-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #B9761B;
+}
+
+.warn-banner-desc {
+  font-size: 22rpx;
+  color: #8A6A3A;
+}
+
+.warn-banner-action {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  color: #fff;
+  background: #C4483F;
+  padding: 10rpx 24rpx;
+  border-radius: 999rpx;
+}

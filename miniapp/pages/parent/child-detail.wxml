@@ -62,14 +62,27 @@
 
     <!-- Contracts Tab -->
     <view wx:if="{{activeTab === 'contracts'}}" class="tab-content">
+      <!-- 课时不足预警横幅 -->
+      <view class="warn-banner" wx:if="{{lowLessonContracts.length > 0}}">
+        <view class="warn-banner-main">
+          <text class="warn-banner-title">课时不足提醒</text>
+          <text class="warn-banner-desc">有 {{lowLessonContracts.length}} 个合同的剩余课时不足，建议尽快续费以免影响上课</text>
+        </view>
+        <view class="warn-banner-action" bindtap="goToContact">联系续费</view>
+      </view>
+
       <view wx:if="{{contracts.length === 0}}" class="empty-tab">
         <text>暂无合同信息</text>
       </view>
       <view wx:else class="list">
         <view wx:for="{{contracts}}" wx:key="contractCode" class="list-item">
           <view class="item-main">
-            <text class="item-title">{{item.subject || '课程'}}</text>
+            <view class="item-title-row">
+              <text class="item-title">{{item.subject || '课程'}}</text>
+              <text class="warning-badge warning-{{item.warningLevel}}" wx:if="{{item.warningLevel !== 'none'}}">{{item.warningLevel === 'critical' ? '课时不足' : '即将用完'}}</text>
+            </view>
             <text class="item-sub">剩余: {{item.remainingLessons}}/{{item.totalLessons}} 课时</text>
+            <text class="item-detail" bindtap="goToConsumeRecords" data-code="{{item.contractCode}}">查看消耗明细 ›</text>
           </view>
           <view class="item-status">
             <text>{{item.status || '有效'}}</text>

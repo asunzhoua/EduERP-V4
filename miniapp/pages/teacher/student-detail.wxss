@@ -299,6 +299,12 @@
   margin-bottom: 10rpx;
 }
 
+.contract-badges {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
 .contract-subject {
   font-size: 28rpx;
   font-weight: bold;
@@ -311,6 +317,23 @@
   padding: 2rpx 14rpx;
   background: #FBEEE2;
   border-radius: 999rpx;
+}
+
+/* 剩余课时预警徽标 */
+.warning-badge {
+  font-size: 22rpx;
+  padding: 2rpx 14rpx;
+  border-radius: 999rpx;
+}
+
+.warning-warn {
+  color: #B9761B;
+  background: #FCF0DE;
+}
+
+.warning-critical {
+  color: #fff;
+  background: #C4483F;
 }
 
 .contract-nums {
@@ -327,4 +350,21 @@
 .contract-remain {
   color: #A64E1D;
   font-weight: 600;
+}
+
+.contract-more {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8rpx;
+  margin-top: 14rpx;
+  padding-top: 14rpx;
+  border-top: 1rpx solid #F3EDE5;
+  font-size: 24rpx;
+  color: #A64E1D;
+}
+
+.more-arrow {
+  font-size: 30rpx;
+  line-height: 1;
 }

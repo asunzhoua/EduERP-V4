@@ -18,6 +18,7 @@
     "pages/student/class-detail",
     "pages/student/attendance",
     "pages/student/lessons",
+    "pages/student/consume-records",
     "pages/student/profile",
     "pages/teacher/profile",
     "pages/parent/index",

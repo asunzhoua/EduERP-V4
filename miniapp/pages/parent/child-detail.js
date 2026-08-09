@@ -1,6 +1,18 @@
 // pages/parent/child-detail.js
 const { get } = require('../../utils/request');
 
+// 与后端 RENEWAL_WARNING_THRESHOLD 默认值对齐（剩余课时预警）
+const RENEWAL_WARNING_THRESHOLD = 5;
+const RENEWAL_CRITICAL_THRESHOLD = Math.floor(RENEWAL_WARNING_THRESHOLD / 2);
+
+// ACTIVE 合同剩余课时 <= 阈值 → warn；<= 阈值一半 → critical
+function calcWarningLevel(status, remaining) {
+  if (status !== 'ACTIVE' || remaining == null) return 'none';
+  if (remaining <= RENEWAL_CRITICAL_THRESHOLD) return 'critical';
+  if (remaining <= RENEWAL_WARNING_THRESHOLD) return 'warn';
+  return 'none';
+}
+
 Page({
   data: {
     childId: null,
@@ -9,7 +21,9 @@ Page({
     attendance: [],
     loading: true,
     error: null,
-    activeTab: 'overview'
+    activeTab: 'overview',
+    // 预警：课时不足的合同（ACTIVE 且剩余课时 <= 阈值）
+    lowLessonContracts: []
   },
 
   onLoad(options) {
@@ -60,8 +74,15 @@ Page({
         get(`/students/${childId}/attendance`).catch(() => [])
       ]);
 
+      const rawContracts = Array.isArray(contracts) ? contracts : (contracts.items || []);
+      const decoratedContracts = rawContracts.map((c) => ({
+        ...c,
+        warningLevel: calcWarningLevel(c.status, c.remainingLessons)
+      }));
+
       this.setData({
-        contracts: Array.isArray(contracts) ? contracts : (contracts.items || []),
+        contracts: decoratedContracts,
+        lowLessonContracts: decoratedContracts.filter((c) => c.warningLevel !== 'none'),
         attendance: Array.isArray(attendance) ? attendance : (attendance.items || []),
         loading: false
       });
@@ -77,5 +98,22 @@ Page({
   onTabChange(e) {
     const { tab } = e.currentTarget.dataset;
     this.setData({ activeTab: tab });
+  },
+
+  // 查看合同消耗明细（扣课流水）
+  goToConsumeRecords(e) {
+    const { code } = e.currentTarget.dataset;
+    if (!code) return;
+    wx.navigateTo({
+      url: '/pages/student/consume-records?code=' + code,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 课时不足行动引导：联系机构续费
+  goToContact() {
+    wx.showToast({ title: '请拨打机构前台电话联系续费', icon: 'none' });
   }
 });

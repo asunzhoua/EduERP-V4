@@ -1,0 +1,170 @@
+/* pages/student/consume-records.wxss */
+.container {
+  padding: 20rpx;
+  background: #FAF6F0;
+  min-height: 100vh;
+}
+
+.loading-state, .error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 40rpx;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #FBEEE2;
+  border-top-color: #D97B3E;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 26rpx;
+  color: #9B9084;
+  margin-top: 16rpx;
+}
+
+.error-text {
+  font-size: 28rpx;
+  color: #9B9084;
+  margin-bottom: 20rpx;
+}
+
+.retry-btn {
+  padding: 12rpx 36rpx;
+  background: #D97B3E;
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+}
+
+/* 汇总条 */
+.summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #D97B3E 0%, #A64E1D 100%);
+  color: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.summary-count {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.summary-code {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0;
+  color: #9B9084;
+}
+
+.empty-text {
+  font-size: 26rpx;
+}
+
+/* 记录列表 */
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.record-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+}
+
+.record-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.record-subject {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #2E2A25;
+}
+
+.record-type {
+  font-size: 22rpx;
+  padding: 2rpx 14rpx;
+  border-radius: 999rpx;
+}
+
+.type-normal {
+  color: #D97B3E;
+  background: #FBEEE2;
+}
+
+.type-makeup {
+  color: #D98E2B;
+  background: #FBF3E6;
+}
+
+.record-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8rpx 0;
+}
+
+.record-label {
+  font-size: 24rpx;
+  color: #9B9084;
+  flex-shrink: 0;
+  margin-right: 24rpx;
+}
+
+.record-value {
+  font-size: 24rpx;
+  color: #2E2A25;
+  text-align: right;
+}
+
+.record-consume {
+  color: #C4483F;
+  font-weight: 600;
+}
+
+.record-foot {
+  margin-top: 8rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #F3EDE5;
+}
+
+.record-time {
+  font-size: 22rpx;
+  color: #9B9084;
+}
+
+/* 加载更多 */
+.load-more {
+  text-align: center;
+  padding: 20rpx 0;
+  color: #9B9084;
+  font-size: 24rpx;
+}
+
+.no-more {
+  color: #C9BFB3;
+}
