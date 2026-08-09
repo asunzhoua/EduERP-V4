@@ -65,7 +65,7 @@ Page({
 
   goToAttendance() {
     wx.navigateTo({
-      url: '/pages/student/attendance',
+      url: '/pkgStudent/pages/attendance',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -74,7 +74,7 @@ Page({
 
   goToLessons() {
     wx.navigateTo({
-      url: '/pages/student/lessons',
+      url: '/pkgStudent/pages/lessons',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -83,7 +83,7 @@ Page({
 
   goToProfile() {
     wx.navigateTo({
-      url: '/pages/student/profile',
+      url: '/pkgStudent/pages/profile',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -92,7 +92,7 @@ Page({
 
   goToStudentLeaveApply() {
     wx.navigateTo({
-      url: '/pages/student/leave-apply/leave-apply',
+      url: '/pkgStudent/pages/leave-apply',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -101,7 +101,7 @@ Page({
 
   goToLeaveRecords() {
     wx.navigateTo({
-      url: '/pages/student/leave-records/leave-records',
+      url: '/pkgStudent/pages/leave-records',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -120,7 +120,7 @@ Page({
   goToChildDetail(e) {
     const d = e.currentTarget.dataset;
     wx.navigateTo({
-      url: '/pages/parent/child-detail?id=' + d.id +
+      url: '/pkgParent/pages/child-detail?id=' + d.id +
         '&name=' + encodeURIComponent(d.name || '') +
         '&studentCode=' + encodeURIComponent(d.studentcode || '') +
         '&school=' + encodeURIComponent(d.school || '') +
@@ -133,7 +133,7 @@ Page({
 
   goToContractManage() {
     wx.navigateTo({
-      url: '/pages/student/profile',
+      url: '/pkgStudent/pages/profile',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -387,18 +387,18 @@ Page({
   },
 
   goToStudents() {
-    wx.navigateTo({ url: '/pages/teacher/students' });
+    wx.navigateTo({ url: '/pkgTeacher/pages/students' });
   },
 
   goToMyExceptions() {
-    wx.navigateTo({ url: '/pages/teacher/my-exceptions/my-exceptions' });
+    wx.navigateTo({ url: '/pkgTeacher/pages/my-exceptions' });
   },
 
   goToLeaveApply() {
-    wx.navigateTo({ url: '/pages/teacher/leave-apply/leave-apply' });
+    wx.navigateTo({ url: '/pkgTeacher/pages/leave-apply' });
   },
 
   goToParentManage() {
-    wx.navigateTo({ url: '/pages/operation/parent-manage/parent-manage' });
+    wx.navigateTo({ url: '/pkgOperation/pages/parent-manage' });
   }
 });

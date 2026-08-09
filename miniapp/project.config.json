@@ -9,6 +9,14 @@
       {
         "value": "config.example.js",
         "type": "file"
+      },
+      {
+        "value": ".ai",
+        "type": "folder"
+      },
+      {
+        "value": ".md",
+        "type": "suffix"
       }
     ],
     "include": []

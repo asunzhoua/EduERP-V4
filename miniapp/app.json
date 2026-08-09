@@ -7,39 +7,66 @@
     "pages/agreement/privacy-policy/privacy-policy",
     "pages/index/index",
     "pages/teacher/courses",
-    "pages/teacher/course-detail",
     "pages/teacher/classes",
-    "pages/teacher/class-detail",
-    "pages/teacher/students",
-    "pages/teacher/lesson-record",
-    "pages/student/index",
-    "pages/student/classes",
-    "pages/teacher/student-detail",
-    "pages/student/class-detail",
-    "pages/student/attendance",
-    "pages/student/lessons",
-    "pages/student/consume-records",
-    "pages/student/profile",
-    "pages/teacher/profile",
-    "pages/parent/index",
-    "pages/parent/child-detail",
-    "pages/operation/dashboard/dashboard",
-    "pages/operation/parent-manage/parent-manage",
-    "pages/reminder/list",
-    "pages/reminder/detail",
-    "pages/student/leave-apply/leave-apply",
-    "pages/student/leave-records/leave-records",
-    "pages/student/exception-detail/exception-detail",
-    "pages/teacher/my-exceptions/my-exceptions",
-    "pages/teacher/salary/salary",
-    "pages/teacher/leave-apply/leave-apply",
-    "pages/operation/exception-list/exception-list",
-    "pages/operation/exception-approve/exception-approve",
-    "pages/operation/reschedule-view/reschedule-view",
-    "pages/student/points/points",
-    "pages/student/points-mall/points-mall",
-    "pages/student/feedback/feedback",
-    "pages/student/subscribe/subscribe"
+    "pages/student/index"
+  ],
+  "subpackages": [
+    {
+      "root": "pkgTeacher",
+      "pages": [
+        "pages/lesson-record",
+        "pages/profile",
+        "pages/student-detail",
+        "pages/class-detail",
+        "pages/course-detail",
+        "pages/students",
+        "pages/salary",
+        "pages/my-exceptions",
+        "pages/leave-apply"
+      ]
+    },
+    {
+      "root": "pkgStudent",
+      "pages": [
+        "pages/classes",
+        "pages/class-detail",
+        "pages/attendance",
+        "pages/lessons",
+        "pages/consume-records",
+        "pages/profile",
+        "pages/leave-apply",
+        "pages/leave-records",
+        "pages/exception-detail",
+        "pages/points",
+        "pages/points-mall",
+        "pages/feedback",
+        "pages/subscribe"
+      ]
+    },
+    {
+      "root": "pkgParent",
+      "pages": [
+        "pages/index",
+        "pages/child-detail"
+      ]
+    },
+    {
+      "root": "pkgOperation",
+      "pages": [
+        "pages/dashboard",
+        "pages/parent-manage",
+        "pages/exception-list",
+        "pages/exception-approve",
+        "pages/reschedule-view"
+      ]
+    },
+    {
+      "root": "pkgReminder",
+      "pages": [
+        "pages/list",
+        "pages/detail"
+      ]
+    }
   ],
   "window": {
     "navigationBarTitleText": "EduERP",

@@ -225,7 +225,7 @@ Page({
 
   goToStudents() {
     wx.navigateTo({ 
-      url: '/pages/teacher/students',
+      url: '/pkgTeacher/pages/students',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -234,7 +234,7 @@ Page({
 
   goToLessons() {
     wx.navigateTo({ 
-      url: '/pages/teacher/lesson-record',
+      url: '/pkgTeacher/pages/lesson-record',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -244,7 +244,7 @@ Page({
   // 学生端导航
   goToMyLessonRecords() {
     wx.navigateTo({
-      url: '/pages/student/lessons',
+      url: '/pkgStudent/pages/lessons',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -254,7 +254,7 @@ Page({
   // 请假申请
   goToStudentLeaveApply() {
     wx.navigateTo({
-      url: '/pages/student/leave-apply/leave-apply',
+      url: '/pkgStudent/pages/leave-apply',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -264,7 +264,7 @@ Page({
   // 我的申请（请假记录）
   goToLeaveRecords() {
     wx.navigateTo({
-      url: '/pages/student/leave-records/leave-records',
+      url: '/pkgStudent/pages/leave-records',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -275,7 +275,7 @@ Page({
   goToChild(e) {
     const d = e.currentTarget.dataset;
     wx.navigateTo({
-      url: '/pages/parent/child-detail?id=' + d.id +
+      url: '/pkgParent/pages/child-detail?id=' + d.id +
         '&name=' + encodeURIComponent(d.name || '') +
         '&studentCode=' + encodeURIComponent(d.studentcode || '') +
         '&school=' + encodeURIComponent(d.school || '') +
@@ -294,7 +294,7 @@ Page({
   // 运营看板（仅 Admin/SuperAdmin）
   goToDashboard() {
     wx.navigateTo({
-      url: '/pages/operation/dashboard/dashboard',
+      url: '/pkgOperation/pages/dashboard',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -304,7 +304,7 @@ Page({
   // 我的提醒
   goToReminders() {
     wx.navigateTo({
-      url: '/pages/reminder/list',
+      url: '/pkgReminder/pages/list',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -314,7 +314,7 @@ Page({
   // 学生/家长端 — 出勤记录
   goToAttendance() {
     wx.navigateTo({
-      url: '/pages/student/attendance',
+      url: '/pkgStudent/pages/attendance',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -324,7 +324,7 @@ Page({
   // 学生/家长端 — 个人中心
   goToStudentProfile() {
     wx.navigateTo({
-      url: '/pages/student/profile',
+      url: '/pkgStudent/pages/profile',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -334,7 +334,7 @@ Page({
   // 学生/家长端 — 我的积分
   goToPoints() {
     wx.navigateTo({
-      url: '/pages/student/points/points',
+      url: '/pkgStudent/pages/points',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -344,7 +344,7 @@ Page({
   // 学生/家长端 — 积分商城
   goToPointsMall() {
     wx.navigateTo({
-      url: '/pages/student/points-mall/points-mall',
+      url: '/pkgStudent/pages/points-mall',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -354,7 +354,7 @@ Page({
   // 学生/家长端 — 课程反馈
   goToFeedback() {
     wx.navigateTo({
-      url: '/pages/student/feedback/feedback',
+      url: '/pkgStudent/pages/feedback',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -364,7 +364,7 @@ Page({
   // 个人中心（教师端）
   goToProfile() {
     wx.navigateTo({
-      url: '/pages/teacher/profile',
+      url: '/pkgTeacher/pages/profile',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }

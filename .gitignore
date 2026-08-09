@@ -112,3 +112,4 @@ docs/M-EDUERP-V4-PRODUCTION-DEPLOYMENT-V1.md
 
 ## Miniapp local config (contains local network info)
 miniapp/config.js
+miniapp/project.private.config.json

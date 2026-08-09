@@ -128,7 +128,7 @@ Page({
   goToStudentClassDetail(e) {
     const { code } = e.currentTarget.dataset;
     wx.navigateTo({
-      url: `/pages/student/class-detail?code=${code}`,
+      url: `/pkgStudent/pages/class-detail?code=${code}`,
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -202,7 +202,7 @@ Page({
   goToCourseDetail(e) {
     const { code } = e.currentTarget.dataset;
     wx.navigateTo({ 
-      url: `/pages/teacher/course-detail?code=${code}`,
+      url: `/pkgTeacher/pages/course-detail?code=${code}`,
       fail: (err) => {
         console.error('[Navigation] 跳转课程详情失败:', err);
         wx.showToast({

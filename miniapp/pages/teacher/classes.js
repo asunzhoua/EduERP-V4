@@ -168,7 +168,7 @@ Page({
   goToClassDetail(e) {
     const { code } = e.currentTarget.dataset;
     wx.navigateTo({ 
-      url: `/pages/teacher/class-detail?code=${code}`,
+      url: `/pkgTeacher/pages/class-detail?code=${code}`,
       fail: (err) => {
         console.error('[Navigation] 跳转班级详情失败:', err);
         wx.showToast({
@@ -183,7 +183,7 @@ Page({
   goToStudents(e) {
     const { code } = e.currentTarget.dataset;
     wx.navigateTo({ 
-      url: `/pages/teacher/students?classCode=${code}`,
+      url: `/pkgTeacher/pages/students?classCode=${code}`,
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -194,7 +194,7 @@ Page({
   goToRecordLesson(e) {
     const { code } = e.currentTarget.dataset;
     wx.navigateTo({ 
-      url: `/pages/teacher/lesson-record?classCode=${code}`,
+      url: `/pkgTeacher/pages/lesson-record?classCode=${code}`,
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
