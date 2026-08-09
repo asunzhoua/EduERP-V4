@@ -188,6 +188,16 @@ export class SalarySettlementService {
 
         const rule = m.rule;
         const config = rule.config ?? null;
+
+        // G1: PER_DAY/MONTHLY 按天/按月聚合计薪（DAY/BASE 记录承载），无单课明细语义，
+        // 跳过 0 元 LESSON_FEE 记录，避免污染按课明细与统计
+        if (
+          rule.type === SalaryRuleType.PER_DAY ||
+          rule.type === SalaryRuleType.MONTHLY
+        ) {
+          continue;
+        }
+
         const count = tierCountByRule.get(rule.id) ?? 0;
         const fee = computeLessonFee(rule.type as SalaryRuleType, config, rule, m.headcount, count + 1);
         tierCountByRule.set(rule.id, count + 1);
@@ -225,7 +235,7 @@ export class SalarySettlementService {
       const matchedRules = new Map<number, SalaryRuleEntity>();
       for (const m of matched) if (m.rule) matchedRules.set(m.rule.id, m.rule);
 
-      // BASE / DAY / BONUS / DEDUCTION（按教师月聚合）
+      // BASE / DAY / BONUS（按教师月聚合）
       for (const rule of matchedRules.values()) {
         const config = rule.config ?? null;
         const count = lessonCountByRule.get(rule.id) ?? 0;
@@ -334,50 +344,6 @@ export class SalarySettlementService {
                   ruleId: rule.id,
                   ruleSnapshot: this.ruleSnapshot(rule),
                   monthLessonCount: count,
-                  calcFormula: formula.join('+') || 'none',
-                },
-                createdBy: operatedBy,
-              });
-              existingKeys.add(key);
-            }
-          }
-        }
-
-        // DEDUCTION 扣款
-        const deductions = config?.deductions as Record<string, any> | undefined;
-        if (deductions) {
-          let deductionAmount = 0;
-          const formula: string[] = [];
-          const lateCount = teacherAttendances.filter((a) => a.status === AttendanceStatus.LATE).length;
-          if (deductions.latePerOccurrence && lateCount > 0) {
-            deductionAmount += deductions.latePerOccurrence * lateCount;
-            formula.push(`late(${lateCount}*${deductions.latePerOccurrence})`);
-          }
-          const absentCount = teacherAttendances.filter((a) => a.status === AttendanceStatus.ABSENT).length;
-          if (deductions.absentPerOccurrence && absentCount > 0) {
-            deductionAmount += deductions.absentPerOccurrence * absentCount;
-            formula.push(`absent(${absentCount}*${deductions.absentPerOccurrence})`);
-          }
-          if (deductionAmount > 0) {
-            const key = this.recordKey(tid, SalaryRecordSource.DEDUCTION, null, null);
-            if (!existingKeys.has(key)) {
-              toCreate.push({
-                teacherId: tid,
-                lessonId: null,
-                salaryRuleId: rule.id,
-                source: SalaryRecordSource.DEDUCTION,
-                month,
-                lessonDate: end,
-                studentCount: null,
-                amount: deductionAmount,
-                ruleVersion: this.ruleVersion(rule),
-                status: SalaryRecordStatus.PENDING,
-                needsReview: false,
-                detail: {
-                  ruleId: rule.id,
-                  ruleSnapshot: this.ruleSnapshot(rule),
-                  lateCount,
-                  absentCount,
                   calcFormula: formula.join('+') || 'none',
                 },
                 createdBy: operatedBy,

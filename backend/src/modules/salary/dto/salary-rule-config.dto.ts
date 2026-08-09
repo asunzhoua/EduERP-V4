@@ -77,21 +77,6 @@ export class BonusConfigDto {
   lessonTarget?: LessonTargetDto;
 }
 
-/** 扣款配置（可选） */
-export class DeductionConfigDto {
-  @ApiPropertyOptional({ description: '每迟到一次扣款' })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  latePerOccurrence?: number;
-
-  @ApiPropertyOptional({ description: '每缺勤一次扣款' })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  absentPerOccurrence?: number;
-}
-
 /**
  * 规则扩展配置（`salary_rule.config` JSON 强类型校验）。
  *
@@ -100,7 +85,7 @@ export class DeductionConfigDto {
  *   PER_HEAD                                 → pricePerHead / headcountTiers
  *   TIER                                     → lessonTiers
  *   任意                                     → baseSalary / minLessonForBase（可选）
- *   任意                                     → bonus / deductions（可选）
+ *   任意                                     → bonus（可选）
  */
 export class SalaryRuleConfigDto {
   @ApiPropertyOptional({ description: '底薪（月），任意课时费模式可叠加' })
@@ -149,13 +134,6 @@ export class SalaryRuleConfigDto {
   @ValidateNested()
   @Type(() => BonusConfigDto)
   bonus?: BonusConfigDto;
-
-  @ApiPropertyOptional({ description: '扣款配置' })
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => DeductionConfigDto)
-  deductions?: DeductionConfigDto;
 
   @ApiPropertyOptional({ description: '生效起始日（YYYY-MM-DD，缺省长期有效）' })
   @IsOptional()

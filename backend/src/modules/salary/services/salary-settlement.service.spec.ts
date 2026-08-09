@@ -285,22 +285,66 @@ describe('SalarySettlementService.settle', () => {
     expect(res.created).toBe(3); // 2 LESSON_FEE + 1 BASE
   });
 
-  it('DEDUCTION 扣款：迟到次数扣款', async () => {
+  it('G1 MONTHLY：只生成 1 条 BASE 记录，不生成 0 元 LESSON_FEE 明细', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [
+        createLesson({ id: 1, scheduledDate: '2026-07-01' }),
+        createLesson({ id: 2, scheduledDate: '2026-07-08' }),
+      ],
+      attendances: [],
+      courses: [createCourse()],
+      rules: [
+        createRule({ type: SalaryRuleType.MONTHLY, config: { baseSalary: 5000, minLessonForBase: 0 } }),
+      ],
+    });
+    const res = await service.settle('2026-07');
+    const sources = recordRepo._saved.map((r: any) => r.source);
+    expect(sources).not.toContain(SalaryRecordSource.LESSON_FEE);
+    const base = recordRepo._saved.find((r: any) => r.source === SalaryRecordSource.BASE);
+    expect(base).toBeDefined();
+    expect(base.amount).toBe(5000);
+    expect(recordRepo._saved).toHaveLength(1);
+  });
+
+  it('G1 PER_DAY：只生成按天 DAY 记录，不生成 0 元 LESSON_FEE 明细', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [
+        createLesson({ id: 1, scheduledDate: '2026-07-01' }),
+        createLesson({ id: 2, scheduledDate: '2026-07-01' }),
+        createLesson({ id: 3, scheduledDate: '2026-07-02' }),
+      ],
+      attendances: [],
+      courses: [createCourse()],
+      rules: [
+        createRule({ type: SalaryRuleType.PER_DAY, config: { lessonPrice: 300 } }),
+      ],
+    });
+    const res = await service.settle('2026-07');
+    const sources = recordRepo._saved.map((r: any) => r.source);
+    expect(sources).not.toContain(SalaryRecordSource.LESSON_FEE);
+    const dayRecords = recordRepo._saved.filter((r: any) => r.source === SalaryRecordSource.DAY);
+    expect(dayRecords).toHaveLength(2); // 2 个不同日期
+    expect(dayRecords.map((r: any) => r.amount)).toEqual([300, 300]);
+  });
+
+  it('G5 学生考勤迟到/缺勤不再生成教师 DEDUCTION 记录', async () => {
     const { service, recordRepo } = buildService({
       lessons: [createLesson()],
       attendances: [
         createAttendance({ status: AttendanceStatus.LATE }),
-        createAttendance({ status: AttendanceStatus.LATE }),
+        createAttendance({ status: AttendanceStatus.ABSENT }),
       ],
       courses: [createCourse()],
       rules: [
-        createRule({ config: { lessonPrice: 80, deductions: { latePerOccurrence: 10 } } }),
+        createRule({
+          config: { lessonPrice: 80, deductions: { latePerOccurrence: 10, absentPerOccurrence: 20 } },
+        }),
       ],
     });
     const res = await service.settle('2026-07');
     const ded = recordRepo._saved.find((r: any) => r.source === SalaryRecordSource.DEDUCTION);
-    expect(ded).toBeDefined();
-    expect(ded.amount).toBe(20);
+    expect(ded).toBeUndefined();
+    expect(recordRepo._saved).toHaveLength(1); // 仅 LESSON_FEE
   });
 
   it('BONUS 绩效：满勤 + 课时达标', async () => {
