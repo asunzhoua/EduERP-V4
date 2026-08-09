@@ -47,7 +47,10 @@ function onTodoClick(todo: WorkbenchTodo) {
 function renderChart() {
   if (!chartEl.value) return
   const trends = data.value?.trends ?? []
-  if (!chart) {
+  // a-card :loading 骨架屏会卸载再重建卡片内容，图表容器随之被替换；
+  // 容器变化时需重建实例，否则 setOption 会打到已脱离文档的旧 DOM 上
+  if (!chart || chart.getDom() !== chartEl.value) {
+    chart?.dispose()
     chart = init(chartEl.value)
   }
   chart.setOption({

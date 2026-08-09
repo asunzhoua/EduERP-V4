@@ -96,9 +96,24 @@ const workbench = {
 enableAutoUnmount(afterEach)
 
 describe('Dashboard.vue 工作台', () => {
+  let containers: unknown[]
+  let instances: Array<{ setOption: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn> }>
+
   beforeEach(() => {
     vi.clearAllMocks()
-    initMock.mockReturnValue({ setOption: vi.fn(), resize: vi.fn(), dispose: vi.fn() })
+    containers = []
+    instances = []
+    initMock.mockImplementation((el: unknown) => {
+      const instance = {
+        setOption: vi.fn(),
+        resize: vi.fn(),
+        dispose: vi.fn(),
+        getDom: () => el,
+      }
+      containers.push(el)
+      instances.push(instance)
+      return instance
+    })
     fetchCardsMock.mockResolvedValue(workbench)
   })
 
@@ -130,6 +145,23 @@ describe('Dashboard.vue 工作台', () => {
     await flushPromises()
 
     expect(fetchCardsMock).toHaveBeenLastCalledWith('week')
+  })
+
+  it('骨架屏替换卡片内容后在新容器上重建图表实例（不把 setOption 打到已卸载 DOM）', async () => {
+    const wrapper = mount(Dashboard, { global: { plugins: [Antd] } })
+    await flushPromises()
+    expect(initMock).toHaveBeenCalledTimes(1)
+    const first = instances[0]
+
+    // 切换时间维度 → load() 里 loading 置真 → a-card 骨架屏卸载再重建卡片内容（含图表容器）
+    await wrapper.findAll('input[type="radio"]')[1].setValue(true)
+    await flushPromises()
+
+    // 容器被替换后应重建实例：init 第二次，旧实例先 dispose
+    expect(initMock).toHaveBeenCalledTimes(2)
+    expect(instances[1]).not.toBe(first)
+    expect(containers[1]).not.toBe(containers[0])
+    expect(first.dispose).toHaveBeenCalled()
   })
 
   it('点击带链接的统计卡跳转对应模块', async () => {
