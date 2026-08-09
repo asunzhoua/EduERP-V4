@@ -3,7 +3,7 @@
 // Phase 3 — Full REST API with ADMIN-only access control
 // ---------------------------------------------------------------------------
 
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
@@ -15,7 +15,7 @@ import {
   TeacherStatsDto,
   FinanceStatsDto,
   DashboardSummaryDto,
-  DashboardCardsDto,
+  DashboardWorkbenchDto,
 } from './dto/dashboard-response.dto';
 
 @ApiTags('Dashboard')
@@ -27,9 +27,13 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('cards')
-  @ApiOperation({ summary: '获取首页 12 数据卡（今日/本月/人数/待审批/库存）' })
-  async getCards(): Promise<DashboardCardsDto> {
-    return this.dashboardService.getCards();
+  @ApiOperation({
+    summary: '获取工作台统计（timeType=day|week|month|year|all，默认 month）',
+  })
+  async getCards(
+    @Query('timeType') timeType?: string,
+  ): Promise<DashboardWorkbenchDto> {
+    return this.dashboardService.getCards(timeType);
   }
 
   @Get('summary')

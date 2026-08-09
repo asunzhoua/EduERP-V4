@@ -5,7 +5,7 @@
 // No new business truth, no intermediate statistics tables.
 // ---------------------------------------------------------------------------
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
 
@@ -38,7 +38,13 @@ import {
   TeacherStatsDto,
   FinanceStatsDto,
   DashboardSummaryDto,
-  DashboardCardsDto,
+  DashboardWorkbenchDto,
+  WorkbenchGroup,
+  WorkbenchTrend,
+  WorkbenchTrendPoint,
+  WorkbenchTodo,
+  WorkbenchTimeType,
+  WORKBENCH_TIME_TYPES,
 } from './dto/dashboard-response.dto';
 
 // getRawOne 聚合结果：COALESCE 返回的列均为字符串
@@ -78,6 +84,11 @@ export class DashboardService {
     private readonly leaveRequestRepo: Repository<LeaveRequestEntity>,
 
     private readonly pointsMallService: PointsMallService,
+
+    // 可注入时钟：测试固定 now，生产默认 new Date()（module 提供 DASHBOARD_NOW）
+    @Optional()
+    @Inject('DASHBOARD_NOW')
+    private readonly nowFn?: () => Date,
   ) {}
 
   // ------------------------------------------------------------------
@@ -95,19 +106,13 @@ export class DashboardService {
 
     const todayLessons = await this.lessonRepo.count({
       where: {
-        scheduledDate: Between(
-          this.toDateStr(today),
-          this.toDateStr(tomorrow),
-        ),
+        scheduledDate: Between(this.toDateStr(today), this.toDateStr(tomorrow)),
       },
     });
 
     const completedLessons = await this.lessonRepo.count({
       where: {
-        scheduledDate: Between(
-          this.toDateStr(today),
-          this.toDateStr(tomorrow),
-        ),
+        scheduledDate: Between(this.toDateStr(today), this.toDateStr(tomorrow)),
         status: LessonStatus.FINISHED,
       },
     });
@@ -148,10 +153,7 @@ export class DashboardService {
 
     const teachingCount = await this.lessonRepo.count({
       where: {
-        scheduledDate: Between(
-          this.toDateStr(today),
-          this.toDateStr(tomorrow),
-        ),
+        scheduledDate: Between(this.toDateStr(today), this.toDateStr(tomorrow)),
         status: LessonStatus.FINISHED,
       },
     });
@@ -300,98 +302,453 @@ export class DashboardService {
 
   // ------------------------------------------------------------------
   // 2.1b getCards
-  // 首页 12 数据卡：全部由服务器聚合，前端禁止计算业务。
-  // 口径见 DTO 注释。
+  // 工作台式首页统计（演进自 12 数据卡）：4 组统计卡 + 3 条近 30 日趋势 + 待办。
+  // timeType=day|week|month|year|all，非法/缺失默认 month。口径见 DTO 注释与设计文档。
   // ------------------------------------------------------------------
 
-  async getCards(): Promise<DashboardCardsDto> {
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    todayStart.setHours(0, 0, 0, 0);
+  async getCards(timeType: string = 'month'): Promise<DashboardWorkbenchDto> {
+    const tt = this.normalizeTimeType(timeType);
+    const { from, to } = this.resolveWindow(tt);
+    // from/to 同生同灭；windowed 非空即两者皆有，便于类型收窄
+    const windowed = from !== null && to !== null ? { from, to } : null;
+
+    // 窗口聚合与存量指标并行取数；Promise.all 数组顺序即 mockResolvedValueOnce 消费顺序。
+    const [
+      studentCount,
+      classCount,
+      teacherCount,
+      remainingLessons,
+      enrollmentCount,
+      newStudentCount,
+      contractAmount,
+      expense,
+      consumedLessons,
+      scheduledLessons,
+      leaveCount,
+      pendingApprovals,
+      stockAlerts,
+    ] = await Promise.all([
+      // 存量：不受 timeType 影响
+      this.studentRepo.count({ where: { deleted: false } }),
+      this.classRepo.count({ where: { deleted: false } }),
+      this.userRepo.count({ where: { role: 'Teacher', deleted: false } }),
+      this.sumRemainingLessons(),
+      // 窗口聚合（all 不设时间过滤）
+      this.enrollmentRepo.count(
+        windowed
+          ? { where: { enrolledAt: Between(windowed.from, windowed.to) } }
+          : {},
+      ),
+      this.studentRepo.count(
+        windowed
+          ? {
+              where: {
+                deleted: false,
+                createTime: Between(windowed.from, windowed.to),
+              },
+            }
+          : { where: { deleted: false } },
+      ),
+      this.sumContractAmount(windowed?.from ?? null, windowed?.to ?? null),
+      this.sumSalaryAmount(windowed?.from ?? null, windowed?.to ?? null),
+      this.attendanceRepo.count(
+        windowed
+          ? {
+              where: {
+                status: In(Array.from(DEDUCTIBLE_STATUSES)),
+                checkInTime: Between(windowed.from, windowed.to),
+              },
+            }
+          : { where: { status: In(Array.from(DEDUCTIBLE_STATUSES)) } },
+      ),
+      this.lessonRepo.count(
+        windowed
+          ? {
+              where: {
+                scheduledDate: Between(
+                  this.toDateStr(windowed.from),
+                  this.toDateStr(windowed.to),
+                ),
+              },
+            }
+          : {},
+      ),
+      this.leaveRequestRepo.count(
+        windowed
+          ? {
+              where: {
+                leaveDate: Between(
+                  this.toDateStr(windowed.from),
+                  this.toDateStr(windowed.to),
+                ),
+              },
+            }
+          : {},
+      ),
+      // 待办存量
+      this.leaveRequestRepo.count({
+        where: { status: LeaveRequestStatus.PENDING },
+      }),
+      this.pointsMallService.getLowStockCount(),
+    ]);
+
+    const income = contractAmount;
+    const profit = Math.round((income - expense) * 100) / 100;
+
+    const [consumptionTrend, attendanceTrend, financeTrend] = await Promise.all(
+      [
+        this.consumptionDailyTrend(30),
+        this.attendanceDailyTrend(30),
+        this.contractDailyTrend(30),
+      ],
+    );
+
+    const groups: WorkbenchGroup[] = [
+      {
+        key: 'teaching',
+        title: '教务',
+        metrics: [
+          {
+            key: 'studentCount',
+            label: '学员总数',
+            value: studentCount,
+            link: '/students',
+          },
+          {
+            key: 'classCount',
+            label: '班级总数',
+            value: classCount,
+            link: '/classes',
+          },
+          {
+            key: 'teacherCount',
+            label: '教师总数',
+            value: teacherCount,
+            link: '/teachers',
+          },
+          {
+            key: 'remainingLessons',
+            label: '剩余课时',
+            value: remainingLessons,
+            link: '/students',
+          },
+        ],
+      },
+      {
+        key: 'recruitment',
+        title: '招生',
+        metrics: [
+          {
+            key: 'enrollmentCount',
+            label: '报名数',
+            value: enrollmentCount,
+            link: '/enrollments',
+          },
+          {
+            key: 'newStudentCount',
+            label: '新增学员',
+            value: newStudentCount,
+            link: '/students',
+          },
+          {
+            key: 'contractAmount',
+            label: '新签合同额',
+            value: contractAmount,
+            money: true,
+            link: '/enrollments',
+          },
+        ],
+      },
+      {
+        key: 'finance',
+        title: '财务',
+        metrics: [
+          {
+            key: 'income',
+            label: '收入',
+            value: income,
+            money: true,
+            link: '/salary',
+          },
+          {
+            key: 'expense',
+            label: '支出',
+            value: expense,
+            money: true,
+            link: '/salary',
+          },
+          {
+            key: 'profit',
+            label: '利润',
+            value: profit,
+            money: true,
+            link: '/salary',
+          },
+        ],
+      },
+      {
+        key: 'consumption',
+        title: '消课',
+        metrics: [
+          {
+            key: 'consumedLessons',
+            label: '消课课时',
+            value: consumedLessons,
+            link: '/lessons',
+          },
+          {
+            key: 'scheduledLessons',
+            label: '上课课时',
+            value: scheduledLessons,
+            link: '/lessons',
+          },
+          {
+            key: 'leaveCount',
+            label: '请假次数',
+            value: leaveCount,
+            link: '/leave-requests',
+          },
+        ],
+      },
+    ];
+
+    const trends: WorkbenchTrend[] = [
+      consumptionTrend,
+      attendanceTrend,
+      financeTrend,
+    ];
+
+    const todos: WorkbenchTodo[] = [
+      {
+        key: 'leave',
+        label: '待审批请假',
+        count: pendingApprovals,
+        link: '/leave-requests',
+      },
+      {
+        key: 'stock',
+        label: '库存提醒',
+        count: stockAlerts,
+        link: '/points-mall',
+      },
+    ];
+
+    return { timeType: tt, groups, trends, todos };
+  }
+
+  // ─── 工作台私有方法 ───────────────────────────────────────────────────
+
+  private now(): Date {
+    return this.nowFn ? this.nowFn() : new Date();
+  }
+
+  /** timeType 白名单校验；非法/缺失回退 month。 */
+  private normalizeTimeType(timeType: string): WorkbenchTimeType {
+    return (WORKBENCH_TIME_TYPES as readonly string[]).includes(timeType)
+      ? (timeType as WorkbenchTimeType)
+      : 'month';
+  }
+
+  /**
+   * 解析 timeType 时间窗口 [from, to)。
+   * day=今日 0 点起；week=本周一 0 点起；month=本月 1 号起；year=本年 1 月 1 日起；all=null（不设过滤）。
+   */
+  private resolveWindow(timeType: WorkbenchTimeType): {
+    from: Date | null;
+    to: Date | null;
+  } {
+    if (timeType === 'all') return { from: null, to: null };
+    const now = this.now();
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const tomorrow = new Date(todayStart);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    monthStart.setHours(0, 0, 0, 0);
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    switch (timeType) {
+      case 'day':
+        return { from: todayStart, to: tomorrow };
+      case 'week': {
+        const weekStart = new Date(todayStart);
+        weekStart.setDate(
+          todayStart.getDate() - ((todayStart.getDay() + 6) % 7),
+        ); // 周一为一周起点
+        return { from: weekStart, to: tomorrow };
+      }
+      case 'month':
+        return {
+          from: new Date(now.getFullYear(), now.getMonth(), 1),
+          to: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+        };
+      case 'year':
+        return {
+          from: new Date(now.getFullYear(), 0, 1),
+          to: new Date(now.getFullYear() + 1, 0, 1),
+        };
+      default:
+        return {
+          from: new Date(now.getFullYear(), now.getMonth(), 1),
+          to: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+        };
+    }
+  }
 
-    const [todayIncome, monthIncome, todayLessons, todayAttendance, todayLeave, todayEnrollments, monthExpense, teacherCount, studentCount, pendingApprovals, stockAlerts] =
-      await Promise.all([
-        // 今日收入 = 今日新签合同 totalAmount 合计
-        this.sumContractAmount(todayStart, tomorrow),
-        // 本月收入 = 本月新签合同 totalAmount 合计
-        this.sumContractAmount(monthStart, nextMonth),
-        // 今日课时 = 今日排课数
-        this.lessonRepo.count({
-          where: { scheduledDate: Between(this.toDateStr(todayStart), this.toDateStr(tomorrow)) },
-        }),
-        // 今日签到 = 今日实际出勤消耗数
-        this.attendanceRepo.count({
-          where: {
-            status: In(Array.from(DEDUCTIBLE_STATUSES)),
-            checkInTime: Between(todayStart, tomorrow),
-          },
-        }),
-        // 今日请假 = 今日请假单数（按请假日期，含任意状态）
-        this.leaveRequestRepo.count({
-          where: { leaveDate: Between(this.toDateStr(todayStart), this.toDateStr(tomorrow)) },
-        }),
-        // 今日报名 = 今日报名记录数
-        this.enrollmentRepo.count({
-          where: { enrolledAt: Between(todayStart, tomorrow) },
-        }),
-        // 本月支出 = 本月工资记录合计
-        this.salaryRepo
-          .createQueryBuilder('salary')
-          .select('COALESCE(SUM(salary.amount), 0)', 'sum')
-          .where('salary.createTime >= :from AND salary.createTime < :to', {
-            from: monthStart,
-            to: nextMonth,
-          })
-          .getRawOne<{ sum: string }>()
-          .then((r) => Number(r?.sum || 0)),
-        // 老师人数
-        this.userRepo.count({
-          where: { role: 'Teacher', deleted: false },
-        }),
-        // 学生人数
-        this.studentRepo.count({
-          where: { deleted: false },
-        }),
-        // 待审批 = 待审批请假单数
-        this.leaveRequestRepo.count({
-          where: { status: LeaveRequestStatus.PENDING },
-        }),
-        // 库存提醒 = 积分商城低库存上架商品数
-        this.pointsMallService.getLowStockCount(),
-      ]);
+  /** 活跃合同剩余课时求和（存量）。 */
+  private async sumRemainingLessons(): Promise<number> {
+    const activeContracts = await this.contractRepo.find({
+      where: { status: ContractStatus.ACTIVE },
+    });
+    return activeContracts.reduce((sum, c) => sum + c.remainingLessons, 0);
+  }
 
-    const profit = Math.round((monthIncome - monthExpense) * 100) / 100;
+  /** 聚合 [from, to) 区间内新签合同 totalAmount 合计（decimal → number）；all 时全量。 */
+  private async sumContractAmount(
+    from: Date | null,
+    to: Date | null,
+  ): Promise<number> {
+    const qb = this.contractRepo
+      .createQueryBuilder('contract')
+      .select('COALESCE(SUM(contract.totalAmount), 0)', 'sum');
+    if (from) {
+      qb.where('contract.createdAt >= :from AND contract.createdAt < :to', {
+        from,
+        to,
+      });
+    }
+    const row = await qb.getRawOne<{ sum: string }>();
+    return Number(row?.sum || 0);
+  }
 
+  /** 聚合 [from, to) 区间内工资记录 amount 合计；all 时全量。 */
+  private async sumSalaryAmount(
+    from: Date | null,
+    to: Date | null,
+  ): Promise<number> {
+    const qb = this.salaryRepo
+      .createQueryBuilder('salary')
+      .select('COALESCE(SUM(salary.amount), 0)', 'sum');
+    if (from) {
+      qb.where('salary.createTime >= :from AND salary.createTime < :to', {
+        from,
+        to,
+      });
+    }
+    const row = await qb.getRawOne<{ sum: string }>();
+    return Number(row?.sum || 0);
+  }
+
+  /** 近 days 天每日序列（升序，含今日），date 为 YYYY-MM-DD。 */
+  private lastNDays(days: number): Date[] {
+    const now = this.now();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const result: Date[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      result.push(d);
+    }
+    return result;
+  }
+
+  private addDays(d: Date, n: number): Date {
+    const r = new Date(d);
+    r.setDate(r.getDate() + n);
+    return r;
+  }
+
+  /** 将按日分组结果填进固定天数序列，缺失日补 0。 */
+  private fillDailySeries(
+    days: Date[],
+    map: Map<string, number>,
+  ): WorkbenchTrendPoint[] {
+    return days.map((d) => ({
+      date: this.toDateStr(d),
+      value: map.get(this.toDateStr(d)) || 0,
+    }));
+  }
+
+  private dailyKey(row: { date?: unknown }): string {
+    const val = row.date;
+    return typeof val === 'string'
+      ? val.substring(0, 10)
+      : this.toDateStr(val as Date);
+  }
+
+  /** 趋势·消课：近 30 日实际出勤消耗数（DEDUCTIBLE 考勤按日）。 */
+  private async consumptionDailyTrend(days: number): Promise<WorkbenchTrend> {
+    const range = this.lastNDays(days);
+    const startDate = this.toDateStr(range[0]);
+    const nextDay = this.toDateStr(this.addDays(range[range.length - 1], 1));
+    const rows = await this.attendanceRepo
+      .createQueryBuilder('attendance')
+      .select('DATE(attendance.checkInTime)', 'date')
+      .addSelect('COUNT(*)', 'count')
+      .where('attendance.checkInTime >= :startDate', { startDate })
+      .andWhere('attendance.checkInTime < :nextDay', { nextDay })
+      .andWhere('attendance.status IN (:...statuses)', {
+        statuses: Array.from(DEDUCTIBLE_STATUSES),
+      })
+      .groupBy('date')
+      .getRawMany<{ date?: unknown; count: string }>();
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      map.set(this.dailyKey(row), parseInt(row.count, 10));
+    }
     return {
-      todayIncome,
-      todayLessons,
-      todayAttendance,
-      todayLeave,
-      todayEnrollments,
-      monthIncome,
-      monthExpense,
-      profit,
-      teacherCount,
-      studentCount,
-      pendingApprovals,
-      stockAlerts,
+      name: 'consumption',
+      title: '消课',
+      data: this.fillDailySeries(range, map),
     };
   }
 
-  /** 聚合 [from, to) 区间内新签合同 totalAmount 合计（decimal → number）。 */
-  private async sumContractAmount(from: Date, to: Date): Promise<number> {
-    const row = await this.contractRepo
+  /** 趋势·考勤：近 30 日考勤记录数（全状态按日，含未消课记录）。 */
+  private async attendanceDailyTrend(days: number): Promise<WorkbenchTrend> {
+    const range = this.lastNDays(days);
+    const startDate = this.toDateStr(range[0]);
+    const nextDay = this.toDateStr(this.addDays(range[range.length - 1], 1));
+    const rows = await this.attendanceRepo
+      .createQueryBuilder('attendance')
+      .select('DATE(attendance.checkInTime)', 'date')
+      .addSelect('COUNT(*)', 'count')
+      .where('attendance.checkInTime >= :startDate', { startDate })
+      .andWhere('attendance.checkInTime < :nextDay', { nextDay })
+      .groupBy('date')
+      .getRawMany<{ date?: unknown; count: string }>();
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      map.set(this.dailyKey(row), parseInt(row.count, 10));
+    }
+    return {
+      name: 'attendance',
+      title: '考勤',
+      data: this.fillDailySeries(range, map),
+    };
+  }
+
+  /** 趋势·财务：近 30 日每日新签合同额（createdAt 按日）。 */
+  private async contractDailyTrend(days: number): Promise<WorkbenchTrend> {
+    const range = this.lastNDays(days);
+    const startDate = this.toDateStr(range[0]);
+    const nextDay = this.toDateStr(this.addDays(range[range.length - 1], 1));
+    const rows = await this.contractRepo
       .createQueryBuilder('contract')
-      .select('COALESCE(SUM(contract.totalAmount), 0)', 'sum')
-      .where('contract.createdAt >= :from AND contract.createdAt < :to', { from, to })
-      .getRawOne<{ sum: string }>();
-    return Number(row?.sum || 0);
+      .select('DATE(contract.createdAt)', 'date')
+      .addSelect('COALESCE(SUM(contract.totalAmount), 0)', 'amount')
+      .where('contract.createdAt >= :startDate', { startDate })
+      .andWhere('contract.createdAt < :nextDay', { nextDay })
+      .groupBy('date')
+      .getRawMany<{ date?: unknown; amount: string }>();
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      map.set(this.dailyKey(row), Number(row.amount || 0));
+    }
+    return {
+      name: 'finance',
+      title: '财务',
+      data: this.fillDailySeries(range, map),
+    };
   }
 
   // ------------------------------------------------------------------
@@ -515,7 +872,11 @@ export class DashboardService {
 
   async getFinance(): Promise<FinanceStatsDto> {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     todayStart.setHours(0, 0, 0, 0);
     const tomorrow = new Date(todayStart);
     tomorrow.setDate(tomorrow.getDate() + 1);

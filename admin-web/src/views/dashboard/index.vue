@@ -1,124 +1,165 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  AccountBookOutlined,
-  AlignLeftOutlined,
-  CheckSquareOutlined,
-  ClockCircleOutlined,
-  DollarOutlined,
-  ExportOutlined,
-  FileAddOutlined,
-  RiseOutlined,
-  TeamOutlined,
-  UserOutlined,
-  WarningOutlined,
-} from '@ant-design/icons-vue'
+import { use, init } from 'echarts/core'
+import { LineChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import { message } from 'ant-design-vue'
-import { fetchDashboardCards, type DashboardCards } from '@/api/dashboard'
+import {
+  fetchDashboardCards,
+  WORKBENCH_TIME_LABELS,
+  type DashboardWorkbench,
+  type WorkbenchMetric,
+  type WorkbenchTimeType,
+  type WorkbenchTodo,
+} from '@/api/dashboard'
 import { formatMoney } from '@/utils/format'
+
+// ECharts 按需引入，避免全量 ~1MB 打包
+use([LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
 
 const router = useRouter()
 
 const loading = ref(false)
-const cards = ref<DashboardCards>({
-  todayIncome: 0,
-  todayLessons: 0,
-  todayAttendance: 0,
-  todayLeave: 0,
-  todayEnrollments: 0,
-  monthIncome: 0,
-  monthExpense: 0,
-  profit: 0,
-  teacherCount: 0,
-  studentCount: 0,
-  pendingApprovals: 0,
-  stockAlerts: 0,
-})
+const timeType = ref<WorkbenchTimeType>('month')
+const data = ref<DashboardWorkbench | null>(null)
+const chartEl = ref<HTMLElement | null>(null)
+let chart: ReturnType<typeof init> | null = null
+let timer: ReturnType<typeof setInterval> | null = null
 
-interface CardDef {
-  key: keyof DashboardCards
-  title: string
-  icon: unknown
-  color: string
-  suffix?: string
-  money?: boolean
-  link?: string
+const timeTypes: WorkbenchTimeType[] = ['day', 'week', 'month', 'year', 'all']
+
+function metricDisplay(metric: WorkbenchMetric): string {
+  if (metric.money) return formatMoney(metric.value)
+  if (metric.unit) return `${metric.value} ${metric.unit}`
+  return String(metric.value)
 }
 
-const cardDefs: CardDef[] = [
-  { key: 'todayIncome', title: '今日收入', icon: DollarOutlined, color: '#3b82f6', money: true, link: '/enrollments' },
-  { key: 'todayLessons', title: '今日课时', icon: ClockCircleOutlined, color: '#10b981', link: '/lessons' },
-  { key: 'todayAttendance', title: '今日签到', icon: CheckSquareOutlined, color: '#f59e0b', link: '/lessons' },
-  { key: 'todayLeave', title: '今日请假', icon: FileAddOutlined, color: '#ef4444', link: '/leave-requests' },
-  { key: 'todayEnrollments', title: '今日报名', icon: AlignLeftOutlined, color: '#8b5cf6', link: '/enrollments' },
-  { key: 'monthIncome', title: '本月收入', icon: RiseOutlined, color: '#14b8a6', money: true, link: '/enrollments' },
-  { key: 'monthExpense', title: '本月支出', icon: ExportOutlined, color: '#f97316', money: true, link: '/salary' },
-  { key: 'profit', title: '利润', icon: AccountBookOutlined, color: '#06b6d4', money: true, link: '/analytics' },
-  { key: 'teacherCount', title: '老师人数', icon: UserOutlined, color: '#6366f1', suffix: ' 人', link: '/teachers' },
-  { key: 'studentCount', title: '学生人数', icon: TeamOutlined, color: '#84cc16', suffix: ' 人', link: '/students' },
-  { key: 'pendingApprovals', title: '待审批', icon: FileAddOutlined, color: '#eab308', link: '/leave-requests' },
-  { key: 'stockAlerts', title: '库存提醒', icon: WarningOutlined, color: '#ef4444', link: '/points-mall' },
-]
+function onMetricClick(metric: WorkbenchMetric) {
+  if (metric.link) router.push(metric.link)
+}
 
-const cardsList = computed(() =>
-  cardDefs.map((def) => {
-    const value = cards.value[def.key]
-    return {
-      ...def,
-      value,
-      display: def.money ? formatMoney(value) : `${value}${def.suffix || ''}`,
-    }
-  }),
-)
+function onTodoClick(todo: WorkbenchTodo) {
+  if (todo.link) router.push(todo.link)
+}
 
-let timer: ReturnType<typeof setInterval> | null = null
+function renderChart() {
+  if (!chartEl.value) return
+  const trends = data.value?.trends ?? []
+  if (!chart) {
+    chart = init(chartEl.value)
+  }
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: trends.map((t) => t.title), top: 0 },
+    grid: { left: 48, right: 16, top: 36, bottom: 28 },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: trends[0]?.data.map((p) => p.date) ?? [],
+    },
+    yAxis: { type: 'value' },
+    series: trends.map((t) => ({
+      name: t.title,
+      type: 'line',
+      smooth: true,
+      showSymbol: false,
+      data: t.data.map((p) => p.value),
+    })),
+  })
+}
+
+function onResize() {
+  chart?.resize()
+}
 
 async function load() {
   loading.value = true
   try {
-    cards.value = await fetchDashboardCards()
+    data.value = await fetchDashboardCards(timeType.value)
   } catch (e) {
     message.error((e as Error).message || '加载数据失败')
   } finally {
     loading.value = false
   }
+  // 等 loading 关闭、卡内 DOM（含图表容器）渲染后再绘制
+  await nextTick()
+  renderChart()
 }
 
-function onCardClick(def: CardDef) {
-  if (def.link) router.push(def.link)
+function onTimeTypeChange() {
+  void load()
 }
 
 onMounted(() => {
-  load()
+  void load()
   timer = setInterval(load, 60_000)
+  window.addEventListener('resize', onResize)
 })
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
   if (timer) clearInterval(timer)
+  window.removeEventListener('resize', onResize)
+  chart?.dispose()
+  chart = null
 })
 </script>
 
 <template>
-  <div>
+  <div class="workbench">
     <a-card :loading="loading" :bordered="false">
-      <div class="dash-header">
+      <div class="wb-header">
         <div>
-          <h2 style="margin: 0">数据概览</h2>
-          <span class="dash-sub">每 60 秒自动刷新</span>
+          <h2 style="margin: 0">工作台</h2>
+          <span class="wb-sub">每 60 秒自动刷新</span>
         </div>
+        <a-radio-group v-model:value="timeType" button-style="solid" @change="onTimeTypeChange">
+          <a-radio-button v-for="tt in timeTypes" :key="tt" :value="tt">
+            {{ WORKBENCH_TIME_LABELS[tt] }}
+          </a-radio-button>
+        </a-radio-group>
       </div>
+
       <a-row :gutter="[16, 16]">
-        <a-col v-for="card in cardsList" :key="card.key" :xs="12" :sm="8" :md="6" :lg="4">
-          <a-card class="dash-card" :bordered="false" hoverable @click="onCardClick(card)">
-            <div class="card-inner">
-              <div class="card-icon" :style="{ background: `${card.color}1a`, color: card.color }">
-                <component :is="card.icon" />
-              </div>
-              <div class="card-body">
-                <div class="card-title">{{ card.title }}</div>
-                <div class="card-value" :style="{ color: card.color }">{{ card.display }}</div>
-              </div>
+        <a-col v-for="group in data?.groups ?? []" :key="group.key" :xs="24" :sm="12" :lg="6">
+          <a-card class="wb-group" :bordered="false">
+            <div class="wb-group-title">{{ group.title }}</div>
+            <a-row :gutter="[8, 12]">
+              <a-col
+                v-for="metric in group.metrics"
+                :key="metric.key"
+                :span="12"
+                class="wb-metric"
+                :class="{ clickable: metric.link }"
+                @click="onMetricClick(metric)"
+              >
+                <div class="wb-metric-label">{{ metric.label }}</div>
+                <div class="wb-metric-value">{{ metricDisplay(metric) }}</div>
+              </a-col>
+            </a-row>
+          </a-card>
+        </a-col>
+      </a-row>
+
+      <a-row :gutter="[16, 16]" class="wb-bottom">
+        <a-col :xs="24" :lg="16">
+          <a-card :bordered="false">
+            <div ref="chartEl" class="wb-chart" data-testid="wb-chart" />
+          </a-card>
+        </a-col>
+        <a-col :xs="24" :lg="8">
+          <a-card :bordered="false" class="wb-todo-card">
+            <div class="wb-group-title">待办</div>
+            <div v-if="(data?.todos ?? []).length === 0" class="wb-todo-empty">暂无待办</div>
+            <div
+              v-for="todo in data?.todos ?? []"
+              :key="todo.key"
+              class="wb-todo"
+              @click="onTodoClick(todo)"
+            >
+              <span class="wb-todo-label">{{ todo.label }}</span>
+              <a-badge :count="todo.count" :overflow-count="99" />
             </div>
           </a-card>
         </a-col>
@@ -128,50 +169,67 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.dash-header {
+.wb-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 16px;
 }
-.dash-sub {
+.wb-sub {
   color: #999;
   font-size: 12px;
 }
-.dash-card {
+.wb-group {
+  border-radius: 8px;
+}
+.wb-group-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+.wb-metric {
+  cursor: default;
+}
+.wb-metric.clickable {
   cursor: pointer;
-  border-radius: 8px;
 }
-.dash-card :deep(.ant-card-body) {
-  padding: 16px;
-}
-.card-inner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.card-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-}
-.card-body {
-  overflow: hidden;
-}
-.card-title {
+.wb-metric-label {
   color: #666;
   font-size: 12px;
-  white-space: nowrap;
+  margin-bottom: 4px;
 }
-.card-value {
+.wb-metric-value {
   font-size: 18px;
   font-weight: 600;
-  margin-top: 4px;
-  white-space: nowrap;
+  color: #1f2937;
+}
+.wb-bottom {
+  margin-top: 16px;
+}
+.wb-chart {
+  height: 320px;
+}
+.wb-todo-card {
+  height: 100%;
+}
+.wb-todo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #fafafa;
+  margin-bottom: 8px;
+}
+.wb-todo:hover {
+  background: #f0f0f0;
+}
+.wb-todo-empty {
+  color: #999;
+  padding: 8px 0;
 }
 </style>

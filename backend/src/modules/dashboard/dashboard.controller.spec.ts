@@ -4,6 +4,12 @@ import { DashboardService } from './dashboard.service';
 
 describe('DashboardController', () => {
   let controller: DashboardController;
+  const getCardsMock = jest.fn().mockResolvedValue({
+    timeType: 'month',
+    groups: [],
+    trends: [],
+    todos: [],
+  });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -12,6 +18,7 @@ describe('DashboardController', () => {
         {
           provide: DashboardService,
           useValue: {
+            getCards: getCardsMock,
             getOverview: jest.fn().mockResolvedValue({
               today: {
                 totalLessons: 10,
@@ -122,6 +129,22 @@ describe('DashboardController', () => {
     expect(result.totalContractHours).toBe(2000);
     expect(result.consumedContractHours).toBe(800);
     expect(result.remainingContractHours).toBe(1200);
-    expect(result.attendance).toEqual({ today: 5, week: 30, month: 120, year: 800 });
+    expect(result.attendance).toEqual({
+      today: 5,
+      week: 30,
+      month: 120,
+      year: 800,
+    });
+  });
+
+  it('should pass timeType through to service.getCards', async () => {
+    const result = await controller.getCards('week');
+    expect(getCardsMock).toHaveBeenCalledWith('week');
+    expect(result.timeType).toBe('month');
+  });
+
+  it('should default timeType when not provided', async () => {
+    await controller.getCards();
+    expect(getCardsMock).toHaveBeenCalledWith(undefined);
   });
 });

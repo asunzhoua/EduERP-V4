@@ -40,7 +40,11 @@ import { AdminModule } from '@modules/admin/admin.module';
     ]),
   ],
   controllers: [DashboardController],
-  providers: [DashboardService],
+  providers: [
+    DashboardService,
+    // 可注入时钟：工作台窗口计算统一走 DASHBOARD_NOW（测试可固定 now）
+    { provide: 'DASHBOARD_NOW', useValue: () => new Date() },
+  ],
   exports: [DashboardService],
 })
 export class DashboardModule {}
