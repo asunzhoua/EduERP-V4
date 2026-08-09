@@ -43,6 +43,9 @@ export const appConfig = registerAs('app', () => ({
       LEAVE_RESULT: process.env.WX_SUBSCRIBE_TEMPLATE_LEAVE_RESULT || '',
     },
   },
+  renewal: {
+    warningThreshold: Number(process.env.RENEWAL_WARNING_THRESHOLD) || 5,
+  },
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
     port: Number(process.env.REDIS_PORT) || 6379,

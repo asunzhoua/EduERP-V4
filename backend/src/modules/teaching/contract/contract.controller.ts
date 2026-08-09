@@ -14,6 +14,8 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger'
 import { ContractService } from './contract.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { QueryContractDto } from './dto/query-contract.dto';
+import { QueryConsumeRecordsDto } from './dto/query-consume-records.dto';
+import { QueryRenewalWarningsDto } from './dto/query-renewal-warnings.dto';
 import { AdjustContractLessonsDto } from './dto/adjust-contract-lessons.dto';
 import { CreateContractInput } from './contract.service';
 import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
@@ -85,11 +87,45 @@ export class ContractController {
     return ApiResponse.success(result);
   }
 
+  // 注意：renewal-warnings 必须声明在 @Get(':code') 之前，避免被 :code 吞掉。
+  @Get('renewal-warnings')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
+  @ApiOperation({ summary: '续费预警合同列表（剩余课时 <= 阈值）' })
+  async getRenewalWarnings(@Query() query: QueryRenewalWarningsDto) {
+    const result = await this.contractService.getRenewalWarnings(
+      query.threshold,
+    );
+    return ApiResponse.success(result);
+  }
+
   @Get(':code')
   @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Get contract by contractCode' })
   async findOneByCode(@Param('code') code: string) {
     const result = await this.contractService.findOneByCode(code);
+    return ApiResponse.success(result);
+  }
+
+  @Get(':code/consume-records')
+  @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
+  @ApiParam({ name: 'code', description: '合同编号' })
+  @ApiOperation({ summary: '合同课时消耗流水（分页）' })
+  async getConsumeRecords(
+    @Param('code') code: string,
+    @Query() query: QueryConsumeRecordsDto,
+    @Req() req: any,
+  ) {
+    // 先取合同再校验学生访问权（家长只能看自己孩子），不信任 :code 参数本身。
+    const contract = await this.contractService.findOneByCode(code);
+    await this.dataScopeService.verifyStudentAccess(
+      req.user,
+      contract.studentCode,
+    );
+    const result = await this.contractService.getConsumeRecords(
+      contract,
+      query.page ?? 1,
+      query.pageSize ?? 20,
+    );
     return ApiResponse.success(result);
   }
 

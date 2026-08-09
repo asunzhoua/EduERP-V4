@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, LessThanOrEqual } from 'typeorm';
 import { ContractEntity } from './contract.entity';
 import { ContractStatus } from './enums/contract-status.enum';
 import { Subject } from '@common/enums/subject.enum';
@@ -43,6 +43,17 @@ export class ContractRepository {
 
   async countByStudentCode(studentCode: string): Promise<number> {
     return this.repo.count({ where: { studentCode } });
+  }
+
+  /** 续费预警：ACTIVE 且剩余课时 <= 阈值的合同（剩余少的在前）。 */
+  async findActiveAtRisk(threshold: number): Promise<ContractEntity[]> {
+    return this.repo.find({
+      where: {
+        status: ContractStatus.ACTIVE,
+        remainingLessons: LessThanOrEqual(threshold),
+      },
+      order: { remainingLessons: 'ASC' },
+    });
   }
 
   async findMany(options: {

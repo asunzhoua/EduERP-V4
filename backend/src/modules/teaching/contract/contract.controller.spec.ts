@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ContractController } from './contract.controller';
 import { ContractService } from './contract.service';
 import { DataScopeService } from '@common/services/data-scope.service';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { ApiResponse } from '@common/dto/api-response';
 
 describe('ContractController', () => {
@@ -45,6 +45,13 @@ describe('ContractController', () => {
       totalLessons: 35,
       remainingLessons: 35,
     }),
+    getConsumeRecords: jest.fn().mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
+    }),
+    getRenewalWarnings: jest.fn().mockResolvedValue([]),
   };
 
   const mockDataScopeService = {
@@ -90,6 +97,13 @@ describe('ContractController', () => {
       totalLessons: 35,
       remainingLessons: 35,
     });
+    mockService.getConsumeRecords.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
+    });
+    mockService.getRenewalWarnings.mockResolvedValue([]);
   });
 
   it('should be defined', () => {
@@ -261,6 +275,80 @@ describe('ContractController', () => {
         mockReq.user,
         'STU20260001',
       );
+    });
+  });
+
+  // ─── getConsumeRecords - GET /contracts/:code/consume-records ───
+
+  describe('getConsumeRecords', () => {
+    it('should fetch contract, verify student access, then return records', async () => {
+      const mockReq = { user: { sub: 7, role: 'Parent' } };
+      const result = await controller.getConsumeRecords(
+        'CTR2026070001',
+        { page: 1, pageSize: 20 } as any,
+        mockReq,
+      );
+
+      expect(mockService.findOneByCode).toHaveBeenCalledWith('CTR2026070001');
+      expect(mockDataScopeService.verifyStudentAccess).toHaveBeenCalledWith(
+        mockReq.user,
+        'STU20260001',
+      );
+      expect(mockService.getConsumeRecords).toHaveBeenCalledWith(
+        mockContract,
+        1,
+        20,
+      );
+      expect(result).toEqual(
+        ApiResponse.success({ items: [], total: 0, page: 1, pageSize: 20 }),
+      );
+    });
+
+    it('should propagate 403 when parent has no access to the contract student', async () => {
+      mockDataScopeService.verifyStudentAccess.mockRejectedValue(
+        new ForbiddenException('无权访问该学生的记录'),
+      );
+
+      await expect(
+        controller.getConsumeRecords(
+          'CTR2026070001',
+          { page: 1, pageSize: 20 } as any,
+          { user: { sub: 7, role: 'Parent' } } as any,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(mockService.getConsumeRecords).not.toHaveBeenCalled();
+    });
+
+    it('should propagate 404 when contract not found', async () => {
+      mockService.findOneByCode.mockRejectedValue(
+        new NotFoundException('Contract not found: code=INVALID'),
+      );
+
+      await expect(
+        controller.getConsumeRecords(
+          'INVALID',
+          { page: 1, pageSize: 20 } as any,
+          { user: { sub: 1, role: 'Teacher' } } as any,
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ─── getRenewalWarnings - GET /contracts/renewal-warnings ───
+
+  describe('getRenewalWarnings', () => {
+    it('should return warnings using default threshold', async () => {
+      const result = await controller.getRenewalWarnings({});
+
+      expect(mockService.getRenewalWarnings).toHaveBeenCalledWith(undefined);
+      expect(result).toEqual(ApiResponse.success([]));
+    });
+
+    it('should pass an explicit threshold query', async () => {
+      await controller.getRenewalWarnings({ threshold: 3 });
+
+      expect(mockService.getRenewalWarnings).toHaveBeenCalledWith(3);
     });
   });
 });
