@@ -1,6 +1,7 @@
+/* pages/teacher/salary/salary.wxss */
 .container {
   padding: 20rpx;
-  background: #FAF6F0;
+  background: var(--bg, #FAF6F0);
   min-height: 100vh;
 }
 
@@ -15,8 +16,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid #EDE5DA;
-  border-top-color: #D97B3E;
+  border: 4rpx solid var(--border, #EDE5DA);
+  border-top-color: var(--accent, #D97B3E);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20rpx;
@@ -28,7 +29,7 @@
 
 .loading-text {
   font-size: 28rpx;
-  color: #9B9084;
+  color: var(--faint, #9B9084);
 }
 
 /* 错误状态 */
@@ -41,16 +42,16 @@
 
 .error-text {
   font-size: 28rpx;
-  color: #9B9084;
+  color: var(--faint, #9B9084);
   margin-bottom: 20rpx;
 }
 
 .retry-btn {
   font-size: 28rpx;
-  color: #D97B3E;
+  color: var(--accent, #D97B3E);
   padding: 12rpx 40rpx;
-  border: 2rpx solid #D97B3E;
-  border-radius: 16rpx;
+  border: 2rpx solid var(--accent, #D97B3E);
+  border-radius: var(--radius-sm, 16rpx);
 }
 
 /* 月份选择 */
@@ -58,30 +59,34 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
-  border-radius: 24rpx;
+  background: var(--card, #FFFFFF);
+  border-radius: var(--radius-md, 28rpx);
   padding: 20rpx 0;
   margin-bottom: 20rpx;
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(120,80,40,.06));
 }
 
 .month-text {
   font-size: 30rpx;
   font-weight: bold;
-  color: #2E2A25;
+  color: var(--fg, #2E2A25);
 }
 
 .month-caret {
-  font-size: 24rpx;
-  color: #9B9084;
+  width: 32rpx;
+  height: 32rpx;
+  color: var(--faint, #9B9084);
   margin-left: 12rpx;
+  opacity: .8;
 }
 
 /* 月度汇总 */
 .summary-card {
-  background: #D97B3E;
-  border-radius: 24rpx;
-  padding: 28rpx;
+  background: var(--gradient-primary, linear-gradient(135deg, #E08B44 0%, #A64E1D 100%));
+  border-radius: var(--radius-lg, 32rpx);
+  padding: 32rpx 28rpx;
   margin-bottom: 20rpx;
+  box-shadow: var(--shadow-md, 0 8rpx 24rpx rgba(120,80,40,.12));
 }
 
 .summary-main {
@@ -93,7 +98,7 @@
 
 .summary-label {
   font-size: 24rpx;
-  color: #FCE8D8;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .summary-amount {
@@ -101,6 +106,7 @@
   font-weight: bold;
   color: #fff;
   margin-top: 6rpx;
+  font-variant-numeric: tabular-nums;
 }
 
 .summary-row {
@@ -120,11 +126,12 @@
   font-size: 28rpx;
   font-weight: bold;
   color: #fff;
+  font-variant-numeric: tabular-nums;
 }
 
 .sum-label {
   font-size: 22rpx;
-  color: #FCE8D8;
+  color: rgba(255, 255, 255, 0.85);
   margin-top: 4rpx;
 }
 
@@ -144,13 +151,14 @@
 
 .empty-text {
   font-size: 28rpx;
-  color: #9B9084;
+  color: var(--faint, #9B9084);
 }
 
 .record-card {
-  background: #fff;
-  border-radius: 24rpx;
-  padding: 20rpx 24rpx;
+  background: var(--card, #FFFFFF);
+  border-radius: var(--radius-md, 28rpx);
+  padding: 24rpx 28rpx;
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(120,80,40,.06));
 }
 
 .card-top {
@@ -167,12 +175,12 @@
 .source-text {
   font-size: 30rpx;
   font-weight: bold;
-  color: #2E2A25;
+  color: var(--fg, #2E2A25);
 }
 
 .card-date {
   font-size: 22rpx;
-  color: #9B9084;
+  color: var(--faint, #9B9084);
   margin-top: 4rpx;
 }
 
@@ -185,38 +193,39 @@
 .amount {
   font-size: 32rpx;
   font-weight: bold;
-  color: #2E2A25;
+  color: var(--fg, #2E2A25);
+  font-variant-numeric: tabular-nums;
 }
 
 .amount-deduct {
-  color: #C4483F;
+  color: var(--danger, #C4483F);
 }
 
 .status-tag {
   font-size: 20rpx;
   padding: 4rpx 14rpx;
-  border-radius: 12rpx;
+  border-radius: var(--radius-sm, 16rpx);
   margin-top: 6rpx;
 }
 
 .status-PENDING {
-  background: #FCF0DF;
-  color: #D98E2B;
+  background: var(--warning-soft, #FCF0DF);
+  color: var(--warning, #D98E2B);
 }
 
 .status-APPROVED {
-  background: #FBEEE2;
-  color: #D97B3E;
+  background: var(--accent-soft, #FBEEE2);
+  color: var(--accent-deep, #A64E1D);
 }
 
 .status-PAID {
-  background: #E6F2E6;
-  color: #3D8B3D;
+  background: var(--growth-soft, #EAF1EC);
+  color: var(--growth-deep, #3E5B4A);
 }
 
 .status-UNKNOWN {
-  background: #F0EDE8;
-  color: #6F675D;
+  background: var(--surface, #F5F1EA);
+  color: var(--muted, #6F675D);
 }
 
 .card-meta {
@@ -224,21 +233,34 @@
   gap: 24rpx;
   margin-top: 12rpx;
   padding-top: 12rpx;
-  border-top: 2rpx solid #FAF6F0;
+  border-top: 2rpx solid var(--bg, #FAF6F0);
 }
 
 .meta-text {
   font-size: 24rpx;
-  color: #6F675D;
+  color: var(--muted, #6F675D);
 }
 
 .card-remark {
   margin-top: 8rpx;
 }
 
+.remark-inline {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.remark-ic {
+  width: 30rpx;
+  height: 30rpx;
+  color: var(--warning, #D98E2B);
+  opacity: .9;
+}
+
 .remark-text {
   font-size: 22rpx;
-  color: #D98E2B;
+  color: var(--warning, #D98E2B);
 }
 
 /* 加载更多 */
@@ -249,5 +271,5 @@
 
 .load-text {
   font-size: 24rpx;
-  color: #9B9084;
+  color: var(--faint, #9B9084);
 }

@@ -262,8 +262,10 @@
 }
 
 .arrow-icon {
-  font-size: 36rpx;
-  color: #EDE5DA;
+  width: 32rpx;
+  height: 32rpx;
+  color: var(--faint, #9B9084);
+  opacity: .7;
 }
 
 /* 加载更多 */

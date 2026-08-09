@@ -157,6 +157,15 @@
   margin-left: 20rpx;
   font-size: 24rpx;
   color: var(--accent-deep, #A64E1D);
+  display: flex;
+  align-items: center;
+}
+
+.badge-chevron {
+  width: 28rpx;
+  height: 28rpx;
+  margin-left: 4rpx;
+  opacity: .8;
 }
 
 .child-switcher {
@@ -282,6 +291,15 @@
 .link {
   font-size: 24rpx;
   color: var(--muted, #6F675D);
+  display: flex;
+  align-items: center;
+}
+
+.link-chevron {
+  width: 28rpx;
+  height: 28rpx;
+  margin-left: 4rpx;
+  opacity: .7;
 }
 
 /* 今日课程 */

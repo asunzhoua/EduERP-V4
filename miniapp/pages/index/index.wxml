@@ -113,7 +113,7 @@
                 <view class="fb-s">{{item.courseName || '课程'}}<text class="fb-date" wx:if="{{item.lessonDate}}"> · {{item.lessonDate}}</text></view>
                 <view class="fb-t">{{item.teacherName ? '老师：' + item.teacherName : ''}}</view>
               </view>
-              <view class="fb-badge">查看 ›</view>
+              <view class="fb-badge">查看<view class="badge-chevron ic ic-chevron"></view></view>
             </view>
           </block>
           <view class="empty-hint" wx:else>暂无课程反馈</view>
@@ -123,7 +123,7 @@
         <view class="card points-mini" bindtap="goToPoints">
           <view class="card-head">
             <view class="card-title">我的积分</view>
-            <view class="link" catchtap="goToPointsMall">积分商城 ›</view>
+            <view class="link" catchtap="goToPointsMall">积分商城<view class="link-chevron ic ic-chevron"></view></view>
           </view>
           <view class="points-mini-row">
             <view class="points-mini-balance">{{pointsBalance}}<text class="points-mini-unit">分</text></view>

@@ -71,7 +71,7 @@
 
         <!-- 箭头 -->
         <view class="reminder-arrow">
-          <text class="arrow-icon">›</text>
+          <view class="arrow-icon ic ic-chevron"></view>
         </view>
       </view>
     </view>

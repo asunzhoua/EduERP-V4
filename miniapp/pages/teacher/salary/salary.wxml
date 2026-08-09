@@ -17,7 +17,7 @@
     <picker mode="date" fields="month" value="{{month}}" bindchange="onMonthChange">
       <view class="month-picker">
         <text class="month-text">{{month}}</text>
-        <text class="month-caret">▾</text>
+        <view class="month-caret ic ic-chevron"></view>
       </view>
     </picker>
 
@@ -67,7 +67,10 @@
         </view>
 
         <view class="card-remark" wx:if="{{item.needsReview}}">
-          <text class="remark-text">⚠ 无匹配规则，金额待人工确认</text>
+          <view class="remark-inline">
+            <view class="ic ic-warn remark-ic"></view>
+            <text class="remark-text">无匹配规则，金额待人工确认</text>
+          </view>
         </view>
         <view class="card-remark" wx:elif="{{item.notes}}">
           <text class="remark-text">{{item.notes}}</text>

@@ -2,7 +2,7 @@
 .container {
   padding: 20rpx;
   padding-bottom: 40rpx;
-  background: #FAF6F0;
+  background: var(--bg, #FAF6F0);
   min-height: 100vh;
 }
 
@@ -19,8 +19,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid #EDE5DA;
-  border-top-color: #D97B3E;
+  border: 4rpx solid var(--border, #EDE5DA);
+  border-top-color: var(--accent, #D97B3E);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 20rpx;
@@ -33,20 +33,15 @@
 .loading-text,
 .error-text {
   font-size: 28rpx;
-  color: #9B9084;
-  margin-bottom: 20rpx;
-}
-
-.error-icon {
-  font-size: 60rpx;
+  color: var(--faint, #9B9084);
   margin-bottom: 20rpx;
 }
 
 .retry-btn {
   font-size: 28rpx;
-  background: #D97B3E;
+  background: var(--accent, #D97B3E);
   color: #fff;
-  border-radius: 16rpx;
+  border-radius: var(--radius-sm, 16rpx);
   padding: 12rpx 40rpx;
   margin-top: 20rpx;
 }
@@ -57,9 +52,10 @@
   flex-direction: column;
   align-items: center;
   padding: 50rpx 30rpx 40rpx;
-  background: linear-gradient(135deg, #D97B3E 0%, #A64E1D 100%);
-  border-radius: 16rpx;
+  background: var(--gradient-primary, linear-gradient(135deg, #E08B44 0%, #A64E1D 100%));
+  border-radius: var(--radius-lg, 32rpx);
   margin-bottom: 20rpx;
+  box-shadow: var(--shadow-md, 0 8rpx 24rpx rgba(120,80,40,.12));
 }
 
 .avatar-area {
@@ -99,24 +95,25 @@
 
 .profile-role {
   font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.85);
   background: rgba(255, 255, 255, 0.2);
   padding: 4rpx 20rpx;
-  border-radius: 20rpx;
+  border-radius: var(--radius-full, 999rpx);
 }
 
 /* === 基础信息卡片 === */
 .info-card {
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 24rpx;
+  background: var(--card, #FFFFFF);
+  border-radius: var(--radius-md, 28rpx);
+  padding: 28rpx;
   margin-bottom: 20rpx;
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(120,80,40,.06));
 }
 
 .card-title {
   font-size: 30rpx;
   font-weight: bold;
-  color: #2E2A25;
+  color: var(--fg, #2E2A25);
   margin-bottom: 20rpx;
   display: flex;
   justify-content: space-between;
@@ -128,7 +125,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16rpx 0;
-  border-bottom: 1rpx solid #FAF6F0;
+  border-bottom: 1rpx solid var(--bg, #FAF6F0);
 }
 
 .info-row:last-child {
@@ -137,21 +134,22 @@
 
 .info-label {
   font-size: 28rpx;
-  color: #6F675D;
+  color: var(--muted, #6F675D);
 }
 
 .info-value {
   font-size: 28rpx;
-  color: #2E2A25;
+  color: var(--fg, #2E2A25);
   font-weight: 500;
 }
 
 /* === 班级统计 === */
 .stats-card {
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 24rpx;
+  background: var(--card, #FFFFFF);
+  border-radius: var(--radius-md, 28rpx);
+  padding: 28rpx;
   margin-bottom: 20rpx;
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(120,80,40,.06));
 }
 
 .stats-grid {
@@ -171,28 +169,30 @@
 .stat-number {
   font-size: 48rpx;
   font-weight: bold;
-  color: #D97B3E;
+  color: var(--accent, #D97B3E);
   margin-bottom: 8rpx;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
   font-size: 24rpx;
-  color: #9B9084;
+  color: var(--faint, #9B9084);
 }
 
 /* === 教学概览 === */
 .overview-card {
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 24rpx;
+  background: var(--card, #FFFFFF);
+  border-radius: var(--radius-md, 28rpx);
+  padding: 28rpx;
   margin-bottom: 20rpx;
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(120,80,40,.06));
 }
 
 .overview-row {
   display: flex;
   justify-content: space-around;
   padding: 16rpx 0;
-  border-bottom: 1rpx solid #FAF6F0;
+  border-bottom: 1rpx solid var(--bg, #FAF6F0);
 }
 
 .overview-row:last-child {
@@ -209,26 +209,28 @@
 .overview-number {
   font-size: 40rpx;
   font-weight: bold;
-  color: #2E2A25;
+  color: var(--fg, #2E2A25);
   margin-bottom: 8rpx;
+  font-variant-numeric: tabular-nums;
 }
 
 .overview-label {
   font-size: 24rpx;
-  color: #9B9084;
+  color: var(--faint, #9B9084);
 }
 
 /* === 最近课程 === */
 .recent-card {
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 24rpx;
+  background: var(--card, #FFFFFF);
+  border-radius: var(--radius-md, 28rpx);
+  padding: 28rpx;
   margin-bottom: 20rpx;
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(120,80,40,.06));
 }
 
 .lesson-item {
   padding: 20rpx 0;
-  border-bottom: 1rpx solid #FAF6F0;
+  border-bottom: 1rpx solid var(--bg, #FAF6F0);
 }
 
 .lesson-item:last-child {
@@ -245,37 +247,33 @@
 .lesson-class {
   font-size: 28rpx;
   font-weight: bold;
-  color: #2E2A25;
+  color: var(--fg, #2E2A25);
 }
 
 .lesson-status {
   font-size: 22rpx;
   padding: 4rpx 16rpx;
-  border-radius: 12rpx;
+  border-radius: var(--radius-sm, 16rpx);
 }
 
 .status-PLANNED {
-  background: #FBEEE2;
-  color: #D97B3E;
-  border: 1rpx solid #FBEEE2;
+  background: var(--accent-soft, #FBEEE2);
+  color: var(--accent-deep, #A64E1D);
 }
 
 .status-TEACHING {
-  background: #FCF0DF;
-  color: #D98E2B;
-  border: 1rpx solid #FCF0DF;
+  background: var(--warning-soft, #FCF0DF);
+  color: var(--warning, #D98E2B);
 }
 
 .status-COMPLETED {
-  background: #FBEEE2;
-  color: #D97B3E;
-  border: 1rpx solid #FBEEE2;
+  background: var(--growth-soft, #EAF1EC);
+  color: var(--growth-deep, #3E5B4A);
 }
 
 .status-CANCELLED {
-  background: #FAF6F0;
-  color: #9B9084;
-  border: 1rpx solid #EDE5DA;
+  background: var(--bg, #FAF6F0);
+  color: var(--faint, #9B9084);
 }
 
 .lesson-info {
@@ -286,22 +284,23 @@
 
 .lesson-topic {
   font-size: 26rpx;
-  color: #6F675D;
+  color: var(--muted, #6F675D);
 }
 
 .lesson-date {
   font-size: 24rpx;
-  color: #9B9084;
+  color: var(--faint, #9B9084);
 }
 
 /* === 快捷入口 === */
 .quick-nav {
-  background: #ffffff;
-  border-radius: 24rpx;
+  background: var(--card, #FFFFFF);
+  border-radius: var(--radius-md, 28rpx);
   padding: 24rpx;
   margin-bottom: 20rpx;
   display: flex;
   justify-content: space-around;
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(120,80,40,.06));
 }
 
 .nav-item {
@@ -311,14 +310,9 @@
   padding: 16rpx 20rpx;
 }
 
-.nav-icon {
-  font-size: 48rpx;
-  margin-bottom: 10rpx;
-}
-
 .nav-text {
   font-size: 24rpx;
-  color: #6F675D;
+  color: var(--muted, #6F675D);
 }
 
 /* === 退出登录 === */
@@ -329,9 +323,9 @@
 
 .logout-btn {
   font-size: 30rpx;
-  background: #fff;
-  color: #C4483F;
-  border: 1rpx solid #C4483F;
-  border-radius: 16rpx;
+  background: var(--card, #FFFFFF);
+  color: var(--danger, #C4483F);
+  border: 1rpx solid var(--danger, #C4483F);
+  border-radius: var(--radius-md, 28rpx);
   padding: 20rpx 0;
 }
