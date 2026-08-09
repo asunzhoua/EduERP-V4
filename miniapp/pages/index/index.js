@@ -2,6 +2,7 @@
 const app = getApp();
 const { get } = require('../../utils/request');
 const { statusText } = require('../../utils/attendance-status');
+const { RENEWAL_WARNING_THRESHOLD } = require('../../utils/renewal-threshold');
 
 Page({
   data: {
@@ -143,9 +144,9 @@ Page({
         .slice(0, 4)
         .map(l => ({ ...l, isPast: this.isLessonPast(l) }));
 
-      // 课时预警（D-3）：剩余 ≤3 节 或 ≤20%，先到先触发
+      // 课时预警（D-3）：剩余 ≤ 预警阈值 或 ≤20%，先到先触发（阈值集中配置在 utils/renewal-threshold.js）
       const isLowBalance = remainingLessons > 0 &&
-        (remainingLessons <= 3 || (totalLessons > 0 && remainingLessons / totalLessons <= 0.2));
+        (remainingLessons <= RENEWAL_WARNING_THRESHOLD || (totalLessons > 0 && remainingLessons / totalLessons <= 0.2));
 
       const recentLessons = lessonList.slice(0, 5).map(l => ({
         ...l,

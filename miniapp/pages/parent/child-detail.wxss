@@ -41,6 +41,18 @@
   color: #6F675D;
 }
 
+/* 切换孩子入口（多子家长跳转 parent/index 全量列表） */
+.switch-child-btn {
+  align-self: flex-start;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #A64E1D;
+  padding: 8rpx 24rpx;
+  border: 1rpx solid #F0D9B8;
+  border-radius: 999rpx;
+  background: #FCF0DE;
+}
+
 .tabs {
   display: flex;
   background: #fff;

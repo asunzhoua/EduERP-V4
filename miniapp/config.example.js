@@ -14,12 +14,15 @@ const configs = {
   development: {
     // 本地联调地址：仅允许 localhost / 127.0.0.1
     baseUrl: 'http://localhost:3000/api/v1',
-    debug: true
+    debug: true,
+    // 课时续费预警阈值（可选；缺省 5，与后端 RENEWAL_WARNING_THRESHOLD 对齐）
+    renewalWarningThreshold: 5
   },
   production: {
     // 生产地址：仅允许占位符域名，部署时替换为已备案的真实域名（禁止裸 IP / 动态域名）
     baseUrl: 'https://your-production-domain.com/api/v1',
-    debug: false
+    debug: false,
+    renewalWarningThreshold: 5
   }
 }
 

@@ -19,6 +19,7 @@
       <text class="child-code">学号: {{childInfo.studentCode || '-'}}</text>
       <text class="child-school">学校: {{childInfo.school || '-'}}</text>
       <text class="child-grade">年级: {{childInfo.grade || '-'}}</text>
+      <view class="switch-child-btn" bindtap="goToChildSwitch">切换孩子</view>
     </view>
 
     <!-- Tabs -->

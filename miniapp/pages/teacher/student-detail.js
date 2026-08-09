@@ -1,5 +1,6 @@
 // pages/teacher/student-detail.js
 const { get } = require('../../utils/request');
+const { RENEWAL_WARNING_THRESHOLD, RENEWAL_CRITICAL_THRESHOLD } = require('../../utils/renewal-threshold');
 
 const SUBJECT_LABELS = {
   MATH: '数学', ENGLISH: '英语', CHINESE: '语文', PHYSICS: '物理',
@@ -11,10 +12,6 @@ const CONTRACT_STATUS_LABELS = {
   ACTIVE: '生效中', EXHAUSTED: '已用完', EXPIRED: '已过期',
   REFUNDED: '已退款', FROZEN: '已冻结'
 };
-
-// 与后端 RENEWAL_WARNING_THRESHOLD 默认值对齐（剩余课时预警）
-const RENEWAL_WARNING_THRESHOLD = 5;
-const RENEWAL_CRITICAL_THRESHOLD = Math.floor(RENEWAL_WARNING_THRESHOLD / 2);
 
 // ACTIVE 合同剩余课时 <= 阈值 → warn；<= 阈值一半 → critical
 function calcWarningLevel(status, remaining) {

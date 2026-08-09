@@ -1,9 +1,6 @@
 // pages/parent/child-detail.js
 const { get } = require('../../utils/request');
-
-// 与后端 RENEWAL_WARNING_THRESHOLD 默认值对齐（剩余课时预警）
-const RENEWAL_WARNING_THRESHOLD = 5;
-const RENEWAL_CRITICAL_THRESHOLD = Math.floor(RENEWAL_WARNING_THRESHOLD / 2);
+const { RENEWAL_WARNING_THRESHOLD, RENEWAL_CRITICAL_THRESHOLD } = require('../../utils/renewal-threshold');
 
 // ACTIVE 合同剩余课时 <= 阈值 → warn；<= 阈值一半 → critical
 function calcWarningLevel(status, remaining) {
@@ -115,5 +112,15 @@ Page({
   // 课时不足行动引导：联系机构续费
   goToContact() {
     wx.showToast({ title: '请拨打机构前台电话联系续费', icon: 'none' });
+  },
+
+  // 切换孩子：跳转多孩子列表页（parent/index 全量列表）
+  goToChildSwitch() {
+    wx.navigateTo({
+      url: '/pages/parent/index',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   }
 });
