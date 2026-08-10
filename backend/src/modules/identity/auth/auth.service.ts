@@ -359,12 +359,14 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
+    const role = dto.role === UserRole.TEACHER ? UserRole.TEACHER : UserRole.PARENT;
+
     const user = new User();
     user.username = dto.username;
     user.password = hashedPassword;
     user.mobile = mobile;
     user.name = dto.name;
-    user.role = UserRole.PARENT;
+    user.role = role;
     user.status = UserStatus.ACTIVE;
     user.campusId = 0;
 

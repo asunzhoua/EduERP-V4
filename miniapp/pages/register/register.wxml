@@ -1,8 +1,19 @@
 <!--pages/register/register.wxml-->
 <view class="auth-page">
-  <view class="auth-sub">家长自助注册，无需短信验证</view>
+  <view class="auth-sub">教师 / 家长自助注册，无需短信验证</view>
 
   <view class="auth-form">
+    <view class="role-select">
+      <view class="role-card {{role === 'Teacher' ? 'active' : ''}}" bindtap="onSelectRole" data-role="Teacher">
+        <view class="role-title">我是老师</view>
+        <view class="role-sub">教师账号自助注册</view>
+      </view>
+      <view class="role-card {{role === 'Parent' ? 'active' : ''}}" bindtap="onSelectRole" data-role="Parent">
+        <view class="role-title">我是家长</view>
+        <view class="role-sub">家长账号自助注册</view>
+      </view>
+    </view>
+
     <view class="field">
       <view class="fic ic ic-user"></view>
       <input class="input" placeholder="请输入用户名" placeholder-class="ph"

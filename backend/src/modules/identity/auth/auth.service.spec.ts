@@ -556,6 +556,35 @@ describe('AuthService', () => {
       expect(result).not.toHaveProperty('password');
     });
 
+    it('should create a Teacher user when role is Teacher', async () => {
+      userRepo.findByUsername.mockResolvedValue(null);
+      userRepo.findByMobile.mockResolvedValue(null);
+      mockedBcrypt.hash.mockResolvedValue('hashed-abc' as never);
+      const created = {
+        ...mockUser,
+        id: 11,
+        username: 'teacher1',
+        mobile: '13800000002',
+        name: '测试教师',
+        role: 'Teacher',
+        password: 'hashed-abc',
+      };
+      userRepo.save.mockResolvedValue(created);
+
+      const result = await service.register({
+        username: 'teacher1',
+        password: 'pass123',
+        name: '测试教师',
+        mobile: '13800000002',
+        role: 'Teacher',
+      });
+
+      expect(userRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ role: 'Teacher', status: 1 }),
+      );
+      expect(result).toMatchObject({ role: 'Teacher' });
+    });
+
     it('should throw ConflictException when username already exists', async () => {
       userRepo.findByUsername.mockResolvedValue({
         ...mockUser,

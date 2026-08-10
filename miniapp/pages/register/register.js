@@ -5,12 +5,20 @@ var app = getApp();
 
 Page({
   data: {
+    role: 'Parent',
     username: '',
     name: '',
     mobile: '',
     password: '',
     confirmPassword: '',
     loading: false
+  },
+
+  onSelectRole: function (e) {
+    var role = e.currentTarget.dataset.role;
+    if (role === 'Teacher' || role === 'Parent') {
+      this.setData({ role: role });
+    }
   },
 
   onInput: function (e) {
@@ -51,7 +59,8 @@ Page({
       username: username,
       name: name,
       mobile: mobile,
-      password: password
+      password: password,
+      role: self.data.role
     }).then(function () {
       // 注册成功 → 自动登录
       registered = true;

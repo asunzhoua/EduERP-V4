@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsIn } from 'class-validator';
 
 export class RegisterDto {
   @IsString()
@@ -16,4 +16,8 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty()
   mobile: string;
+
+  @IsOptional()
+  @IsIn(['Parent', 'Teacher'], { message: '角色只能是家长(Parent)或教师(Teacher)' })
+  role?: string;
 }

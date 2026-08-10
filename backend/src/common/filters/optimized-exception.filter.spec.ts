@@ -138,6 +138,34 @@ describe('OptimizedExceptionFilter', () => {
       );
     });
 
+    it('should preserve a specific 409 message (e.g. 用户名已存在)', () => {
+      const exception = new HttpException('用户名已存在', HttpStatus.CONFLICT);
+
+      filter.catch(exception, mockHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(409);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: 409,
+          message: '用户名已存在',
+        })
+      );
+    });
+
+    it('should map a generic 409 Conflict to the generic text', () => {
+      const exception = new HttpException('Conflict', HttpStatus.CONFLICT);
+
+      filter.catch(exception, mockHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(409);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: 409,
+          message: '资源冲突，请检查数据',
+        })
+      );
+    });
+
     it('should handle 404 Not Found', () => {
       const exception = new HttpException('Not Found', HttpStatus.NOT_FOUND);
 

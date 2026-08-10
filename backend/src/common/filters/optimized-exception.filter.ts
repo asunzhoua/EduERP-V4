@@ -83,12 +83,19 @@ export class OptimizedExceptionFilter implements ExceptionFilter {
   }
 
   private optimizeMessage(status: number, message: string): string {
-    // Preserve specific app-authored messages for auth failures (401/403) so users
-    // see the real reason (e.g. 密码错误 / 无权访问该学生的记录) instead of a generic
-    // placeholder. NestJS builds generic English defaults for no-arg exceptions.
-    const isAuthFailure = status === HttpStatus.UNAUTHORIZED || status === HttpStatus.FORBIDDEN;
-    const isGenericDefault = message === 'Unauthorized' || message === 'Forbidden';
-    if (isAuthFailure && message && !isGenericDefault) {
+    // Preserve specific app-authored messages for auth failures (401/403) and
+    // resource conflicts (409) so users see the real reason (e.g. 密码错误 /
+    // 用户名已存在) instead of a generic placeholder. NestJS builds generic
+    // English defaults for no-arg exceptions.
+    const isSpecific =
+      status === HttpStatus.UNAUTHORIZED ||
+      status === HttpStatus.FORBIDDEN ||
+      status === HttpStatus.CONFLICT;
+    const isGenericDefault =
+      message === 'Unauthorized' ||
+      message === 'Forbidden' ||
+      message === 'Conflict';
+    if (isSpecific && message && !isGenericDefault) {
       return message;
     }
 

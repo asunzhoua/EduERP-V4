@@ -18,6 +18,45 @@
   flex-direction: column;
 }
 
+.role-select {
+  display: flex;
+  margin-bottom: 28rpx;
+}
+
+.role-card {
+  flex: 1;
+  border-radius: 24rpx;
+  border: 2rpx solid var(--border, #EDE5DA);
+  background: #FFFFFF;
+  padding: 26rpx 0;
+  text-align: center;
+}
+
+.role-card + .role-card {
+  margin-left: 20rpx;
+}
+
+.role-card.active {
+  border-color: var(--accent-deep, #A64E1D);
+  background: rgba(166, 78, 29, .06);
+}
+
+.role-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--fg, #2E2A25);
+}
+
+.role-card.active .role-title {
+  color: var(--accent-deep, #A64E1D);
+}
+
+.role-sub {
+  font-size: 22rpx;
+  color: var(--faint, #9B9084);
+  margin-top: 6rpx;
+}
+
 .field {
   position: relative;
   margin-bottom: 24rpx;
