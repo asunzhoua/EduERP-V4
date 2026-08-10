@@ -41,7 +41,6 @@ import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { ApiResponse } from '@common/dto/api-response';
 import { CreateParentLeaveRequestDto } from './dto/create-parent-leave-request.dto';
 import { PointsService } from '../points/points.service';
-import { FeedbackService } from '../feedback/feedback.service';
 
 @Controller('students')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -63,7 +62,6 @@ export class StudentController {
     @InjectRepository(CourseEntity)
     private courseRepository: Repository<CourseEntity>,
     private pointsService: PointsService,
-    private feedbackService: FeedbackService,
   ) {}
 
   @Post()
@@ -180,79 +178,16 @@ export class StudentController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    const userId = req.user.sub;
-    const student = await this.studentService.findByUserId(userId);
+    const student = await this.studentService.findByUserId(req.user.sub);
     if (!student) {
       return ApiResponse.error(404, '未找到关联的学生信息');
     }
 
-    const attendanceRecords =
-      await this.lessonAttendanceRepository.findByStudentCode(
-        student.studentCode,
-      );
-
-    // Fetch lesson details
-    const lessonIds = [...new Set(attendanceRecords.map((r) => r.lessonId))];
-    const lessons =
-      lessonIds.length > 0
-        ? await this.lessonRepository.find({ where: { id: In(lessonIds) } })
-        : [];
-    const lessonMap = new Map(lessons.map((l) => [l.id, l]));
-
-    // Get class names
-    const classCodes = [...new Set(lessons.map((l) => l.classCode))];
-    const classes =
-      classCodes.length > 0
-        ? await this.classRepository.find({
-            where: { classCode: In(classCodes) },
-          })
-        : [];
-    const classMap = new Map(classes.map((c) => [c.classCode, c.name]));
-
-    // Get course names
-    const courseCodes = [...new Set(lessons.map((l) => l.courseCode))];
-    const courses =
-      courseCodes.length > 0
-        ? await this.courseRepository.find({
-            where: { courseCode: In(courseCodes) },
-          })
-        : [];
-    const courseMap = new Map(courses.map((c) => [c.courseCode, c.name]));
-
-    // 历史课时日期查询：lesson.scheduledDate 为 'YYYY-MM-DD' 字符串，
-    // 直接按字典序比较即可。from/to 可选，缺省返回全部。
-    // 去掉原 20 条上限，保证按日期区间能查到完整历史。
-    const result = attendanceRecords
-      .map((a) => {
-        const lesson = lessonMap.get(a.lessonId);
-        return {
-          lessonId: a.lessonId,
-          lessonDate: lesson?.scheduledDate || null,
-          startTime: lesson?.startTime || null,
-          endTime: lesson?.endTime || null,
-          status: a.status,
-          lessonStatus: lesson?.status || null,
-          className: lesson ? classMap.get(lesson.classCode) || null : null,
-          courseName: lesson ? courseMap.get(lesson.courseCode) || null : null,
-        };
-      })
-      .filter((r) => {
-        if (!r.lessonDate) return true; // 无日期记录保留，避免数据丢失
-        if (from && r.lessonDate < from) return false;
-        if (to && r.lessonDate > to) return false;
-        return true;
-      });
-
-    // 按日期倒序（历史课时：最近在前），同日期按开始时间倒序
-    result.sort((a, b) => {
-      const ad = a.lessonDate || '';
-      const bd = b.lessonDate || '';
-      if (ad !== bd) return bd.localeCompare(ad);
-      const as = a.startTime || '';
-      const bs = b.startTime || '';
-      return bs.localeCompare(as);
-    });
-
+    const result = await this.studentService.getStudentLessons(
+      student.studentCode,
+      from,
+      to,
+    );
     return ApiResponse.success(result);
   }
 
@@ -328,7 +263,7 @@ export class StudentController {
     if (!student) {
       return ApiResponse.error(404, '未找到关联的学生信息');
     }
-    const data = await this.pointsService.getSummary(student.studentCode);
+    const data = await this.studentService.getStudentPoints(student.studentCode);
     return ApiResponse.success(data);
   }
 
@@ -369,7 +304,7 @@ export class StudentController {
     if (!student) {
       return ApiResponse.error(404, '未找到关联的学生信息');
     }
-    const list = await this.feedbackService.findByStudentCode(
+    const list = await this.studentService.getStudentFeedback(
       student.studentCode,
     );
     return ApiResponse.success(list);
@@ -410,6 +345,46 @@ export class StudentController {
     @CurrentUser() parent: any,
   ) {
     const result = await this.studentService.getChildContracts(
+      parent.sub,
+      childId,
+    );
+    return ApiResponse.success(result);
+  }
+
+  @Get(':childId/lessons')
+  @Roles('Parent')
+  async getChildLessons(
+    @Param('childId', ParseIntPipe) childId: number,
+    @CurrentUser() parent: any,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const result = await this.studentService.getChildLessons(
+      parent.sub,
+      childId,
+      from,
+      to,
+    );
+    return ApiResponse.success(result);
+  }
+
+  @Get(':childId/points')
+  @Roles('Parent')
+  async getChildPoints(
+    @Param('childId', ParseIntPipe) childId: number,
+    @CurrentUser() parent: any,
+  ) {
+    const result = await this.studentService.getChildPoints(parent.sub, childId);
+    return ApiResponse.success(result);
+  }
+
+  @Get(':childId/feedback')
+  @Roles('Parent')
+  async getChildFeedback(
+    @Param('childId', ParseIntPipe) childId: number,
+    @CurrentUser() parent: any,
+  ) {
+    const result = await this.studentService.getChildFeedback(
       parent.sub,
       childId,
     );

@@ -10,7 +10,6 @@ import { ClassEntity } from '../teaching/class/class.entity';
 import { CourseEntity } from '../teaching/course/course.entity';
 import { User } from '../identity/entities/user.entity';
 import { PointsService } from '../points/points.service';
-import { FeedbackService } from '../feedback/feedback.service';
 import { ApiResponse } from '@common/dto/api-response';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -56,9 +55,6 @@ describe('StudentController', () => {
     listOnSaleProducts: jest.fn().mockResolvedValue([]),
     exchange: jest.fn().mockResolvedValue({ id: 1 }),
   };
-  const mockFeedbackService = {
-    findByStudentCode: jest.fn().mockResolvedValue([]),
-  };
 
   beforeAll(async () => {
     service = {
@@ -76,6 +72,12 @@ describe('StudentController', () => {
       getParents: jest.fn().mockResolvedValue([{ id: 2, name: '李四' }]),
       getStudentsByParent: jest.fn().mockResolvedValue([mockStudent]),
       importStudents: jest.fn().mockResolvedValue({ success: 1, failed: 0 }),
+      getStudentLessons: jest.fn().mockResolvedValue([]),
+      getStudentPoints: jest.fn().mockResolvedValue({ balance: 0 }),
+      getStudentFeedback: jest.fn().mockResolvedValue([]),
+      getChildLessons: jest.fn().mockResolvedValue([]),
+      getChildPoints: jest.fn().mockResolvedValue({ balance: 0 }),
+      getChildFeedback: jest.fn().mockResolvedValue([]),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -109,11 +111,14 @@ describe('StudentController', () => {
           useValue: mockCourseRepository,
         },
         { provide: PointsService, useValue: mockPointsService },
-        { provide: FeedbackService, useValue: mockFeedbackService },
       ],
     }).compile();
 
     controller = module.get(StudentController);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('POST /students - create', async () => {
@@ -240,102 +245,85 @@ describe('StudentController', () => {
     });
   });
 
-  it('GET self/lessons - returns all records sorted by date desc when no date params', async () => {
+  it('GET self/lessons - delegates to service (shared assembly)', async () => {
     service.findByUserId.mockResolvedValue(mockStudent);
-    mockAttendanceRepository.findByStudentCode.mockResolvedValue([
-      { id: 1, lessonId: 10, studentCode: 'STU20240001', status: 'PRESENT' },
-      { id: 2, lessonId: 11, studentCode: 'STU20240001', status: 'ABSENT' },
-      { id: 3, lessonId: 12, studentCode: 'STU20240001', status: 'LATE' },
-    ]);
-    mockLessonRepository.find.mockResolvedValue([
-      {
-        id: 10,
-        classCode: 'CL1',
-        courseCode: 'C1',
-        scheduledDate: '2026-08-05',
-        startTime: '09:00',
-        endTime: '10:00',
-      },
-      {
-        id: 11,
-        classCode: 'CL1',
-        courseCode: 'C1',
-        scheduledDate: '2026-08-07',
-        startTime: '09:00',
-        endTime: '10:00',
-      },
-      {
-        id: 12,
-        classCode: 'CL1',
-        courseCode: 'C1',
-        scheduledDate: '2026-08-10',
-        startTime: '09:00',
-        endTime: '10:00',
-      },
-    ]);
-    mockClassRepository.find.mockResolvedValue([
-      { classCode: 'CL1', name: '一班' },
-    ]);
-    mockCourseRepository.find.mockResolvedValue([
-      { courseCode: 'C1', name: '数学' },
+    service.getStudentLessons.mockResolvedValue([
+      { lessonId: 1, lessonDate: '2026-08-10', className: '一班' },
     ]);
 
-    const result = await controller.getSelfLessons(mockReq);
-    expect(result.code).toBe(0);
-    expect(result.data).toHaveLength(3);
-    expect(result.data![0].lessonDate).toBe('2026-08-10');
-    expect(result.data![2].lessonDate).toBe('2026-08-05');
-  });
-
-  it('GET self/lessons - filters by from/to date range', async () => {
-    service.findByUserId.mockResolvedValue(mockStudent);
-    mockAttendanceRepository.findByStudentCode.mockResolvedValue([
-      { id: 1, lessonId: 10, studentCode: 'STU20240001', status: 'PRESENT' },
-      { id: 2, lessonId: 11, studentCode: 'STU20240001', status: 'ABSENT' },
-      { id: 3, lessonId: 12, studentCode: 'STU20240001', status: 'LATE' },
-    ]);
-    mockLessonRepository.find.mockResolvedValue([
-      {
-        id: 10,
-        classCode: 'CL1',
-        courseCode: 'C1',
-        scheduledDate: '2026-08-05',
-        startTime: '09:00',
-        endTime: '10:00',
-      },
-      {
-        id: 11,
-        classCode: 'CL1',
-        courseCode: 'C1',
-        scheduledDate: '2026-08-07',
-        startTime: '09:00',
-        endTime: '10:00',
-      },
-      {
-        id: 12,
-        classCode: 'CL1',
-        courseCode: 'C1',
-        scheduledDate: '2026-08-10',
-        startTime: '09:00',
-        endTime: '10:00',
-      },
-    ]);
-    mockClassRepository.find.mockResolvedValue([
-      { classCode: 'CL1', name: '一班' },
-    ]);
-    mockCourseRepository.find.mockResolvedValue([
-      { courseCode: 'C1', name: '数学' },
-    ]);
-
-    // 8/1 → 8/8 区间内应只有 8/5 与 8/7 两条，按日期倒序 8/7 在前
     const result = await controller.getSelfLessons(
       mockReq,
       '2026-08-01',
-      '2026-08-08',
+      '2026-08-31',
     );
     expect(result.code).toBe(0);
-    expect(result.data).toHaveLength(2);
-    expect(result.data![0].lessonDate).toBe('2026-08-07');
-    expect(result.data![1].lessonDate).toBe('2026-08-05');
+    expect(result.data).toHaveLength(1);
+    expect(service.getStudentLessons).toHaveBeenCalledWith(
+      'STU20240001',
+      '2026-08-01',
+      '2026-08-31',
+    );
+  });
+
+  it('GET self/lessons - 404 when no linked student', async () => {
+    service.findByUserId.mockResolvedValue(null);
+    const result = await controller.getSelfLessons(mockReq);
+    expect(result.code).toBe(404);
+    expect(service.getStudentLessons).not.toHaveBeenCalled();
+  });
+
+  it('GET self/points - delegates to service', async () => {
+    service.findByUserId.mockResolvedValue(mockStudent);
+    service.getStudentPoints.mockResolvedValue({ balance: 30 });
+
+    const result = await controller.getSelfPoints(mockReq);
+    expect(result.code).toBe(0);
+    expect(service.getStudentPoints).toHaveBeenCalledWith('STU20240001');
+  });
+
+  it('GET self/feedback - delegates to service', async () => {
+    service.findByUserId.mockResolvedValue(mockStudent);
+    service.getStudentFeedback.mockResolvedValue([{ id: 1 }]);
+
+    const result = await controller.getSelfFeedback(mockReq);
+    expect(result.code).toBe(0);
+    expect(service.getStudentFeedback).toHaveBeenCalledWith('STU20240001');
+  });
+
+  it('GET /students/:childId/lessons - delegates to service', async () => {
+    service.getChildLessons.mockResolvedValue([{ lessonId: 1 }]);
+
+    const result = await controller.getChildLessons(
+      5 as any,
+      { sub: 2 } as any,
+      '2026-08-01',
+      '2026-08-31',
+    );
+    expect(result.code).toBe(0);
+    expect(service.getChildLessons).toHaveBeenCalledWith(
+      2,
+      5,
+      '2026-08-01',
+      '2026-08-31',
+    );
+  });
+
+  it('GET /students/:childId/points - delegates to service', async () => {
+    service.getChildPoints.mockResolvedValue({ balance: 50 });
+
+    const result = await controller.getChildPoints(5 as any, { sub: 2 } as any);
+    expect(result.code).toBe(0);
+    expect(service.getChildPoints).toHaveBeenCalledWith(2, 5);
+  });
+
+  it('GET /students/:childId/feedback - delegates to service', async () => {
+    service.getChildFeedback.mockResolvedValue([{ id: 1 }]);
+
+    const result = await controller.getChildFeedback(
+      5 as any,
+      { sub: 2 } as any,
+    );
+    expect(result.code).toBe(0);
+    expect(service.getChildFeedback).toHaveBeenCalledWith(2, 5);
   });
 });

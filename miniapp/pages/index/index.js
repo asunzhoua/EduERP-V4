@@ -117,52 +117,45 @@ Page({
     const role = this.data.role;
 
     if (role === 'Student' || role === 'Parent') {
-      // 学生端数据：全失败才错误态，部分失败容错（保留已成功数据）
+      // 学生/家长端数据：全失败才错误态，部分失败容错（保留已成功数据）
+      // 家长没有学生身份，self 端点按 userId 解析会 404，必须走孩子维度端点
       let failed = 0;
-      const [contracts, lessons, unread, points, feedback] = await Promise.all([
-        get('/students/self/contracts').catch(() => { failed += 1; return []; }),
-        get('/students/self/lessons').catch(() => { failed += 1; return []; }),
-        get('/reminders/unread-count').catch(() => { failed += 1; return { count: 0 }; }),
-        get('/students/self/points').catch(() => { failed += 1; return { balance: 0 }; }),
-        get('/students/self/feedback').catch(() => { failed += 1; return []; })
-      ]);
+      let contracts, lessons, unread, points, feedback;
+
+      if (role === 'Parent') {
+        // 先确保 children 已加载（避免 loadDashboard 早于 loadChildren 完成的竞态）
+        if (!this.data.children || this.data.children.length === 0) {
+          await this.loadChildren();
+        }
+        const children = this.data.children || [];
+        if (children.length === 0) {
+          // 无关联孩子：空态
+          this.applyStudentHomeData([], [], { count: 0 }, { balance: 0 }, []);
+          return;
+        }
+        const childId = children[0].id;
+        [contracts, lessons, unread, points, feedback] = await Promise.all([
+          get('/students/' + childId + '/contracts').catch(() => { failed += 1; return []; }),
+          get('/students/' + childId + '/lessons').catch(() => { failed += 1; return []; }),
+          get('/reminders/unread-count').catch(() => { failed += 1; return { count: 0 }; }),
+          get('/students/' + childId + '/points').catch(() => { failed += 1; return { balance: 0 }; }),
+          get('/students/' + childId + '/feedback').catch(() => { failed += 1; return []; })
+        ]);
+      } else {
+        [contracts, lessons, unread, points, feedback] = await Promise.all([
+          get('/students/self/contracts').catch(() => { failed += 1; return []; }),
+          get('/students/self/lessons').catch(() => { failed += 1; return []; }),
+          get('/reminders/unread-count').catch(() => { failed += 1; return { count: 0 }; }),
+          get('/students/self/points').catch(() => { failed += 1; return { balance: 0 }; }),
+          get('/students/self/feedback').catch(() => { failed += 1; return []; })
+        ]);
+      }
+
       if (failed === 5) {
         this.setData({ error: '数据加载失败，请稍后重试', loading: false });
         return;
       }
-      const contractList = Array.isArray(contracts) ? contracts : [];
-      const lessonList = Array.isArray(lessons) ? lessons : [];
-
-      const totalLessons = contractList.reduce((s, c) => s + (c.totalLessons || 0), 0);
-      const remainingLessons = contractList.reduce((s, c) => s + (c.remainingLessons || 0), 0);
-      const usedLessons = totalLessons - remainingLessons;
-      const overallProgress = totalLessons > 0 ? Math.round(usedLessons / totalLessons * 100) : 0;
-
-      const today = this.todayStr();
-      const todayClasses = lessonList
-        .filter(l => l.lessonDate === today)
-        .slice(0, 4)
-        .map(l => ({ ...l, isPast: this.isLessonPast(l) }));
-
-      // 课时预警（D-3）：剩余 ≤ 预警阈值 或 ≤20%，先到先触发（阈值集中配置在 utils/renewal-threshold.js）
-      const isLowBalance = remainingLessons > 0 &&
-        (remainingLessons <= RENEWAL_WARNING_THRESHOLD || (totalLessons > 0 && remainingLessons / totalLessons <= 0.2));
-
-      const recentLessons = lessonList.slice(0, 5).map(l => ({
-        ...l,
-        statusText: statusText(l.status)
-      }));
-
-      this.setData({
-        recentLessons,
-        overviewStats: { totalLessons, usedLessons, remainingLessons, overallProgress },
-        todayClasses,
-        isLowBalance,
-        unreadCount: (unread && unread.count) || 0,
-        pointsBalance: (points && points.balance) || 0,
-        recentFeedback: (Array.isArray(feedback) ? feedback : []).slice(0, 3),
-        loading: false
-      });
+      this.applyStudentHomeData(contracts, lessons, unread, points, feedback);
     } else {
       // 教师端数据
       try {
@@ -172,7 +165,7 @@ Page({
         ]);
 
         const totalClasses = data.totalClasses || (classesData && classesData.total) || 0;
-        
+
         this.setData({
           todayLessons: data.todayLessons || 0,
           pendingAttendance: data.pendingAttendance || 0,
@@ -183,7 +176,7 @@ Page({
 
       } catch (err) {
         console.error('[Dashboard] 教师端加载失败:', err);
-        
+
         this.setData({
           error: err.message || '加载失败',
           loading: false,
@@ -198,6 +191,43 @@ Page({
         }
       }
     }
+  },
+
+  // 学生/家长首页共享的数据组装（self 与孩子维度端点返回结构一致，复用同一视图）
+  applyStudentHomeData(contracts, lessons, unread, points, feedback) {
+    const contractList = Array.isArray(contracts) ? contracts : [];
+    const lessonList = Array.isArray(lessons) ? lessons : [];
+
+    const totalLessons = contractList.reduce((s, c) => s + (c.totalLessons || 0), 0);
+    const remainingLessons = contractList.reduce((s, c) => s + (c.remainingLessons || 0), 0);
+    const usedLessons = totalLessons - remainingLessons;
+    const overallProgress = totalLessons > 0 ? Math.round(usedLessons / totalLessons * 100) : 0;
+
+    const today = this.todayStr();
+    const todayClasses = lessonList
+      .filter(l => l.lessonDate === today)
+      .slice(0, 4)
+      .map(l => ({ ...l, isPast: this.isLessonPast(l) }));
+
+    // 课时预警（D-3）：剩余 ≤ 预警阈值 或 ≤20%，先到先触发（阈值集中配置在 utils/renewal-threshold.js）
+    const isLowBalance = remainingLessons > 0 &&
+      (remainingLessons <= RENEWAL_WARNING_THRESHOLD || (totalLessons > 0 && remainingLessons / totalLessons <= 0.2));
+
+    const recentLessons = lessonList.slice(0, 5).map(l => ({
+      ...l,
+      statusText: statusText(l.status)
+    }));
+
+    this.setData({
+      recentLessons,
+      overviewStats: { totalLessons, usedLessons, remainingLessons, overallProgress },
+      todayClasses,
+      isLowBalance,
+      unreadCount: (unread && unread.count) || 0,
+      pointsBalance: (points && points.balance) || 0,
+      recentFeedback: (Array.isArray(feedback) ? feedback : []).slice(0, 3),
+      loading: false
+    });
   },
 
   // 重新加载

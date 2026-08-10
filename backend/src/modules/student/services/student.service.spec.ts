@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { StudentService } from './student.service';
 import { StudentRepository } from '../student.repository';
 import { Student } from '../entities/student.entity';
@@ -17,6 +21,9 @@ import { LeaveRequestEntity } from '@modules/teaching/leave-request/leave-reques
 import { EnrollmentEntity } from '@modules/teaching/enrollment/enrollment.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
 import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
+import { ClassEntity } from '@modules/teaching/class/class.entity';
+import { PointsService } from '@modules/points/points.service';
+import { FeedbackService } from '@modules/feedback/feedback.service';
 
 describe('StudentService', () => {
   let service: StudentService;
@@ -25,6 +32,12 @@ describe('StudentService', () => {
   let studentAuditLogRepo: jest.Mocked<any>;
   let codeGenerator: jest.Mocked<StudentCodeGeneratorService>;
   let importService: jest.Mocked<ImportService>;
+  let lessonAttendanceRepo: jest.Mocked<any>;
+  let lessonRepo: jest.Mocked<any>;
+  let classRepo: jest.Mocked<any>;
+  let courseRepo: jest.Mocked<any>;
+  let pointsService: jest.Mocked<any>;
+  let feedbackService: jest.Mocked<any>;
 
   const mockStudent: Student = {
     id: 1,
@@ -103,6 +116,23 @@ describe('StudentService', () => {
       find: jest.fn().mockResolvedValue([]),
     };
 
+    const mockClassRepo = {
+      find: jest.fn().mockResolvedValue([]),
+    };
+
+    const mockPointsService = {
+      getSummary: jest.fn().mockResolvedValue({
+        balance: 0,
+        totalEarned: 0,
+        totalSpent: 0,
+        transactions: [],
+      }),
+    };
+
+    const mockFeedbackService = {
+      findByStudentCode: jest.fn().mockResolvedValue([]),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StudentService,
@@ -129,6 +159,9 @@ describe('StudentService', () => {
         },
         { provide: getRepositoryToken(CourseEntity), useValue: mockCourseRepo },
         { provide: getRepositoryToken(LessonEntity), useValue: mockLessonRepo },
+        { provide: getRepositoryToken(ClassEntity), useValue: mockClassRepo },
+        { provide: PointsService, useValue: mockPointsService },
+        { provide: FeedbackService, useValue: mockFeedbackService },
       ],
     }).compile();
 
@@ -138,6 +171,12 @@ describe('StudentService', () => {
     studentAuditLogRepo = module.get(getRepositoryToken(StudentAuditLog));
     codeGenerator = module.get(StudentCodeGeneratorService);
     importService = module.get(ImportService);
+    lessonAttendanceRepo = module.get(LessonAttendanceRepository);
+    lessonRepo = module.get(getRepositoryToken(LessonEntity));
+    classRepo = module.get(getRepositoryToken(ClassEntity));
+    courseRepo = module.get(getRepositoryToken(CourseEntity));
+    pointsService = module.get(PointsService);
+    feedbackService = module.get(FeedbackService);
   });
 
   afterEach(() => {
@@ -260,6 +299,123 @@ describe('StudentService', () => {
       expect(studentRepo.save).toHaveBeenCalled();
       const savedStudent = studentRepo.save.mock.calls[0][0];
       expect(savedStudent.deleted).toBe(true);
+    });
+  });
+
+  // ─── getStudentLessons (shared self/child assembly) ───
+
+  describe('getStudentLessons', () => {
+    const att = [
+      { id: 1, lessonId: 10, studentCode: 'STU2026070001', status: 'PRESENT' },
+      { id: 2, lessonId: 11, studentCode: 'STU2026070001', status: 'ABSENT' },
+      { id: 3, lessonId: 12, studentCode: 'STU2026070001', status: 'LATE' },
+    ];
+    const lessons = [
+      {
+        id: 10,
+        classCode: 'CL1',
+        courseCode: 'C1',
+        scheduledDate: '2026-08-05',
+        startTime: '09:00',
+        endTime: '10:00',
+      },
+      {
+        id: 11,
+        classCode: 'CL1',
+        courseCode: 'C1',
+        scheduledDate: '2026-08-07',
+        startTime: '09:00',
+        endTime: '10:00',
+      },
+      {
+        id: 12,
+        classCode: 'CL1',
+        courseCode: 'C1',
+        scheduledDate: '2026-08-10',
+        startTime: '09:00',
+        endTime: '10:00',
+      },
+    ];
+
+    it('returns records sorted by date desc with class/course names', async () => {
+      lessonAttendanceRepo.findByStudentCode.mockResolvedValue(att);
+      lessonRepo.find.mockResolvedValue(lessons);
+      classRepo.find.mockResolvedValue([{ classCode: 'CL1', name: '一班' }]);
+      courseRepo.find.mockResolvedValue([{ courseCode: 'C1', name: '数学' }]);
+
+      const result = await service.getStudentLessons('STU2026070001');
+      expect(result).toHaveLength(3);
+      expect(result[0].lessonDate).toBe('2026-08-10');
+      expect(result[2].lessonDate).toBe('2026-08-05');
+      expect(result[0].className).toBe('一班');
+      expect(result[0].courseName).toBe('数学');
+    });
+
+    it('filters by from/to date range', async () => {
+      lessonAttendanceRepo.findByStudentCode.mockResolvedValue(att);
+      lessonRepo.find.mockResolvedValue(lessons);
+      classRepo.find.mockResolvedValue([{ classCode: 'CL1', name: '一班' }]);
+      courseRepo.find.mockResolvedValue([{ courseCode: 'C1', name: '数学' }]);
+
+      const result = await service.getStudentLessons(
+        'STU2026070001',
+        '2026-08-01',
+        '2026-08-08',
+      );
+      expect(result).toHaveLength(2);
+      expect(result[0].lessonDate).toBe('2026-08-07');
+      expect(result[1].lessonDate).toBe('2026-08-05');
+    });
+  });
+
+  // ─── child-scoped endpoints (assertParentChild) ───
+
+  describe('child-scoped', () => {
+    beforeEach(() => {
+      studentParentRepo.findOne.mockResolvedValue({
+        id: 1,
+        parentId: 1,
+        studentId: 2,
+      });
+      studentRepo.findById.mockResolvedValue({ ...mockStudent, id: 2 });
+    });
+
+    it('getChildLessons delegates to getStudentLessons with child code', async () => {
+      lessonAttendanceRepo.findByStudentCode.mockResolvedValue([]);
+      const result = await service.getChildLessons(1, 2);
+      expect(result).toEqual([]);
+      expect(lessonAttendanceRepo.findByStudentCode).toHaveBeenCalledWith(
+        'STU2026070001',
+      );
+    });
+
+    it('getChildPoints delegates to points service', async () => {
+      pointsService.getSummary.mockResolvedValue({ balance: 50 });
+      const result = await service.getChildPoints(1, 2);
+      expect(result).toEqual({ balance: 50 });
+      expect(pointsService.getSummary).toHaveBeenCalledWith('STU2026070001');
+    });
+
+    it('getChildFeedback delegates to feedback service', async () => {
+      feedbackService.findByStudentCode.mockResolvedValue([{ id: 1 }]);
+      const result = await service.getChildFeedback(1, 2);
+      expect(result).toEqual([{ id: 1 }]);
+      expect(feedbackService.findByStudentCode).toHaveBeenCalledWith(
+        'STU2026070001',
+      );
+    });
+
+    it('throws ForbiddenException when no parent-child relationship', async () => {
+      studentParentRepo.findOne.mockResolvedValue(null);
+      await expect(service.getChildLessons(1, 2)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.getChildPoints(1, 2)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.getChildFeedback(1, 2)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

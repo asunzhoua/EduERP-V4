@@ -31,6 +31,9 @@ import { CreateParentLeaveRequestDto } from '../dto/create-parent-leave-request.
 import { EnrollmentEntity } from '@modules/teaching/enrollment/enrollment.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
 import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
+import { ClassEntity } from '@modules/teaching/class/class.entity';
+import { PointsService } from '@modules/points/points.service';
+import { FeedbackService } from '@modules/feedback/feedback.service';
 
 @Injectable()
 export class StudentService {
@@ -52,6 +55,10 @@ export class StudentService {
     private courseRepository: Repository<CourseEntity>,
     @InjectRepository(LessonEntity)
     private lessonRepository: Repository<LessonEntity>,
+    @InjectRepository(ClassEntity)
+    private classRepository: Repository<ClassEntity>,
+    private pointsService: PointsService,
+    private feedbackService: FeedbackService,
   ) {}
 
   async create(
@@ -377,11 +384,13 @@ export class StudentService {
   // --- Parent-Child Scoped API (GAP-001) ---
 
   /**
-   * Get courses for a child student, verifying parent-child relationship.
-   * Returns contract/course info linked to the child.
+   * Verify a parent-child relationship and resolve the child student.
+   * Single shared guard for all child-scoped endpoints.
    */
-  async getChildCourses(parentId: number, childId: number) {
-    // Verify Parent-Child relationship
+  private async assertParentChild(
+    parentId: number,
+    childId: number,
+  ): Promise<Student> {
     const relation = await this.studentParentRepository.findOne({
       where: { parentId, studentId: childId },
     });
@@ -390,11 +399,19 @@ export class StudentService {
       throw new ForbiddenException('No parent-child relationship');
     }
 
-    // Get child student to resolve studentCode
     const student = await this.studentRepository.findById(childId);
     if (!student) {
       throw new NotFoundException(`Student not found (ID: ${childId})`);
     }
+    return student;
+  }
+
+  /**
+   * Get courses for a child student, verifying parent-child relationship.
+   * Returns contract/course info linked to the child.
+   */
+  async getChildCourses(parentId: number, childId: number) {
+    const student = await this.assertParentChild(parentId, childId);
 
     // Find contracts for this student (represents their enrolled courses)
     const contracts = await this.contractRepository.findByStudentCode(
@@ -431,20 +448,7 @@ export class StudentService {
    * Get attendance records for a child student, verifying parent-child relationship.
    */
   async getChildAttendance(parentId: number, childId: number) {
-    // Verify Parent-Child relationship
-    const relation = await this.studentParentRepository.findOne({
-      where: { parentId, studentId: childId },
-    });
-
-    if (!relation) {
-      throw new ForbiddenException('No parent-child relationship');
-    }
-
-    // Get child student to resolve studentCode
-    const student = await this.studentRepository.findById(childId);
-    if (!student) {
-      throw new NotFoundException(`Student not found (ID: ${childId})`);
-    }
+    const student = await this.assertParentChild(parentId, childId);
 
     // Find attendance records for this student
     const attendances = await this.lessonAttendanceRepository.findByStudentCode(
@@ -482,23 +486,114 @@ export class StudentService {
    * Get contracts for a child student, verifying parent-child relationship.
    */
   async getChildContracts(parentId: number, childId: number) {
-    // Verify Parent-Child relationship
-    const relation = await this.studentParentRepository.findOne({
-      where: { parentId, studentId: childId },
-    });
-
-    if (!relation) {
-      throw new ForbiddenException('No parent-child relationship');
-    }
-
-    // Get child student to resolve studentCode
-    const student = await this.studentRepository.findById(childId);
-    if (!student) {
-      throw new NotFoundException(`Student not found (ID: ${childId})`);
-    }
+    const student = await this.assertParentChild(parentId, childId);
 
     // Find contracts for this student
     return this.contractRepository.findByStudentCode(student.studentCode);
+  }
+
+  // --- Shared lessons/points/feedback assembly (self + child reuse) ---
+
+  /**
+   * Assemble attendance-derived lesson history for a studentCode.
+   * Shared by self endpoints and child-scoped parent endpoints so both
+   * return the identical shape.
+   */
+  async getStudentLessons(studentCode: string, from?: string, to?: string) {
+    const attendanceRecords =
+      await this.lessonAttendanceRepository.findByStudentCode(studentCode);
+
+    // Fetch lesson details
+    const lessonIds = [...new Set(attendanceRecords.map((r) => r.lessonId))];
+    const lessons =
+      lessonIds.length > 0
+        ? await this.lessonRepository.find({ where: { id: In(lessonIds) } })
+        : [];
+    const lessonMap = new Map(lessons.map((l) => [l.id, l]));
+
+    // Get class names
+    const classCodes = [...new Set(lessons.map((l) => l.classCode))];
+    const classes =
+      classCodes.length > 0
+        ? await this.classRepository.find({
+            where: { classCode: In(classCodes) },
+          })
+        : [];
+    const classMap = new Map(classes.map((c) => [c.classCode, c.name]));
+
+    // Get course names
+    const courseCodes = [...new Set(lessons.map((l) => l.courseCode))];
+    const courses =
+      courseCodes.length > 0
+        ? await this.courseRepository.find({
+            where: { courseCode: In(courseCodes) },
+          })
+        : [];
+    const courseMap = new Map(courses.map((c) => [c.courseCode, c.name]));
+
+    // 历史课时日期查询：lesson.scheduledDate 为 'YYYY-MM-DD' 字符串，
+    // 直接按字典序比较即可。from/to 可选，缺省返回全部。
+    // 去掉原 20 条上限，保证按日期区间能查到完整历史。
+    const result = attendanceRecords
+      .map((a) => {
+        const lesson = lessonMap.get(a.lessonId);
+        return {
+          lessonId: a.lessonId,
+          lessonDate: lesson?.scheduledDate || null,
+          startTime: lesson?.startTime || null,
+          endTime: lesson?.endTime || null,
+          status: a.status,
+          lessonStatus: lesson?.status || null,
+          className: lesson ? classMap.get(lesson.classCode) || null : null,
+          courseName: lesson ? courseMap.get(lesson.courseCode) || null : null,
+        };
+      })
+      .filter((r) => {
+        if (!r.lessonDate) return true; // 无日期记录保留，避免数据丢失
+        if (from && r.lessonDate < from) return false;
+        if (to && r.lessonDate > to) return false;
+        return true;
+      });
+
+    // 按日期倒序（历史课时：最近在前），同日期按开始时间倒序
+    result.sort((a, b) => {
+      const ad = a.lessonDate || '';
+      const bd = b.lessonDate || '';
+      if (ad !== bd) return bd.localeCompare(ad);
+      const as = a.startTime || '';
+      const bs = b.startTime || '';
+      return bs.localeCompare(as);
+    });
+
+    return result;
+  }
+
+  async getStudentPoints(studentCode: string) {
+    return this.pointsService.getSummary(studentCode);
+  }
+
+  async getStudentFeedback(studentCode: string) {
+    return this.feedbackService.findByStudentCode(studentCode);
+  }
+
+  async getChildLessons(
+    parentId: number,
+    childId: number,
+    from?: string,
+    to?: string,
+  ) {
+    const student = await this.assertParentChild(parentId, childId);
+    return this.getStudentLessons(student.studentCode, from, to);
+  }
+
+  async getChildPoints(parentId: number, childId: number) {
+    const student = await this.assertParentChild(parentId, childId);
+    return this.getStudentPoints(student.studentCode);
+  }
+
+  async getChildFeedback(parentId: number, childId: number) {
+    const student = await this.assertParentChild(parentId, childId);
+    return this.getStudentFeedback(student.studentCode);
   }
 
   // --- Parent Leave Request (GAP-002) ---
