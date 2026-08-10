@@ -11,10 +11,30 @@ describe('LessonExceptionController', () => {
 
   // ─── Mock Users ───
 
-  const adminUser = { sub: 1, username: 'admin', role: 'Admin', name: '管理员' };
-  const superAdminUser = { sub: 2, username: 'superadmin', role: 'SuperAdmin', name: '超级管理员' };
-  const teacherUser = { sub: 100, username: 'teacher1', role: 'Teacher', name: '张老师' };
-  const parentUser = { sub: 200, username: 'parent1', role: 'Parent', name: '李家长' };
+  const adminUser = {
+    sub: 1,
+    username: 'admin',
+    role: 'Admin',
+    name: '管理员',
+  };
+  const superAdminUser = {
+    sub: 2,
+    username: 'superadmin',
+    role: 'SuperAdmin',
+    name: '超级管理员',
+  };
+  const teacherUser = {
+    sub: 100,
+    username: 'teacher1',
+    role: 'Teacher',
+    name: '张老师',
+  };
+  const parentUser = {
+    sub: 200,
+    username: 'parent1',
+    role: 'Parent',
+    name: '李家长',
+  };
 
   // ─── Mock Exception ───
 
@@ -74,12 +94,12 @@ describe('LessonExceptionController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LessonExceptionController],
-      providers: [
-        { provide: LessonExceptionService, useValue: mockService },
-      ],
+      providers: [{ provide: LessonExceptionService, useValue: mockService }],
     }).compile();
 
-    controller = module.get<LessonExceptionController>(LessonExceptionController);
+    controller = module.get<LessonExceptionController>(
+      LessonExceptionController,
+    );
     service = module.get(LessonExceptionService);
   });
 
@@ -93,23 +113,33 @@ describe('LessonExceptionController', () => {
 
   describe('权限控制 - findAll', () => {
     it('管理员可以查看全部异常', async () => {
-      service.findAllExceptionsWithQuery.mockResolvedValue([mockException as any]);
+      service.findAllExceptionsWithQuery.mockResolvedValue([
+        mockException as any,
+      ]);
 
       const query: QueryExceptionDto = {};
       const result = await controller.findAll(query, adminUser);
 
-      expect(service.findAllExceptionsWithQuery).toHaveBeenCalledWith(query, adminUser);
+      expect(service.findAllExceptionsWithQuery).toHaveBeenCalledWith(
+        query,
+        adminUser,
+      );
       expect(result).toBeDefined();
       expect(result.code).toBe(0); // ApiResponse.success() uses code=0
     });
 
     it('教师查询时传入教师身份', async () => {
-      service.findAllExceptionsWithQuery.mockResolvedValue([mockException as any]);
+      service.findAllExceptionsWithQuery.mockResolvedValue([
+        mockException as any,
+      ]);
 
       const query: QueryExceptionDto = {};
       const result = await controller.findAll(query, teacherUser);
 
-      expect(service.findAllExceptionsWithQuery).toHaveBeenCalledWith(query, teacherUser);
+      expect(service.findAllExceptionsWithQuery).toHaveBeenCalledWith(
+        query,
+        teacherUser,
+      );
       expect(result).toBeDefined();
     });
 
@@ -119,12 +149,17 @@ describe('LessonExceptionController', () => {
       const query: QueryExceptionDto = {};
       const result = await controller.findAll(query, parentUser);
 
-      expect(service.findAllExceptionsWithQuery).toHaveBeenCalledWith(query, parentUser);
+      expect(service.findAllExceptionsWithQuery).toHaveBeenCalledWith(
+        query,
+        parentUser,
+      );
       expect(result).toBeDefined();
     });
 
     it('支持按 status 过滤', async () => {
-      service.findAllExceptionsWithQuery.mockResolvedValue([mockException as any]);
+      service.findAllExceptionsWithQuery.mockResolvedValue([
+        mockException as any,
+      ]);
 
       const query: QueryExceptionDto = { status: 'PENDING' };
       await controller.findAll(query, adminUser);
@@ -136,7 +171,9 @@ describe('LessonExceptionController', () => {
     });
 
     it('支持按 exceptionType 过滤', async () => {
-      service.findAllExceptionsWithQuery.mockResolvedValue([mockException as any]);
+      service.findAllExceptionsWithQuery.mockResolvedValue([
+        mockException as any,
+      ]);
 
       const query: QueryExceptionDto = { exceptionType: 'LEAVE_SICK' };
       await controller.findAll(query, adminUser);
@@ -151,7 +188,9 @@ describe('LessonExceptionController', () => {
   describe('权限控制 - findOne', () => {
     it('管理员可以查看任意异常详情', async () => {
       service.canAccessException.mockResolvedValue(true);
-      service.findExceptionByIdWithRelations.mockResolvedValue(mockException as any);
+      service.findExceptionByIdWithRelations.mockResolvedValue(
+        mockException as any,
+      );
       service.findExceptionsLogsByException.mockResolvedValue([]);
       service.findRescheduleByExceptionId.mockResolvedValue(null);
 
@@ -173,9 +212,15 @@ describe('LessonExceptionController', () => {
 
     it('返回结果包含 logs 和 reschedule 信息', async () => {
       service.canAccessException.mockResolvedValue(true);
-      service.findExceptionByIdWithRelations.mockResolvedValue(mockException as any);
-      service.findExceptionsLogsByException.mockResolvedValue([{ id: 1, fromStatus: 'PENDING', toStatus: 'APPROVED' } as any]);
-      service.findRescheduleByExceptionId.mockResolvedValue(mockReschedule as any);
+      service.findExceptionByIdWithRelations.mockResolvedValue(
+        mockException as any,
+      );
+      service.findExceptionsLogsByException.mockResolvedValue([
+        { id: 1, fromStatus: 'PENDING', toStatus: 'APPROVED' } as any,
+      ]);
+      service.findRescheduleByExceptionId.mockResolvedValue(
+        mockReschedule as any,
+      );
 
       const result = await controller.findOne(1, adminUser);
 
@@ -187,7 +232,10 @@ describe('LessonExceptionController', () => {
 
   describe('权限控制 - approve', () => {
     it('管理员可以审批异常', async () => {
-      service.approve.mockResolvedValue({ ...mockException, status: 'APPROVED' } as any);
+      service.approve.mockResolvedValue({
+        ...mockException,
+        status: 'APPROVED',
+      } as any);
 
       const dto: ApproveExceptionDto = { remark: '同意请假' };
       const result = await controller.approve(1, dto, adminUser);
@@ -203,7 +251,9 @@ describe('LessonExceptionController', () => {
         ...mockException,
         lesson: { ...mockException.lesson, teacherId: 100 }, // teacherUser.sub === 100
       };
-      service.findExceptionByIdWithRelations.mockResolvedValue(teacherException as any);
+      service.findExceptionByIdWithRelations.mockResolvedValue(
+        teacherException as any,
+      );
 
       const dto: ApproveExceptionDto = { remark: '同意' };
 
@@ -223,8 +273,13 @@ describe('LessonExceptionController', () => {
         ...mockException,
         lesson: { ...mockException.lesson, teacherId: 999 },
       };
-      service.findExceptionByIdWithRelations.mockResolvedValue(otherTeacherException as any);
-      service.approve.mockResolvedValue({ ...otherTeacherException, status: 'APPROVED' } as any);
+      service.findExceptionByIdWithRelations.mockResolvedValue(
+        otherTeacherException as any,
+      );
+      service.approve.mockResolvedValue({
+        ...otherTeacherException,
+        status: 'APPROVED',
+      } as any);
 
       const dto: ApproveExceptionDto = { remark: '同意' };
 
@@ -238,7 +293,9 @@ describe('LessonExceptionController', () => {
   describe('权限控制 - findReschedule', () => {
     it('管理员可以查看补课安排', async () => {
       service.canAccessException.mockResolvedValue(true);
-      service.findRescheduleByExceptionId.mockResolvedValue(mockReschedule as any);
+      service.findRescheduleByExceptionId.mockResolvedValue(
+        mockReschedule as any,
+      );
 
       const result = await controller.findReschedule(1, adminUser);
 

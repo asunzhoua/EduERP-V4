@@ -154,7 +154,9 @@ describe('LessonExceptionService', () => {
     exceptionRepo = module.get(getRepositoryToken(LessonExceptionEntity));
     exceptionLogRepo = module.get(getRepositoryToken(LessonExceptionLogEntity));
     rescheduleRepo = module.get(getRepositoryToken(LessonRescheduleEntity));
-    attachmentRepo = module.get(getRepositoryToken(LessonExceptionAttachmentEntity));
+    attachmentRepo = module.get(
+      getRepositoryToken(LessonExceptionAttachmentEntity),
+    );
     lessonRepo = module.get(getRepositoryToken(LessonEntity));
     lessonService = module.get(LessonService);
     eventBus = module.get(EventBusService);
@@ -190,20 +192,29 @@ describe('LessonExceptionService', () => {
       expect(result.lessonId).toBe(1);
     });
 
-    it('should reject sick leave without attachments', async () => {
+    it('should allow sick leave without attachments', async () => {
       lessonRepo.findOne.mockResolvedValue({ ...mockLesson });
+      exceptionRepo.save.mockResolvedValue({
+        ...mockException,
+        id: 1,
+        exceptionType: 'LEAVE_SICK',
+        attachments: null,
+      });
+      exceptionLogRepo.save.mockResolvedValue({} as any);
 
-      await expect(
-        service.applyLeave(
-          1,
-          'LEAVE_SICK',
-          '感冒发烧',
-          new Date('2026-07-12T08:00:00Z'),
-          new Date('2026-07-12T12:00:00Z'),
-          [],
-          1001,
-        ),
-      ).rejects.toThrow(BadRequestException);
+      const result = await service.applyLeave(
+        1,
+        'LEAVE_SICK',
+        '感冒发烧',
+        new Date('2026-07-12T08:00:00Z'),
+        new Date('2026-07-12T12:00:00Z'),
+        [],
+        1001,
+      );
+
+      expect(result.status).toBe('PENDING');
+      expect(result.exceptionType).toBe('LEAVE_SICK');
+      expect(result.lessonId).toBe(1);
     });
 
     it('should approve sick leave and change lesson to CANCELLED', async () => {
@@ -628,9 +639,9 @@ describe('LessonExceptionService', () => {
         isMakeup: false,
       });
 
-      await expect(
-        service.completeMakeupLesson(1),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.completeMakeupLesson(1)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -668,9 +679,9 @@ describe('LessonExceptionService', () => {
         status: 'APPROVED',
       });
 
-      await expect(
-        service.reject(1, 2001, '理由'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.reject(1, 2001, '理由')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 

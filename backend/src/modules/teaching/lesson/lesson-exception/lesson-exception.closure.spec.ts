@@ -317,8 +317,67 @@ describe('Lesson Exception Closure Audit', () => {
       expect(result.lessonId).toBe(1);
     });
 
-    it('病假必须上传附件', async () => {
+    it('病假不再强制上传附件', async () => {
       lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
+      exceptionRepo.save.mockResolvedValue({ ...mockExceptionSick, id: 102 });
+      exceptionLogRepo.save.mockResolvedValue({} as any);
+
+      const result = await exceptionService.applyLeave(
+        1,
+        'LEAVE_SICK',
+        '感冒',
+        new Date(),
+        new Date(),
+        [],
+        1001,
+      );
+      expect(result.exceptionType).toBe('LEAVE_SICK');
+    });
+
+    it('家长（有孩子在该班级）可提交请假', async () => {
+      lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
+      exceptionRepo.save.mockResolvedValue({ ...mockExceptionSick, id: 103 });
+      exceptionLogRepo.save.mockResolvedValue({} as any);
+      // 隔离校验子查询：该家长关联的孩子在 CL2026070001 班级
+      const mockSubQb = {
+        select: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getRawMany: jest
+          .fn()
+          .mockResolvedValue([{ classCode: 'CL2026070001' }]),
+      };
+      mockEntityManager.createQueryBuilder
+        .mockReset()
+        .mockReturnValue(mockSubQb);
+
+      const result = await exceptionService.applyLeave(
+        1,
+        'LEAVE_SICK',
+        '感冒',
+        new Date(),
+        new Date(),
+        [],
+        parentUser.sub,
+        'Parent',
+      );
+      expect(result.exceptionType).toBe('LEAVE_SICK');
+      expect(lessonRepo.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
+    });
+
+    it('家长（无孩子在该班级）提交请假被拒绝', async () => {
+      lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
+      const mockSubQb = {
+        select: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([]),
+      };
+      mockEntityManager.createQueryBuilder
+        .mockReset()
+        .mockReturnValue(mockSubQb);
 
       await expect(
         exceptionService.applyLeave(
@@ -328,9 +387,29 @@ describe('Lesson Exception Closure Audit', () => {
           new Date(),
           new Date(),
           [],
-          1001,
+          parentUser.sub,
+          'Parent',
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('教师提交请假不触发家长隔离校验', async () => {
+      lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
+      exceptionRepo.save.mockResolvedValue({ ...mockExceptionSick, id: 104 });
+      exceptionLogRepo.save.mockResolvedValue({} as any);
+
+      const result = await exceptionService.applyLeave(
+        1,
+        'LEAVE_SICK',
+        '感冒',
+        new Date(),
+        new Date(),
+        [],
+        teacherUser.sub,
+        'Teacher',
+      );
+      expect(result.exceptionType).toBe('LEAVE_SICK');
+      expect(mockEntityManager.createQueryBuilder).not.toHaveBeenCalled();
     });
 
     it('事假必须提前24小时申请', async () => {
@@ -750,10 +829,7 @@ describe('Lesson Exception Closure Audit', () => {
       const fs = require('fs');
       const path = require('path');
       const exceptionSource = fs.readFileSync(
-        path.join(
-          __dirname,
-          'lesson-exception.service.ts',
-        ),
+        path.join(__dirname, 'lesson-exception.service.ts'),
         'utf-8',
       );
       expect(exceptionSource).not.toContain('salary.calculation.triggered');

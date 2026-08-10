@@ -76,19 +76,20 @@ export class LessonExceptionService {
     endTime: Date,
     attachments: any[],
     createdBy: number,
+    operatorRole = '',
   ): Promise<LessonExceptionEntity> {
     // 1. Validate lesson exists
     const lesson = await this.findLessonOrThrow(lessonId);
 
+    // 1.5 Parent data isolation: parent must have a child in the lesson's class
+    if (operatorRole === 'Parent') {
+      await this.assertParentInLessonClass(createdBy, lesson.classCode);
+    }
+
     // 2. Business rules
     const now = new Date();
 
-    if (exceptionType === 'LEAVE_SICK') {
-      // 病假：需要附件（医院证明）
-      if (!attachments || attachments.length === 0) {
-        throw new BadRequestException('病假必须上传附件（医院证明）');
-      }
-    } else if (exceptionType === 'LEAVE_PERSONAL') {
+    if (exceptionType === 'LEAVE_PERSONAL') {
       // 事假：至少提前24小时
       const hoursBefore =
         (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -132,6 +133,31 @@ export class LessonExceptionService {
     );
 
     return saved;
+  }
+
+  /**
+   * Parent data isolation: throw unless the parent has at least one child
+   * enrolled in the given lesson class.
+   */
+  private async assertParentInLessonClass(
+    parentId: number,
+    lessonClassCode: string,
+  ): Promise<void> {
+    const classCodes = await this.entityManager
+      .createQueryBuilder()
+      .select('DISTINCT enr.classCode', 'classCode')
+      .from('enrollment', 'enr')
+      .innerJoin('student', 's', 's.studentCode = enr.studentCode')
+      .innerJoin('student_parent', 'sp', 'sp.studentId = s.id')
+      .where('sp.parentId = :parentId', { parentId })
+      .getRawMany()
+      .then((rows: { classCode: string }[]) => rows.map((r) => r.classCode));
+
+    if (!classCodes.includes(lessonClassCode)) {
+      throw new ForbiddenException(
+        '该家长没有孩子在对应班级，无权为该课时请假',
+      );
+    }
   }
 
   // ═══════════════════════════════════════════════════

@@ -9,11 +9,22 @@
   <!-- 表单 -->
   <block wx:else>
     <view class="form-card">
+      <!-- 选择孩子 -->
+      <view class="form-row">
+        <text class="lab">孩子 <text class="req">*</text></text>
+        <picker mode="selector" range="{{childLabels}}" bindchange="onSelectChild">
+          <view class="val">
+            {{selectedChild ? selectedChild.name : ''}}
+            <view class="ic ic-chevron"></view>
+          </view>
+        </picker>
+      </view>
+
       <!-- 选择课程 -->
       <view class="form-row" bindtap="onSelectCourse">
         <text class="lab">课程 <text class="req">*</text></text>
         <view class="val {{selectedCourse ? '' : 'ph'}}">
-          {{selectedCourse ? selectedCourse.subject + ' - ' + selectedCourse.teacherName : '请选择课程'}}
+          {{selectedCourse ? selectedCourse.courseName + ' · ' + selectedCourse.lessonDate + ' ' + selectedCourse.startTime + '~' + selectedCourse.endTime : '请选择课程'}}
           <view class="ic ic-chevron"></view>
         </view>
       </view>
@@ -27,41 +38,11 @@
         </view>
       </view>
 
-      <!-- 请假日期 -->
-      <view class="form-row">
-        <text class="lab">请假日期 <text class="req">*</text></text>
-        <picker mode="date" value="{{selectedDate}}" bindchange="onDateChange" start="2020-01-01" end="2035-12-31">
-          <view class="val {{selectedDate ? '' : 'ph'}}">
-            {{selectedDate || '请选择日期'}}
-            <view class="ic ic-chevron"></view>
-          </view>
-        </picker>
-      </view>
-
       <!-- 原因 -->
       <view class="form-block">
         <text class="lab">请假原因 <text class="req">*</text></text>
         <textarea class="remark" placeholder="请详细描述请假原因..." placeholder-class="ph" value="{{reason}}" bindinput="onInputReason" maxlength="500" />
         <text class="char-count">{{reason.length}}/500</text>
-      </view>
-
-      <!-- 附件 -->
-      <view class="form-block">
-        <text class="lab">附件<text class="req" wx:if="{{leaveType === 'SICK'}}"> *</text>
-          <text class="hint" wx:if="{{leaveType === 'SICK'}}">（病假必须上传）</text>
-        </text>
-        <view class="upload-area">
-          <view class="file-list">
-            <view class="file-item" wx:for="{{files}}" wx:key="id">
-              <text class="file-name">{{item.name}}</text>
-              <view class="file-remove" bindtap="onRemoveFile" data-id="{{item.id}}"><view class="ic ic-close"></view></view>
-            </view>
-          </view>
-          <view class="upload-btn" wx:if="{{files.length < 5}}" bindtap="onUploadFile">
-            <view class="ic ic-add"></view>
-            <text>上传附件</text>
-          </view>
-        </view>
       </view>
     </view>
 

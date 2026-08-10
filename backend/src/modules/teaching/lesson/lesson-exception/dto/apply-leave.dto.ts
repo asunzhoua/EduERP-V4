@@ -33,7 +33,7 @@ export class ApplyLeaveDto {
   @ApiProperty({
     type: [Object],
     required: false,
-    description: '附件列表（病假必须上传医院证明）',
+    description: '附件列表（选填）',
   })
   @IsOptional()
   @IsArray()

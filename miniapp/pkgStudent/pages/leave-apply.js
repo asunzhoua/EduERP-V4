@@ -5,37 +5,89 @@ Page({
   data: {
     loading: false,
     submitting: false,
-    // 课程选择
+    // 孩子
+    children: [],
+    childLabels: [],
+    selectedChild: null,
+    // 课程
     courses: [],
     selectedCourse: null,
     // 请假类型
     leaveType: '',
-    // 日期
-    selectedDate: '',
     // 原因
-    reason: '',
-    // 附件
-    files: []
+    reason: ''
   },
 
   onLoad() {
-    this.loadCourses();
+    this.loadChildren();
   },
 
-  // 加载可选课程
-  async loadCourses() {
+  // 加载孩子列表（家长）
+  async loadChildren() {
     this.setData({ loading: true });
     try {
-      const courses = await get('/students/self/lessons');
+      const children = await get('/students/my-children');
+      if (!children || children.length === 0) {
+        this.setData({ loading: false });
+        wx.showModal({
+          title: '提示',
+          content: '您还没有关联孩子，请先在「我的-我的孩子」中添加',
+          showCancel: false,
+          success: function() {
+            wx.navigateBack();
+          }
+        });
+        return;
+      }
+      const childLabels = children.map(function(c) {
+        return c.grade ? c.name + '（' + c.grade + '）' : c.name;
+      });
       this.setData({
-        courses: Array.isArray(courses) ? courses : [],
+        children: children,
+        childLabels: childLabels,
+        selectedChild: children[0],
         loading: false
       });
+      this.loadCourses(children[0].id);
+    } catch (err) {
+      console.error('[LeaveApply] 加载孩子失败:', err);
+      this.setData({ loading: false });
+    }
+  },
+
+  // 切换孩子
+  onSelectChild(e) {
+    const index = e.detail.value;
+    const child = this.data.children[index];
+    if (!child) return;
+    this.setData({ selectedChild: child, selectedCourse: null });
+    this.loadCourses(child.id);
+  },
+
+  // 加载孩子的可请假课时
+  async loadCourses(childId) {
+    this.setData({ loading: true });
+    try {
+      const lessons = await get('/students/' + childId + '/lessons');
+      const today = this.today();
+      const courses = (Array.isArray(lessons) ? lessons : []).filter(function(l) {
+        return l.lessonDate && l.startTime && l.endTime && l.lessonDate >= today;
+      });
+      this.setData({ courses: courses, selectedCourse: null, loading: false });
+      if (courses.length === 0) {
+        wx.showToast({ title: '该孩子暂无可用课程', icon: 'none' });
+      }
     } catch (err) {
       console.error('[LeaveApply] 加载课程失败:', err);
       this.setData({ loading: false });
-      wx.showToast({ title: '加载课程失败', icon: 'none' });
     }
+  },
+
+  today() {
+    var d = new Date();
+    var month = d.getMonth() + 1;
+    var day = d.getDate();
+    return d.getFullYear() + '-' + (month < 10 ? '0' + month : month) + '-' + (day < 10 ? '0' + day : day);
   },
 
   // 选择课程
@@ -46,7 +98,7 @@ Page({
       return;
     }
     const items = courses.map(function(c) {
-      return c.subject + ' - ' + (c.teacherName || '未知教师');
+      return (c.courseName || '课程') + ' · ' + c.lessonDate + ' ' + c.startTime + '~' + c.endTime;
     });
     wx.showActionSheet({
       itemList: items,
@@ -64,47 +116,14 @@ Page({
     this.setData({ leaveType: type });
   },
 
-  // 选择日期
-  onDateChange(e) {
-    this.setData({ selectedDate: e.detail.value });
-  },
-
   // 输入原因
   onInputReason(e) {
     this.setData({ reason: e.detail.value });
   },
 
-  // 上传文件
-  onUploadFile() {
-    const self = this;
-    wx.chooseMessageFile({
-      count: 1,
-      type: 'file',
-      success(res) {
-        const file = res.tempFiles[0];
-        const files = self.data.files.concat([{
-          id: Date.now(),
-          name: file.name,
-          path: file.path,
-          size: file.size
-        }]);
-        self.setData({ files: files });
-      }
-    });
-  },
-
-  // 删除文件
-  onRemoveFile(e) {
-    const id = e.currentTarget.dataset.id;
-    const files = this.data.files.filter(function(f) {
-      return f.id !== id;
-    });
-    this.setData({ files: files });
-  },
-
   // 提交申请
   async onSubmit() {
-    const { selectedCourse, leaveType, selectedDate, reason, files } = this.data;
+    const { selectedCourse, leaveType, reason } = this.data;
 
     // 校验
     if (!selectedCourse) {
@@ -115,28 +134,19 @@ Page({
       wx.showToast({ title: '请选择请假类型', icon: 'none' });
       return;
     }
-    if (!selectedDate) {
-      wx.showToast({ title: '请选择请假日期', icon: 'none' });
-      return;
-    }
     if (!reason.trim()) {
       wx.showToast({ title: '请填写请假原因', icon: 'none' });
-      return;
-    }
-    if (leaveType === 'SICK' && files.length === 0) {
-      wx.showToast({ title: '病假必须上传附件', icon: 'none' });
       return;
     }
 
     this.setData({ submitting: true });
 
     try {
-      const lessonId = selectedCourse.id || selectedCourse.lessonId;
-      await applyLeave(lessonId, {
-        type: leaveType,
-        date: selectedDate,
+      await applyLeave(selectedCourse.lessonId, {
+        exceptionType: 'LEAVE_' + leaveType,
         reason: reason.trim(),
-        attachments: files.map(function(f) { return { name: f.name, path: f.path }; })
+        startTime: selectedCourse.lessonDate + 'T' + selectedCourse.startTime + ':00',
+        endTime: selectedCourse.lessonDate + 'T' + selectedCourse.endTime + ':00'
       });
 
       wx.showToast({ title: '提交成功', icon: 'success' });
@@ -144,8 +154,8 @@ Page({
         wx.navigateBack();
       }, 1500);
     } catch (err) {
+      // request.js 已 toast 后端错误信息，这里不重复提示
       console.error('[LeaveApply] 提交失败:', err);
-      wx.showToast({ title: '提交失败，请稍后重试', icon: 'none' });
     } finally {
       this.setData({ submitting: false });
     }
