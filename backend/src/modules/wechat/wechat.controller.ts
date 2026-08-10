@@ -8,16 +8,11 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { WechatSubscribeService } from './wechat-subscribe.service';
 import { RecordSubscriptionDto } from './dto/record-subscription.dto';
 import { JwtAuthGuard } from '../identity/auth/jwt-auth.guard';
 import { ApiResponse } from '@common/dto/api-response';
-
-/** JwtAuthGuard 注入的认证请求对象。 */
-interface AuthedRequest extends Request {
-  user: { sub: number; username?: string; role?: string };
-}
+import { AuthedRequest } from '@common/types/authed-request';
 
 @Controller('wechat/subscribe')
 export class WechatController {

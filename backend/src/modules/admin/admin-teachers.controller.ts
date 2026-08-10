@@ -15,6 +15,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { AuthedRequest } from '@common/types/authed-request';
 import { AdminTeachersService } from './admin-teachers.service';
 import {
   CreateTeacherDto,
@@ -45,7 +46,7 @@ export class AdminTeachersController {
 
   @Post()
   @ApiOperation({ summary: '新增教师' })
-  async create(@Body() dto: CreateTeacherDto, @Req() req: any) {
+  async create(@Body() dto: CreateTeacherDto, @Req() req: AuthedRequest) {
     const user = await this.teachersService.create(dto, Number(req.user.sub));
     return ApiResponse.success(user, '教师创建成功');
   }
@@ -59,7 +60,10 @@ export class AdminTeachersController {
 
   @Put(':id')
   @ApiOperation({ summary: '修改教师' })
-  async update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTeacherDto) {
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateTeacherDto,
+  ) {
     const user = await this.teachersService.update(id, dto);
     return ApiResponse.success(user, '教师修改成功');
   }
@@ -70,7 +74,10 @@ export class AdminTeachersController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTeacherStatusDto,
   ) {
-    const user = await this.teachersService.updateStatus(id, Number(dto.status));
+    const user = await this.teachersService.updateStatus(
+      id,
+      Number(dto.status),
+    );
     return ApiResponse.success(user, '状态已更新');
   }
 }

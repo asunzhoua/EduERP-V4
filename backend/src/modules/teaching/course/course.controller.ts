@@ -28,6 +28,7 @@ import { ApiResponse } from '@common/dto/api-response';
 import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { AuthedRequest } from '@common/types/authed-request';
 
 @ApiTags('Course')
 @ApiBearerAuth()
@@ -40,7 +41,10 @@ export class CourseController {
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Create a new course' })
   @SwaggerResponse({ status: 0, description: 'Course created successfully' })
-  async create(@Body() dto: CreateCourseDto, @Req() req: any): Promise<ApiResponse> {
+  async create(
+    @Body() dto: CreateCourseDto,
+    @Req() req: AuthedRequest,
+  ): Promise<ApiResponse> {
     const operatorId = req.user.sub;
     const course = await this.courseService.create(dto, operatorId);
     return ApiResponse.success(course, 'Course created');
@@ -48,10 +52,16 @@ export class CourseController {
 
   @Get()
   @Roles('SuperAdmin', 'Admin', 'Teacher')
-  @ApiOperation({ summary: 'List all courses (paginated, filterable, enriched)' })
-  async findAll(@Query() query: QueryCourseDto, @Req() req: any): Promise<ApiResponse> {
+  @ApiOperation({
+    summary: 'List all courses (paginated, filterable, enriched)',
+  })
+  async findAll(
+    @Query() query: QueryCourseDto,
+    @Req() req: AuthedRequest,
+  ): Promise<ApiResponse> {
     // M-01 修复: Teacher 只能看到自己负责的课程
-    const teacherId = req.user.role === 'Teacher' ? Number(req.user.sub) : undefined;
+    const teacherId =
+      req.user.role === 'Teacher' ? Number(req.user.sub) : undefined;
     const result = await this.courseService.findAll(query, teacherId);
     const enrichedItems = await this.courseService.enrichCourses(result.items);
     return ApiResponse.success({ items: enrichedItems, total: result.total });
@@ -72,7 +82,7 @@ export class CourseController {
   async update(
     @Param('code') code: string,
     @Body() dto: UpdateCourseDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
     const operatorId = req.user.sub;
     const course = await this.courseService.update(code, dto, operatorId);
@@ -86,10 +96,14 @@ export class CourseController {
   async updateStatus(
     @Param('code') code: string,
     @Body() dto: UpdateCourseStatusDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
     const operatorId = req.user.sub;
-    const course = await this.courseService.updateStatus(code, dto.status, operatorId);
+    const course = await this.courseService.updateStatus(
+      code,
+      dto.status,
+      operatorId,
+    );
     return ApiResponse.success(course, 'Status updated');
   }
 
@@ -97,7 +111,10 @@ export class CourseController {
   @Roles('SuperAdmin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete course (DRAFT only)' })
-  async remove(@Param('code') code: string, @Req() req: any): Promise<ApiResponse> {
+  async remove(
+    @Param('code') code: string,
+    @Req() req: AuthedRequest,
+  ): Promise<ApiResponse> {
     const operatorId = req.user.sub;
     await this.courseService.remove(code, operatorId);
     return ApiResponse.success(null, 'Course deleted');

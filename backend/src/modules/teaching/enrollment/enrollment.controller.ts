@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { DataScopeService } from '@common/services/data-scope.service';
+import { AuthedRequest } from '@common/types/authed-request';
 
 @ApiTags('Enrollment')
 @ApiBearerAuth()
@@ -70,10 +71,14 @@ export class EnrollmentController {
   async withdraw(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: WithdrawEnrollmentDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     const operatorId = req.user.sub;
-    const result = await this.enrollmentService.withdraw(id, body.reason, operatorId);
+    const result = await this.enrollmentService.withdraw(
+      id,
+      body.reason,
+      operatorId,
+    );
     return ApiResponse.success(result, 'Enrollment withdrawn');
   }
 
@@ -90,7 +95,7 @@ export class EnrollmentController {
   @ApiOperation({ summary: 'List enrollments for a student (enriched)' })
   async findByStudent(
     @Param('studentCode') studentCode: string,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     // V-03 修复: 验证当前用户是否有权访问该学生的报名记录
     await this.dataScopeService.verifyStudentAccess(req.user, studentCode);

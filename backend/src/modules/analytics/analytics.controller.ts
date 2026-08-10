@@ -1,8 +1,18 @@
-import { Controller, Get, Param, ParseIntPipe, Query, UseGuards, Req, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Query,
+  UseGuards,
+  Req,
+  ForbiddenException,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { AuthedRequest } from '@common/types/authed-request';
 import { AnalyticsService } from './analytics.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -19,7 +29,10 @@ export class AnalyticsController {
 
   @Get('student/:studentCode')
   @Roles('SuperAdmin', 'Admin', 'Teacher', 'Parent', 'Student')
-  async getStudentMetrics(@Param('studentCode') studentCode: string, @Req() req: any) {
+  async getStudentMetrics(
+    @Param('studentCode') studentCode: string,
+    @Req() req: AuthedRequest,
+  ) {
     await this.verifyStudentAccess(req, studentCode);
     const result = await this.analyticsService.getStudentMetrics(studentCode);
     return ApiResponse.success(result);
@@ -27,7 +40,10 @@ export class AnalyticsController {
 
   @Get('teacher/:teacherId')
   @Roles('SuperAdmin', 'Admin', 'Teacher')
-  async getTeacherMetrics(@Param('teacherId', ParseIntPipe) teacherId: number, @Req() req: any) {
+  async getTeacherMetrics(
+    @Param('teacherId', ParseIntPipe) teacherId: number,
+    @Req() req: AuthedRequest,
+  ) {
     await this.verifyTeacherAccess(req, teacherId);
     const result = await this.analyticsService.getTeacherMetrics(teacherId);
     return ApiResponse.success(result);
@@ -56,7 +72,10 @@ export class AnalyticsController {
   ) {
     await this.verifyStudentAccess(req, studentCode);
     const parsedDays = this.parseDays(days);
-    const result = await this.analyticsService.getStudentTrend(studentCode, parsedDays);
+    const result = await this.analyticsService.getStudentTrend(
+      studentCode,
+      parsedDays,
+    );
     return ApiResponse.success(result);
   }
 
@@ -69,7 +88,10 @@ export class AnalyticsController {
   ) {
     await this.verifyTeacherAccess(req, teacherId);
     const parsedDays = this.parseDays(days);
-    const result = await this.analyticsService.getTeacherTrend(teacherId, parsedDays);
+    const result = await this.analyticsService.getTeacherTrend(
+      teacherId,
+      parsedDays,
+    );
     return ApiResponse.success(result);
   }
 
@@ -85,7 +107,8 @@ export class AnalyticsController {
   @Roles('SuperAdmin', 'Admin')
   async getConsumptionStatistics(@Query('days') days?: string) {
     const parsedDays = this.parseDays(days);
-    const result = await this.analyticsService.getConsumptionStatistics(parsedDays);
+    const result =
+      await this.analyticsService.getConsumptionStatistics(parsedDays);
     return ApiResponse.success(result);
   }
 
@@ -104,10 +127,17 @@ export class AnalyticsController {
    * Verify that Student/Parent roles can only access their own data.
    * SuperAdmin/Admin/Teacher can access any student's data.
    */
-  private async verifyStudentAccess(req: any, studentCode: string): Promise<void> {
+  private async verifyStudentAccess(
+    req: AuthedRequest,
+    studentCode: string,
+  ): Promise<void> {
     const user = req.user;
     // SuperAdmin/Admin/Teacher can access any student's data
-    if (user.role === 'SuperAdmin' || user.role === 'Admin' || user.role === 'Teacher') {
+    if (
+      user.role === 'SuperAdmin' ||
+      user.role === 'Admin' ||
+      user.role === 'Teacher'
+    ) {
       return;
     }
     // Student/Parent can only access their own data
@@ -126,7 +156,10 @@ export class AnalyticsController {
    * Verify that Teacher role can only access their own metrics.
    * SuperAdmin/Admin can access any teacher's data.
    */
-  private async verifyTeacherAccess(req: any, teacherId: number): Promise<void> {
+  private async verifyTeacherAccess(
+    req: AuthedRequest,
+    teacherId: number,
+  ): Promise<void> {
     const user = req.user;
     if (user.role === 'SuperAdmin' || user.role === 'Admin') {
       return;

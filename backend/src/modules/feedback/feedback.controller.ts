@@ -12,6 +12,7 @@ import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { AuthedRequest } from '@common/types/authed-request';
 import { JwtAuthGuard } from '@modules/identity/auth/jwt-auth.guard';
 import { FeedbackService } from './feedback.service';
 
@@ -48,7 +49,7 @@ export class FeedbackController {
   /** 教师/管理员填写课程反馈 */
   @Post()
   @Roles('Teacher', 'Admin', 'SuperAdmin')
-  async create(@Body() dto: CreateFeedbackDto, @Req() req: any) {
+  async create(@Body() dto: CreateFeedbackDto, @Req() req: AuthedRequest) {
     const feedback = await this.feedbackService.create({
       lessonId: dto.lessonId,
       studentCode: dto.studentCode,

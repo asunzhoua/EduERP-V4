@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '@modules/identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { AuthedRequest } from '@common/types/authed-request';
 
 @Controller('reminders')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -32,7 +33,7 @@ export class ReminderController {
 
   @Get()
   @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
-  async findMyReminders(@Req() req: any, @Query() query: QueryReminderDto) {
+  async findMyReminders(@Req() req: AuthedRequest, @Query() query: QueryReminderDto) {
     const userId = req.user.sub;
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
@@ -47,7 +48,7 @@ export class ReminderController {
 
   @Patch(':id/read')
   @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
-  async markAsRead(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async markAsRead(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
     const userId = req.user.sub;
     const reminder = await this.reminderService.markAsRead(id, userId);
     return ApiResponse.success(reminder);
@@ -55,7 +56,7 @@ export class ReminderController {
 
   @Patch('read-all')
   @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
-  async markAllAsRead(@Req() req: any) {
+  async markAllAsRead(@Req() req: AuthedRequest) {
     const userId = req.user.sub;
     const result = await this.reminderService.markAllAsRead(userId);
     return ApiResponse.success(result);
@@ -63,7 +64,7 @@ export class ReminderController {
 
   @Get('unread-count')
   @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
-  async getUnreadCount(@Req() req: any) {
+  async getUnreadCount(@Req() req: AuthedRequest) {
     const userId = req.user.sub;
     const count = await this.reminderService.getUnreadCount(userId);
     return ApiResponse.success({ count });

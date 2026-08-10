@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Patch, Param, Body, ParseIntPipe, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  ParseIntPipe,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { LessonChangeRequestService } from './lesson-change-request.service';
 import { CreateChangeRequestDto } from './dto/create-change-request.dto';
@@ -6,6 +16,7 @@ import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { AuthedRequest } from '@common/types/authed-request';
 
 @ApiTags('LessonChangeRequest')
 @ApiBearerAuth()
@@ -20,7 +31,7 @@ export class LessonChangeRequestController {
   async createRequest(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: CreateChangeRequestDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     const result = await this.service.createRequest({
       lessonId: id,
@@ -50,7 +61,7 @@ export class LessonChangeRequestController {
   @Patch('change-requests/:id/approve')
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Approve a change request (admin)' })
-  async approve(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async approve(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
     const result = await this.service.approve(id, req.user.sub);
     return ApiResponse.success(result, 'Change request approved');
   }
@@ -61,7 +72,7 @@ export class LessonChangeRequestController {
   async reject(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { reason: string },
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     const result = await this.service.reject(id, req.user.sub, body.reason);
     return ApiResponse.success(result, 'Change request rejected');
@@ -70,7 +81,7 @@ export class LessonChangeRequestController {
   @Patch('change-requests/:id/execute')
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Execute an approved change request' })
-  async execute(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async execute(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
     const result = await this.service.execute(id, req.user.sub);
     return ApiResponse.success(result, 'Change request executed');
   }

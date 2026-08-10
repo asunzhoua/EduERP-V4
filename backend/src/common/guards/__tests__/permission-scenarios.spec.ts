@@ -15,6 +15,7 @@ import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '@common/decorators/roles.decorator';
 import { RolesGuard } from '@common/guards/roles.guard';
+import { AuthedRequest } from '@common/types/authed-request';
 
 // ================================================================
 // Helpers
@@ -136,7 +137,7 @@ describe('Scenario 1: Teacher Data Isolation', () => {
     // This tests the controller-level data isolation that already exists
     it('should prevent Teacher from viewing another teacher metrics', () => {
       // Simulate the verifyTeacherAccess logic
-      const verifyTeacherAccess = (req: any, teacherId: number) => {
+      const verifyTeacherAccess = (req: AuthedRequest, teacherId: number) => {
         const user = req.user;
         if (user.role === 'SuperAdmin' || user.role === 'Admin') {
           return;
@@ -147,18 +148,24 @@ describe('Scenario 1: Teacher Data Isolation', () => {
       };
 
       // Teacher accessing own metrics — allowed
-      expect(() => verifyTeacherAccess({ user: { role: 'Teacher', sub: 100 } }, 100)).not.toThrow();
+      expect(() =>
+        verifyTeacherAccess({ user: { role: 'Teacher', sub: 100 } }, 100),
+      ).not.toThrow();
 
       // Teacher accessing another teacher — rejected
-      expect(() => verifyTeacherAccess({ user: { role: 'Teacher', sub: 100 } }, 200)).toThrow(
-        '无权访问其他教师数据',
-      );
+      expect(() =>
+        verifyTeacherAccess({ user: { role: 'Teacher', sub: 100 } }, 200),
+      ).toThrow('无权访问其他教师数据');
 
       // Admin accessing any teacher — allowed
-      expect(() => verifyTeacherAccess({ user: { role: 'Admin', sub: 1 } }, 999)).not.toThrow();
+      expect(() =>
+        verifyTeacherAccess({ user: { role: 'Admin', sub: 1 } }, 999),
+      ).not.toThrow();
 
       // SuperAdmin accessing any teacher — allowed
-      expect(() => verifyTeacherAccess({ user: { role: 'SuperAdmin', sub: 1 } }, 999)).not.toThrow();
+      expect(() =>
+        verifyTeacherAccess({ user: { role: 'SuperAdmin', sub: 1 } }, 999),
+      ).not.toThrow();
     });
   });
 });
@@ -175,7 +182,8 @@ describe('Scenario 2: Parent Data Isolation', () => {
   describe('Guard-level: Parent can access self-service endpoints', () => {
     runRoleMatrix([
       {
-        label: 'Parent can access self contracts (GET /students/self/contracts)',
+        label:
+          'Parent can access self contracts (GET /students/self/contracts)',
         userRole: 'Parent',
         requiredRoles: ['Student', 'Parent'],
         expected: true,
@@ -205,15 +213,21 @@ describe('Scenario 2: Parent Data Isolation', () => {
     it('should prevent Parent from accessing non-bound student data', () => {
       // Simulate the verifyStudentAccess logic from analytics controller
       const verifyStudentAccess = async (
-        req: any,
+        req: AuthedRequest,
         studentCode: string,
         findOne: (opts: any) => Promise<any>,
       ) => {
         const user = req.user;
-        if (user.role === 'SuperAdmin' || user.role === 'Admin' || user.role === 'Teacher') {
+        if (
+          user.role === 'SuperAdmin' ||
+          user.role === 'Admin' ||
+          user.role === 'Teacher'
+        ) {
           return;
         }
-        const student = await findOne({ where: { studentCode, deleted: false } });
+        const student = await findOne({
+          where: { studentCode, deleted: false },
+        });
         if (!student) {
           throw new ForbiddenException('学生不存在');
         }
@@ -227,24 +241,40 @@ describe('Scenario 2: Parent Data Isolation', () => {
       // Parent accessing their own child's data — allowed
       mockFindOne.mockResolvedValue({ userId: 42 });
       expect(
-        verifyStudentAccess({ user: { role: 'Parent', sub: 42 } }, 'STU-001', mockFindOne),
+        verifyStudentAccess(
+          { user: { role: 'Parent', sub: 42 } },
+          'STU-001',
+          mockFindOne,
+        ),
       ).resolves.not.toThrow();
 
       // Parent accessing another student — rejected
       mockFindOne.mockResolvedValue({ userId: 99 });
       expect(
-        verifyStudentAccess({ user: { role: 'Parent', sub: 42 } }, 'STU-002', mockFindOne),
+        verifyStudentAccess(
+          { user: { role: 'Parent', sub: 42 } },
+          'STU-002',
+          mockFindOne,
+        ),
       ).rejects.toThrow('无权访问该学生数据');
 
       // Student accessing own data — allowed
       mockFindOne.mockResolvedValue({ userId: 42 });
       expect(
-        verifyStudentAccess({ user: { role: 'Student', sub: 42 } }, 'STU-001', mockFindOne),
+        verifyStudentAccess(
+          { user: { role: 'Student', sub: 42 } },
+          'STU-001',
+          mockFindOne,
+        ),
       ).resolves.not.toThrow();
 
       // Teacher accessing any student — allowed, no check performed
       expect(
-        verifyStudentAccess({ user: { role: 'Teacher', sub: 1 } }, 'ANY-STU', mockFindOne),
+        verifyStudentAccess(
+          { user: { role: 'Teacher', sub: 1 } },
+          'ANY-STU',
+          mockFindOne,
+        ),
       ).resolves.not.toThrow();
     });
   });
@@ -465,7 +495,7 @@ describe('Scenario 4: Admin Can Manage All Data', () => {
 
   describe('Controller-level: Admin bypasses data isolation checks', () => {
     it('should allow Admin to access any teacher metrics', () => {
-      const verifyTeacherAccess = (req: any, teacherId: number) => {
+      const verifyTeacherAccess = (req: AuthedRequest, teacherId: number) => {
         const user = req.user;
         if (user.role === 'SuperAdmin' || user.role === 'Admin') {
           return; // Admin bypass
@@ -475,20 +505,32 @@ describe('Scenario 4: Admin Can Manage All Data', () => {
         }
       };
 
-      expect(() => verifyTeacherAccess({ user: { role: 'Admin', sub: 5 } }, 100)).not.toThrow();
-      expect(() => verifyTeacherAccess({ user: { role: 'Admin', sub: 5 } }, 999)).not.toThrow();
+      expect(() =>
+        verifyTeacherAccess({ user: { role: 'Admin', sub: 5 } }, 100),
+      ).not.toThrow();
+      expect(() =>
+        verifyTeacherAccess({ user: { role: 'Admin', sub: 5 } }, 999),
+      ).not.toThrow();
     });
 
     it('should allow Admin to access any student data', () => {
-      const verifyStudentAccess = async (req: any) => {
+      const verifyStudentAccess = async (req: AuthedRequest) => {
         const user = req.user;
-        if (user.role === 'SuperAdmin' || user.role === 'Admin' || user.role === 'Teacher') {
+        if (
+          user.role === 'SuperAdmin' ||
+          user.role === 'Admin' ||
+          user.role === 'Teacher'
+        ) {
           return; // Admin bypass
         }
       };
 
-      expect(verifyStudentAccess({ user: { role: 'Admin', sub: 5 } })).resolves.not.toThrow();
-      expect(verifyStudentAccess({ user: { role: 'SuperAdmin', sub: 1 } })).resolves.not.toThrow();
+      expect(
+        verifyStudentAccess({ user: { role: 'Admin', sub: 5 } }),
+      ).resolves.not.toThrow();
+      expect(
+        verifyStudentAccess({ user: { role: 'SuperAdmin', sub: 1 } }),
+      ).resolves.not.toThrow();
     });
   });
 });

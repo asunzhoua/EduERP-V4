@@ -5,6 +5,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { AuthedRequest } from '@common/types/authed-request';
 import { SettingsService, SettingEntry } from './settings.service';
 
 class SaveSettingsDto {
@@ -43,9 +44,12 @@ export class SettingsController {
 
   @Post('save')
   @ApiOperation({ summary: '批量保存系统设置' })
-  async save(@Body() dto: SaveSettingsDto, @Req() req: any) {
+  async save(@Body() dto: SaveSettingsDto, @Req() req: AuthedRequest) {
     const operatorId = Number(req.user.sub);
-    const grouped = await this.settingsService.bulkSave(dto.entries || [], operatorId);
+    const grouped = await this.settingsService.bulkSave(
+      dto.entries || [],
+      operatorId,
+    );
     return ApiResponse.success(grouped, '设置已保存');
   }
 }

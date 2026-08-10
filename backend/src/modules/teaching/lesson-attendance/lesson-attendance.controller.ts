@@ -33,6 +33,7 @@ import { LessonRepository } from '../lesson/lesson.repository';
 import { EnrollmentRepository } from '../enrollment/enrollment.repository';
 import { LessonStatus } from '../lesson/enums/lesson-status.enum';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
+import { AuthedRequest } from '@common/types/authed-request';
 
 @ApiTags('LessonAttendance')
 @ApiBearerAuth()
@@ -55,7 +56,7 @@ export class LessonAttendanceController {
   async batchRollCall(
     @Param('id', ParseIntPipe) lessonId: number,
     @Body() body: BatchRollCallDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
     // M-03 修复: Teacher 只能为自己负责的课程签到
     if (req.user.role === 'Teacher') {
@@ -78,7 +79,10 @@ export class LessonAttendanceController {
       note: r.note,
     }));
 
-    const result = await this.attendanceService.batchRollCall({ lessonId, records });
+    const result = await this.attendanceService.batchRollCall({
+      lessonId,
+      records,
+    });
     return ApiResponse.success(result, 'Attendance recorded');
   }
 
@@ -102,7 +106,7 @@ export class LessonAttendanceController {
   async batchRollCallByClass(
     @Param('code') classCode: string,
     @Body() body: BatchRollCallDto & { lessonDate?: string },
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
     // M-03 修复: Teacher 只能为自己负责的班级签到
     if (req.user.role === 'Teacher') {
@@ -111,7 +115,9 @@ export class LessonAttendanceController {
         .select('ta')
         .from('teacher_assignment', 'ta')
         .where('ta."classCode" = :classCode', { classCode })
-        .andWhere('ta."teacherId" = :teacherId', { teacherId: Number(req.user.sub) })
+        .andWhere('ta."teacherId" = :teacherId', {
+          teacherId: Number(req.user.sub),
+        })
         .andWhere('ta."effectiveTo" IS NULL')
         .andWhere('ta."deleted" = false')
         .getOne();
@@ -124,32 +130,38 @@ export class LessonAttendanceController {
     const date = body.lessonDate || new Date().toISOString().split('T')[0];
 
     // 1. Find lesson for this class on this date
-    const lessons = await this.lessonRepo.findByClassCodeAndDate(classCode, date);
+    const lessons = await this.lessonRepo.findByClassCodeAndDate(
+      classCode,
+      date,
+    );
     if (lessons.length === 0) {
-      throw new NotFoundException(
-        `未找到班级 ${classCode} 在 ${date} 的课程`,
-      );
+      throw new NotFoundException(`未找到班级 ${classCode} 在 ${date} 的课程`);
     }
 
     // Use the first TEACHING or SCHEDULED lesson; prefer TEACHING
-    const lesson = lessons.find(l => l.status === LessonStatus.TEACHING)
-      || lessons.find(l => l.status === LessonStatus.SCHEDULED)
-      || lessons[0];
+    const lesson =
+      lessons.find((l) => l.status === LessonStatus.TEACHING) ||
+      lessons.find((l) => l.status === LessonStatus.SCHEDULED) ||
+      lessons[0];
 
-    if (lesson.status !== LessonStatus.TEACHING && lesson.status !== LessonStatus.SCHEDULED) {
+    if (
+      lesson.status !== LessonStatus.TEACHING &&
+      lesson.status !== LessonStatus.SCHEDULED
+    ) {
       throw new BadRequestException(
         `课程 ${lesson.id} 当前状态为 ${lesson.status}，无法签到`,
       );
     }
 
     // 2. Verify all students are enrolled
-    const studentCodes = body.records.map(r => r.studentCode);
-    const enrollments = await this.enrollmentRepo.findActiveByClassAndStudentCodes(
-      classCode,
-      studentCodes,
-    );
-    const enrolledSet = new Set(enrollments.map(e => e.studentCode));
-    const unenrolled = studentCodes.filter(sc => !enrolledSet.has(sc));
+    const studentCodes = body.records.map((r) => r.studentCode);
+    const enrollments =
+      await this.enrollmentRepo.findActiveByClassAndStudentCodes(
+        classCode,
+        studentCodes,
+      );
+    const enrolledSet = new Set(enrollments.map((e) => e.studentCode));
+    const unenrolled = studentCodes.filter((sc) => !enrolledSet.has(sc));
     if (unenrolled.length > 0) {
       throw new BadRequestException(
         `以下学生未在班级 ${classCode} 中注册或状态不是 ACTIVE: ${unenrolled.join(', ')}`,
@@ -166,7 +178,10 @@ export class LessonAttendanceController {
       note: r.note,
     }));
 
-    const result = await this.attendanceService.batchRollCall({ lessonId: lesson.id, records });
+    const result = await this.attendanceService.batchRollCall({
+      lessonId: lesson.id,
+      records,
+    });
     return ApiResponse.success(result, 'Attendance recorded');
   }
 
@@ -178,7 +193,7 @@ export class LessonAttendanceController {
     summary:
       '导入上课/考勤记录，Excel 列：学员编码/出勤状态(+课时ID 或 班级编码+上课日期)',
   })
-  async importAttendance(@UploadedFile() file: any, @Req() req: any) {
+  async importAttendance(@UploadedFile() file: Express.Multer.File, @Req() req: AuthedRequest) {
     if (!file) {
       throw new BadRequestException('请上传文件');
     }
@@ -203,9 +218,12 @@ export class LessonAttendanceController {
   })
   async confirmAll(
     @Param('id', ParseIntPipe) lessonId: number,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
-    const result = await this.attendanceService.confirmAll(lessonId, req.user.sub);
+    const result = await this.attendanceService.confirmAll(
+      lessonId,
+      req.user.sub,
+    );
     return ApiResponse.success(result, 'Attendance confirmed');
   }
 
@@ -217,7 +235,7 @@ export class LessonAttendanceController {
     @Param('studentCode') studentCode: string,
     @Body()
     body: { status: AttendanceStatus; reason?: string; note?: string },
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
     const result = await this.attendanceService.recordAttendance({
       lessonId,
@@ -235,7 +253,7 @@ export class LessonAttendanceController {
   @ApiOperation({ summary: 'List attendance records for a lesson' })
   async findByLesson(
     @Param('id', ParseIntPipe) lessonId: number,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
     // ── V-01: Lesson attendance isolation ──
     const lesson = await this.lessonRepo.findOneById(lessonId);
@@ -253,7 +271,7 @@ export class LessonAttendanceController {
   @ApiOperation({ summary: 'Student attendance history' })
   async findByStudent(
     @Param('studentCode') studentCode: string,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
     // ── V-02: Student attendance isolation ──
     await this.assertStudentAccess(req.user, studentCode);

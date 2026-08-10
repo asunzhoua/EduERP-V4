@@ -33,6 +33,7 @@ import { BadRequestException } from '@nestjs/common';
 import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { AuthedRequest } from '@common/types/authed-request';
 
 @ApiTags('Lesson')
 @ApiBearerAuth()
@@ -61,7 +62,10 @@ export class LessonController {
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
   ) {
-    const result = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
+    const result = await this.lessonService.findByClassCodeAndLessonNumber(
+      code,
+      lessonNumber,
+    );
     return ApiResponse.success(result);
   }
 
@@ -71,11 +75,18 @@ export class LessonController {
   async start(
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
-    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
+    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(
+      code,
+      lessonNumber,
+    );
     const operatorId = req.user.sub;
-    const result = await this.lessonService.updateStatus(lesson.id, LessonStatus.TEACHING, operatorId);
+    const result = await this.lessonService.updateStatus(
+      lesson.id,
+      LessonStatus.TEACHING,
+      operatorId,
+    );
     return ApiResponse.success(result, 'Lesson started');
   }
 
@@ -87,11 +98,18 @@ export class LessonController {
   async complete(
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
-    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
+    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(
+      code,
+      lessonNumber,
+    );
     const operatorId = req.user.sub;
-    const result = await this.lessonService.updateStatus(lesson.id, LessonStatus.FINISHED, operatorId);
+    const result = await this.lessonService.updateStatus(
+      lesson.id,
+      LessonStatus.FINISHED,
+      operatorId,
+    );
     return ApiResponse.success(result, 'Lesson completed');
   }
 
@@ -103,11 +121,18 @@ export class LessonController {
   async confirm(
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
-    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
+    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(
+      code,
+      lessonNumber,
+    );
     const operatorId = req.user.sub;
-    const result = await this.lessonService.updateStatus(lesson.id, LessonStatus.ARCHIVED, operatorId);
+    const result = await this.lessonService.updateStatus(
+      lesson.id,
+      LessonStatus.ARCHIVED,
+      operatorId,
+    );
     return ApiResponse.success(result, 'Lesson confirmed');
   }
 
@@ -118,9 +143,12 @@ export class LessonController {
     @Param('code') code: string,
     @Param('lessonNumber', ParseIntPipe) lessonNumber: number,
     @Body() body: CancelLessonDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
-    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(code, lessonNumber);
+    const lesson = await this.lessonService.findByClassCodeAndLessonNumber(
+      code,
+      lessonNumber,
+    );
     const operatorId = req.user.sub;
     const result = await this.lessonService.updateStatus(
       lesson.id,
@@ -130,7 +158,8 @@ export class LessonController {
     );
 
     // Phase 2 Batch 2.1: Cleanup attendance records and rollback deductions
-    const attendanceResult = await this.lessonAttendanceService.cancelByLessonId(lesson.id);
+    const attendanceResult =
+      await this.lessonAttendanceService.cancelByLessonId(lesson.id);
 
     return ApiResponse.success(
       { lesson: result, attendanceCleanup: attendanceResult },
@@ -144,7 +173,7 @@ export class LessonController {
   async createMakeup(
     @Param('code') code: string,
     @Body() body: CreateMakeupDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     const operatorId = req.user.sub;
     const result = await this.lessonService.create({
@@ -166,10 +195,12 @@ export class LessonController {
 
   @Post('lessons')
   @Roles('SuperAdmin', 'Admin', 'Teacher')
-  @ApiOperation({ summary: 'Create lesson with attendance records (auto lessonNumber)' })
+  @ApiOperation({
+    summary: 'Create lesson with attendance records (auto lessonNumber)',
+  })
   async createWithAttendance(
     @Body() dto: CreateLessonWithAttendanceDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
     const operatorId = req.user.sub;
 
@@ -178,7 +209,7 @@ export class LessonController {
 
     // 2. Get primary teacher from class assignments
     const teachers = await this.classService.getTeachers(dto.classCode);
-    const primaryTeacher = teachers.find(t => t.role === TeacherRole.PRIMARY);
+    const primaryTeacher = teachers.find((t) => t.role === TeacherRole.PRIMARY);
     if (!primaryTeacher) {
       throw new BadRequestException(
         `No primary teacher assigned to class ${dto.classCode}`,
@@ -207,7 +238,7 @@ export class LessonController {
     });
 
     // 5. Auto-create PENDING attendance records for enrolled students
-    const studentCodes = dto.attendanceRecords.map(r => r.studentCode);
+    const studentCodes = dto.attendanceRecords.map((r) => r.studentCode);
     await this.lessonAttendanceService.autoCreateForLesson(
       lesson.id,
       studentCodes,
@@ -216,7 +247,7 @@ export class LessonController {
     );
 
     // 6. Batch roll call — set actual attendance statuses
-    const records: RecordAttendanceInput[] = dto.attendanceRecords.map(r => ({
+    const records: RecordAttendanceInput[] = dto.attendanceRecords.map((r) => ({
       lessonId: lesson.id,
       studentCode: r.studentCode,
       status: r.status,
@@ -250,7 +281,7 @@ export class LessonController {
   async generateClassLessons(
     @Param('code') code: string,
     @Body() dto: GenerateLessonsDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     const operatorId = req.user.sub;
 

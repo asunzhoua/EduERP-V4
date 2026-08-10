@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { AuthedRequest } from '@common/types/authed-request';
 import { LessonEntity } from '../lesson/lesson.entity';
 import { LessonAttendanceEntity } from '../lesson-attendance/lesson-attendance.entity';
 import { TeacherAssignmentEntity } from '../teacher-assignment/teacher-assignment.entity';
@@ -30,7 +31,7 @@ export class TeacherDashboardController {
   @Get('dashboard')
   @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Get dashboard stats for teacher' })
-  async getDashboard(@Req() req: any) {
+  async getDashboard(@Req() req: AuthedRequest) {
     const userId = req.user.sub;
 
     // Get teacher's active assigned class codes (effectiveTo IS NULL = active)

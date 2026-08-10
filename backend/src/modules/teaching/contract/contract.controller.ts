@@ -16,7 +16,12 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+} from '@nestjs/swagger';
 import { ContractService } from './contract.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { QueryContractDto } from './dto/query-contract.dto';
@@ -29,6 +34,7 @@ import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
 import { DataScopeService } from '@common/services/data-scope.service';
+import { AuthedRequest } from '@common/types/authed-request';
 
 @ApiTags('Contract')
 @ApiBearerAuth()
@@ -45,7 +51,7 @@ export class ContractController {
   @Post()
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Create a new contract' })
-  async create(@Body() dto: CreateContractDto, @Req() req: any) {
+  async create(@Body() dto: CreateContractDto, @Req() req: AuthedRequest) {
     this.logger.log(`Creating contract for student: ${dto.studentCode}`);
 
     const input: CreateContractInput = {
@@ -70,8 +76,10 @@ export class ContractController {
   @Roles('SuperAdmin', 'Admin')
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '批量分配课时（累加），Excel 列：学员编码/科目/课时数' })
-  async importLessons(@UploadedFile() file: any, @Req() req: any) {
+  @ApiOperation({
+    summary: '批量分配课时（累加），Excel 列：学员编码/科目/课时数',
+  })
+  async importLessons(@UploadedFile() file: Express.Multer.File, @Req() req: AuthedRequest) {
     if (!file) {
       throw new BadRequestException('请上传文件');
     }
@@ -104,7 +112,7 @@ export class ContractController {
   @ApiOperation({ summary: 'Get all contracts for a student' })
   async findByStudentCode(
     @Param('studentCode') studentCode: string,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     // V-04 修复: 验证当前用户是否有权访问该学生的合同记录
     await this.dataScopeService.verifyStudentAccess(req.user, studentCode);
@@ -139,7 +147,7 @@ export class ContractController {
   async getConsumeRecords(
     @Param('code') code: string,
     @Query() query: QueryConsumeRecordsDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     // 先取合同再校验学生访问权（家长只能看自己孩子），不信任 :code 参数本身。
     const contract = await this.contractService.findOneByCode(code);
@@ -157,11 +165,13 @@ export class ContractController {
 
   @Patch(':code/lessons')
   @Roles('SuperAdmin', 'Admin')
-  @ApiOperation({ summary: 'Adjust contract lessons (add / reduce / set custom)' })
+  @ApiOperation({
+    summary: 'Adjust contract lessons (add / reduce / set custom)',
+  })
   async adjustLessons(
     @Param('code') code: string,
     @Body() dto: AdjustContractLessonsDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     const operatorId = req.user.sub;
     const result = await this.contractService.adjustLessons(
@@ -176,7 +186,7 @@ export class ContractController {
   @Patch(':code/freeze')
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Freeze contract (stop deductions)' })
-  async freeze(@Param('code') code: string, @Req() req: any) {
+  async freeze(@Param('code') code: string, @Req() req: AuthedRequest) {
     const operatorId = req.user.sub;
     const result = await this.contractService.freeze(code, operatorId);
     return ApiResponse.success(result, 'Contract frozen');
@@ -185,7 +195,7 @@ export class ContractController {
   @Patch(':code/unfreeze')
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Unfreeze contract (resume deductions)' })
-  async unfreeze(@Param('code') code: string, @Req() req: any) {
+  async unfreeze(@Param('code') code: string, @Req() req: AuthedRequest) {
     const operatorId = req.user.sub;
     const result = await this.contractService.unfreeze(code, operatorId);
     return ApiResponse.success(result, 'Contract unfrozen');

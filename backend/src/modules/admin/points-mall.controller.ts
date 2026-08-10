@@ -23,6 +23,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { AuthedRequest } from '@common/types/authed-request';
 import { PointsMallService } from './points-mall.service';
 import { PointsProductStatus } from './entities/points-product.entity';
 
@@ -142,7 +143,7 @@ export class PointsMallController {
 
   @Post('products')
   @ApiOperation({ summary: '新增商品' })
-  async createProduct(@Body() dto: CreateProductDto, @Req() req: any) {
+  async createProduct(@Body() dto: CreateProductDto, @Req() req: AuthedRequest) {
     const product = await this.pointsMallService.createProduct(
       {
         name: dto.name,
@@ -159,7 +160,10 @@ export class PointsMallController {
 
   @Put('products/:id')
   @ApiOperation({ summary: '修改商品' })
-  async updateProduct(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateProductDto) {
+  async updateProduct(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateProductDto,
+  ) {
     const product = await this.pointsMallService.updateProduct(id, dto);
     return ApiResponse.success(product, '商品修改成功');
   }
@@ -170,7 +174,10 @@ export class PointsMallController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateProductStatusDto,
   ) {
-    const product = await this.pointsMallService.updateProductStatus(id, dto.status);
+    const product = await this.pointsMallService.updateProductStatus(
+      id,
+      dto.status,
+    );
     return ApiResponse.success(product, '状态已更新');
   }
 
