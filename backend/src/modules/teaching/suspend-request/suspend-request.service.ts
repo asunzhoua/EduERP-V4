@@ -5,7 +5,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { SuspendRequestRepository } from './suspend-request.repository';
-import { SuspendRequestEntity, SuspendRequestStatus } from './suspend-request.entity';
+import {
+  SuspendRequestEntity,
+  SuspendRequestStatus,
+} from './suspend-request.entity';
 import { StudentRepository } from '@modules/student/student.repository';
 import { StudentService } from '@modules/student/services/student.service';
 import { EnrollmentRepository } from '../enrollment/enrollment.repository';
@@ -13,11 +16,15 @@ import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { ContractService } from '../contract/contract.service';
 
 /** Allowed status transitions. */
-const VALID_TRANSITIONS: Record<SuspendRequestStatus, SuspendRequestStatus[]> = {
-  [SuspendRequestStatus.PENDING]: [SuspendRequestStatus.APPROVED, SuspendRequestStatus.REJECTED],
-  [SuspendRequestStatus.APPROVED]: [],
-  [SuspendRequestStatus.REJECTED]: [],
-};
+const VALID_TRANSITIONS: Record<SuspendRequestStatus, SuspendRequestStatus[]> =
+  {
+    [SuspendRequestStatus.PENDING]: [
+      SuspendRequestStatus.APPROVED,
+      SuspendRequestStatus.REJECTED,
+    ],
+    [SuspendRequestStatus.APPROVED]: [],
+    [SuspendRequestStatus.REJECTED]: [],
+  };
 
 /** Input for creating a suspend request. */
 export interface CreateSuspendRequestInput {
@@ -49,7 +56,9 @@ export class SuspendRequestService {
    * Submit a new suspend request. Status = PENDING.
    * Parent/Student self-service endpoint.
    */
-  async createRequest(input: CreateSuspendRequestInput): Promise<SuspendRequestEntity> {
+  async createRequest(
+    input: CreateSuspendRequestInput,
+  ): Promise<SuspendRequestEntity> {
     // Validate required fields
     if (!input.reason?.trim()) {
       throw new BadRequestException('停课原因不能为空');
@@ -72,7 +81,9 @@ export class SuspendRequestService {
     // Validate max duration (e.g., 30 days)
     const fromDate = new Date(input.suspendFrom);
     const toDate = new Date(input.suspendTo);
-    const diffDays = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil(
+      (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
     if (diffDays > 30) {
       throw new BadRequestException('单次停课申请不得超过30天');
     }
@@ -111,7 +122,8 @@ export class SuspendRequestService {
       pageSize: 100,
     });
     const overlapping = existing.items.find(
-      r => r.suspendFrom <= input.suspendTo && r.suspendTo >= input.suspendFrom,
+      (r) =>
+        r.suspendFrom <= input.suspendTo && r.suspendTo >= input.suspendFrom,
     );
     if (overlapping) {
       throw new BadRequestException(
@@ -131,7 +143,7 @@ export class SuspendRequestService {
     const saved = await this.requestRepo.save(entity);
     this.logger.log(
       `Suspend request created: id=${saved.id}, student=${saved.studentCode}, ` +
-      `from=${saved.suspendFrom}, to=${saved.suspendTo}`,
+        `from=${saved.suspendFrom}, to=${saved.suspendTo}`,
     );
     return saved;
   }
@@ -172,12 +184,15 @@ export class SuspendRequestService {
     enrollment.status = EnrollmentStatus.SUSPEND;
     await this.enrollmentRepo.save(enrollment);
 
-    // Freeze the associated contract to prevent lesson deductions during suspend
-    await this.contractService.freeze(
-      enrollment.contractCode,
-      reviewedBy,
-      `停课冻结 (申请id=${requestId})`,
-    );
+    // Freeze the associated contract to prevent lesson deductions during suspend.
+    // 家长添加的孩子可能无合同（contractCode 为 null），此时无可冻结合同，仅改班级注册状态。
+    if (enrollment.contractCode) {
+      await this.contractService.freeze(
+        enrollment.contractCode,
+        reviewedBy,
+        `停课冻结 (申请id=${requestId})`,
+      );
+    }
 
     entity.status = SuspendRequestStatus.APPROVED;
     entity.reviewedBy = reviewedBy;
@@ -186,7 +201,7 @@ export class SuspendRequestService {
     const saved = await this.requestRepo.save(entity);
     this.logger.log(
       `Suspend request approved: id=${saved.id}, student=${entity.studentCode}, ` +
-      `enrollment status → SUSPEND, contract ${enrollment.contractCode} → FROZEN`,
+        `enrollment status → SUSPEND, contract ${enrollment.contractCode} → FROZEN`,
     );
     return saved;
   }
@@ -257,12 +272,14 @@ export class SuspendRequestService {
     enrollment.status = EnrollmentStatus.ACTIVE;
     await this.enrollmentRepo.save(enrollment);
 
-    // Unfreeze the contract
-    await this.contractService.unfreeze(enrollment.contractCode, operatedBy);
+    // Unfreeze the contract (跳过无合同的孩子，如家长自助添加未签合同的班级)
+    if (enrollment.contractCode) {
+      await this.contractService.unfreeze(enrollment.contractCode, operatedBy);
+    }
 
     this.logger.log(
       `Suspend resumed: id=${requestId}, student=${entity.studentCode}, ` +
-      `enrollment → ACTIVE, contract ${enrollment.contractCode} → ACTIVE`,
+        `enrollment → ACTIVE, contract ${enrollment.contractCode} → ACTIVE`,
     );
     return entity;
   }
@@ -292,7 +309,9 @@ export class SuspendRequestService {
   /**
    * Find suspend requests for a specific student.
    */
-  async findByStudentCode(studentCode: string): Promise<SuspendRequestEntity[]> {
+  async findByStudentCode(
+    studentCode: string,
+  ): Promise<SuspendRequestEntity[]> {
     return this.requestRepo.findByStudentCode(studentCode);
   }
 
@@ -326,7 +345,9 @@ export class SuspendRequestService {
 
     if (userRole === 'Parent') {
       const children = await this.studentService.getChildrenByUserId(userId);
-      const isLinked = children.some(c => c.studentCode === student.studentCode);
+      const isLinked = children.some(
+        (c) => c.studentCode === student.studentCode,
+      );
       if (!isLinked) {
         throw new BadRequestException(
           `无权为学生 ${student.studentCode} 提交停课申请：该学生不是当前家长的子女`,
@@ -345,9 +366,7 @@ export class SuspendRequestService {
   ): void {
     const allowed = VALID_TRANSITIONS[current];
     if (!allowed || !allowed.includes(target)) {
-      throw new BadRequestException(
-        `状态转换无效: ${current} → ${target}`,
-      );
+      throw new BadRequestException(`状态转换无效: ${current} → ${target}`);
     }
   }
 }

@@ -41,7 +41,15 @@
             </view>
             <view class="ic ic-chevron"></view>
           </view>
-          <view class="empty-hint" wx:if="{{children.length === 0}}">暂无关联孩子，请联系机构开通</view>
+          <view class="empty-hint" wx:if="{{children.length === 0}}">暂无关联孩子，请点下方「添加小朋友」</view>
+          <view class="child-row add-child-row" bindtap="goToAddStudent">
+            <view class="cr-avatar add-avatar">＋</view>
+            <view class="cr-mid">
+              <view class="cr-name">添加小朋友</view>
+              <view class="cr-sub">录入姓名、生日、年级等信息</view>
+            </view>
+            <view class="ic ic-chevron"></view>
+          </view>
         </view>
 
         <!-- 功能菜单 -->

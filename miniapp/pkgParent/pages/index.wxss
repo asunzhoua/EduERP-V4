@@ -5,6 +5,28 @@
   background-color: #FAF6F0;
 }
 
+.add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #A64E1D;
+  color: #FFFFFF;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 999rpx;
+  height: 88rpx;
+  margin-bottom: 24rpx;
+}
+
+.add-btn:active {
+  opacity: .85;
+}
+
+.add-plus {
+  font-size: 34rpx;
+  margin-right: 8rpx;
+}
+
 .loading, .error, .empty {
   display: flex;
   flex-direction: column;

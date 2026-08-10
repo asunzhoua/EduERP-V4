@@ -26,9 +26,10 @@ export class EnrollmentEntity {
 
   // ─── Financial Link ───
 
-  @Column({ type: 'varchar', length: 20 })
+  // 家长添加孩子可选班级时无合同，contractCode 可为空（分班与合同解耦）
+  @Column({ type: 'varchar', length: 20, nullable: true })
   @Index()
-  contractCode: string;
+  contractCode: string | null;
 
   // ─── Status ───
 

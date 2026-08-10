@@ -31,6 +31,8 @@ import { CourseEntity } from '../teaching/course/course.entity';
 import { User } from '../identity/entities/user.entity';
 import { TeacherRole } from '@common/enums/teacher-role.enum';
 import { CreateStudentDto } from './dto/create-student.dto';
+import { ParentCreateStudentDto } from './dto/parent-create-student.dto';
+import { CreatedSource } from '@common/enums/created-source.enum';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { UpdateStudentStatusDto } from './dto/update-student-status.dto';
 import { QueryStudentDto } from './dto/query-student.dto';
@@ -39,6 +41,7 @@ import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { AuthedRequest } from '@common/types/authed-request';
 import { CreateParentLeaveRequestDto } from './dto/create-parent-leave-request.dto';
 import { PointsService } from '../points/points.service';
 
@@ -66,7 +69,7 @@ export class StudentController {
 
   @Post()
   @Roles('SuperAdmin', 'Admin')
-  async create(@Body() dto: CreateStudentDto, @Req() req: any) {
+  async create(@Body() dto: CreateStudentDto, @Req() req: AuthedRequest) {
     const operatorId = req.user.sub;
     const student = await this.studentService.create(dto, operatorId);
     return ApiResponse.success(student);
@@ -76,7 +79,7 @@ export class StudentController {
 
   @Get('self')
   @Roles('Student', 'Parent')
-  async getSelf(@Req() req: any) {
+  async getSelf(@Req() req: AuthedRequest) {
     const userId = req.user.sub;
     const student = await this.studentService.findByUserId(userId);
     if (!student) {
@@ -92,7 +95,7 @@ export class StudentController {
 
   @Get('self/contracts')
   @Roles('Student', 'Parent')
-  async getSelfContracts(@Req() req: any) {
+  async getSelfContracts(@Req() req: AuthedRequest) {
     const userId = req.user.sub;
     const student = await this.studentService.findByUserId(userId);
     if (!student) {
@@ -174,7 +177,7 @@ export class StudentController {
   @Get('self/lessons')
   @Roles('Student', 'Parent')
   async getSelfLessons(
-    @Req() req: any,
+    @Req() req: AuthedRequest,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
@@ -193,7 +196,7 @@ export class StudentController {
 
   @Get('self/attendance')
   @Roles('Student', 'Parent')
-  async getSelfAttendance(@Req() req: any) {
+  async getSelfAttendance(@Req() req: AuthedRequest) {
     const userId = req.user.sub;
     const student = await this.studentService.findByUserId(userId);
     if (!student) {
@@ -258,12 +261,14 @@ export class StudentController {
 
   @Get('self/points')
   @Roles('Student', 'Parent')
-  async getSelfPoints(@Req() req: any) {
+  async getSelfPoints(@Req() req: AuthedRequest) {
     const student = await this.studentService.findByUserId(req.user.sub);
     if (!student) {
       return ApiResponse.error(404, '未找到关联的学生信息');
     }
-    const data = await this.studentService.getStudentPoints(student.studentCode);
+    const data = await this.studentService.getStudentPoints(
+      student.studentCode,
+    );
     return ApiResponse.success(data);
   }
 
@@ -277,7 +282,7 @@ export class StudentController {
   @Post('self/points-mall/exchange')
   @Roles('Student', 'Parent')
   async exchangePoints(
-    @Req() req: any,
+    @Req() req: AuthedRequest,
     @Body() body: { productId?: number; quantity?: number },
   ) {
     const student = await this.studentService.findByUserId(req.user.sub);
@@ -299,7 +304,7 @@ export class StudentController {
 
   @Get('self/feedback')
   @Roles('Student', 'Parent')
-  async getSelfFeedback(@Req() req: any) {
+  async getSelfFeedback(@Req() req: AuthedRequest) {
     const student = await this.studentService.findByUserId(req.user.sub);
     if (!student) {
       return ApiResponse.error(404, '未找到关联的学生信息');
@@ -316,7 +321,7 @@ export class StudentController {
   @Roles('Parent')
   async getChildCourses(
     @Param('childId', ParseIntPipe) childId: number,
-    @CurrentUser() parent: any,
+    @CurrentUser() parent: AuthedRequest['user'],
   ) {
     const result = await this.studentService.getChildCourses(
       parent.sub,
@@ -329,7 +334,7 @@ export class StudentController {
   @Roles('Parent')
   async getChildAttendance(
     @Param('childId', ParseIntPipe) childId: number,
-    @CurrentUser() parent: any,
+    @CurrentUser() parent: AuthedRequest['user'],
   ) {
     const result = await this.studentService.getChildAttendance(
       parent.sub,
@@ -342,7 +347,7 @@ export class StudentController {
   @Roles('Parent')
   async getChildContracts(
     @Param('childId', ParseIntPipe) childId: number,
-    @CurrentUser() parent: any,
+    @CurrentUser() parent: AuthedRequest['user'],
   ) {
     const result = await this.studentService.getChildContracts(
       parent.sub,
@@ -355,7 +360,7 @@ export class StudentController {
   @Roles('Parent')
   async getChildLessons(
     @Param('childId', ParseIntPipe) childId: number,
-    @CurrentUser() parent: any,
+    @CurrentUser() parent: AuthedRequest['user'],
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
@@ -372,9 +377,12 @@ export class StudentController {
   @Roles('Parent')
   async getChildPoints(
     @Param('childId', ParseIntPipe) childId: number,
-    @CurrentUser() parent: any,
+    @CurrentUser() parent: AuthedRequest['user'],
   ) {
-    const result = await this.studentService.getChildPoints(parent.sub, childId);
+    const result = await this.studentService.getChildPoints(
+      parent.sub,
+      childId,
+    );
     return ApiResponse.success(result);
   }
 
@@ -382,7 +390,7 @@ export class StudentController {
   @Roles('Parent')
   async getChildFeedback(
     @Param('childId', ParseIntPipe) childId: number,
-    @CurrentUser() parent: any,
+    @CurrentUser() parent: AuthedRequest['user'],
   ) {
     const result = await this.studentService.getChildFeedback(
       parent.sub,
@@ -396,7 +404,7 @@ export class StudentController {
   @Post('leave-requests')
   @Roles('Parent')
   async createLeaveRequest(
-    @CurrentUser() parent: any,
+    @CurrentUser() parent: AuthedRequest['user'],
     @Body() dto: CreateParentLeaveRequestDto,
   ) {
     const result = await this.studentService.createLeaveRequest(
@@ -408,15 +416,31 @@ export class StudentController {
 
   @Get('my-children')
   @Roles('Parent')
-  async getMyChildren(@Req() req: any) {
+  async getMyChildren(@Req() req: AuthedRequest) {
     const userId = req.user.sub;
     const students = await this.studentService.getChildrenByUserId(userId);
     return ApiResponse.success(students);
   }
 
+  @Post('my-children')
+  @Roles('Parent')
+  @HttpCode(HttpStatus.OK)
+  async createMyChild(
+    @Body() dto: ParentCreateStudentDto,
+    @Req() req: AuthedRequest,
+  ) {
+    const parentId = req.user.sub;
+    const student = await this.studentService.create(
+      { ...dto, parentIds: [parentId] },
+      parentId,
+      CreatedSource.API,
+    );
+    return ApiResponse.success(student, '添加学生成功');
+  }
+
   @Get()
   @Roles('SuperAdmin', 'Admin', 'Teacher')
-  async findAll(@Query() query: QueryStudentDto, @Req() req: any) {
+  async findAll(@Query() query: QueryStudentDto, @Req() req: AuthedRequest) {
     // Teacher 只能看到自己负责的班级里的学生
     const teacherId =
       req.user.role === 'Teacher' ? Number(req.user.sub) : undefined;
@@ -436,7 +460,7 @@ export class StudentController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateStudentDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     const operatorId = req.user.sub;
     const student = await this.studentService.update(id, dto, operatorId);
@@ -448,7 +472,7 @@ export class StudentController {
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateStudentStatusDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     const operatorId = req.user.sub;
     const student = await this.studentService.updateStatus(id, dto, operatorId);
@@ -457,7 +481,7 @@ export class StudentController {
 
   @Delete(':id')
   @Roles('SuperAdmin')
-  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
     const operatorId = req.user.sub;
     await this.studentService.softDelete(id, operatorId);
     return ApiResponse.success(null, '学生已删除');
@@ -512,7 +536,7 @@ export class StudentController {
   @Roles('SuperAdmin', 'Admin')
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
-  async import(@UploadedFile() file: any, @Req() req: any) {
+  async import(@UploadedFile() file: Express.Multer.File, @Req() req: AuthedRequest) {
     if (!file) {
       return ApiResponse.error(400, '请上传文件');
     }

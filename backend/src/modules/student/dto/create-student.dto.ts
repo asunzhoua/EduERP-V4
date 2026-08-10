@@ -1,4 +1,13 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsArray, IsDateString, MinLength, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsEnum,
+  IsArray,
+  IsDateString,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
 import { Gender } from '../enums/gender.enum';
 import { StudentStatus } from '../enums/student-status.enum';
 
@@ -49,4 +58,10 @@ export class CreateStudentDto {
   @IsArray()
   @IsOptional()
   parentIds?: number[];
+
+  /** Optional: enroll into a class on creation (家长添加孩子时可选班级) */
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  classCode?: string;
 }

@@ -1,5 +1,8 @@
 <!-- pages/parent/index.wxml -->
 <view class="container">
+  <!-- 添加学生入口 -->
+  <view class="add-btn" bindtap="goToAddStudent"><text class="add-plus">＋</text>添加学生</view>
+
   <!-- Loading -->
   <view wx:if="{{loading}}" class="loading">
     <text>加载中...</text>

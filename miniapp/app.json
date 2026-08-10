@@ -3,6 +3,7 @@
     "pages/login/login",
     "pages/register/register",
     "pages/forgot-password/forgot-password",
+    "pages/change-password/change-password",
     "pages/agreement/user-agreement/user-agreement",
     "pages/agreement/privacy-policy/privacy-policy",
     "pages/index/index",
@@ -47,6 +48,7 @@
       "root": "pkgParent",
       "pages": [
         "pages/index",
+        "pages/add-student",
         "pages/child-detail"
       ]
     },

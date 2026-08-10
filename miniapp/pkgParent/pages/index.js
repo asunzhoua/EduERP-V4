@@ -42,6 +42,15 @@ Page({
     }
   },
 
+  goToAddStudent() {
+    wx.navigateTo({
+      url: '/pkgParent/pages/add-student',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
   goToChildDetail(e) {
     const { id, name, studentcode, school, grade } = e.currentTarget.dataset;
     // 将基本信息通过 URL 参数传递

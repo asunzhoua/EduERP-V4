@@ -15,6 +15,8 @@ import { ImportService } from '@utils/services/import.service';
 import { StudentStatus } from '../enums/student-status.enum';
 import { CreatedSource } from '@common/enums/created-source.enum';
 import { AuditAction } from '@common/enums/audit-action.enum';
+import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
+import { ClassStatus } from '@modules/teaching/class/enums/class-status.enum';
 import { ContractRepository } from '@modules/teaching/contract/contract.repository';
 import { LessonAttendanceRepository } from '@modules/teaching/lesson-attendance/lesson-attendance.repository';
 import { LeaveRequestEntity } from '@modules/teaching/leave-request/leave-request.entity';
@@ -105,6 +107,7 @@ describe('StudentService', () => {
     };
 
     const mockEnrollmentRepo = {
+      save: jest.fn(),
       find: jest.fn().mockResolvedValue([]),
       findOne: jest.fn().mockResolvedValue(null),
     };
@@ -119,6 +122,7 @@ describe('StudentService', () => {
 
     const mockClassRepo = {
       find: jest.fn().mockResolvedValue([]),
+      findOne: jest.fn().mockResolvedValue(null),
     };
 
     const mockPointsService = {
@@ -199,6 +203,83 @@ describe('StudentService', () => {
       expect(result).toEqual(mockStudent);
       expect(codeGenerator.generateStudentCode).toHaveBeenCalled();
       expect(studentRepo.save).toHaveBeenCalled();
+    });
+
+    it('create with classCode enrolls student with null contract', async () => {
+      studentRepo.save.mockResolvedValue(mockStudent);
+      classRepo.findOne.mockResolvedValue({
+        classCode: 'CL2026070001',
+        status: ClassStatus.ACTIVE,
+      });
+
+      await service.create(
+        {
+          name: '张三',
+          gender: 'MALE' as any,
+          birthDate: '2015-01-01',
+          classCode: 'CL2026070001',
+        },
+        1,
+      );
+
+      expect(classRepo.findOne).toHaveBeenCalledWith({
+        where: { classCode: 'CL2026070001' },
+      });
+      expect(enrollmentRepo.save).toHaveBeenCalledTimes(1);
+      const enrollment = enrollmentRepo.save.mock.calls[0][0];
+      expect(enrollment.classCode).toBe('CL2026070001');
+      expect(enrollment.studentCode).toBe('STU2026070001');
+      expect(enrollment.contractCode).toBeNull();
+      expect(enrollment.status).toBe(EnrollmentStatus.ACTIVE);
+      expect(enrollment.enrolledBy).toBe(1);
+    });
+
+    it('create without classCode does not enroll', async () => {
+      studentRepo.save.mockResolvedValue(mockStudent);
+
+      await service.create(
+        { name: '张三', gender: 'MALE' as any, birthDate: '2015-01-01' },
+        1,
+      );
+
+      expect(enrollmentRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('create with unknown class throws BadRequestException', async () => {
+      studentRepo.save.mockResolvedValue(mockStudent);
+      classRepo.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.create(
+          {
+            name: '张三',
+            gender: 'MALE' as any,
+            birthDate: '2015-01-01',
+            classCode: 'NOPE',
+          },
+          1,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('create with non-ACTIVE class throws BadRequestException', async () => {
+      studentRepo.save.mockResolvedValue(mockStudent);
+      classRepo.findOne.mockResolvedValue({
+        classCode: 'CL2026070001',
+        status: ClassStatus.DRAFT,
+      });
+
+      await expect(
+        service.create(
+          {
+            name: '张三',
+            gender: 'MALE' as any,
+            birthDate: '2015-01-01',
+            classCode: 'CL2026070001',
+          },
+          1,
+        ),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -433,10 +514,42 @@ describe('StudentService', () => {
         { classCode: 'CL2', status: 'ACTIVE' },
       ]);
       lessonRepo.find.mockResolvedValue([
-        { id: 10, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-05', startTime: '09:00', endTime: '10:00', status: 'FINISHED' },
-        { id: 11, classCode: 'CL2', courseCode: 'C2', scheduledDate: '2026-08-07', startTime: '09:00', endTime: '10:00', status: 'SCHEDULED' },
-        { id: 12, classCode: 'CL2', courseCode: 'C2', scheduledDate: '2026-08-10', startTime: '09:00', endTime: '10:00', status: 'SCHEDULED' },
-        { id: 99, classCode: 'CL_OLD', courseCode: 'C1', scheduledDate: '2026-07-20', startTime: '09:00', endTime: '10:00', status: 'FINISHED' },
+        {
+          id: 10,
+          classCode: 'CL1',
+          courseCode: 'C1',
+          scheduledDate: '2026-08-05',
+          startTime: '09:00',
+          endTime: '10:00',
+          status: 'FINISHED',
+        },
+        {
+          id: 11,
+          classCode: 'CL2',
+          courseCode: 'C2',
+          scheduledDate: '2026-08-07',
+          startTime: '09:00',
+          endTime: '10:00',
+          status: 'SCHEDULED',
+        },
+        {
+          id: 12,
+          classCode: 'CL2',
+          courseCode: 'C2',
+          scheduledDate: '2026-08-10',
+          startTime: '09:00',
+          endTime: '10:00',
+          status: 'SCHEDULED',
+        },
+        {
+          id: 99,
+          classCode: 'CL_OLD',
+          courseCode: 'C1',
+          scheduledDate: '2026-07-20',
+          startTime: '09:00',
+          endTime: '10:00',
+          status: 'FINISHED',
+        },
       ]);
       classRepo.find.mockResolvedValue([
         { classCode: 'CL1', name: '一班' },

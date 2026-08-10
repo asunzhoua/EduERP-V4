@@ -129,6 +129,24 @@ describe('StudentController', () => {
     expect(service.create).toHaveBeenCalledWith(dto, 1);
   });
 
+  it('POST /students/my-children - parent creates and binds self', async () => {
+    const dto = {
+      name: '小红',
+      gender: 'FEMALE',
+      birthDate: '2016-03-01',
+      grade: '一年级',
+    };
+    service.create.mockResolvedValue(mockStudent);
+    const result = await controller.createMyChild(dto as any, mockReq);
+    expect(result.code).toBe(0);
+    expect(result.data!).toEqual(mockStudent);
+    expect(service.create).toHaveBeenCalledWith(
+      { ...dto, parentIds: [1] },
+      1,
+      'API',
+    );
+  });
+
   it('GET /students - findAll', async () => {
     const result = await controller.findAll(
       { page: 1 },
@@ -294,7 +312,7 @@ describe('StudentController', () => {
     service.getChildLessons.mockResolvedValue([{ lessonId: 1 }]);
 
     const result = await controller.getChildLessons(
-      5 as any,
+      5,
       { sub: 2 } as any,
       '2026-08-01',
       '2026-08-31',
@@ -311,7 +329,7 @@ describe('StudentController', () => {
   it('GET /students/:childId/points - delegates to service', async () => {
     service.getChildPoints.mockResolvedValue({ balance: 50 });
 
-    const result = await controller.getChildPoints(5 as any, { sub: 2 } as any);
+    const result = await controller.getChildPoints(5, { sub: 2 } as any);
     expect(result.code).toBe(0);
     expect(service.getChildPoints).toHaveBeenCalledWith(2, 5);
   });
@@ -319,10 +337,7 @@ describe('StudentController', () => {
   it('GET /students/:childId/feedback - delegates to service', async () => {
     service.getChildFeedback.mockResolvedValue([{ id: 1 }]);
 
-    const result = await controller.getChildFeedback(
-      5 as any,
-      { sub: 2 } as any,
-    );
+    const result = await controller.getChildFeedback(5, { sub: 2 } as any);
     expect(result.code).toBe(0);
     expect(service.getChildFeedback).toHaveBeenCalledWith(2, 5);
   });

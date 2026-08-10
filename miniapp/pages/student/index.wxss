@@ -109,6 +109,17 @@
   height: 30rpx;
 }
 
+/* 添加小朋友行：虚线上边线区隔 */
+.add-child-row {
+  border-top: 2rpx dashed var(--border, #EDE5DA);
+}
+
+.add-avatar {
+  background-color: #FFFFFF;
+  border: 2rpx dashed var(--accent, #D97B3E);
+  color: var(--accent, #D97B3E);
+}
+
 /* 功能菜单 */
 .menu-row {
   display: flex;

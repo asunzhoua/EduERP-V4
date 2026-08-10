@@ -33,6 +33,7 @@ import { EnrollmentEntity } from '@modules/teaching/enrollment/enrollment.entity
 import { CourseEntity } from '@modules/teaching/course/course.entity';
 import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
 import { ClassEntity } from '@modules/teaching/class/class.entity';
+import { ClassStatus } from '@modules/teaching/class/enums/class-status.enum';
 import { PointsService } from '@modules/points/points.service';
 import { FeedbackService } from '@modules/feedback/feedback.service';
 
@@ -99,6 +100,23 @@ export class StudentService {
         return link;
       });
       await this.studentParentRepository.save(links);
+    }
+
+    // Auto-enroll if a class is chosen (家长添加孩子时可选班级，分班与合同解耦)
+    if (dto.classCode) {
+      const cls = await this.classRepository.findOne({
+        where: { classCode: dto.classCode },
+      });
+      if (!cls || cls.status !== ClassStatus.ACTIVE) {
+        throw new BadRequestException('班级不存在或未开班，无法选入');
+      }
+      const enrollment = new EnrollmentEntity();
+      enrollment.classCode = dto.classCode;
+      enrollment.studentCode = saved.studentCode;
+      enrollment.contractCode = null;
+      enrollment.status = EnrollmentStatus.ACTIVE;
+      enrollment.enrolledBy = operatorId;
+      await this.enrollmentRepository.save(enrollment);
     }
 
     // Audit log

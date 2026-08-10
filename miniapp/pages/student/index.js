@@ -116,6 +116,15 @@ Page({
     }
   },
 
+  goToAddStudent() {
+    wx.navigateTo({
+      url: '/pkgParent/pages/add-student',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
   goToChildDetail(e) {
     const d = e.currentTarget.dataset;
     wx.navigateTo({

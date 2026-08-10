@@ -20,6 +20,7 @@ import {
   ApiResponse as SwaggerResponse,
 } from '@nestjs/swagger';
 import { ClassService } from './class.service';
+import { ClassStatus } from './enums/class-status.enum';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { UpdateClassStatusDto } from './dto/update-class-status.dto';
@@ -29,6 +30,7 @@ import { ApiResponse } from '@common/dto/api-response';
 import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { AuthedRequest } from '@common/types/authed-request';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 
 @ApiTags('Class')
@@ -47,7 +49,10 @@ export class ClassController {
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Create a new class (DRAFT)' })
   @SwaggerResponse({ status: 0, description: 'Class created successfully' })
-  async create(@Body() dto: CreateClassDto, @Req() req: any): Promise<ApiResponse> {
+  async create(
+    @Body() dto: CreateClassDto,
+    @Req() req: AuthedRequest,
+  ): Promise<ApiResponse> {
     const operatorId = req.user.sub;
     const cls = await this.classService.create(dto, operatorId);
     return ApiResponse.success(cls, 'Class created');
@@ -56,10 +61,29 @@ export class ClassController {
   @Get()
   @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'List all classes (paginated, filterable)' })
-  async findAll(@Query() query: QueryClassDto, @Req() req: any): Promise<ApiResponse> {
+  async findAll(
+    @Query() query: QueryClassDto,
+    @Req() req: AuthedRequest,
+  ): Promise<ApiResponse> {
     // Teacher 只能看到自己负责的班级
-    const teacherId = req.user.role === 'Teacher' ? Number(req.user.sub) : undefined;
+    const teacherId =
+      req.user.role === 'Teacher' ? Number(req.user.sub) : undefined;
     const result = await this.classService.findAll(query, teacherId);
+    const enrichedItems = await this.classService.enrichClasses(result.items);
+    return ApiResponse.success({ items: enrichedItems, total: result.total });
+  }
+
+  @Get('open')
+  @Roles('SuperAdmin', 'Admin', 'Teacher', 'Parent')
+  @ApiOperation({
+    summary: 'List open (ACTIVE) classes for enrollment selection',
+  })
+  async findOpenClasses(@Query() query: QueryClassDto): Promise<ApiResponse> {
+    const result = await this.classService.findAll({
+      ...query,
+      status: ClassStatus.ACTIVE,
+      pageSize: query.pageSize ?? 100,
+    });
     const enrichedItems = await this.classService.enrichClasses(result.items);
     return ApiResponse.success({ items: enrichedItems, total: result.total });
   }
@@ -79,7 +103,7 @@ export class ClassController {
   async update(
     @Param('code') code: string,
     @Body() dto: UpdateClassDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
     const operatorId = req.user.sub;
     const cls = await this.classService.update(code, dto, operatorId);
@@ -93,7 +117,7 @@ export class ClassController {
   async updateStatus(
     @Param('code') code: string,
     @Body() dto: UpdateClassStatusDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
     const operatorId = req.user.sub;
     const cls = await this.classService.updateStatus(
@@ -109,7 +133,10 @@ export class ClassController {
   @Roles('SuperAdmin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete class (DRAFT only)' })
-  async remove(@Param('code') code: string, @Req() req: any): Promise<ApiResponse> {
+  async remove(
+    @Param('code') code: string,
+    @Req() req: AuthedRequest,
+  ): Promise<ApiResponse> {
     const operatorId = req.user.sub;
     await this.classService.remove(code, operatorId);
     return ApiResponse.success(null, 'Class deleted');
@@ -123,7 +150,7 @@ export class ClassController {
   async assignTeacher(
     @Param('code') code: string,
     @Body() dto: AssignTeacherDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
     const operatorId = req.user.sub;
     const assignment = await this.classService.assignTeacher({
@@ -143,7 +170,7 @@ export class ClassController {
   async removeTeacher(
     @Param('code') _code: string,
     @Param('assignmentId') assignmentId: string,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
     const operatorId = req.user.sub;
     await this.classService.removeTeacher(Number(assignmentId));
