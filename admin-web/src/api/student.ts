@@ -1,5 +1,5 @@
 import { http } from '@/utils/request'
-import type { Paginated } from '@/types/api'
+import type { Paginated, ImportReport } from '@/types/api'
 
 export type Gender = 'MALE' | 'FEMALE'
 export type StudentStatus = 'ACTIVE' | 'PAUSED' | 'GRADUATED' | 'INACTIVE'
@@ -77,4 +77,11 @@ export function updateStudent(id: number | string, payload: UpdateStudentPayload
 
 export function updateStudentStatus(id: number | string, status: StudentStatus): Promise<Student> {
   return http.patch<Student>(`/students/${id}/status`, { status })
+}
+
+/** 学员名单批量导入（Excel/CSV，表头支持中文别名） */
+export function importStudents(file: File): Promise<ImportReport> {
+  const form = new FormData()
+  form.append('file', file)
+  return http.post<ImportReport>('/students/import', form)
 }

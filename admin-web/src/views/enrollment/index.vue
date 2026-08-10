@@ -10,12 +10,14 @@ import {
   fetchEnrollments,
   createEnrollment,
   withdrawEnrollment,
+  importLessons,
   type Contract,
   type Enrollment,
   type Subject,
 } from '@/api/enrollment'
 import { formatDate, formatDateTime, formatMoney, subjectLabel } from '@/utils/format'
 import AdjustContractLessonsModal from '@/components/AdjustContractLessonsModal.vue'
+import ImportExcelModal from '@/components/ImportExcelModal.vue'
 
 type ContractStatus = Contract['status']
 
@@ -255,6 +257,11 @@ function onTabChange(key: string) {
   }
 }
 
+// ─── 课时批量导入 ───
+const lessonImportOpen = ref(false)
+const lessonImportHint =
+  '表头（支持中文）：学员编码 / 科目（数学/英语 或 MATH/ENGLISH）/ 课时数（正整数）/ 单价（可选）/ 到期日（可选，YYYY-MM-DD）。\n已有同科目有效合同时按累加方式增加课时；无有效合同则自动新建合同。'
+
 onMounted(loadContracts)
 </script>
 
@@ -275,7 +282,10 @@ onMounted(loadContracts)
             <a-button type="primary" html-type="submit" :icon="h(SearchOutlined)">查询</a-button>
           </a-form-item>
           <a-form-item class="search-actions">
-            <a-button type="primary" ghost :icon="h(PlusOutlined)" @click="openContractCreate">新建合同</a-button>
+            <a-space>
+              <a-button type="primary" ghost :icon="h(PlusOutlined)" @click="openContractCreate">新建合同</a-button>
+              <a-button @click="lessonImportOpen = true">导入课时</a-button>
+            </a-space>
           </a-form-item>
         </a-form>
 
@@ -403,6 +413,7 @@ onMounted(loadContracts)
     </a-tabs>
 
     <AdjustContractLessonsModal v-model:open="adjustOpen" :contract="adjustTarget" @success="loadContracts" />
+    <ImportExcelModal v-model:open="lessonImportOpen" title="导入课时" :import-fn="importLessons" :hint="lessonImportHint" @success="loadContracts" />
   </a-card>
 </template>
 

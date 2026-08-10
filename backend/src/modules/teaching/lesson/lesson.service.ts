@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { LessonRepository } from './lesson.repository';
 import { LessonEntity } from './lesson.entity';
 import { LessonStatus } from './enums/lesson-status.enum';
+import { LessonSource } from './enums/lesson-source.enum';
 import { EventBusService } from '@events/event-bus.service';
 import { ClassRepository } from '../class/class.repository';
 import { ClassStatus } from '../class/enums/class-status.enum';
@@ -63,6 +64,8 @@ export interface CreateLessonInput {
    * progress SCHEDULED → TEACHING → FINISHED.
    */
   status?: LessonStatus;
+  /** 课时来源（台账追溯），默认 ADMIN_MANUAL */
+  source?: LessonSource;
 }
 
 @Injectable()
@@ -173,6 +176,7 @@ export class LessonService {
     lesson.courseCode = input.courseCode;
     lesson.lessonNumber = input.lessonNumber;
     lesson.status = input.status ?? LessonStatus.DRAFT;
+    lesson.source = input.source ?? LessonSource.ADMIN_MANUAL;
     lesson.scheduledDate = input.scheduledDate;
     lesson.startTime = input.startTime;
     lesson.endTime = input.endTime;
@@ -231,6 +235,7 @@ export class LessonService {
       lesson.courseCode = input.courseCode;
       lesson.lessonNumber = input.lessonNumber;
       lesson.status = LessonStatus.SCHEDULED; // System-generated skip DRAFT
+      lesson.source = LessonSource.ADMIN_BATCH;
       lesson.scheduledDate = input.scheduledDate;
       lesson.startTime = input.startTime;
       lesson.endTime = input.endTime;
@@ -253,6 +258,200 @@ export class LessonService {
       `Batch created ${saved.length} lessons for class ${inputs[0]?.classCode}`,
     );
     return saved;
+  }
+
+  // ─── Batch Scheduling (P3-2: 一键排课) ───
+
+  /**
+   * 按班级固定课表批量生成未来课时（P3-2）。
+   *
+   * 规则：
+   * - 仅 ACTIVE 班级可排课；前置校验 dayOfWeek 非空、startTime < endTime、totalLessons > 0、起始日不早于昨天。
+   * - 已存在的相同（date+startTime+endTime）时段跳过并计数，不生成不报错。
+   * - lessonNumber 从该班级现有最大值续号，保持连续。
+   * - 可选检测教师时间冲突（默认关）；开启则列出冲突供管理员决策，仍正常生成。
+   */
+  async generateClassLessons(
+    classCode: string,
+    dto: {
+      startDate: string;
+      count?: number;
+      checkConflict?: boolean;
+      teacherId: number;
+    },
+    operatorId: number,
+  ): Promise<{
+    classCode: string;
+    requested: number;
+    generated: number;
+    skipped: number;
+    conflicts: { date: string; startTime: string; endTime: string; reason: string }[];
+    firstLessonNumber: number | null;
+    message: string;
+  }> {
+    const cls = await this.classRepo.findOneByCode(classCode);
+    if (!cls) {
+      throw new NotFoundException(`Class not found: ${classCode}`);
+    }
+    if (cls.status !== ClassStatus.ACTIVE) {
+      throw new BadRequestException(
+        `班级 ${classCode} 不是进行中状态，无法排课（当前：${cls.status}）`,
+      );
+    }
+
+    // 前置校验
+    const days = cls.dayOfWeek ?? [];
+    if (days.length === 0) {
+      throw new BadRequestException('班级未配置上课星期，无法排课');
+    }
+    if (!cls.startTime || !cls.endTime || cls.endTime <= cls.startTime) {
+      throw new BadRequestException('班级上课时间无效（开始时间需早于结束时间）');
+    }
+    if (!cls.totalLessons || cls.totalLessons <= 0) {
+      throw new BadRequestException('班级总课时无效');
+    }
+
+    const start = new Date(dto.startDate);
+    if (isNaN(start.getTime())) {
+      throw new BadRequestException('起始日期无效');
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (start < yesterday) {
+      throw new BadRequestException('起始日期不能早于昨天');
+    }
+
+    // 现有课时：去重时段 + 最大值 + 非取消计数
+    const existing = await this.lessonRepo.findByClassCode(classCode);
+    const existingSlots = new Set<string>();
+    let maxNumber = 0;
+    let nonCancelled = 0;
+    for (const l of existing) {
+      if (l.lessonNumber > maxNumber) maxNumber = l.lessonNumber;
+      if (l.status !== LessonStatus.CANCELLED) {
+        nonCancelled++;
+        existingSlots.add(`${l.scheduledDate}|${l.startTime}|${l.endTime}`);
+      }
+    }
+
+    const remaining = cls.totalLessons - nonCancelled;
+    if (remaining <= 0) {
+      return {
+        classCode,
+        requested: 0,
+        generated: 0,
+        skipped: 0,
+        conflicts: [],
+        firstLessonNumber: null,
+        message: `班级 ${classCode} 已排满 ${cls.totalLessons} 课时，无需再排`,
+      };
+    }
+    const toGenerate = dto.count ? Math.min(dto.count, remaining) : remaining;
+
+    // 收集候选日期（跳过已有时段）
+    const candidates: string[] = [];
+    const skippedDates: string[] = [];
+    const cursor = new Date(start);
+    let guard = 0;
+    while (candidates.length < toGenerate && guard < 1095) {
+      const wd = cursor.getDay() === 0 ? 7 : cursor.getDay(); // 1=Mon..7=Sun
+      if (days.includes(wd)) {
+        const dateStr = this.toYMD(cursor);
+        const slot = `${dateStr}|${cls.startTime}|${cls.endTime}`;
+        if (existingSlots.has(slot)) {
+          skippedDates.push(dateStr);
+        } else {
+          candidates.push(dateStr);
+        }
+      }
+      cursor.setDate(cursor.getDate() + 1);
+      guard++;
+    }
+
+    // 可选：教师时间冲突检测
+    let conflicts: {
+      date: string;
+      startTime: string;
+      endTime: string;
+      reason: string;
+    }[] = [];
+    if (dto.checkConflict && candidates.length > 0) {
+      const first = candidates[0];
+      const last = candidates[candidates.length - 1];
+      const teacherLessons = await this.lessonRepo.findByTeacherAndDateRange(
+        dto.teacherId,
+        first,
+        last,
+      );
+      for (const dateStr of candidates) {
+        const overlaps = teacherLessons.filter(
+          (l) =>
+            l.scheduledDate === dateStr &&
+            l.startTime < cls.endTime &&
+            l.endTime > cls.startTime,
+        );
+        if (overlaps.length > 0) {
+          conflicts.push({
+            date: dateStr,
+            startTime: cls.startTime,
+            endTime: cls.endTime,
+            reason: `与老师第 ${overlaps.map((o) => o.lessonNumber).join('、')} 课时时间重叠`,
+          });
+        }
+      }
+    }
+
+    // 建实体并保存
+    const created: LessonEntity[] = [];
+    let lessonNumber = maxNumber;
+    for (const dateStr of candidates) {
+      lessonNumber += 1;
+      const lesson = new LessonEntity();
+      lesson.classCode = classCode;
+      lesson.courseCode = cls.courseCode;
+      lesson.lessonNumber = lessonNumber;
+      lesson.status = LessonStatus.SCHEDULED;
+      lesson.source = LessonSource.ADMIN_BATCH;
+      lesson.scheduledDate = dateStr;
+      lesson.startTime = cls.startTime;
+      lesson.endTime = cls.endTime;
+      lesson.teacherId = dto.teacherId;
+      lesson.topic = null;
+      lesson.isMakeup = false;
+      lesson.originLessonId = null;
+      lesson.changeRequestId = null;
+      lesson.note = null;
+      lesson.cancelledReason = null;
+      lesson.actualStartTime = null;
+      lesson.actualEndTime = null;
+      lesson.confirmedBy = null;
+      lesson.confirmedAt = null;
+      lesson.createdBy = operatorId;
+      created.push(lesson);
+    }
+    const saved =
+      created.length > 0 ? await this.lessonRepo.saveAll(created) : [];
+
+    return {
+      classCode,
+      requested: toGenerate,
+      generated: saved.length,
+      skipped: skippedDates.length,
+      conflicts,
+      firstLessonNumber: saved.length > 0 ? maxNumber + 1 : null,
+      message: `已生成 ${saved.length} 课时${
+        skippedDates.length > 0 ? `，跳过 ${skippedDates.length} 个重复时段` : ''
+      }${conflicts.length > 0 ? `，发现 ${conflicts.length} 处教师时间冲突` : ''}`,
+    };
+  }
+
+  private toYMD(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 
   // ─── Read ───

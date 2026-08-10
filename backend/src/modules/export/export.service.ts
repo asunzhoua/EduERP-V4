@@ -12,6 +12,87 @@ import { SalaryRecordEntity } from '../salary/entities/salary-record.entity';
 import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
 import { User } from '../identity/entities/user.entity';
 
+/** 把英文列 key 映射为中文表头；未知 key 回退原样 */
+function labels(cols: string[], map: Record<string, string>): string[] {
+  return cols.map((c) => map[c] ?? c);
+}
+
+const STUDENT_HEADERS: Record<string, string> = {
+  studentCode: '学员编码',
+  studentName: '学员姓名',
+  gender: '性别',
+  phone: '手机号',
+  school: '学校',
+  grade: '年级',
+  enrollmentDate: '入学日期',
+  contractCode: '合同编号',
+  totalLessons: '总课时',
+  remainingLessons: '剩余课时',
+  status: '状态',
+};
+
+const LESSON_HEADERS: Record<string, string> = {
+  lessonId: '课时ID',
+  classCode: '班级编码',
+  courseCode: '课程编码',
+  lessonNumber: '课次',
+  scheduledDate: '上课日期',
+  startTime: '开始时间',
+  endTime: '结束时间',
+  teacherId: '老师ID',
+  status: '状态',
+  isMakeup: '是否补课',
+  presentCount: '到课人数',
+  absentCount: '缺勤人数',
+  totalAttendance: '应到人数',
+  actualStartTime: '实际开始',
+  actualEndTime: '实际结束',
+  note: '备注',
+};
+
+const CONSUMPTION_HEADERS: Record<string, string> = {
+  contractCode: '合同编号',
+  studentCode: '学员编码',
+  subject: '科目',
+  totalLessons: '总课时',
+  remainingLessons: '剩余课时',
+  consumedLessons: '已消耗课时',
+  unitPrice: '单价',
+  consumedValue: '已消耗金额',
+  status: '状态',
+  validFrom: '生效日期',
+  validTo: '失效日期',
+};
+
+const SALARY_HEADERS: Record<string, string> = {
+  recordId: '记录ID',
+  teacherId: '老师ID',
+  teacherName: '老师姓名',
+  lessonId: '课时ID',
+  salaryRuleId: '工资规则ID',
+  ruleVersion: '规则版本',
+  amount: '金额',
+  lessonDate: '上课日期',
+  duration: '时长',
+  status: '状态',
+  notes: '备注',
+  createdBy: '创建人',
+  createTime: '创建时间',
+};
+
+const FINANCE_HEADERS: Record<string, string> = {
+  type: '类型',
+  referenceCode: '关联编号',
+  studentCode: '学员编码',
+  teacherId: '老师ID',
+  subject: '科目',
+  totalAmount: '合同总额',
+  consumedValue: '已消耗金额',
+  amount: '金额',
+  lessonDate: '上课日期',
+  status: '状态',
+};
+
 @Injectable()
 export class ExportService {
   constructor(
@@ -87,8 +168,8 @@ export class ExportService {
     ];
 
     return format === 'csv'
-      ? this.csvWriter.generate(data, columns)
-      : this.excelWriter.generate(data, '学生数据');
+      ? this.csvWriter.generate(data, columns, labels(columns, STUDENT_HEADERS))
+      : this.excelWriter.generate(data, '学生数据', columns, labels(columns, STUDENT_HEADERS));
   }
 
   // ─── 2.2 Export Lessons ───
@@ -156,8 +237,8 @@ export class ExportService {
     ];
 
     return format === 'csv'
-      ? this.csvWriter.generate(data, columns)
-      : this.excelWriter.generate(data, '课程数据');
+      ? this.csvWriter.generate(data, columns, labels(columns, LESSON_HEADERS))
+      : this.excelWriter.generate(data, '课程数据', columns, labels(columns, LESSON_HEADERS));
   }
 
   // ─── 2.3 Export Consumption ───
@@ -204,8 +285,8 @@ export class ExportService {
     ];
 
     return format === 'csv'
-      ? this.csvWriter.generate(data, columns)
-      : this.excelWriter.generate(data, '课时消耗数据');
+      ? this.csvWriter.generate(data, columns, labels(columns, CONSUMPTION_HEADERS))
+      : this.excelWriter.generate(data, '课时消耗数据', columns, labels(columns, CONSUMPTION_HEADERS));
   }
 
   // ─── 2.4 Export Salary ───
@@ -263,8 +344,8 @@ export class ExportService {
     ];
 
     return format === 'csv'
-      ? this.csvWriter.generate(data, columns)
-      : this.excelWriter.generate(data, '工资数据');
+      ? this.csvWriter.generate(data, columns, labels(columns, SALARY_HEADERS))
+      : this.excelWriter.generate(data, '工资数据', columns, labels(columns, SALARY_HEADERS));
   }
 
   // ─── 2.5 Export Finance ───
@@ -387,7 +468,7 @@ export class ExportService {
     ];
 
     return format === 'csv'
-      ? this.csvWriter.generate(allRows, columns)
-      : this.excelWriter.generate(allRows, '财务数据');
+      ? this.csvWriter.generate(allRows, columns, labels(columns, FINANCE_HEADERS))
+      : this.excelWriter.generate(allRows, '财务数据', columns, labels(columns, FINANCE_HEADERS));
   }
 }

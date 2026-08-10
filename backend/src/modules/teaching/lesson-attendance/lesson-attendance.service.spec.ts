@@ -14,6 +14,7 @@ import {
   DEDUCTIBLE_STATUSES,
 } from './enums/attendance-status.enum';
 import { AttendanceWorkflowState } from './enums/attendance-workflow-state.enum';
+import { AttendanceSource } from './enums/attendance-source.enum';
 import { ReminderService } from '@modules/reminder/reminder.service';
 import { ContractRepository } from '@modules/teaching/contract/contract.repository';
 import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
@@ -21,6 +22,11 @@ import { PointsService } from '@modules/points/points.service';
 import { ClassEntity } from '../class/class.entity';
 import { CourseEntity } from '../course/course.entity';
 import { Subject } from '@common/enums/subject.enum';
+import { ImportService } from '@utils/services/import.service';
+import { LessonRepository } from '../lesson/lesson.repository';
+import { LessonEntity } from '../lesson/lesson.entity';
+import { LessonStatus } from '../lesson/enums/lesson-status.enum';
+import { Student } from '@modules/student/entities/student.entity';
 
 describe('LessonAttendanceService', () => {
   let service: LessonAttendanceService;
@@ -57,6 +63,18 @@ describe('LessonAttendanceService', () => {
     const mockPointsService = {
       credit: jest.fn().mockResolvedValue({ balance: 10 }),
     };
+    const mockLessonRepo = {
+      findOneById: jest.fn().mockResolvedValue(null),
+      findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+    };
+    const mockStudentRepo = { findOne: jest.fn().mockResolvedValue(null) };
+    const mockImportService = {
+      parseBuffer: jest.fn().mockReturnValue([]),
+      validateRows: jest.fn().mockReturnValue({
+        validRows: [],
+        report: { total: 0, success: 0, failure: 0, details: [], fileName: '' },
+      }),
+    };
 
     const mockEventEmitter = {
       emit: jest.fn(),
@@ -71,6 +89,9 @@ describe('LessonAttendanceService', () => {
         { provide: getRepositoryToken(ClassEntity), useValue: mockClassRepo },
         { provide: getRepositoryToken(CourseEntity), useValue: mockCourseRepo },
         { provide: PointsService, useValue: mockPointsService },
+        { provide: LessonRepository, useValue: mockLessonRepo },
+        { provide: getRepositoryToken(Student), useValue: mockStudentRepo },
+        { provide: ImportService, useValue: mockImportService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
@@ -364,6 +385,33 @@ describe('LessonAttendanceService', () => {
           },
           { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+          {
+            provide: LessonRepository,
+            useValue: {
+              findOneById: jest.fn().mockResolvedValue(null),
+              findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+            },
+          },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: ImportService,
+            useValue: {
+              parseBuffer: jest.fn().mockReturnValue([]),
+              validateRows: jest.fn().mockReturnValue({
+                validRows: [],
+                report: {
+                  total: 0,
+                  success: 0,
+                  failure: 0,
+                  details: [],
+                  fileName: '',
+                },
+              }),
+            },
+          },
         ],
       }).compile();
 
@@ -431,6 +479,33 @@ describe('LessonAttendanceService', () => {
           },
           { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+          {
+            provide: LessonRepository,
+            useValue: {
+              findOneById: jest.fn().mockResolvedValue(null),
+              findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+            },
+          },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: ImportService,
+            useValue: {
+              parseBuffer: jest.fn().mockReturnValue([]),
+              validateRows: jest.fn().mockReturnValue({
+                validRows: [],
+                report: {
+                  total: 0,
+                  success: 0,
+                  failure: 0,
+                  details: [],
+                  fileName: '',
+                },
+              }),
+            },
+          },
         ],
       }).compile();
 
@@ -561,6 +636,33 @@ describe('LessonAttendanceService', () => {
           },
           { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+          {
+            provide: LessonRepository,
+            useValue: {
+              findOneById: jest.fn().mockResolvedValue(null),
+              findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+            },
+          },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: ImportService,
+            useValue: {
+              parseBuffer: jest.fn().mockReturnValue([]),
+              validateRows: jest.fn().mockReturnValue({
+                validRows: [],
+                report: {
+                  total: 0,
+                  success: 0,
+                  failure: 0,
+                  details: [],
+                  fileName: '',
+                },
+              }),
+            },
+          },
         ],
       }).compile();
 
@@ -643,6 +745,33 @@ describe('LessonAttendanceService', () => {
           },
           { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+          {
+            provide: LessonRepository,
+            useValue: {
+              findOneById: jest.fn().mockResolvedValue(null),
+              findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+            },
+          },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: ImportService,
+            useValue: {
+              parseBuffer: jest.fn().mockReturnValue([]),
+              validateRows: jest.fn().mockReturnValue({
+                validRows: [],
+                report: {
+                  total: 0,
+                  success: 0,
+                  failure: 0,
+                  details: [],
+                  fileName: '',
+                },
+              }),
+            },
+          },
         ],
       }).compile();
 
@@ -717,6 +846,33 @@ describe('LessonAttendanceService', () => {
           },
           { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+          {
+            provide: LessonRepository,
+            useValue: {
+              findOneById: jest.fn().mockResolvedValue(null),
+              findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+            },
+          },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: ImportService,
+            useValue: {
+              parseBuffer: jest.fn().mockReturnValue([]),
+              validateRows: jest.fn().mockReturnValue({
+                validRows: [],
+                report: {
+                  total: 0,
+                  success: 0,
+                  failure: 0,
+                  details: [],
+                  fileName: '',
+                },
+              }),
+            },
+          },
         ],
       }).compile();
 
@@ -788,6 +944,33 @@ describe('LessonAttendanceService', () => {
           },
           { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+          {
+            provide: LessonRepository,
+            useValue: {
+              findOneById: jest.fn().mockResolvedValue(null),
+              findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+            },
+          },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: ImportService,
+            useValue: {
+              parseBuffer: jest.fn().mockReturnValue([]),
+              validateRows: jest.fn().mockReturnValue({
+                validRows: [],
+                report: {
+                  total: 0,
+                  success: 0,
+                  failure: 0,
+                  details: [],
+                  fileName: '',
+                },
+              }),
+            },
+          },
         ],
       }).compile();
 
@@ -849,6 +1032,33 @@ describe('LessonAttendanceService', () => {
           },
           { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+          {
+            provide: LessonRepository,
+            useValue: {
+              findOneById: jest.fn().mockResolvedValue(null),
+              findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+            },
+          },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: ImportService,
+            useValue: {
+              parseBuffer: jest.fn().mockReturnValue([]),
+              validateRows: jest.fn().mockReturnValue({
+                validRows: [],
+                report: {
+                  total: 0,
+                  success: 0,
+                  failure: 0,
+                  details: [],
+                  fileName: '',
+                },
+              }),
+            },
+          },
         ],
       }).compile();
 
@@ -915,6 +1125,33 @@ describe('LessonAttendanceService', () => {
           },
           { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+          {
+            provide: LessonRepository,
+            useValue: {
+              findOneById: jest.fn().mockResolvedValue(null),
+              findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+            },
+          },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: ImportService,
+            useValue: {
+              parseBuffer: jest.fn().mockReturnValue([]),
+              validateRows: jest.fn().mockReturnValue({
+                validRows: [],
+                report: {
+                  total: 0,
+                  success: 0,
+                  failure: 0,
+                  details: [],
+                  fileName: '',
+                },
+              }),
+            },
+          },
         ],
       }).compile();
 
@@ -984,6 +1221,33 @@ describe('LessonAttendanceService', () => {
           },
           { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+          {
+            provide: LessonRepository,
+            useValue: {
+              findOneById: jest.fn().mockResolvedValue(null),
+              findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+            },
+          },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: ImportService,
+            useValue: {
+              parseBuffer: jest.fn().mockReturnValue([]),
+              validateRows: jest.fn().mockReturnValue({
+                validRows: [],
+                report: {
+                  total: 0,
+                  success: 0,
+                  failure: 0,
+                  details: [],
+                  fileName: '',
+                },
+              }),
+            },
+          },
         ],
       }).compile();
 
@@ -1055,6 +1319,33 @@ describe('LessonAttendanceService', () => {
           },
           { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+          {
+            provide: LessonRepository,
+            useValue: {
+              findOneById: jest.fn().mockResolvedValue(null),
+              findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+            },
+          },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: ImportService,
+            useValue: {
+              parseBuffer: jest.fn().mockReturnValue([]),
+              validateRows: jest.fn().mockReturnValue({
+                validRows: [],
+                report: {
+                  total: 0,
+                  success: 0,
+                  failure: 0,
+                  details: [],
+                  fileName: '',
+                },
+              }),
+            },
+          },
         ],
       }).compile();
 
@@ -1443,6 +1734,33 @@ describe('LessonAttendanceService', () => {
           { provide: getRepositoryToken(CourseEntity), useValue: courseRepo },
           { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+          {
+            provide: LessonRepository,
+            useValue: {
+              findOneById: jest.fn().mockResolvedValue(null),
+              findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+            },
+          },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: ImportService,
+            useValue: {
+              parseBuffer: jest.fn().mockReturnValue([]),
+              validateRows: jest.fn().mockReturnValue({
+                validRows: [],
+                report: {
+                  total: 0,
+                  success: 0,
+                  failure: 0,
+                  details: [],
+                  fileName: '',
+                },
+              }),
+            },
+          },
         ],
       }).compile();
 
@@ -1542,6 +1860,33 @@ describe('LessonAttendanceService', () => {
           },
           { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+          {
+            provide: LessonRepository,
+            useValue: {
+              findOneById: jest.fn().mockResolvedValue(null),
+              findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+            },
+          },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: ImportService,
+            useValue: {
+              parseBuffer: jest.fn().mockReturnValue([]),
+              validateRows: jest.fn().mockReturnValue({
+                validRows: [],
+                report: {
+                  total: 0,
+                  success: 0,
+                  failure: 0,
+                  details: [],
+                  fileName: '',
+                },
+              }),
+            },
+          },
         ],
       }).compile();
 
@@ -1676,6 +2021,33 @@ describe('LessonAttendanceService', () => {
           { provide: getRepositoryToken(CourseEntity), useValue: courseRepo },
           { provide: PointsService, useValue: pointsServiceMock() },
           { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+          {
+            provide: LessonRepository,
+            useValue: {
+              findOneById: jest.fn().mockResolvedValue(null),
+              findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+            },
+          },
+          {
+            provide: getRepositoryToken(Student),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: ImportService,
+            useValue: {
+              parseBuffer: jest.fn().mockReturnValue([]),
+              validateRows: jest.fn().mockReturnValue({
+                validRows: [],
+                report: {
+                  total: 0,
+                  success: 0,
+                  failure: 0,
+                  details: [],
+                  fileName: '',
+                },
+              }),
+            },
+          },
         ],
       }).compile();
 
@@ -1954,6 +2326,341 @@ describe('LessonAttendanceService', () => {
         contractRepo.findActiveByStudentCodeAndSubject,
       ).not.toHaveBeenCalled();
       expect(mockRepo.saveAll).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // importAttendance() — P2-3 上课/考勤记录导入
+  // ══════════════════════════════════════════════════════════════
+  describe('importAttendance()', () => {
+    let mockRepo: any;
+    let lessonRepoMock: any;
+    let studentRepoMock: any;
+    let importServiceMock: any;
+
+    beforeEach(async () => {
+      // Simulate the DB round-trip: after saving a record it becomes queryable
+      let created: any = null;
+      mockRepo = {
+        save: jest.fn().mockImplementation((e: any) => {
+          created = e;
+          return Promise.resolve(e);
+        }),
+        saveAll: jest
+          .fn()
+          .mockImplementation((es: any[]) => Promise.resolve(es)),
+        findByLessonAndStudent: jest
+          .fn()
+          .mockImplementation(() => Promise.resolve(created)),
+        findByLessonId: jest.fn().mockResolvedValue([]),
+      };
+      lessonRepoMock = {
+        findOneById: jest.fn().mockResolvedValue(null),
+        findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
+      };
+      studentRepoMock = { findOne: jest.fn().mockResolvedValue(null) };
+      importServiceMock = {
+        parseBuffer: jest.fn().mockReturnValue([]),
+        validateRows: jest.fn(),
+      };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          LessonAttendanceService,
+          { provide: LessonAttendanceRepository, useValue: mockRepo },
+          {
+            provide: ReminderService,
+            useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) },
+          },
+          {
+            provide: ContractRepository,
+            useValue: {
+              findActiveByStudentCodeAndSubject: jest
+                .fn()
+                .mockResolvedValue(null),
+              save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+            },
+          },
+          {
+            provide: getRepositoryToken(ClassEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          {
+            provide: getRepositoryToken(CourseEntity),
+            useValue: { findOne: jest.fn().mockResolvedValue(null) },
+          },
+          { provide: PointsService, useValue: pointsServiceMock() },
+          { provide: LessonRepository, useValue: lessonRepoMock },
+          { provide: getRepositoryToken(Student), useValue: studentRepoMock },
+          { provide: ImportService, useValue: importServiceMock },
+          { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        ],
+      }).compile();
+
+      service = module.get<LessonAttendanceService>(LessonAttendanceService);
+    });
+
+    it('should record attendance via lessonId and reuse recordAttendance (with deduction path)', async () => {
+      importServiceMock.parseBuffer.mockReturnValue([]);
+      importServiceMock.validateRows.mockReturnValue({
+        validRows: [
+          {
+            studentcode: 'STU001',
+            status: '出勤',
+            lessonid: '5',
+            classcode: '',
+            scheduleddate: '',
+            reason: '',
+          },
+        ],
+        report: {
+          total: 1,
+          success: 1,
+          failure: 0,
+          details: [
+            {
+              row: 2,
+              success: true,
+              errors: [],
+              data: {
+                studentcode: 'STU001',
+                status: '出勤',
+                lessonid: '5',
+                classcode: '',
+                scheduleddate: '',
+                reason: '',
+              },
+            },
+          ],
+          fileName: 'att.xlsx',
+        },
+      });
+      studentRepoMock.findOne.mockResolvedValue({
+        studentCode: 'STU001',
+        deleted: false,
+      });
+      lessonRepoMock.findOneById.mockResolvedValue({
+        id: 5,
+        classCode: 'CL001',
+        teacherId: 10,
+      });
+
+      const report = await service.importAttendance(
+        Buffer.from(''),
+        'att.xlsx',
+        1,
+        '管理员',
+      );
+
+      expect(report.success).toBe(1);
+      expect(report.failure).toBe(0);
+      expect(mockRepo.save).toHaveBeenCalled(); // created PENDING record + checked-in save
+      const saved = mockRepo.save.mock.calls.flat();
+      const checked = saved.find((e: any) => e.status === AttendanceStatus.PRESENT);
+      expect(checked).toBeDefined();
+      expect(checked.source).toBe(AttendanceSource.IMPORT);
+      expect(checked.workflowState).toBe(AttendanceWorkflowState.CHECKED_IN);
+    });
+
+    it('should locate lesson by classCode + date when lessonId absent', async () => {
+      importServiceMock.validateRows.mockReturnValue({
+        validRows: [
+          {
+            studentcode: 'STU001',
+            status: 'ABSENT',
+            lessonid: '',
+            classcode: 'CL001',
+            scheduleddate: '2026-08-10',
+            reason: '病假',
+          },
+        ],
+        report: {
+          total: 1,
+          success: 1,
+          failure: 0,
+          details: [
+            {
+              row: 2,
+              success: true,
+              errors: [],
+              data: {
+                studentcode: 'STU001',
+                status: 'ABSENT',
+                lessonid: '',
+                classcode: 'CL001',
+                scheduleddate: '2026-08-10',
+                reason: '病假',
+              },
+            },
+          ],
+          fileName: 'att.xlsx',
+        },
+      });
+      studentRepoMock.findOne.mockResolvedValue({
+        studentCode: 'STU001',
+        deleted: false,
+      });
+      lessonRepoMock.findByClassCodeAndDate.mockResolvedValue([
+        { id: 9, classCode: 'CL001', teacherId: 10, status: LessonStatus.SCHEDULED },
+      ]);
+
+      const report = await service.importAttendance(Buffer.from(''), 'att.xlsx', 1);
+
+      expect(lessonRepoMock.findByClassCodeAndDate).toHaveBeenCalledWith(
+        'CL001',
+        '2026-08-10',
+      );
+      expect(report.success).toBe(1);
+    });
+
+    it('should fail row when lesson cannot be located', async () => {
+      importServiceMock.validateRows.mockReturnValue({
+        validRows: [
+          {
+            studentcode: 'STU001',
+            status: 'PRESENT',
+            lessonid: '',
+            classcode: '',
+            scheduleddate: '',
+            reason: '',
+          },
+        ],
+        report: {
+          total: 1,
+          success: 1,
+          failure: 0,
+          details: [
+            {
+              row: 2,
+              success: true,
+              errors: [],
+              data: {
+                studentcode: 'STU001',
+                status: 'PRESENT',
+                lessonid: '',
+                classcode: '',
+                scheduleddate: '',
+                reason: '',
+              },
+            },
+          ],
+          fileName: 'att.xlsx',
+        },
+      });
+      studentRepoMock.findOne.mockResolvedValue({
+        studentCode: 'STU001',
+        deleted: false,
+      });
+
+      const report = await service.importAttendance(Buffer.from(''), 'att.xlsx', 1);
+
+      expect(report.failure).toBe(1);
+      expect(report.success).toBe(0);
+      expect(report.details[0].errors[0]).toContain('缺少课时定位信息');
+    });
+
+    it('should skip already-recorded attendance (non-PENDING) to prevent double deduction', async () => {
+      importServiceMock.validateRows.mockReturnValue({
+        validRows: [
+          {
+            studentcode: 'STU001',
+            status: 'PRESENT',
+            lessonid: '5',
+            classcode: '',
+            scheduleddate: '',
+            reason: '',
+          },
+        ],
+        report: {
+          total: 1,
+          success: 1,
+          failure: 0,
+          details: [
+            {
+              row: 2,
+              success: true,
+              errors: [],
+              data: {
+                studentcode: 'STU001',
+                status: 'PRESENT',
+                lessonid: '5',
+                classcode: '',
+                scheduleddate: '',
+                reason: '',
+              },
+            },
+          ],
+          fileName: 'att.xlsx',
+        },
+      });
+      studentRepoMock.findOne.mockResolvedValue({
+        studentCode: 'STU001',
+        deleted: false,
+      });
+      lessonRepoMock.findOneById.mockResolvedValue({
+        id: 5,
+        classCode: 'CL001',
+        teacherId: 10,
+      });
+      mockRepo.findByLessonAndStudent.mockResolvedValue({
+        workflowState: AttendanceWorkflowState.CHECKED_IN,
+      });
+
+      const report = await service.importAttendance(Buffer.from(''), 'att.xlsx', 1);
+
+      expect(report.failure).toBe(1);
+      expect(report.success).toBe(0);
+      expect(report.details[0].errors[0]).toContain('不可覆盖');
+    });
+
+    it('should fail row when reason missing for ABSENT status', async () => {
+      importServiceMock.validateRows.mockReturnValue({
+        validRows: [
+          {
+            studentcode: 'STU001',
+            status: 'ABSENT',
+            lessonid: '5',
+            classcode: '',
+            scheduleddate: '',
+            reason: '',
+          },
+        ],
+        report: {
+          total: 1,
+          success: 1,
+          failure: 0,
+          details: [
+            {
+              row: 2,
+              success: true,
+              errors: [],
+              data: {
+                studentcode: 'STU001',
+                status: 'ABSENT',
+                lessonid: '5',
+                classcode: '',
+                scheduleddate: '',
+                reason: '',
+              },
+            },
+          ],
+          fileName: 'att.xlsx',
+        },
+      });
+      studentRepoMock.findOne.mockResolvedValue({
+        studentCode: 'STU001',
+        deleted: false,
+      });
+      lessonRepoMock.findOneById.mockResolvedValue({
+        id: 5,
+        classCode: 'CL001',
+        teacherId: 10,
+      });
+
+      const report = await service.importAttendance(Buffer.from(''), 'att.xlsx', 1);
+
+      expect(report.failure).toBe(1);
+      expect(report.details[0].errors[0]).toContain('requires a reason');
     });
   });
 });

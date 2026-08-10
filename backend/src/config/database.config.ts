@@ -10,6 +10,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
   username: config.database.username,
   password: config.database.password,
   database: config.database.database,
+  charset: 'utf8mb4',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   synchronize: false,
   logging: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],

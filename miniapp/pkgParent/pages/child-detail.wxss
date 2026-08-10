@@ -164,6 +164,18 @@
 .status-ABSENT { color: #C4483F; }
 .status-LEAVE { color: #D97B3E; }
 
+/* 课表课时状态 */
+.lesson-status {
+  font-size: 24rpx;
+  color: #D97B3E;
+}
+.lesson-status-SCHEDULED { color: #4A7DB8; }
+.lesson-status-TEACHING { color: #D97B3E; }
+.lesson-status-FINISHED { color: #5B9A68; }
+.lesson-status-ARCHIVED { color: #9B9084; }
+.lesson-status-CANCELLED { color: #C4483F; }
+.lesson-status-DRAFT { color: #9B9084; }
+
 /* 剩余课时预警徽标 */
 .warning-badge {
   font-size: 20rpx;

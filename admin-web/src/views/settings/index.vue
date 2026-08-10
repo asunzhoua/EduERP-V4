@@ -20,6 +20,21 @@ const categoryLabel: Record<string, string> = {
   leave: '请假',
 }
 
+// 设置 key → 中文标签；未知 key 回退原样
+const keyLabel: Record<string, string> = {
+  'campus.name': '校区名称',
+  'school.name': '机构名称',
+  'school.address': '机构地址',
+  'school.phone': '联系电话',
+  'billing.unitPrice': '默认课时单价',
+  'notify.wechatEnabled': '微信通知开关',
+  'mall.pointsRate': '积分兑换比例',
+  'leave.autoApprove': '请假自动审批',
+}
+function displayLabel(key: string): string {
+  return keyLabel[key] || key
+}
+
 const categories = computed(() =>
   Object.entries(grouped.value).map(([key, entries]) => ({ key, label: categoryLabel[key] || key, entries })),
 )
@@ -131,7 +146,7 @@ onMounted(() => {
                   <a-form-item
                     v-for="entry in cat.entries"
                     :key="entry.key"
-                    :label="entry.key"
+                    :label="displayLabel(entry.key)"
                     :extra="entry.description || undefined"
                   >
                     <a-input v-model:value="entry.value" :placeholder="entry.description || '请输入'" />

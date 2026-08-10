@@ -153,5 +153,57 @@ describe('ImportService', () => {
 
       expect(report.details[0].row).toBe(2);
     });
+
+    it('should coerce numeric cells to string instead of crashing on .trim()', () => {
+      const numericColumns: ImportColumn[] = [
+        { header: 'lessons', required: true },
+        { header: 'unitprice', required: false },
+      ];
+      const rows = [{ lessons: 5, unitprice: 200 }];
+
+      const { validRows, report } = service.validateRows(
+        rows,
+        numericColumns,
+        'numbers.xlsx',
+      );
+
+      expect(report.success).toBe(1);
+      expect(report.failure).toBe(0);
+      expect(validRows[0]['lessons']).toBe('5');
+      expect(validRows[0]['unitprice']).toBe('200');
+    });
+
+    it('should match cells via Chinese aliases and store under the canonical header', () => {
+      const aliasedColumns: ImportColumn[] = [
+        {
+          header: 'studentcode',
+          aliases: ['学员编码', '学号'],
+          required: true,
+        },
+        { header: 'lessons', aliases: ['课时数'], required: true },
+      ];
+      const rows = [{ 学员编码: 'STU001', 课时数: 10 }];
+
+      const { validRows, report } = service.validateRows(
+        rows,
+        aliasedColumns,
+        'aliases.xlsx',
+      );
+
+      expect(report.success).toBe(1);
+      expect(validRows[0]['studentcode']).toBe('STU001');
+      expect(validRows[0]['lessons']).toBe('10');
+    });
+
+    it('should prefer the canonical header value over an alias when both present', () => {
+      const aliasedColumns: ImportColumn[] = [
+        { header: 'studentcode', aliases: ['学号'], required: true },
+      ];
+      const rows = [{ studentcode: 'STU_CANON', 学号: 'STU_ALIAS' }];
+
+      const { validRows } = service.validateRows(rows, aliasedColumns, 'p.xlsx');
+
+      expect(validRows[0]['studentcode']).toBe('STU_CANON');
+    });
   });
 });

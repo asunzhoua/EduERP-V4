@@ -8,10 +8,15 @@ import {
   ParseIntPipe,
   Req,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  HttpCode,
+  HttpStatus,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
@@ -163,6 +168,27 @@ export class LessonAttendanceController {
 
     const result = await this.attendanceService.batchRollCall({ lessonId: lesson.id, records });
     return ApiResponse.success(result, 'Attendance recorded');
+  }
+
+  @Post('lesson-attendance/import')
+  @Roles('SuperAdmin', 'Admin')
+  @UseInterceptors(FileInterceptor('file'))
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      '导入上课/考勤记录，Excel 列：学员编码/出勤状态(+课时ID 或 班级编码+上课日期)',
+  })
+  async importAttendance(@UploadedFile() file: any, @Req() req: any) {
+    if (!file) {
+      throw new BadRequestException('请上传文件');
+    }
+    const report = await this.attendanceService.importAttendance(
+      file.buffer,
+      file.originalname,
+      req.user.sub,
+      req.user.name,
+    );
+    return ApiResponse.success(report);
   }
 
   /**

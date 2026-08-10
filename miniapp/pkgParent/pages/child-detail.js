@@ -2,6 +2,26 @@
 const { get } = require('../../utils/request');
 const { RENEWAL_WARNING_THRESHOLD, RENEWAL_CRITICAL_THRESHOLD } = require('../../utils/renewal-threshold');
 
+const LESSON_STATUS_TEXT = {
+  DRAFT: '草稿',
+  SCHEDULED: '待上课',
+  TEACHING: '进行中',
+  FINISHED: '已完成',
+  ARCHIVED: '已归档',
+  CANCELLED: '已取消',
+  SUSPENDED: '已停课',
+  RESCHEDULED: '已改期',
+  MAKEUP_PENDING: '待补课',
+  MAKEUP_COMPLETED: '补课完成'
+};
+
+const ATTENDANCE_STATUS_TEXT = {
+  PRESENT: '出勤',
+  ABSENT: '缺勤',
+  LATE: '迟到',
+  LEAVE: '请假'
+};
+
 // ACTIVE 合同剩余课时 <= 阈值 → warn；<= 阈值一半 → critical
 function calcWarningLevel(status, remaining) {
   if (status !== 'ACTIVE' || remaining == null) return 'none';
@@ -16,6 +36,7 @@ Page({
     childInfo: null,
     contracts: [],
     attendance: [],
+    timetable: [],
     loading: true,
     error: null,
     activeTab: 'overview',
@@ -33,8 +54,8 @@ Page({
         school: decodeURIComponent(options.school || ''),
         grade: decodeURIComponent(options.grade || '')
       };
-      
-      this.setData({ 
+
+      this.setData({
         childId: options.id,
         childInfo: childInfo
       });
@@ -65,10 +86,11 @@ Page({
     this.setData({ loading: true, error: null });
 
     try {
-      // 只请求合同和出勤数据
-      const [contracts, attendance] = await Promise.all([
+      // 合同、出勤、课表（班级驱动：含 SCHEDULED 未来课）
+      const [contracts, attendance, lessons] = await Promise.all([
         get(`/students/${childId}/contracts`).catch(() => []),
-        get(`/students/${childId}/attendance`).catch(() => [])
+        get(`/students/${childId}/attendance`).catch(() => []),
+        get(`/students/${childId}/lessons`).catch(() => [])
       ]);
 
       const rawContracts = Array.isArray(contracts) ? contracts : (contracts.items || []);
@@ -77,10 +99,18 @@ Page({
         warningLevel: calcWarningLevel(c.status, c.remainingLessons)
       }));
 
+      const rawTimetable = Array.isArray(lessons) ? lessons : (lessons.items || []);
+      const decoratedTimetable = rawTimetable.map((l) => ({
+        ...l,
+        lessonStatusText: LESSON_STATUS_TEXT[l.lessonStatus] || l.lessonStatus || '-',
+        statusText: l.status ? (ATTENDANCE_STATUS_TEXT[l.status] || l.status) : ''
+      }));
+
       this.setData({
         contracts: decoratedContracts,
         lowLessonContracts: decoratedContracts.filter((c) => c.warningLevel !== 'none'),
         attendance: Array.isArray(attendance) ? attendance : (attendance.items || []),
+        timetable: decoratedTimetable,
         loading: false
       });
     } catch (err) {

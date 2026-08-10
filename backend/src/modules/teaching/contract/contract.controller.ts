@@ -9,7 +9,13 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  HttpCode,
+  HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { ContractService } from './contract.service';
 import { CreateContractDto } from './dto/create-contract.dto';
@@ -39,7 +45,7 @@ export class ContractController {
   @Post()
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Create a new contract' })
-  async create(@Body() dto: CreateContractDto) {
+  async create(@Body() dto: CreateContractDto, @Req() req: any) {
     this.logger.log(`Creating contract for student: ${dto.studentCode}`);
 
     const input: CreateContractInput = {
@@ -52,10 +58,30 @@ export class ContractController {
       totalAmount: dto.totalAmount ?? null,
       note: dto.note ?? null,
       tags: dto.tags ?? null,
+      operatorId: req.user?.sub,
+      operatorName: req.user?.name,
     };
 
     const result = await this.contractService.create(input);
     return ApiResponse.success(result, 'Contract created');
+  }
+
+  @Post('import-lessons')
+  @Roles('SuperAdmin', 'Admin')
+  @UseInterceptors(FileInterceptor('file'))
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '批量分配课时（累加），Excel 列：学员编码/科目/课时数' })
+  async importLessons(@UploadedFile() file: any, @Req() req: any) {
+    if (!file) {
+      throw new BadRequestException('请上传文件');
+    }
+    const report = await this.contractService.importLessons(
+      file.buffer,
+      file.originalname,
+      req.user.sub,
+      req.user.name,
+    );
+    return ApiResponse.success(report);
   }
 
   @Get()
@@ -138,7 +164,12 @@ export class ContractController {
     @Req() req: any,
   ) {
     const operatorId = req.user.sub;
-    const result = await this.contractService.adjustLessons(code, dto, operatorId);
+    const result = await this.contractService.adjustLessons(
+      code,
+      dto,
+      operatorId,
+      req.user.name,
+    );
     return ApiResponse.success(result, 'Contract lessons adjusted');
   }
 

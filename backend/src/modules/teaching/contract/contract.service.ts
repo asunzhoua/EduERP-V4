@@ -6,16 +6,26 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Repository, In } from 'typeorm';
+import { DataSource, EntityManager, Repository, In, Not, Between } from 'typeorm';
 import { ContractRepository } from './contract.repository';
 import { ContractCodeGeneratorService } from './contract-code-generator.service';
 import { ContractEntity } from './contract.entity';
 import { ContractStatus } from './enums/contract-status.enum';
+import {
+  LessonAdjustmentAction,
+  LessonAdjustmentSource,
+} from './enums/lesson-adjustment.enums';
+import { LessonAdjustmentAudit } from './entities/lesson-adjustment-audit.entity';
 import { Subject } from '@common/enums/subject.enum';
 import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/lesson-attendance.entity';
 import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
 import { Student } from '@modules/student/entities/student.entity';
+import { ImportService } from '@utils/services/import.service';
+import {
+  ImportColumn,
+  ImportReport,
+} from '@utils/services/import.service';
 
 /** Allowed status transitions per ContractStateMachine */
 const VALID_TRANSITIONS: Record<ContractStatus, ContractStatus[]> = {
@@ -37,6 +47,8 @@ export interface CreateContractInput {
   totalAmount?: number | null;
   note?: string | null;
   tags?: string[] | null;
+  operatorId?: number;
+  operatorName?: string;
 }
 
 /** 单条课时消耗流水（一条 = 该合同消耗 1 课时）。 */
@@ -70,6 +82,20 @@ export interface RenewalWarningItem {
   warningLevel: 'WARN' | 'CRITICAL';
 }
 
+/** 课时变更审计入参（contract 变更前/后的快照）。 */
+export interface AuditParams {
+  contract: ContractEntity;
+  action: LessonAdjustmentAction;
+  beforeTotal: number;
+  beforeRemaining: number;
+  afterTotal: number;
+  afterRemaining: number;
+  reason?: string | null;
+  source: LessonAdjustmentSource;
+  operatorId: number;
+  operatorName?: string | null;
+}
+
 @Injectable()
 export class ContractService {
   private readonly logger = new Logger(ContractService.name);
@@ -85,6 +111,10 @@ export class ContractService {
     private readonly courseRepo: Repository<CourseEntity>,
     @InjectRepository(Student)
     private readonly studentRepo: Repository<Student>,
+    @InjectRepository(LessonAdjustmentAudit)
+    private readonly auditRepo: Repository<LessonAdjustmentAudit>,
+    private readonly importService: ImportService,
+    private readonly dataSource: DataSource,
     private readonly config: ConfigService,
   ) {}
 
@@ -108,12 +138,26 @@ export class ContractService {
     contract.totalAmount = input.totalAmount ?? null;
     contract.note = input.note ?? null;
     contract.tags = input.tags ?? null;
-    contract.createdBy = 0;
+    contract.createdBy = input.operatorId ?? 0;
 
     const saved = await this.contractRepo.save(contract);
     this.logger.log(
       `Contract created: code=${saved.contractCode}, student=${saved.studentCode}, lessons=${saved.totalLessons}`,
     );
+
+    await this.recordAudit({
+      contract: saved,
+      action: LessonAdjustmentAction.ADD,
+      beforeTotal: 0,
+      beforeRemaining: 0,
+      afterTotal: saved.totalLessons,
+      afterRemaining: saved.remainingLessons,
+      reason: this.truncate(input.note ?? '合同创建', 200),
+      source: LessonAdjustmentSource.CONTRACT_CREATE,
+      operatorId: input.operatorId ?? 0,
+      operatorName: input.operatorName ?? null,
+    });
+
     return saved;
   }
 
@@ -164,12 +208,16 @@ export class ContractService {
     contractCode: string,
     input: { totalLessons?: number; remainingLessons?: number; reason?: string },
     operatedBy: number,
+    operatorName?: string,
   ): Promise<ContractEntity> {
     const contract = await this.findOneByCode(contractCode);
 
     if (contract.status === ContractStatus.REFUNDED) {
       throw new BadRequestException('Refunded contract cannot be adjusted');
     }
+
+    const beforeTotal = contract.totalLessons;
+    const beforeRemaining = contract.remainingLessons;
 
     const newTotal = input.totalLessons ?? contract.totalLessons;
     const newRemaining = input.remainingLessons ?? contract.remainingLessons;
@@ -212,6 +260,25 @@ export class ContractService {
     this.logger.log(
       `Contract lessons adjusted: code=${contractCode} total=${newTotal} remaining=${newRemaining} by=${operatedBy}`,
     );
+
+    const delta = saved.remainingLessons - beforeRemaining;
+    let action = LessonAdjustmentAction.SET;
+    if (delta > 0) action = LessonAdjustmentAction.ADD;
+    else if (delta < 0) action = LessonAdjustmentAction.DELETE;
+
+    await this.recordAudit({
+      contract: saved,
+      action,
+      beforeTotal,
+      beforeRemaining,
+      afterTotal: saved.totalLessons,
+      afterRemaining: saved.remainingLessons,
+      reason: input.reason ?? null,
+      source: LessonAdjustmentSource.ADMIN_MANUAL,
+      operatorId: operatedBy,
+      operatorName: operatorName ?? null,
+    });
+
     return saved;
   }
 
@@ -426,5 +493,268 @@ export class ContractService {
           c.remainingLessons <= Math.floor(t / 2) ? 'CRITICAL' : 'WARN',
       };
     });
+  }
+
+  // ─── Lesson Adjustment Audit (P2-5: 课时变更提醒/追溯) ───
+
+  async getLessonAudits(query: {
+    action?: string;
+    source?: string;
+    operatorId?: number;
+    startDate?: string;
+    endDate?: string;
+    page: number;
+    pageSize: number;
+  }): Promise<{ items: LessonAdjustmentAudit[]; total: number }> {
+    const where: any = {};
+    if (query.action) where.action = query.action;
+    if (query.source) where.source = query.source;
+    if (query.operatorId != null) where.operatorId = query.operatorId;
+
+    const range = this.toDayRange(query.startDate, query.endDate);
+    if (range) {
+      where.createdAt = Between(range.start, range.end);
+    }
+
+    const total = await this.auditRepo.count({ where });
+    const items = await this.auditRepo.find({
+      where,
+      order: { createdAt: 'DESC' },
+      skip: (query.page - 1) * query.pageSize,
+      take: query.pageSize,
+    });
+    return { items, total };
+  }
+
+  // ─── Lesson Bulk Import (P2-2: 课时批量分配，累加语义) ───
+
+  /**
+   * 批量分配课时（累加，非覆盖）。
+   * 每行：学员编码 + 科目 + 课时数(+可选单价/到期日)。
+   * - 学员不存在 → 该行失败。
+   * - 存在有效（非 EXPIRED/REFUNDED）同科目合同 → total/remaining 同时累加。
+   * - 无有效合同 → 新建合同（total=remaining=课时数）。
+   * 整体单事务，单行失败记录原因不中断；每行合同变更写审计。
+   */
+  async importLessons(
+    buffer: Buffer,
+    fileName: string,
+    operatorId: number,
+    operatorName?: string,
+  ): Promise<ImportReport> {
+    const rows = this.importService.parseBuffer(buffer, fileName);
+
+    const columns: ImportColumn[] = [
+      {
+        header: 'studentcode',
+        aliases: ['学员编码', '学员编号', '学生编码', '学号'],
+        required: true,
+      },
+      {
+        header: 'subject',
+        aliases: ['科目'],
+        required: true,
+        validate: (v) => (this.parseSubject(v) ? null : '科目无效（如 MATH/数学）'),
+      },
+      {
+        header: 'lessons',
+        aliases: ['课时数', '课时', '课时数量'],
+        required: true,
+        validate: (v) => {
+          const n = Number(v);
+          return !Number.isInteger(n) || n <= 0 ? '课时数必须为正整数' : null;
+        },
+      },
+      {
+        header: 'unitprice',
+        aliases: ['单价'],
+        required: false,
+        validate: (v) => (v && isNaN(Number(v)) ? '单价格式错误' : null),
+      },
+      {
+        header: 'validto',
+        aliases: ['到期日', '截止日期'],
+        required: false,
+        validate: (v) => (v && isNaN(Date.parse(v)) ? '到期日格式错误' : null),
+      },
+    ];
+
+    const { report } = this.importService.validateRows(rows, columns, fileName);
+
+    if (report.success === 0) {
+      return report;
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      for (const detail of report.details) {
+        if (!detail.success) continue;
+        const row = detail.data;
+        try {
+          const student = await manager.findOne(Student, {
+            where: { studentCode: row['studentcode'], deleted: false },
+          });
+          if (!student) {
+            throw new Error(`学员不存在: ${row['studentcode']}`);
+          }
+
+          const subject = this.parseSubject(row['subject']) as Subject;
+          const lessons = Number(row['lessons']);
+          const unitPrice = row['unitprice'] ? Number(row['unitprice']) : undefined;
+          const validTo = row['validto'] || undefined;
+
+          const existing = await manager.findOne(ContractEntity, {
+            where: {
+              studentCode: student.studentCode,
+              subject,
+              status: Not(In([ContractStatus.EXPIRED, ContractStatus.REFUNDED])),
+            },
+            order: { createdAt: 'DESC' },
+          });
+
+          if (existing) {
+            const beforeTotal = existing.totalLessons;
+            const beforeRemaining = existing.remainingLessons;
+            existing.totalLessons += lessons;
+            existing.remainingLessons += lessons;
+            if (
+              existing.remainingLessons > 0 &&
+              existing.status === ContractStatus.EXHAUSTED
+            ) {
+              existing.status = ContractStatus.ACTIVE;
+            }
+            if (validTo) existing.validTo = validTo;
+            if (unitPrice != null) existing.unitPrice = unitPrice;
+            const saved = await manager.save(ContractEntity, existing);
+            await this.saveAuditWithManager(manager, {
+              contract: saved,
+              action: LessonAdjustmentAction.ADD,
+              beforeTotal,
+              beforeRemaining,
+              afterTotal: saved.totalLessons,
+              afterRemaining: saved.remainingLessons,
+              reason: '课时批量导入',
+              source: LessonAdjustmentSource.IMPORT,
+              operatorId,
+              operatorName,
+            });
+          } else {
+            const contract = new ContractEntity();
+            contract.contractCode = await this.codeGenerator.generateContractCode();
+            contract.studentCode = student.studentCode;
+            contract.subject = subject;
+            contract.totalLessons = lessons;
+            contract.remainingLessons = lessons;
+            contract.status = ContractStatus.ACTIVE;
+            contract.validFrom = new Date().toISOString().slice(0, 10);
+            contract.validTo = validTo ?? null;
+            contract.unitPrice = unitPrice ?? null;
+            contract.totalAmount =
+              unitPrice != null
+                ? Math.round(unitPrice * lessons * 100) / 100
+                : null;
+            contract.note = '课时导入';
+            contract.tags = null;
+            contract.createdBy = operatorId;
+            const saved = await manager.save(ContractEntity, contract);
+            await this.saveAuditWithManager(manager, {
+              contract: saved,
+              action: LessonAdjustmentAction.ADD,
+              beforeTotal: 0,
+              beforeRemaining: 0,
+              afterTotal: saved.totalLessons,
+              afterRemaining: saved.remainingLessons,
+              reason: '课时批量导入',
+              source: LessonAdjustmentSource.IMPORT,
+              operatorId,
+              operatorName,
+            });
+          }
+        } catch (error) {
+          report.success--;
+          report.failure++;
+          detail.success = false;
+          detail.errors.push(`导入失败: ${(error as Error).message}`);
+        }
+      }
+    });
+
+    return report;
+  }
+
+  // ─── Audit helpers ───
+
+  private buildAudit(params: AuditParams): LessonAdjustmentAudit {
+    const audit = new LessonAdjustmentAudit();
+    audit.contractId = Number(params.contract.id);
+    audit.contractCode = params.contract.contractCode;
+    audit.studentCode = params.contract.studentCode;
+    audit.action = params.action;
+    audit.beforeTotal = params.beforeTotal;
+    audit.afterTotal = params.afterTotal;
+    audit.beforeRemaining = params.beforeRemaining;
+    audit.afterRemaining = params.afterRemaining;
+    audit.delta = params.afterRemaining - params.beforeRemaining;
+    audit.reason = params.reason ?? null;
+    audit.source = params.source;
+    audit.operatorId = Number(params.operatorId);
+    audit.operatorName = params.operatorName ?? null;
+    return audit;
+  }
+
+  private async recordAudit(params: AuditParams): Promise<void> {
+    await this.auditRepo.save(this.buildAudit(params));
+  }
+
+  private async saveAuditWithManager(
+    manager: EntityManager,
+    params: AuditParams,
+  ): Promise<void> {
+    await manager.save(LessonAdjustmentAudit, this.buildAudit(params));
+  }
+
+  private truncate(value: string | null, max: number): string | null {
+    if (!value) return value;
+    return value.length > max ? value.slice(0, max) : value;
+  }
+
+  /** 科目：接受枚举值（大小写不敏感）或中文别名 */
+  private parseSubject(value: string): Subject | null {
+    const trimmed = value.trim();
+    const upper = trimmed.toUpperCase();
+    if (upper in Subject) {
+      return Subject[upper as keyof typeof Subject];
+    }
+    const aliases: Record<string, Subject> = {
+      '数学': Subject.MATH,
+      '英语': Subject.ENGLISH,
+      '英文': Subject.ENGLISH,
+      '语文': Subject.CHINESE,
+      '中文': Subject.CHINESE,
+      '物理': Subject.PHYSICS,
+      '化学': Subject.CHEMISTRY,
+      '美术': Subject.ART,
+      '音乐': Subject.MUSIC,
+      '舞蹈': Subject.DANCE,
+      '体育': Subject.SPORTS,
+      '运动': Subject.SPORTS,
+      '编程': Subject.CODING,
+      '计算机': Subject.CODING,
+      '其他': Subject.OTHER,
+    };
+    return aliases[trimmed] ?? null;
+  }
+
+  /** 日期字符串（YYYY-MM-DD）转当天起止 Date 范围；用于 createdAt 时间戳过滤 */
+  private toDayRange(
+    start?: string,
+    end?: string,
+  ): { start: Date; end: Date } | null {
+    if (!start) return null;
+    const s = new Date(`${start}T00:00:00.000`);
+    const e = end
+      ? new Date(`${end}T23:59:59.999`)
+      : new Date(`${start}T23:59:59.999`);
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) return null;
+    return { start: s, end: e };
   }
 }

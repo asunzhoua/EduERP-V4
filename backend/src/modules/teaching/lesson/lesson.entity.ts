@@ -7,6 +7,7 @@ import {
   Unique,
 } from 'typeorm';
 import { LessonStatus } from './enums/lesson-status.enum';
+import { LessonSource } from './enums/lesson-source.enum';
 
 @Entity('lesson')
 @Unique(['classCode', 'lessonNumber'])
@@ -32,6 +33,15 @@ export class LessonEntity {
   @Column({ type: 'enum', enum: LessonStatus, default: LessonStatus.DRAFT })
   @Index()
   status: LessonStatus;
+
+  // ─── Source (台账追溯) ───
+
+  @Column({
+    type: 'enum',
+    enum: LessonSource,
+    default: LessonSource.ADMIN_MANUAL,
+  })
+  source: LessonSource;
 
   // ─── Schedule ───
 

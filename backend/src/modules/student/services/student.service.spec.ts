@@ -33,6 +33,7 @@ describe('StudentService', () => {
   let codeGenerator: jest.Mocked<StudentCodeGeneratorService>;
   let importService: jest.Mocked<ImportService>;
   let lessonAttendanceRepo: jest.Mocked<any>;
+  let enrollmentRepo: jest.Mocked<any>;
   let lessonRepo: jest.Mocked<any>;
   let classRepo: jest.Mocked<any>;
   let courseRepo: jest.Mocked<any>;
@@ -172,6 +173,7 @@ describe('StudentService', () => {
     codeGenerator = module.get(StudentCodeGeneratorService);
     importService = module.get(ImportService);
     lessonAttendanceRepo = module.get(LessonAttendanceRepository);
+    enrollmentRepo = module.get(getRepositoryToken(EnrollmentEntity));
     lessonRepo = module.get(getRepositoryToken(LessonEntity));
     classRepo = module.get(getRepositoryToken(ClassEntity));
     courseRepo = module.get(getRepositoryToken(CourseEntity));
@@ -365,6 +367,93 @@ describe('StudentService', () => {
       expect(result).toHaveLength(2);
       expect(result[0].lessonDate).toBe('2026-08-07');
       expect(result[1].lessonDate).toBe('2026-08-05');
+    });
+
+    it('shows future SCHEDULED lessons from active classes (class-driven)', async () => {
+      lessonAttendanceRepo.findByStudentCode.mockResolvedValue([]);
+      enrollmentRepo.find.mockResolvedValue([
+        { classCode: 'CL1', status: 'ACTIVE' },
+      ]);
+      lessonRepo.find.mockResolvedValue([
+        {
+          id: 20,
+          classCode: 'CL1',
+          courseCode: 'C1',
+          scheduledDate: '2026-09-01',
+          startTime: '09:00',
+          endTime: '10:00',
+          status: 'SCHEDULED',
+        },
+      ]);
+      classRepo.find.mockResolvedValue([{ classCode: 'CL1', name: '一班' }]);
+      courseRepo.find.mockResolvedValue([{ courseCode: 'C1', name: '数学' }]);
+
+      const result = await service.getStudentLessons('STU2026070001');
+      expect(result).toHaveLength(1);
+      expect(result[0].lessonDate).toBe('2026-09-01');
+      expect(result[0].lessonStatus).toBe('SCHEDULED');
+      expect(result[0].status).toBeNull(); // 未来课无考勤记录
+      expect(result[0].className).toBe('一班');
+    });
+
+    it('merges attendance status onto class lessons', async () => {
+      lessonAttendanceRepo.findByStudentCode.mockResolvedValue([
+        { lessonId: 10, studentCode: 'STU2026070001', status: 'PRESENT' },
+      ]);
+      enrollmentRepo.find.mockResolvedValue([
+        { classCode: 'CL1', status: 'ACTIVE' },
+      ]);
+      lessonRepo.find.mockResolvedValue([
+        {
+          id: 10,
+          classCode: 'CL1',
+          courseCode: 'C1',
+          scheduledDate: '2026-08-05',
+          startTime: '09:00',
+          endTime: '10:00',
+          status: 'FINISHED',
+        },
+      ]);
+      classRepo.find.mockResolvedValue([{ classCode: 'CL1', name: '一班' }]);
+      courseRepo.find.mockResolvedValue([{ courseCode: 'C1', name: '数学' }]);
+
+      const result = await service.getStudentLessons('STU2026070001');
+      expect(result).toHaveLength(1);
+      expect(result[0].status).toBe('PRESENT');
+      expect(result[0].lessonStatus).toBe('FINISHED');
+    });
+
+    it('dedupes multi-class lessons and keeps withdrawn-class history', async () => {
+      lessonAttendanceRepo.findByStudentCode.mockResolvedValue([
+        { lessonId: 10, studentCode: 'STU2026070001', status: 'LATE' },
+        { lessonId: 99, studentCode: 'STU2026070001', status: 'ABSENT' },
+      ]);
+      enrollmentRepo.find.mockResolvedValue([
+        { classCode: 'CL1', status: 'ACTIVE' },
+        { classCode: 'CL2', status: 'ACTIVE' },
+      ]);
+      lessonRepo.find.mockResolvedValue([
+        { id: 10, classCode: 'CL1', courseCode: 'C1', scheduledDate: '2026-08-05', startTime: '09:00', endTime: '10:00', status: 'FINISHED' },
+        { id: 11, classCode: 'CL2', courseCode: 'C2', scheduledDate: '2026-08-07', startTime: '09:00', endTime: '10:00', status: 'SCHEDULED' },
+        { id: 12, classCode: 'CL2', courseCode: 'C2', scheduledDate: '2026-08-10', startTime: '09:00', endTime: '10:00', status: 'SCHEDULED' },
+        { id: 99, classCode: 'CL_OLD', courseCode: 'C1', scheduledDate: '2026-07-20', startTime: '09:00', endTime: '10:00', status: 'FINISHED' },
+      ]);
+      classRepo.find.mockResolvedValue([
+        { classCode: 'CL1', name: '一班' },
+        { classCode: 'CL2', name: '二班' },
+        { classCode: 'CL_OLD', name: '已退老班' },
+      ]);
+      courseRepo.find.mockResolvedValue([
+        { courseCode: 'C1', name: '数学' },
+        { courseCode: 'C2', name: '英语' },
+      ]);
+
+      const result = await service.getStudentLessons('STU2026070001');
+      expect(result).toHaveLength(4); // 无重复 lesson
+      expect(result[0].lessonDate).toBe('2026-08-10');
+      expect(result[3].lessonDate).toBe('2026-07-20');
+      expect(result[3].className).toBe('已退老班'); // 退班历史保留
+      expect(result.find((r) => r.lessonId === 10)?.status).toBe('LATE');
     });
   });
 

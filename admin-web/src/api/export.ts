@@ -20,30 +20,35 @@ function triggerDownload(blob: Blob, filename: string): void {
 
 /** 导出学生数据，触发浏览器下载 */
 export async function exportStudents(filters: ExportFilter = {}): Promise<void> {
-  const blob = await http.postBlob<Blob>('/export/students', filters)
-  triggerDownload(blob, `students_${Date.now()}.${filters.format || 'csv'}`)
+  const fmt = filters.format || 'excel'
+  const blob = await http.postBlob<Blob>('/export/students', { ...filters, format: fmt })
+  triggerDownload(blob, `学生数据_${Date.now()}.${fmt === 'excel' ? 'xlsx' : fmt}`)
 }
 
 /** 导出课时记录 */
 export async function exportLessons(filters: ExportFilter = {}): Promise<void> {
-  const blob = await http.postBlob<Blob>('/export/lessons', filters)
-  triggerDownload(blob, `lessons_${Date.now()}.${filters.format || 'csv'}`)
+  const fmt = filters.format || 'excel'
+  const blob = await http.postBlob<Blob>('/export/lessons', { ...filters, format: fmt })
+  triggerDownload(blob, `课时记录_${Date.now()}.${fmt === 'excel' ? 'xlsx' : fmt}`)
 }
 
 /** 导出课时消耗 */
 export async function exportConsumption(filters: ExportFilter = {}): Promise<void> {
-  const blob = await http.postBlob<Blob>('/export/consumption', filters)
-  triggerDownload(blob, `consumption_${Date.now()}.${filters.format || 'csv'}`)
+  const fmt = filters.format || 'excel'
+  const blob = await http.postBlob<Blob>('/export/consumption', { ...filters, format: fmt })
+  triggerDownload(blob, `课时消耗_${Date.now()}.${fmt === 'excel' ? 'xlsx' : fmt}`)
 }
 
 /** 导出工资记录 */
 export async function exportSalary(filters: ExportFilter = {}): Promise<void> {
-  const blob = await http.postBlob<Blob>('/export/salary', filters)
-  triggerDownload(blob, `salary_${Date.now()}.${filters.format || 'csv'}`)
+  const fmt = filters.format || 'excel'
+  const blob = await http.postBlob<Blob>('/export/salary', { ...filters, format: fmt })
+  triggerDownload(blob, `工资数据_${Date.now()}.${fmt === 'excel' ? 'xlsx' : fmt}`)
 }
 
 /** 导出财务记录 */
 export async function exportFinance(filters: ExportFilter = {}): Promise<void> {
-  const blob = await http.postBlob<Blob>('/export/finance', filters)
-  triggerDownload(blob, `finance_${Date.now()}.${filters.format || 'csv'}`)
+  const fmt = filters.format || 'excel'
+  const blob = await http.postBlob<Blob>('/export/finance', { ...filters, format: fmt })
+  triggerDownload(blob, `财务数据_${Date.now()}.${fmt === 'excel' ? 'xlsx' : fmt}`)
 }

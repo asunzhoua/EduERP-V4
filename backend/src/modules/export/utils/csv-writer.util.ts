@@ -2,9 +2,11 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class CsvWriter {
-  generate(data: any[], columns: string[]): Buffer {
-    // Generate CSV header row
-    const header = columns.join(',') + '\n';
+  generate(data: any[], columns: string[], headers?: string[]): Buffer {
+    // \u8868\u5934\uff1a\u663e\u5f0f\u4f20\u5165\u4e2d\u6587 headers \u5219\u7528\u4e4b\uff0c\u5426\u5219\u56de\u9000\u82f1\u6587 columns
+    const head =
+      headers && headers.length === columns.length ? headers : columns;
+    const header = head.join(',') + '\n';
 
     // Generate CSV data rows
     const rows = data

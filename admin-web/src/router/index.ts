@@ -51,6 +51,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '班级管理', icon: 'ReadOutlined', roles: ['SuperAdmin', 'Admin', 'Teacher'] },
       },
       {
+        path: 'classes/:code',
+        name: 'ClassDetail',
+        component: () => import('@/views/class/detail.vue'),
+        meta: { title: '班级详情', icon: 'ReadOutlined', hidden: true, roles: ['SuperAdmin', 'Admin', 'Teacher'] },
+      },
+      {
         path: 'courses',
         name: 'Courses',
         component: () => import('@/views/course/index.vue'),
@@ -67,6 +73,12 @@ const routes: RouteRecordRaw[] = [
         name: 'Lessons',
         component: () => import('@/views/lesson/index.vue'),
         meta: { title: '课时管理', icon: 'ClockCircleOutlined', roles: ['SuperAdmin', 'Admin', 'Teacher'] },
+      },
+      {
+        path: 'lesson-audits',
+        name: 'LessonAudits',
+        component: () => import('@/views/lesson-audit/index.vue'),
+        meta: { title: '课时变更提醒', icon: 'NotificationOutlined', roles: ['SuperAdmin', 'Admin'] },
       },
       {
         path: 'leave-requests',

@@ -3,6 +3,8 @@ import * as XLSX from 'xlsx';
 
 export interface ImportColumn {
   header: string;
+  /** 备选表头（如中文「学员编码」对应英文列名 studentcode），匹配任意一个即生效 */
+  aliases?: string[];
   required?: boolean;
   validate?: (value: string, row: number) => string | null; // returns error message or null
 }
@@ -48,11 +50,13 @@ export class ImportService {
     const details: ImportRowResult[] = [];
     const validRows: Record<string, string>[] = [];
 
-    // Normalize headers: lowercase and trim
+    // Normalize headers: lowercase and trim; coerce non-string cells (numbers,
+    // dates) to string so `.trim()` never crashes.
     const normalizedRows = rows.map((row) => {
       const normalized: Record<string, string> = {};
       for (const key of Object.keys(row)) {
-        normalized[key.trim().toLowerCase()] = (row[key] || '').trim();
+        const v = row[key];
+        normalized[key.trim().toLowerCase()] = v == null ? '' : String(v).trim();
       }
       return normalized;
     });
@@ -63,7 +67,19 @@ export class ImportService {
       const errors: string[] = [];
 
       for (const col of columns) {
-        const value = row[col.header.toLowerCase()] || '';
+        // Match the cell value by canonical header first, then Chinese/other aliases.
+        const keys = [
+          col.header.toLowerCase(),
+          ...(col.aliases ?? []).map((a) => a.toLowerCase()),
+        ];
+        let value = '';
+        for (const key of keys) {
+          const raw = row[key];
+          if (raw !== undefined && raw !== '') {
+            value = raw;
+            break;
+          }
+        }
 
         if (col.required && !value) {
           errors.push(`"${col.header}" 不能为空`);
@@ -76,7 +92,8 @@ export class ImportService {
           }
         }
 
-        // Store the normalized value
+        // Store the normalized value under the canonical header so consumers can
+        // read row[col.header] regardless of which alias the file used.
         row[col.header.toLowerCase()] = value;
       }
 

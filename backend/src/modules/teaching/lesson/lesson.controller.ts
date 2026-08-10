@@ -19,6 +19,7 @@ import {
   CreateLessonWithAttendanceDto,
   AttendanceRecordDto,
 } from './dto/create-lesson-with-attendance.dto';
+import { GenerateLessonsDto } from './dto/generate-lessons.dto';
 import { LessonStatus } from './enums/lesson-status.enum';
 import { ClassService } from '../class/class.service';
 import {
@@ -237,6 +238,46 @@ export class LessonController {
       },
       'Lesson created with attendance',
     );
+  }
+
+  // ─── Batch Scheduling (P3-2: 一键排课) ───
+
+  @Post('classes/:code/lessons/batch')
+  @Roles('SuperAdmin', 'Admin')
+  @ApiOperation({
+    summary: '按班级固定课表批量生成未来课时（一键排课）',
+  })
+  async generateClassLessons(
+    @Param('code') code: string,
+    @Body() dto: GenerateLessonsDto,
+    @Req() req: any,
+  ) {
+    const operatorId = req.user.sub;
+
+    // 确定任课教师：优先用前端传入，否则从班级主教师推断
+    let teacherId = dto.teacherId;
+    if (!teacherId) {
+      const teachers = await this.classService.getTeachers(code);
+      const primary = teachers.find((t) => t.role === TeacherRole.PRIMARY);
+      if (!primary) {
+        throw new BadRequestException(
+          `班级 ${code} 未分配主教师，无法一键排课`,
+        );
+      }
+      teacherId = primary.teacherId;
+    }
+
+    const result = await this.lessonService.generateClassLessons(
+      code,
+      {
+        startDate: dto.startDate,
+        count: dto.count,
+        checkConflict: dto.checkConflict ?? false,
+        teacherId,
+      },
+      operatorId,
+    );
+    return ApiResponse.success(result);
   }
 
   // NOTE: Change request and batch confirmation endpoints are temporarily

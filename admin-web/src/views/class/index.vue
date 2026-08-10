@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { h, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons-vue'
 import {
@@ -13,6 +14,8 @@ import {
 } from '@/api/class'
 import { fetchCourses } from '@/api/course'
 import { formatDate } from '@/utils/format'
+
+const router = useRouter()
 
 const loading = ref(false)
 const list = ref<ClassItem[]>([])
@@ -35,7 +38,7 @@ const columns = [
   { title: '时间', dataIndex: 'startTime', key: 'time', width: 130 },
   { title: '进度', dataIndex: 'completedLessons', key: 'progress', width: 90 },
   { title: '人数', dataIndex: 'currentStudents', key: 'count', width: 110 },
-  { title: '操作', dataIndex: 'action', key: 'action', width: 180, fixed: 'right' },
+  { title: '操作', dataIndex: 'action', key: 'action', width: 220, fixed: 'right' },
 ]
 
 async function load() {
@@ -311,6 +314,7 @@ onMounted(() => {
         </template>
         <template v-else-if="column.key === 'action'">
           <a-space>
+            <a @click="router.push(`/classes/${record.classCode}`)">详情</a>
             <a @click="openEdit(record)">编辑</a>
             <template v-if="record.status === 'DRAFT'">
               <a @click="onActivate(record)">开课</a>

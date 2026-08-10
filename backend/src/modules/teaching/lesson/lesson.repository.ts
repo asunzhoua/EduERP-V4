@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { LessonEntity } from './lesson.entity';
 import { LessonStatus } from './enums/lesson-status.enum';
 
@@ -61,6 +61,21 @@ export class LessonRepository {
     return this.repo.find({
       where: { classCode, scheduledDate: date },
       order: { startTime: 'ASC' },
+    });
+  }
+
+  /**
+   * Find lessons for a teacher within a date range.
+   * Used by batch scheduling to detect teacher time conflicts.
+   */
+  async findByTeacherAndDateRange(
+    teacherId: number,
+    startDate: string,
+    endDate: string,
+  ): Promise<LessonEntity[]> {
+    return this.repo.find({
+      where: { teacherId, scheduledDate: Between(startDate, endDate) },
+      order: { scheduledDate: 'ASC', startTime: 'ASC' },
     });
   }
 

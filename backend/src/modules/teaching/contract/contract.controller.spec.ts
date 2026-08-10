@@ -125,8 +125,9 @@ describe('ContractController', () => {
         note: null,
         tags: null,
       } as any;
+      const mockReq = { user: { sub: 42, name: '管理员' } };
 
-      const result = await controller.create(dto);
+      const result = await controller.create(dto, mockReq);
 
       expect(result).toEqual(ApiResponse.success(mockContract, 'Contract created'));
       expect(mockService.create).toHaveBeenCalledWith({
@@ -139,6 +140,8 @@ describe('ContractController', () => {
         totalAmount: 6000.0,
         note: null,
         tags: null,
+        operatorId: 42,
+        operatorName: '管理员',
       });
     });
 
@@ -154,8 +157,9 @@ describe('ContractController', () => {
         note: undefined,
         tags: undefined,
       } as any;
+      const mockReq = { user: { sub: 7, name: '系统管理员' } };
 
-      await controller.create(dto);
+      await controller.create(dto, mockReq);
 
       expect(mockService.create).toHaveBeenCalledWith({
         studentCode: 'STU20260002',
@@ -167,6 +171,8 @@ describe('ContractController', () => {
         totalAmount: null,
         note: null,
         tags: null,
+        operatorId: 7,
+        operatorName: '系统管理员',
       });
     });
   });
@@ -256,6 +262,7 @@ describe('ContractController', () => {
         'CTR2026070001',
         dto,
         42,
+        undefined,
       );
     });
   });

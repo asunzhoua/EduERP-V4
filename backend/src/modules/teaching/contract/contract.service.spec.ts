@@ -1,16 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { ContractService, CreateContractInput } from './contract.service';
 import { ContractRepository } from './contract.repository';
 import { ContractCodeGeneratorService } from './contract-code-generator.service';
 import { ContractEntity } from './contract.entity';
 import { ContractStatus } from './enums/contract-status.enum';
+import {
+  LessonAdjustmentAction,
+  LessonAdjustmentSource,
+} from './enums/lesson-adjustment.enums';
+import { LessonAdjustmentAudit } from './entities/lesson-adjustment-audit.entity';
 import { Subject } from '@common/enums/subject.enum';
 import { LessonAttendanceEntity } from '../lesson-attendance/lesson-attendance.entity';
 import { LessonEntity } from '../lesson/lesson.entity';
 import { CourseEntity } from '../course/course.entity';
 import { Student } from '@modules/student/entities/student.entity';
+import { ImportService } from '@utils/services/import.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('ContractService', () => {
@@ -21,6 +28,9 @@ describe('ContractService', () => {
   let lessonRepo: jest.Mocked<any>;
   let courseRepo: jest.Mocked<any>;
   let studentRepo: jest.Mocked<any>;
+  let auditRepo: jest.Mocked<any>;
+  let importService: jest.Mocked<any>;
+  let dataSource: jest.Mocked<any>;
   let config: jest.Mocked<ConfigService>;
 
   const mockContractInput: CreateContractInput = {
@@ -79,6 +89,18 @@ describe('ContractService', () => {
     studentRepo = {
       find: jest.fn(),
     };
+    auditRepo = {
+      save: jest.fn(),
+      find: jest.fn(),
+      count: jest.fn(),
+    };
+    importService = {
+      parseBuffer: jest.fn(),
+      validateRows: jest.fn(),
+    };
+    dataSource = {
+      transaction: jest.fn(),
+    };
     config = {
       get: jest.fn(),
     } as any;
@@ -95,6 +117,12 @@ describe('ContractService', () => {
         { provide: getRepositoryToken(LessonEntity), useValue: lessonRepo },
         { provide: getRepositoryToken(CourseEntity), useValue: courseRepo },
         { provide: getRepositoryToken(Student), useValue: studentRepo },
+        {
+          provide: getRepositoryToken(LessonAdjustmentAudit),
+          useValue: auditRepo,
+        },
+        { provide: ImportService, useValue: importService },
+        { provide: DataSource, useValue: dataSource },
         { provide: ConfigService, useValue: config },
       ],
     }).compile();
@@ -739,6 +767,374 @@ describe('ContractService', () => {
       expect(result).toEqual([]);
       expect(attendanceRepo.find).not.toHaveBeenCalled();
       expect(studentRepo.find).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── Lesson Adjustment Audit (P2-5) ───
+
+  describe('audit write', () => {
+    it('should write CONTRACT_CREATE audit on create', async () => {
+      codeGenerator.generateContractCode.mockResolvedValue('CT2026070001');
+      contractRepo.save.mockResolvedValue({ ...mockContract });
+
+      await service.create({
+        ...mockContractInput,
+        operatorId: 1,
+        operatorName: '管理员',
+      });
+
+      expect(auditRepo.save).toHaveBeenCalledTimes(1);
+      const audit = auditRepo.save.mock.calls[0][0];
+      expect(audit.action).toBe(LessonAdjustmentAction.ADD);
+      expect(audit.source).toBe(LessonAdjustmentSource.CONTRACT_CREATE);
+      expect(audit.beforeTotal).toBe(0);
+      expect(audit.beforeRemaining).toBe(0);
+      expect(audit.afterTotal).toBe(20);
+      expect(audit.afterRemaining).toBe(20);
+      expect(audit.delta).toBe(20);
+      expect(audit.operatorId).toBe(1);
+      expect(audit.operatorName).toBe('管理员');
+    });
+
+    it('should write ADD audit when adjustLessons increases lessons', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({
+        ...mockContract,
+        totalLessons: 20,
+        remainingLessons: 20,
+        status: ContractStatus.ACTIVE,
+      });
+      contractRepo.save.mockImplementation((c: ContractEntity) =>
+        Promise.resolve(c),
+      );
+
+      await service.adjustLessons(
+        'CT2026070001',
+        { totalLessons: 25, remainingLessons: 25, reason: '家长续费' },
+        1,
+        '管理员',
+      );
+
+      const audit = auditRepo.save.mock.calls[0][0];
+      expect(audit.action).toBe(LessonAdjustmentAction.ADD);
+      expect(audit.source).toBe(LessonAdjustmentSource.ADMIN_MANUAL);
+      expect(audit.beforeRemaining).toBe(20);
+      expect(audit.afterRemaining).toBe(25);
+      expect(audit.delta).toBe(5);
+      expect(audit.operatorName).toBe('管理员');
+    });
+
+    it('should write DELETE audit when adjustLessons reduces lessons', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({
+        ...mockContract,
+        totalLessons: 20,
+        remainingLessons: 15,
+        status: ContractStatus.ACTIVE,
+      });
+      contractRepo.save.mockImplementation((c: ContractEntity) =>
+        Promise.resolve(c),
+      );
+
+      await service.adjustLessons(
+        'CT2026070001',
+        { remainingLessons: 10, reason: '退款 5 节' },
+        1,
+      );
+
+      const audit = auditRepo.save.mock.calls[0][0];
+      expect(audit.action).toBe(LessonAdjustmentAction.DELETE);
+      expect(audit.beforeRemaining).toBe(15);
+      expect(audit.afterRemaining).toBe(10);
+      expect(audit.delta).toBe(-5);
+    });
+
+    it('should write SET audit when only total changes', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({
+        ...mockContract,
+        totalLessons: 20,
+        remainingLessons: 20,
+        status: ContractStatus.ACTIVE,
+      });
+      contractRepo.save.mockImplementation((c: ContractEntity) =>
+        Promise.resolve(c),
+      );
+
+      await service.adjustLessons('CT2026070001', { totalLessons: 30 }, 1);
+
+      const audit = auditRepo.save.mock.calls[0][0];
+      expect(audit.action).toBe(LessonAdjustmentAction.SET);
+      expect(audit.delta).toBe(0);
+    });
+  });
+
+  // ─── Lesson Bulk Import (P2-2) ───
+
+  describe('importLessons', () => {
+    const buffer = Buffer.from('');
+    const mockManager = {
+      findOne: jest.fn(),
+      save: jest.fn(),
+    };
+
+    const existingContract: ContractEntity = {
+      ...mockContract,
+      id: 1,
+      contractCode: 'CT2026070001',
+      studentCode: 'ST001',
+      totalLessons: 10,
+      remainingLessons: 8,
+      status: ContractStatus.ACTIVE,
+    };
+
+    beforeEach(() => {
+      mockManager.findOne.mockReset();
+      mockManager.save.mockReset();
+      dataSource.transaction.mockImplementation(async (cb: any) =>
+        cb(mockManager),
+      );
+    });
+
+    it('should accumulate lessons into an existing contract and write audit', async () => {
+      importService.parseBuffer.mockReturnValue([]);
+      importService.validateRows.mockReturnValue({
+        validRows: [
+          {
+            studentcode: 'ST001',
+            subject: '数学',
+            lessons: '5',
+            unitprice: '',
+            validto: '',
+          },
+        ],
+        report: {
+          total: 1,
+          success: 1,
+          failure: 0,
+          details: [
+            {
+              row: 2,
+              success: true,
+              errors: [],
+              data: {
+                studentcode: 'ST001',
+                subject: '数学',
+                lessons: '5',
+                unitprice: '',
+                validto: '',
+              },
+            },
+          ],
+          fileName: 'lessons.xlsx',
+        },
+      });
+      mockManager.findOne.mockImplementation((entity: any) => {
+        if (entity === Student) {
+          return Promise.resolve({
+            studentCode: 'ST001',
+            name: '张三',
+            deleted: false,
+          });
+        }
+        if (entity === ContractEntity) {
+          return Promise.resolve({ ...existingContract });
+        }
+        return Promise.resolve(null);
+      });
+      mockManager.save.mockImplementation(async (_e: any, obj: any) => obj);
+
+      const report = await service.importLessons(
+        buffer,
+        'lessons.xlsx',
+        1,
+        '管理员',
+      );
+
+      expect(report.success).toBe(1);
+      expect(report.failure).toBe(0);
+      const savedContract = mockManager.save.mock.calls.find(
+        (c: any[]) => c[0] === ContractEntity,
+      )?.[1];
+      expect(savedContract.totalLessons).toBe(15);
+      expect(savedContract.remainingLessons).toBe(13);
+      const auditCalls = mockManager.save.mock.calls.filter(
+        (c: any[]) => c[0] === LessonAdjustmentAudit,
+      );
+      expect(auditCalls).toHaveLength(1);
+      expect(auditCalls[0][1].action).toBe(LessonAdjustmentAction.ADD);
+      expect(auditCalls[0][1].source).toBe(LessonAdjustmentSource.IMPORT);
+      expect(auditCalls[0][1].delta).toBe(5);
+      expect(auditCalls[0][1].operatorName).toBe('管理员');
+    });
+
+    it('should create a new contract when none exists and write audit', async () => {
+      importService.parseBuffer.mockReturnValue([]);
+      importService.validateRows.mockReturnValue({
+        validRows: [
+          {
+            studentcode: 'ST002',
+            subject: 'MATH',
+            lessons: '10',
+            unitprice: '80',
+            validto: '2026-12-31',
+          },
+        ],
+        report: {
+          total: 1,
+          success: 1,
+          failure: 0,
+          details: [
+            {
+              row: 2,
+              success: true,
+              errors: [],
+              data: {
+                studentcode: 'ST002',
+                subject: 'MATH',
+                lessons: '10',
+                unitprice: '80',
+                validto: '2026-12-31',
+              },
+            },
+          ],
+          fileName: 'lessons.xlsx',
+        },
+      });
+      mockManager.findOne.mockImplementation((entity: any) => {
+        if (entity === Student) {
+          return Promise.resolve({
+            studentCode: 'ST002',
+            name: '李四',
+            deleted: false,
+          });
+        }
+        return Promise.resolve(null);
+      });
+      mockManager.save.mockImplementation(async (_e: any, obj: any) => obj);
+      codeGenerator.generateContractCode.mockResolvedValue('CT2026080001');
+
+      const report = await service.importLessons(
+        buffer,
+        'lessons.xlsx',
+        1,
+        '管理员',
+      );
+
+      expect(report.success).toBe(1);
+      const savedContract = mockManager.save.mock.calls.find(
+        (c: any[]) => c[0] === ContractEntity,
+      )?.[1];
+      expect(savedContract.contractCode).toBe('CT2026080001');
+      expect(savedContract.totalLessons).toBe(10);
+      expect(savedContract.remainingLessons).toBe(10);
+      expect(savedContract.subject).toBe(Subject.MATH);
+      expect(savedContract.unitPrice).toBe(80);
+      expect(savedContract.totalAmount).toBe(800);
+      const auditCalls = mockManager.save.mock.calls.filter(
+        (c: any[]) => c[0] === LessonAdjustmentAudit,
+      );
+      expect(auditCalls).toHaveLength(1);
+      expect(auditCalls[0][1].delta).toBe(10);
+    });
+
+    it('should record per-row failure when student not found', async () => {
+      importService.parseBuffer.mockReturnValue([]);
+      importService.validateRows.mockReturnValue({
+        validRows: [
+          {
+            studentcode: 'NOEXIST',
+            subject: 'MATH',
+            lessons: '5',
+            unitprice: '',
+            validto: '',
+          },
+        ],
+        report: {
+          total: 1,
+          success: 1,
+          failure: 0,
+          details: [
+            {
+              row: 2,
+              success: true,
+              errors: [],
+              data: {
+                studentcode: 'NOEXIST',
+                subject: 'MATH',
+                lessons: '5',
+                unitprice: '',
+                validto: '',
+              },
+            },
+          ],
+          fileName: 'lessons.xlsx',
+        },
+      });
+      mockManager.findOne.mockResolvedValue(null);
+
+      const report = await service.importLessons(
+        buffer,
+        'lessons.xlsx',
+        1,
+        '管理员',
+      );
+
+      expect(report.success).toBe(0);
+      expect(report.failure).toBe(1);
+      expect(report.details[0].success).toBe(false);
+      expect(report.details[0].errors[0]).toContain('学员不存在');
+      expect(mockManager.save).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── Lesson Audit Query (P2-5) ───
+
+  describe('getLessonAudits', () => {
+    it('should return paginated audits', async () => {
+      auditRepo.count.mockResolvedValue(2);
+      auditRepo.find.mockResolvedValue([{ id: 1 }, { id: 2 }]);
+
+      const result = await service.getLessonAudits({ page: 1, pageSize: 20 });
+
+      expect(result.total).toBe(2);
+      expect(result.items).toHaveLength(2);
+      expect(auditRepo.find).toHaveBeenCalledWith({
+        where: {},
+        order: { createdAt: 'DESC' },
+        skip: 0,
+        take: 20,
+      });
+    });
+
+    it('should apply action/source/operator filters', async () => {
+      auditRepo.count.mockResolvedValue(0);
+      auditRepo.find.mockResolvedValue([]);
+
+      await service.getLessonAudits({
+        action: 'ADD',
+        source: 'IMPORT',
+        operatorId: 3,
+        page: 1,
+        pageSize: 10,
+      });
+
+      const call = auditRepo.find.mock.calls[0][0];
+      expect(call.where.action).toBe('ADD');
+      expect(call.where.source).toBe('IMPORT');
+      expect(call.where.operatorId).toBe(3);
+    });
+
+    it('should convert date range to day boundaries for createdAt', async () => {
+      auditRepo.count.mockResolvedValue(0);
+      auditRepo.find.mockResolvedValue([]);
+
+      await service.getLessonAudits({
+        startDate: '2026-08-01',
+        endDate: '2026-08-10',
+        page: 1,
+        pageSize: 10,
+      });
+
+      const where = auditRepo.find.mock.calls[0][0].where;
+      expect(where.createdAt).toBeDefined();
     });
   });
 });

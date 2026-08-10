@@ -25,6 +25,15 @@ import { ContractEntity } from '@modules/teaching/contract/contract.entity';
 import { ClassEntity } from '@modules/teaching/class/class.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
 import { Subject } from '@common/enums/subject.enum';
+import { Student } from '@modules/student/entities/student.entity';
+import { LessonRepository } from '../lesson/lesson.repository';
+import { LessonEntity } from '../lesson/lesson.entity';
+import { LessonStatus } from '../lesson/enums/lesson-status.enum';
+import {
+  ImportService,
+  ImportColumn,
+  ImportReport,
+} from '@utils/services/import.service';
 
 /**
  * Allowed workflow state transitions per AttendanceStateMachine.
@@ -95,6 +104,10 @@ export class LessonAttendanceService {
     @InjectRepository(CourseEntity)
     private readonly courseRepo: Repository<CourseEntity>,
     private readonly pointsService: PointsService,
+    private readonly lessonRepo: LessonRepository,
+    @InjectRepository(Student)
+    private readonly studentRepo: Repository<Student>,
+    private readonly importService: ImportService,
   ) {}
 
   // ─── Auto-Creation ───
@@ -424,6 +437,137 @@ export class LessonAttendanceService {
     return saved;
   }
 
+  // ─── Attendance Bulk Import (P2-3: 上课/考勤记录导入) ───
+
+  /**
+   * 批量补录上课/考勤记录（管理端，SuperAdmin/Admin）。
+   * Excel 列：学员编码 + 出勤状态，课时通过「课时ID」或「班级编码 + 上课日期」定位。
+   * 逐行复用 recordAttendance 逻辑（含扣课时/积分/提醒），单行失败记录原因不中断。
+   * 已录考勤（非 PENDING）的行跳过，防止重复扣课。
+   */
+  async importAttendance(
+    buffer: Buffer,
+    fileName: string,
+    operatorId: number,
+    operatorName?: string,
+  ): Promise<ImportReport> {
+    const rows = this.importService.parseBuffer(buffer, fileName);
+
+    const columns: ImportColumn[] = [
+      {
+        header: 'studentcode',
+        aliases: ['学员编码', '学员编号', '学号'],
+        required: true,
+      },
+      {
+        header: 'status',
+        aliases: ['出勤状态', '状态'],
+        required: true,
+        validate: (v) =>
+          this.parseAttendanceStatus(v)
+            ? null
+            : '出勤状态无效（如 PRESENT/出勤/缺勤/迟到/请假/线上/线下）',
+      },
+      {
+        header: 'lessonid',
+        aliases: ['课时ID', '课时编号', '课时编码'],
+        required: false,
+        validate: (v) => (v && isNaN(Number(v)) ? '课时ID必须是数字' : null),
+      },
+      {
+        header: 'classcode',
+        aliases: ['班级编码', '班级'],
+        required: false,
+      },
+      {
+        header: 'scheduleddate',
+        aliases: ['上课日期', '日期'],
+        required: false,
+        validate: (v) =>
+          v && isNaN(Date.parse(v)) ? '日期格式错误（YYYY-MM-DD）' : null,
+      },
+      {
+        header: 'reason',
+        aliases: ['原因', '备注'],
+        required: false,
+      },
+    ];
+
+    const { report } = this.importService.validateRows(rows, columns, fileName);
+
+    if (report.success === 0) {
+      return report;
+    }
+
+    for (const detail of report.details) {
+      if (!detail.success) continue;
+      const row = detail.data;
+      try {
+        const studentCode = row['studentcode'];
+        const status = this.parseAttendanceStatus(row['status']) as AttendanceStatus;
+        const reason = row['reason'] || undefined;
+        const lessonId = row['lessonid'] ? Number(row['lessonid']) : undefined;
+
+        const student = await this.studentRepo.findOne({
+          where: { studentCode, deleted: false },
+        });
+        if (!student) {
+          throw new Error(`学员不存在: ${studentCode}`);
+        }
+
+        const lesson = await this.resolveLessonForImport(
+          lessonId,
+          row['classcode'],
+          row['scheduleddate'],
+        );
+
+        const existing = await this.attendanceRepo.findByLessonAndStudent(
+          lesson.id,
+          studentCode,
+        );
+        if (
+          existing &&
+          existing.workflowState !== AttendanceWorkflowState.PENDING
+        ) {
+          throw new Error(
+            `该学员此课时考勤已录入（${existing.workflowState}），不可覆盖`,
+          );
+        }
+
+        if (!existing) {
+          const entity = new LessonAttendanceEntity();
+          entity.lessonId = lesson.id;
+          entity.studentCode = studentCode;
+          entity.classCode = lesson.classCode;
+          entity.teacherId = lesson.teacherId;
+          entity.workflowState = AttendanceWorkflowState.PENDING;
+          entity.status = null;
+          entity.operator = operatorId;
+          entity.source = AttendanceSource.IMPORT;
+          entity.createdBy = operatorId;
+          await this.attendanceRepo.save(entity);
+        }
+
+        await this.recordAttendance({
+          lessonId: lesson.id,
+          studentCode,
+          status,
+          reason,
+          operator: operatorId,
+          source: AttendanceSource.IMPORT,
+          note: `考勤导入${operatorName ? ` by ${operatorName}` : ''}`,
+        });
+      } catch (error) {
+        report.success--;
+        report.failure++;
+        detail.success = false;
+        detail.errors.push(`导入失败: ${(error as Error).message}`);
+      }
+    }
+
+    return report;
+  }
+
   // ─── Contract Lesson Deduction (Phase 2 Batch 2.1) ───
 
   /**
@@ -448,6 +592,66 @@ export class LessonAttendanceService {
       return null;
     }
     return course.subject;
+  }
+
+  /**
+   * 导入用课时定位：优先 lessonId；否则按班级编码 + 上课日期查找
+   * （优先 TEACHING，其次 SCHEDULED）。无法定位 → 抛错由调用方记为行失败。
+   */
+  private async resolveLessonForImport(
+    lessonId: number | undefined,
+    classCode: string | undefined,
+    scheduledDate: string | undefined,
+  ): Promise<LessonEntity> {
+    if (lessonId != null) {
+      const lesson = await this.lessonRepo.findOneById(lessonId);
+      if (!lesson) {
+        throw new Error(`课时 ${lessonId} 不存在`);
+      }
+      return lesson;
+    }
+
+    if (!classCode || !scheduledDate) {
+      throw new Error('缺少课时定位信息：请提供 课时ID 或 班级编码+上课日期');
+    }
+
+    const lessons = await this.lessonRepo.findByClassCodeAndDate(
+      classCode,
+      scheduledDate,
+    );
+    const lesson =
+      lessons.find((l) => l.status === LessonStatus.TEACHING) ||
+      lessons.find((l) => l.status === LessonStatus.SCHEDULED) ||
+      lessons[0] ||
+      null;
+    if (!lesson) {
+      throw new Error(`未找到班级 ${classCode} 在 ${scheduledDate} 的课时`);
+    }
+    return lesson;
+  }
+
+  /** 出勤状态：接受枚举值（大小写不敏感）或中文别名 */
+  private parseAttendanceStatus(value: string): AttendanceStatus | null {
+    const trimmed = value.trim();
+    const upper = trimmed.toUpperCase();
+    if (upper in AttendanceStatus) {
+      return AttendanceStatus[upper as keyof typeof AttendanceStatus];
+    }
+    const aliases: Record<string, AttendanceStatus> = {
+      '出勤': AttendanceStatus.PRESENT,
+      '到场': AttendanceStatus.PRESENT,
+      '正常': AttendanceStatus.PRESENT,
+      '缺勤': AttendanceStatus.ABSENT,
+      '未到': AttendanceStatus.ABSENT,
+      '迟到': AttendanceStatus.LATE,
+      '请假': AttendanceStatus.LEAVE,
+      '生病': AttendanceStatus.SICK,
+      '病假': AttendanceStatus.SICK,
+      '补课': AttendanceStatus.MAKEUP,
+      '线上': AttendanceStatus.ONLINE,
+      '线下': AttendanceStatus.OFFLINE,
+    };
+    return aliases[trimmed] ?? null;
   }
 
   /**

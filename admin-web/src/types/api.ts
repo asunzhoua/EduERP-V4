@@ -39,3 +39,22 @@ export interface Paginated<T> {
   page: number
   pageSize: number
 }
+
+/** 导入单行结果 */
+export interface ImportRowResult {
+  /** Excel 行号（表头为第 1 行，数据从第 2 行起） */
+  row: number
+  success: boolean
+  errors: string[]
+  /** 规范化后的该行数据（键为小写列名） */
+  data: Record<string, string>
+}
+
+/** 导入报告：后端 ImportService.validateRows 返回 */
+export interface ImportReport {
+  total: number
+  success: number
+  failure: number
+  details: ImportRowResult[]
+  fileName: string
+}

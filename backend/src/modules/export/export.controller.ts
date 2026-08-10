@@ -22,6 +22,17 @@ import { ExportFilterDto } from './dto/export-filter.dto';
 export class ExportController {
   constructor(private readonly exportService: ExportService) {}
 
+  /** 中文文件名：RFC 5987 filename* 编码，ASCII 回退名防解析问题 */
+  private disposition(filename: string, format: string): string {
+    const fallback = `export_${Date.now()}.${this.ext(format)}`;
+    return `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
+  }
+
+  /** excel 格式的文件扩展名显示为 .xlsx */
+  private ext(format: string): string {
+    return format === 'excel' ? 'xlsx' : format;
+  }
+
   @Post('students')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '导出学生数据' })
@@ -32,10 +43,10 @@ export class ExportController {
     const format = filters.format || 'csv';
     const buffer = await this.exportService.exportStudents(filters, format);
 
-    const filename = `students_${Date.now()}.${format}`;
+    const filename = `学生数据_${Date.now()}.${this.ext(format)}`;
     res.set({
       'Content-Type': format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': this.disposition(filename, format),
     });
     res.send(buffer);
   }
@@ -50,10 +61,10 @@ export class ExportController {
     const format = filters.format || 'csv';
     const buffer = await this.exportService.exportLessons(filters, format);
 
-    const filename = `lessons_${Date.now()}.${format}`;
+    const filename = `课时记录_${Date.now()}.${this.ext(format)}`;
     res.set({
       'Content-Type': format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': this.disposition(filename, format),
     });
     res.send(buffer);
   }
@@ -68,10 +79,10 @@ export class ExportController {
     const format = filters.format || 'csv';
     const buffer = await this.exportService.exportConsumption(filters, format);
 
-    const filename = `consumption_${Date.now()}.${format}`;
+    const filename = `课时消耗_${Date.now()}.${this.ext(format)}`;
     res.set({
       'Content-Type': format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': this.disposition(filename, format),
     });
     res.send(buffer);
   }
@@ -86,10 +97,10 @@ export class ExportController {
     const format = filters.format || 'csv';
     const buffer = await this.exportService.exportSalary(filters, format);
 
-    const filename = `salary_${Date.now()}.${format}`;
+    const filename = `工资数据_${Date.now()}.${this.ext(format)}`;
     res.set({
       'Content-Type': format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': this.disposition(filename, format),
     });
     res.send(buffer);
   }
@@ -104,10 +115,10 @@ export class ExportController {
     const format = filters.format || 'csv';
     const buffer = await this.exportService.exportFinance(filters, format);
 
-    const filename = `finance_${Date.now()}.${format}`;
+    const filename = `财务数据_${Date.now()}.${this.ext(format)}`;
     res.set({
       'Content-Type': format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': this.disposition(filename, format),
     });
     res.send(buffer);
   }

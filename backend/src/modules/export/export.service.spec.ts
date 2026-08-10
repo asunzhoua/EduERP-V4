@@ -84,6 +84,16 @@ describe('ExportService', () => {
       const lines = content.split('\n');
       expect(lines[1]).toContain('张三,');
     });
+
+    it('should use Chinese headers when provided', () => {
+      const writer = new CsvWriter();
+      const data = [{ name: '张三', age: 10 }];
+      const buffer = writer.generate(data, ['name', 'age'], ['姓名', '年龄']);
+      const content = buffer.toString('utf-8');
+      const lines = content.split('\n');
+      expect(lines[0]).toContain('姓名,年龄');
+      expect(lines[0]).not.toContain('name');
+    });
   });
 
   describe('ExcelWriter', () => {
@@ -103,6 +113,17 @@ describe('ExportService', () => {
       const buffer = await writer.generate([], '空数据');
       expect(buffer).toBeInstanceOf(Buffer);
       expect(buffer.length).toBeGreaterThan(0);
+    });
+
+    it('should use Chinese headers when provided', async () => {
+      const writer = new ExcelWriter();
+      const data = [{ name: '张三', age: 10 }];
+      const buffer = await writer.generate(data, '测试', ['name', 'age'], ['姓名', '年龄']);
+      const XLSX = require('xlsx');
+      const wb = XLSX.read(buffer, { type: 'buffer' });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+      expect(rows[0]).toEqual(['姓名', '年龄']);
+      expect(rows[1]).toEqual(['张三', 10]);
     });
   });
 
@@ -252,7 +273,7 @@ describe('ExportService', () => {
       const result = await service.exportSalary({}, 'csv');
       expect(result).toBeInstanceOf(Buffer);
       const content = result.toString('utf-8');
-      expect(content).toContain('teacherName');
+      expect(content).toContain('老师姓名');
       expect(content).toContain('张老师');
       expect(content).toContain('李老师');
     });

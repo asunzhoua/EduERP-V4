@@ -8,11 +8,13 @@ import {
   createStudent,
   updateStudent,
   updateStudentStatus,
+  importStudents,
   type Student,
   type Gender,
   type StudentStatus,
 } from '@/api/student'
 import { formatDate } from '@/utils/format'
+import ImportExcelModal from '@/components/ImportExcelModal.vue'
 
 const router = useRouter()
 
@@ -174,6 +176,11 @@ function goDetail(row: Student) {
   router.push(`/students/${row.id}`)
 }
 
+// ─── 导入学员 ───
+const importOpen = ref(false)
+const importHint =
+  '表头（支持中文）：姓名 / 性别（男/女 或 MALE/FEMALE）/ 出生日期（YYYY-MM-DD）/ 联系电话 / 邮箱 / 学校 / 年级 / 标签（用逗号分隔）/ 备注。\n姓名、性别、出生日期为必填。学号由系统自动生成。'
+
 onMounted(load)
 </script>
 
@@ -201,7 +208,10 @@ onMounted(load)
         </a-space>
       </a-form-item>
       <a-form-item class="search-actions">
-        <a-button type="primary" ghost :icon="h(PlusOutlined)" @click="openCreate">新建学生</a-button>
+        <a-space>
+          <a-button type="primary" ghost :icon="h(PlusOutlined)" @click="openCreate">新建学生</a-button>
+          <a-button @click="importOpen = true">导入学员</a-button>
+        </a-space>
       </a-form-item>
     </a-form>
 
@@ -287,6 +297,8 @@ onMounted(load)
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <ImportExcelModal v-model:open="importOpen" title="导入学员" :import-fn="importStudents" :hint="importHint" @success="load" />
   </a-card>
 </template>
 

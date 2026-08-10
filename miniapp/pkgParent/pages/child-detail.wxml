@@ -38,12 +38,19 @@
       >
         <text>合同</text>
       </view>
-      <view 
+      <view
         class="tab {{activeTab === 'attendance' ? 'active' : ''}}"
         bindtap="onTabChange"
         data-tab="attendance"
       >
         <text>出勤</text>
+      </view>
+      <view
+        class="tab {{activeTab === 'timetable' ? 'active' : ''}}"
+        bindtap="onTabChange"
+        data-tab="timetable"
+      >
+        <text>课表</text>
       </view>
     </view>
 
@@ -105,6 +112,25 @@
           </view>
           <view class="item-status">
             <text class="status-{{item.status}}">{{item.status || '-'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- Timetable Tab（班级驱动：含未来已排课） -->
+    <view wx:if="{{activeTab === 'timetable'}}" class="tab-content">
+      <view wx:if="{{timetable.length === 0}}" class="empty-tab">
+        <text>暂无课表信息</text>
+      </view>
+      <view wx:else class="list">
+        <view wx:for="{{timetable}}" wx:key="lessonId" class="list-item">
+          <view class="item-main">
+            <text class="item-title">{{item.lessonDate || '-'}} {{item.startTime || ''}}-{{item.endTime || ''}}</text>
+            <text class="item-sub">{{item.className || ''}} {{item.courseName || ''}}</text>
+            <text wx:if="{{item.statusText}}" class="item-sub">考勤: {{item.statusText}}</text>
+          </view>
+          <view class="item-status">
+            <text class="lesson-status lesson-status-{{item.lessonStatus}}">{{item.lessonStatusText}}</text>
           </view>
         </view>
       </view>

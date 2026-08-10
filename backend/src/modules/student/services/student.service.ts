@@ -18,6 +18,7 @@ import { QueryStudentDto } from '../dto/query-student.dto';
 import { StudentStatus } from '../enums/student-status.enum';
 import { CreatedSource } from '@common/enums/created-source.enum';
 import { AuditAction } from '@common/enums/audit-action.enum';
+import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { ImportService, ImportReport } from '@utils/services/import.service';
 import { Gender } from '../enums/gender.enum';
 import { ContractRepository } from '@modules/teaching/contract/contract.repository';
@@ -500,19 +501,44 @@ export class StudentService {
    * return the identical shape.
    */
   async getStudentLessons(studentCode: string, from?: string, to?: string) {
+    // 学员本人考勤记录（含已退班/已结业历史），按 lessonId 建立索引
     const attendanceRecords =
       await this.lessonAttendanceRepository.findByStudentCode(studentCode);
+    const attendanceMap = new Map(
+      attendanceRecords.map((r) => [r.lessonId, r]),
+    );
 
-    // Fetch lesson details
-    const lessonIds = [...new Set(attendanceRecords.map((r) => r.lessonId))];
-    const lessons =
-      lessonIds.length > 0
-        ? await this.lessonRepository.find({ where: { id: In(lessonIds) } })
+    // 1) 班级驱动：当前有效报名班级的全部课时（含 SCHEDULED 未来课）
+    const activeEnrollments = await this.enrollmentRepository.find({
+      where: { studentCode, status: EnrollmentStatus.ACTIVE },
+    });
+    const activeClassCodes = activeEnrollments.map((e) => e.classCode);
+    const classLessons =
+      activeClassCodes.length > 0
+        ? await this.lessonRepository.find({
+            where: { classCode: In(activeClassCodes) },
+          })
         : [];
-    const lessonMap = new Map(lessons.map((l) => [l.id, l]));
 
-    // Get class names
-    const classCodes = [...new Set(lessons.map((l) => l.classCode))];
+    // 2) 考勤驱动：已退班/已结业班级的历史课时（以考勤记录里的 lesson 为准）
+    const attendanceLessonIds = [
+      ...new Set(attendanceRecords.map((r) => r.lessonId)),
+    ];
+    const historyLessons =
+      attendanceLessonIds.length > 0
+        ? await this.lessonRepository.find({
+            where: { id: In(attendanceLessonIds) },
+          })
+        : [];
+
+    // 合并去重：同一 lesson 保留班级驱动结果
+    const merged = new Map<number, LessonEntity>();
+    for (const l of historyLessons) merged.set(l.id, l);
+    for (const l of classLessons) merged.set(l.id, l);
+    const allLessons = [...merged.values()];
+
+    // 班级 / 课程名称映射
+    const classCodes = [...new Set(allLessons.map((l) => l.classCode))];
     const classes =
       classCodes.length > 0
         ? await this.classRepository.find({
@@ -521,8 +547,7 @@ export class StudentService {
         : [];
     const classMap = new Map(classes.map((c) => [c.classCode, c.name]));
 
-    // Get course names
-    const courseCodes = [...new Set(lessons.map((l) => l.courseCode))];
+    const courseCodes = [...new Set(allLessons.map((l) => l.courseCode))];
     const courses =
       courseCodes.length > 0
         ? await this.courseRepository.find({
@@ -531,21 +556,19 @@ export class StudentService {
         : [];
     const courseMap = new Map(courses.map((c) => [c.courseCode, c.name]));
 
-    // 历史课时日期查询：lesson.scheduledDate 为 'YYYY-MM-DD' 字符串，
-    // 直接按字典序比较即可。from/to 可选，缺省返回全部。
-    // 去掉原 20 条上限，保证按日期区间能查到完整历史。
-    const result = attendanceRecords
-      .map((a) => {
-        const lesson = lessonMap.get(a.lessonId);
+    // 组装：每节课带本人考勤状态（无记录为 null）
+    const result = allLessons
+      .map((lesson) => {
+        const att = attendanceMap.get(lesson.id);
         return {
-          lessonId: a.lessonId,
-          lessonDate: lesson?.scheduledDate || null,
-          startTime: lesson?.startTime || null,
-          endTime: lesson?.endTime || null,
-          status: a.status,
-          lessonStatus: lesson?.status || null,
-          className: lesson ? classMap.get(lesson.classCode) || null : null,
-          courseName: lesson ? courseMap.get(lesson.courseCode) || null : null,
+          lessonId: lesson.id,
+          lessonDate: lesson.scheduledDate || null,
+          startTime: lesson.startTime || null,
+          endTime: lesson.endTime || null,
+          status: att?.status ?? null,
+          lessonStatus: lesson.status || null,
+          className: classMap.get(lesson.classCode) || null,
+          courseName: courseMap.get(lesson.courseCode) || null,
         };
       })
       .filter((r) => {
@@ -648,12 +671,14 @@ export class StudentService {
     const columns = [
       {
         header: 'name',
+        aliases: ['姓名'],
         required: true,
         validate: (v: string) =>
           v.length > 50 ? '姓名不能超过50个字符' : null,
       },
       {
         header: 'gender',
+        aliases: ['性别'],
         required: true,
         validate: (v: string) =>
           !['MALE', 'FEMALE', '男', '女'].includes(v)
@@ -662,16 +687,17 @@ export class StudentService {
       },
       {
         header: 'birthDate',
+        aliases: ['出生日期', '生日'],
         required: true,
         validate: (v: string) =>
           isNaN(Date.parse(v)) ? '出生日期格式错误' : null,
       },
-      { header: 'phone', required: false },
-      { header: 'email', required: false },
-      { header: 'school', required: false },
-      { header: 'grade', required: false },
-      { header: 'tags', required: false },
-      { header: 'note', required: false },
+      { header: 'phone', aliases: ['联系电话', '手机号'], required: false },
+      { header: 'email', aliases: ['邮箱'], required: false },
+      { header: 'school', aliases: ['学校'], required: false },
+      { header: 'grade', aliases: ['年级'], required: false },
+      { header: 'tags', aliases: ['标签'], required: false },
+      { header: 'note', aliases: ['备注'], required: false },
     ];
 
     const { validRows, report } = this.importService.validateRows(
@@ -696,7 +722,7 @@ export class StudentService {
         const dto = new CreateStudentDto();
         dto.name = row['name'];
         dto.gender = gender;
-        dto.birthDate = row['birthDate'];
+        dto.birthDate = row['birthdate'];
         dto.phone = row['phone'] || undefined;
         dto.email = row['email'] || undefined;
         dto.school = row['school'] || undefined;

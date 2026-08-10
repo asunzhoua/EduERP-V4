@@ -6,6 +6,8 @@ import {
   fetchClassLessons,
   startLesson,
   completeLesson,
+  confirmLesson,
+  confirmLessonAttendance,
   cancelLesson,
   type Lesson,
   type LessonStatus,
@@ -20,8 +22,30 @@ const classes = ref<ClassItem[]>([])
 const selectedClass = ref('')
 const query = reactive({ status: undefined as LessonStatus | undefined, page: 1, pageSize: 10 })
 
-const statusLabel: Record<LessonStatus, string> = { DRAFT: '草稿', SCHEDULED: '待上课', IN_PROGRESS: '进行中', FINISHED: '已完成', CANCELLED: '已取消', SUSPENDED: '已停课' }
-const statusColor: Record<LessonStatus, string> = { DRAFT: 'default', SCHEDULED: 'blue', IN_PROGRESS: 'processing', FINISHED: 'green', CANCELLED: 'default', SUSPENDED: 'orange' }
+const statusLabel: Record<LessonStatus, string> = {
+  DRAFT: '草稿',
+  SCHEDULED: '待上课',
+  TEACHING: '进行中',
+  FINISHED: '已完成',
+  ARCHIVED: '已归档',
+  CANCELLED: '已取消',
+  SUSPENDED: '已停课',
+  RESCHEDULED: '已改期',
+  MAKEUP_PENDING: '待补课',
+  MAKEUP_COMPLETED: '补课完成',
+}
+const statusColor: Record<LessonStatus, string> = {
+  DRAFT: 'default',
+  SCHEDULED: 'blue',
+  TEACHING: 'processing',
+  FINISHED: 'green',
+  ARCHIVED: 'cyan',
+  CANCELLED: 'default',
+  SUSPENDED: 'orange',
+  RESCHEDULED: 'purple',
+  MAKEUP_PENDING: 'gold',
+  MAKEUP_COMPLETED: 'green',
+}
 
 const columns = [
   { title: '课次', dataIndex: 'lessonNumber', key: 'lessonNumber', width: 70 },
@@ -29,16 +53,16 @@ const columns = [
   { title: '时间', key: 'time', width: 130 },
   { title: '主题', dataIndex: 'topic', key: 'topic', ellipsis: true },
   { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
-  { title: '操作', dataIndex: 'action', key: 'action', width: 140, fixed: 'right' },
+  { title: '操作', dataIndex: 'action', key: 'action', width: 260, fixed: 'right' },
 ]
 
 async function load() {
   if (!selectedClass.value) return
   loading.value = true
   try {
-    const res = await fetchClassLessons(selectedClass.value, { status: query.status, page: query.page, pageSize: query.pageSize })
-    lessons.value = res.items
-    total.value = res.total
+    const res = await fetchClassLessons(selectedClass.value, { status: query.status })
+    lessons.value = res
+    total.value = res.length
   } catch (e) {
     message.error((e as Error).message || '加载失败')
   } finally {
@@ -106,6 +130,43 @@ function onComplete(row: Lesson) {
   })
 }
 
+// ─── 考勤确认 / 归档（管理员闭环） ───
+function onConfirmAttendance(row: Lesson) {
+  Modal.confirm({
+    title: '确认本次课考勤？',
+    content: `第 ${row.lessonNumber} 次课的考勤记录将确认。`,
+    okText: '确认考勤',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        const confirmed = await confirmLessonAttendance(row.id)
+        message.success(`已确认 ${confirmed.length} 条考勤`)
+        load()
+      } catch (e) {
+        message.error((e as Error).message || '操作失败')
+      }
+    },
+  })
+}
+
+function onConfirm(row: Lesson) {
+  Modal.confirm({
+    title: '确认归档本次课？',
+    content: `第 ${row.lessonNumber} 次课将归档确认（扣减课时）。`,
+    okText: '确认归档',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        await confirmLesson(row.classCode, row.lessonNumber)
+        message.success('已归档确认')
+        load()
+      } catch (e) {
+        message.error((e as Error).message || '操作失败')
+      }
+    },
+  })
+}
+
 // ─── 取消 ───
 const cancelOpen = ref(false)
 const cancelLoading = ref(false)
@@ -162,9 +223,8 @@ onMounted(loadClasses)
       :columns="columns"
       :data-source="lessons"
       :loading="loading"
-      :pagination="{ current: query.page, pageSize: query.pageSize, total, showSizeChanger: true, showTotal: (t: number) => `共 ${t} 条` }"
+      :pagination="{ pageSize: 10, showSizeChanger: true, showTotal: (t: number) => `共 ${t} 条` }"
       row-key="id"
-      @change="(p: any) => { query.page = p.current; query.pageSize = p.pageSize; load() }"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'time'">
@@ -181,10 +241,16 @@ onMounted(loadClasses)
             <template v-if="record.status === 'SCHEDULED' || record.status === 'DRAFT'">
               <a @click="onStart(record)">开始上课</a>
             </template>
-            <template v-if="record.status === 'IN_PROGRESS'">
+            <template v-if="record.status === 'TEACHING'">
               <a @click="onComplete(record)">完成</a>
             </template>
-            <template v-if="record.status === 'SCHEDULED' || record.status === 'DRAFT' || record.status === 'IN_PROGRESS'">
+            <template v-if="record.status === 'TEACHING' || record.status === 'FINISHED'">
+              <a @click="onConfirmAttendance(record)">确认考勤</a>
+            </template>
+            <template v-if="record.status === 'FINISHED'">
+              <a @click="onConfirm(record)">归档</a>
+            </template>
+            <template v-if="record.status === 'SCHEDULED' || record.status === 'DRAFT' || record.status === 'TEACHING'">
               <a :style="{ color: '#ff4d4f' }" @click="openCancel(record)">取消</a>
             </template>
           </a-space>

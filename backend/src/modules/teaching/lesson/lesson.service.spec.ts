@@ -3,6 +3,7 @@ import { LessonService, CreateLessonInput } from './lesson.service';
 import { LessonRepository } from './lesson.repository';
 import { LessonEntity } from './lesson.entity';
 import { LessonStatus } from './enums/lesson-status.enum';
+import { LessonSource } from './enums/lesson-source.enum';
 import { ClassRepository } from '../class/class.repository';
 import { ClassStatus } from '../class/enums/class-status.enum';
 import { EnrollmentRepository } from '../enrollment/enrollment.repository';
@@ -91,6 +92,8 @@ describe('LessonService', () => {
       findByClassCode: jest.fn(),
       findOneByClassCodeAndLessonNumber: jest.fn(),
       countByClassCode: jest.fn(),
+      findMaxLessonNumber: jest.fn(),
+      findByTeacherAndDateRange: jest.fn(),
     };
 
     const mockClassRepo = {
@@ -336,6 +339,156 @@ describe('LessonService', () => {
       await expect(service.createBatch(inputs)).rejects.toThrow(
         BadRequestException,
       );
+    });
+  });
+
+  // ─── Batch Scheduling (P3-2) ───
+
+  describe('generateClassLessons', () => {
+    it('should generate lessons from startDate with SCHEDULED status and ADMIN_BATCH source', async () => {
+      const cls = { ...mockActiveClass, dayOfWeek: [1, 2, 3, 4, 5, 6, 7] };
+      classRepo.findOneByCode.mockResolvedValue(cls);
+      lessonRepo.findByClassCode.mockResolvedValue([]);
+      lessonRepo.saveAll.mockImplementation(async (lessons) => lessons as any);
+
+      const result = await service.generateClassLessons(
+        'CL2026070001',
+        { startDate: '2026-09-01', count: 3, teacherId: 5001 },
+        1001,
+      );
+
+      expect(result.generated).toBe(3);
+      expect(result.requested).toBe(3);
+      expect(result.firstLessonNumber).toBe(1);
+
+      const saved = lessonRepo.saveAll.mock.calls[0][0] as any[];
+      expect(saved).toHaveLength(3);
+      expect(saved[0].status).toBe(LessonStatus.SCHEDULED);
+      expect(saved[0].source).toBe(LessonSource.ADMIN_BATCH);
+      expect(saved[0].teacherId).toBe(5001);
+      expect(saved[0].createdBy).toBe(1001);
+      expect(saved[0].scheduledDate).toBe('2026-09-01');
+      expect(saved[1].scheduledDate).toBe('2026-09-02');
+      expect(saved[2].scheduledDate).toBe('2026-09-03');
+    });
+
+    it('should skip existing slots and continue lessonNumber from max', async () => {
+      const cls = { ...mockActiveClass, dayOfWeek: [1, 2, 3, 4, 5, 6, 7] };
+      classRepo.findOneByCode.mockResolvedValue(cls);
+      const existingLesson = {
+        ...mockLesson,
+        lessonNumber: 1,
+        scheduledDate: '2026-09-01',
+        startTime: '10:00',
+        endTime: '11:30',
+        status: LessonStatus.SCHEDULED,
+      };
+      lessonRepo.findByClassCode.mockResolvedValue([existingLesson]);
+      lessonRepo.saveAll.mockImplementation(async (lessons) => lessons as any);
+
+      const result = await service.generateClassLessons(
+        'CL2026070001',
+        { startDate: '2026-09-01', count: 3, teacherId: 5001 },
+        1001,
+      );
+
+      expect(result.skipped).toBe(1);
+      expect(result.generated).toBe(3);
+      expect(result.firstLessonNumber).toBe(2);
+
+      const saved = lessonRepo.saveAll.mock.calls[0][0] as any[];
+      expect(saved[0].scheduledDate).toBe('2026-09-02');
+      expect(saved[0].lessonNumber).toBe(2);
+    });
+
+    it('should throw when class is not ACTIVE', async () => {
+      const draft = { ...mockActiveClass, status: ClassStatus.DRAFT };
+      classRepo.findOneByCode.mockResolvedValue(draft);
+
+      await expect(
+        service.generateClassLessons(
+          'CL2026070001',
+          { startDate: '2026-09-01', teacherId: 5001 },
+          1001,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw when dayOfWeek is empty', async () => {
+      const cls = { ...mockActiveClass, dayOfWeek: [] };
+      classRepo.findOneByCode.mockResolvedValue(cls);
+
+      await expect(
+        service.generateClassLessons(
+          'CL2026070001',
+          { startDate: '2026-09-01', teacherId: 5001 },
+          1001,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw when startDate is before yesterday', async () => {
+      classRepo.findOneByCode.mockResolvedValue({ ...mockActiveClass });
+
+      await expect(
+        service.generateClassLessons(
+          'CL2026070001',
+          { startDate: '2020-01-01', teacherId: 5001 },
+          1001,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should return full message when totalLessons reached', async () => {
+      const cls = { ...mockActiveClass, totalLessons: 2 };
+      classRepo.findOneByCode.mockResolvedValue(cls);
+      lessonRepo.findByClassCode.mockResolvedValue([
+        { ...mockLesson, lessonNumber: 1, scheduledDate: '2026-09-01' },
+        {
+          ...mockLesson,
+          id: 2,
+          lessonNumber: 2,
+          scheduledDate: '2026-09-02',
+          status: LessonStatus.FINISHED,
+        },
+      ]);
+      lessonRepo.saveAll.mockResolvedValue([]);
+
+      const result = await service.generateClassLessons(
+        'CL2026070001',
+        { startDate: '2026-09-05', teacherId: 5001 },
+        1001,
+      );
+
+      expect(result.generated).toBe(0);
+      expect(result.message).toContain('已排满');
+    });
+
+    it('should detect teacher time conflicts when checkConflict is true', async () => {
+      const cls = { ...mockActiveClass, dayOfWeek: [1, 2, 3, 4, 5, 6, 7] };
+      classRepo.findOneByCode.mockResolvedValue(cls);
+      lessonRepo.findByClassCode.mockResolvedValue([]);
+      lessonRepo.findByTeacherAndDateRange.mockResolvedValue([
+        {
+          ...mockLesson,
+          id: 99,
+          lessonNumber: 5,
+          scheduledDate: '2026-09-01',
+          startTime: '09:00',
+          endTime: '11:00',
+        },
+      ]);
+      lessonRepo.saveAll.mockImplementation(async (lessons) => lessons as any);
+
+      const result = await service.generateClassLessons(
+        'CL2026070001',
+        { startDate: '2026-09-01', count: 3, teacherId: 5001, checkConflict: true },
+        1001,
+      );
+
+      expect(result.conflicts.length).toBeGreaterThan(0);
+      expect(result.conflicts[0].date).toBe('2026-09-01');
+      expect(result.conflicts[0].reason).toContain('时间重叠');
     });
   });
 
