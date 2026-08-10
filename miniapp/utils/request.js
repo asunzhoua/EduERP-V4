@@ -92,6 +92,7 @@ function request(options) {
   var timeout = options.timeout || 15000;
   var maxRetry = options.retry !== undefined ? options.retry : 1;
   var responseType = options.responseType || 'text';
+  var silent = options.silent === true;
   var attempt = 0;
 
   function doRequest() {
@@ -133,13 +134,17 @@ function request(options) {
             resolve(res.data.data);
           } else if (res.data && res.data.code === 2002) {
             // Token 过期
-            handleTokenExpired();
+            if (!silent) {
+              handleTokenExpired();
+            }
             reject(res.data);
           } else {
-            wx.showToast({
-              title: (res.data && res.data.message) || '请求失败',
-              icon: 'none'
-            });
+            if (!silent) {
+              wx.showToast({
+                title: (res.data && res.data.message) || '请求失败',
+                icon: 'none'
+              });
+            }
             reject(res.data);
           }
         },
@@ -149,11 +154,13 @@ function request(options) {
             doRequest().then(resolve).catch(reject);
             return;
           }
-          var errMsg = (err && err.errMsg) || '';
-          if (errMsg.indexOf('timeout') > -1) {
-            wx.showToast({ title: '请求超时，请检查网络后重试', icon: 'none', duration: 2000 });
-          } else {
-            wx.showToast({ title: '网络错误，请稍后重试', icon: 'none', duration: 2000 });
+          if (!silent) {
+            var errMsg = (err && err.errMsg) || '';
+            if (errMsg.indexOf('timeout') > -1) {
+              wx.showToast({ title: '请求超时，请检查网络后重试', icon: 'none', duration: 2000 });
+            } else {
+              wx.showToast({ title: '网络错误，请稍后重试', icon: 'none', duration: 2000 });
+            }
           }
           reject(err);
         }

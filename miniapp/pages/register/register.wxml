@@ -26,7 +26,7 @@
     </view>
     <view class="field">
       <view class="fic ic ic-phone"></view>
-      <input class="input" type="number" placeholder="请输入手机号" placeholder-class="ph"
+      <input class="input" type="number" maxlength="11" placeholder="请输入手机号" placeholder-class="ph"
         value="{{mobile}}" data-field="mobile" bindinput="onInput" />
     </view>
     <view class="field">
@@ -45,7 +45,7 @@
       <text>已阅读并同意</text><text class="link" catchtap="goToAgreement" data-type="user">《用户协议》</text><text>与</text><text class="link" catchtap="goToAgreement" data-type="privacy">《隐私政策》</text>
     </view>
 
-    <button class="btn-primary-full" bindtap="onRegister" loading="{{loading}}">注　册</button>
+    <button class="btn-primary-full" bindtap="onRegister">注　册</button>
 
     <view class="auth-link">已有账号？<text class="link" bindtap="goToLogin">返回登录</text></view>
   </view>

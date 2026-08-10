@@ -279,5 +279,10 @@ Page({
   // 跳转消息订阅
   goToSubscribe: function () {
     wx.navigateTo({ url: '/pkgStudent/pages/subscribe' });
+  },
+
+  // 跳转修改密码
+  goToChangePassword: function () {
+    wx.navigateTo({ url: '/pages/change-password/change-password' });
   }
 });

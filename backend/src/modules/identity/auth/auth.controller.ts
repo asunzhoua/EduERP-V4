@@ -13,7 +13,7 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto, WechatLoginDto } from '../dto/login.dto';
+import { LoginDto, WechatLoginDto, BindWechatDto } from '../dto/login.dto';
 import { RefreshDto } from '../dto/refresh.dto';
 import { RegisterDto } from '../dto/register.dto';
 import {
@@ -30,6 +30,7 @@ import { Public } from '@common/decorators/public.decorator';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { AuthedRequest } from '@common/types/authed-request';
 
 @Controller('auth')
 export class AuthController {
@@ -38,7 +39,7 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto, @Req() req: any) {
+  async login(@Body() loginDto: LoginDto, @Req() req: AuthedRequest) {
     const ip = req.ip;
     const device = loginDto.device || req.headers['user-agent'];
     const result = await this.authService.login(
@@ -53,7 +54,7 @@ export class AuthController {
   @Public()
   @Post('wechat-login')
   @HttpCode(HttpStatus.OK)
-  async wechatLogin(@Body() wechatLoginDto: WechatLoginDto, @Req() req: any) {
+  async wechatLogin(@Body() wechatLoginDto: WechatLoginDto, @Req() req: AuthedRequest) {
     const ip = req.ip;
     const device = req.headers['user-agent'];
     const result = await this.authService.wechatLogin(
@@ -67,7 +68,7 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body() refreshDto: RefreshDto, @Req() req: any) {
+  async refresh(@Body() refreshDto: RefreshDto, @Req() req: AuthedRequest) {
     const ip = req.ip;
     const device = req.headers['user-agent'];
     const result = await this.authService.refresh(
@@ -92,7 +93,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async adminCreateParent(
     @Body() createParentDto: CreateParentDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     const result = await this.authService.adminCreateParent(
       createParentDto,
@@ -133,7 +134,7 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout(@Req() req: any) {
+  async logout(@Req() req: AuthedRequest) {
     const ip = req.ip;
     const device = req.headers['user-agent'];
     await this.authService.logout(req.user.sub, ip, device);
@@ -144,7 +145,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SuperAdmin', 'Admin')
   @HttpCode(HttpStatus.OK)
-  async revokeSession(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async revokeSession(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
     await this.authService.revokeUserSessions(req.user.sub, id);
     return ApiResponse.success(null, '已撤销该用户的会话');
   }
@@ -154,7 +155,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async changePassword(
     @Body() changePasswordDto: ChangePasswordDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     const ip = req.ip;
     const device = req.headers['user-agent'];
@@ -168,6 +169,17 @@ export class AuthController {
     return ApiResponse.success(null, '密码修改成功，请重新登录');
   }
 
+  @Post('wechat/bind')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async bindWechat(@Body() bindWechatDto: BindWechatDto, @Req() req: AuthedRequest) {
+    const result = await this.authService.bindWechat(
+      req.user.sub,
+      bindWechatDto.code,
+    );
+    return ApiResponse.success(result, '微信绑定成功');
+  }
+
   @Post('admin/users/:id/reset-password')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SuperAdmin', 'Admin')
@@ -175,7 +187,7 @@ export class AuthController {
   async resetPassword(
     @Param('id', ParseIntPipe) id: number,
     @Body() resetPasswordDto: ResetPasswordDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     await this.authService.adminResetPassword(
       req.user.sub,
@@ -189,7 +201,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async getProfile(@Req() req: any) {
+  async getProfile(@Req() req: AuthedRequest) {
     const user = await this.authService.getCurrentUser(req.user.sub);
     return ApiResponse.success(user);
   }

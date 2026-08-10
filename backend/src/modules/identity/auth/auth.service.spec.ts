@@ -6,6 +6,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -61,6 +62,7 @@ describe('AuthService', () => {
       update: jest.fn(),
       findByUsername: jest.fn(),
       findByMobile: jest.fn(),
+      findByOpenid: jest.fn(),
       save: jest.fn(),
       findAndCountByRole: jest.fn(),
       raw: { findOne: jest.fn(), createQueryBuilder: jest.fn() },
@@ -838,7 +840,7 @@ describe('AuthService', () => {
       take: jest.fn().mockReturnThis(),
       getManyAndCount: jest.fn().mockResolvedValue([items, total]),
     };
-    userRepo.raw.createQueryBuilder.mockReturnValue(chain as never);
+    userRepo.raw.createQueryBuilder.mockReturnValue(chain);
     return chain;
   }
 
@@ -912,7 +914,7 @@ describe('AuthService', () => {
       role: 'Parent',
       password: 'x',
       refreshToken: 'rt',
-    } as unknown as User;
+    };
 
     it('should enable (ACTIVE) when status is 1 and strip sensitive fields', async () => {
       userRepo.raw.findOne.mockResolvedValue(parent);
@@ -1161,6 +1163,119 @@ describe('AuthService', () => {
       expect(userRepo.update).toHaveBeenCalledWith(
         3,
         expect.objectContaining({ password: 'reset-hashed' }),
+      );
+    });
+  });
+
+  describe('bindWechat', () => {
+    function mockWxSession(openid: string, unionid?: string) {
+      (service as any).getWxSession = jest.fn().mockResolvedValue({
+        openid,
+        session_key: 'sk',
+        unionid,
+      });
+    }
+
+    it('should throw UnauthorizedException when user does not exist', async () => {
+      userRepo.findById.mockResolvedValue(null);
+
+      await expect(service.bindWechat(999, 'code')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(service.bindWechat(999, 'code')).rejects.toThrow(
+        '用户不存在',
+      );
+      expect(userRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should pass through 500 when wechat config is missing', async () => {
+      userRepo.findById.mockResolvedValue(mockUser);
+      (service as any).getWxSession = jest
+        .fn()
+        .mockRejectedValue(
+          new InternalServerErrorException(
+            '微信登录未配置：请设置 WECHAT_APPID 和 WECHAT_SECRET',
+          ),
+        );
+
+      await expect(service.bindWechat(1, 'code')).rejects.toThrow(
+        '微信登录未配置：请设置 WECHAT_APPID 和 WECHAT_SECRET',
+      );
+      expect(userRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw InternalServerErrorException when no openid returned', async () => {
+      userRepo.findById.mockResolvedValue(mockUser);
+      (service as any).getWxSession = jest
+        .fn()
+        .mockResolvedValue({ openid: null, session_key: 'sk' });
+
+      await expect(service.bindWechat(1, 'code')).rejects.toThrow(
+        '微信登录失败：未获取到 openid',
+      );
+    });
+
+    it('should bind openid and unionid on success', async () => {
+      userRepo.findById.mockResolvedValue(mockUser);
+      userRepo.findByOpenid.mockResolvedValue(null);
+      userRepo.update.mockResolvedValue(undefined);
+      loginLogRepo.create.mockReturnValue({} as LoginLog);
+      loginLogRepo.save.mockResolvedValue({} as LoginLog);
+      mockWxSession('oX-abc', 'u-union');
+
+      await service.bindWechat(1, 'code');
+
+      expect(userRepo.update).toHaveBeenCalledWith(1, {
+        openid: 'oX-abc',
+        unionid: 'u-union',
+      });
+      expect(loginLogRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 1,
+          username: 'admin',
+          action: 'WECHAT_BIND',
+          success: true,
+        }),
+      );
+      expect(loginLogRepo.save).toHaveBeenCalled();
+    });
+
+    it('should be idempotent when the same openid is already bound', async () => {
+      userRepo.findById.mockResolvedValue({ ...mockUser, openid: 'oX-abc' });
+      mockWxSession('oX-abc');
+
+      await service.bindWechat(1, 'code');
+
+      expect(userRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException when openid is bound to another user', async () => {
+      userRepo.findById.mockResolvedValue(mockUser);
+      userRepo.findByOpenid.mockResolvedValue({ ...mockUser, id: 2 });
+      mockWxSession('oX-abc');
+
+      await expect(service.bindWechat(1, 'code')).rejects.toThrow(
+        ConflictException,
+      );
+      await expect(service.bindWechat(1, 'code')).rejects.toThrow(
+        '该微信已被其他账号绑定',
+      );
+      expect(userRepo.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('wechatLogin', () => {
+    it('should throw actionable UnauthorizedException when openid is not bound', async () => {
+      (service as any).getWxSession = jest
+        .fn()
+        .mockResolvedValue({ openid: 'oX-new', session_key: 'sk' });
+      userRepo.findByOpenid.mockResolvedValue(null);
+
+      await expect(service.wechatLogin('code')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(service.wechatLogin('code')).rejects.toThrow(
+        '该微信尚未绑定账号，请先用账号密码登录，登录后将自动绑定',
       );
     });
   });

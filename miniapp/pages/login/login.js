@@ -50,6 +50,7 @@ Page({
   },
 
   async onLogin() {
+    if (this.data.loading) return;   // 防双击穿透（setData 异步渲染前两次 tap 都能进）
     const { username, password, agreed } = this.data;
 
     if (!agreed) {
@@ -68,6 +69,15 @@ Page({
 
       // 保存 token（使用统一的 saveLoginInfo 方法）
       app.saveLoginInfo(data.accessToken, data.user, data.expiresIn);
+
+      // 静默绑定微信（best-effort，失败不影响登录）
+      wx.login({
+        success: function(res) {
+          if (res.code) {
+            post('/auth/wechat/bind', { code: res.code }, { silent: true }).catch(function() {});
+          }
+        }
+      });
 
       // 根据角色配置 TabBar 文字和图标
       const role = data.user.role;

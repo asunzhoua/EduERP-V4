@@ -18,6 +18,8 @@ export class RegisterDto {
   mobile: string;
 
   @IsOptional()
-  @IsIn(['Parent', 'Teacher'], { message: '角色只能是家长(Parent)或教师(Teacher)' })
+  @IsIn(['Parent', 'Teacher'], {
+    message: '角色只能是家长(Parent)或教师(Teacher)',
+  })
   role?: string;
 }

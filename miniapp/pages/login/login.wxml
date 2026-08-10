@@ -30,8 +30,8 @@
       <text>已阅读并同意</text><text class="link" catchtap="goToAgreement" data-type="user">《用户协议》</text><text>与</text><text class="link" catchtap="goToAgreement" data-type="privacy">《隐私政策》</text>
     </view>
 
-    <button class="btn-login" bindtap="onLogin" disabled="{{!agreed}}">登　录</button>
-    <button class="btn-wechat" bindtap="onWechatLogin">微信授权登录</button>
+    <button class="btn-login" bindtap="onLogin" disabled="{{loading || !agreed}}">登　录</button>
+    <button class="btn-wechat" bindtap="onWechatLogin" disabled="{{loading}}">微信授权登录</button>
 
     <view class="login-links">
       <text>没有账号？<text class="link" bindtap="goToRegister">立即注册</text></text>

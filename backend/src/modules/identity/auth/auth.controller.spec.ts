@@ -183,14 +183,24 @@ describe('AuthController', () => {
 
       expect(result.code).toBe(0);
       expect(result.data).toEqual(pageData);
-      expect(authService.listParents).toHaveBeenCalledWith(1, 20, undefined, undefined);
+      expect(authService.listParents).toHaveBeenCalledWith(
+        1,
+        20,
+        undefined,
+        undefined,
+      );
     });
 
     it('should pass keyword and status filters', async () => {
       const pageData = { items: [], total: 0 };
       authService.listParents.mockResolvedValue(pageData);
 
-      await controller.listParents({ page: 2, pageSize: 10, keyword: '张', status: '0' });
+      await controller.listParents({
+        page: 2,
+        pageSize: 10,
+        keyword: '张',
+        status: '0',
+      });
 
       expect(authService.listParents).toHaveBeenCalledWith(2, 10, '张', 0);
     });
@@ -203,7 +213,7 @@ describe('AuthController', () => {
 
       const result = await controller.updateParentStatus(5, {
         status: '0',
-      } as any);
+      });
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('状态已更新');

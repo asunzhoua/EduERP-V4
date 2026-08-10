@@ -185,6 +185,13 @@
   border: none;
 }
 
+.btn-wechat[disabled] {
+  background: #F1EBE2;
+  color: #BDB3A6;
+  border-color: #F1EBE2;
+  box-shadow: none;
+}
+
 .login-links {
   display: flex;
   justify-content: space-between;

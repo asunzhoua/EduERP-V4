@@ -359,7 +359,8 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    const role = dto.role === UserRole.TEACHER ? UserRole.TEACHER : UserRole.PARENT;
+    const role =
+      dto.role === UserRole.TEACHER ? UserRole.TEACHER : UserRole.PARENT;
 
     const user = new User();
     user.username = dto.username;
@@ -517,7 +518,7 @@ export class AuthService {
       refreshTokenExpiresAt: _rtea,
       ...safe
     } = saved;
-    return safe as User;
+    return safe;
   }
 
   async wechatLogin(
@@ -542,7 +543,9 @@ export class AuthService {
     const user = await this.userRepository.findByOpenid(openid);
 
     if (!user) {
-      throw new UnauthorizedException('微信用户未绑定系统账号，请联系管理员');
+      throw new UnauthorizedException(
+        '该微信尚未绑定账号，请先用账号密码登录，登录后将自动绑定',
+      );
     }
 
     if (user.status !== 1) {
@@ -594,6 +597,46 @@ export class AuthService {
       ...safeUser
     } = user;
     return { accessToken, refreshToken, expiresIn: 7200, user: safeUser };
+  }
+
+  async bindWechat(userId: number, code: string): Promise<{ bound: boolean }> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
+    }
+
+    const session = await this.getWxSession(code);
+    const { openid } = session;
+
+    if (!openid) {
+      throw new InternalServerErrorException('微信登录失败：未获取到 openid');
+    }
+
+    // 已绑定同一用户 → 幂等返回
+    if (user.openid === openid) {
+      return { bound: true };
+    }
+
+    // openid 已被其他用户绑定 → 409
+    const owner = await this.userRepository.findByOpenid(openid);
+    if (owner && owner.id !== userId) {
+      throw new ConflictException('该微信已被其他账号绑定');
+    }
+
+    await this.userRepository.update(userId, {
+      openid,
+      unionid: session.unionid,
+    });
+
+    await this.createLoginLog(
+      userId,
+      user.username,
+      user.role,
+      'WECHAT_BIND',
+      true,
+    );
+
+    return { bound: true };
   }
 
   /**

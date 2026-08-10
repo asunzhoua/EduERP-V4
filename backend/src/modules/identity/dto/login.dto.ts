@@ -19,3 +19,9 @@ export class WechatLoginDto {
   @IsNotEmpty()
   code: string;
 }
+
+export class BindWechatDto {
+  @IsString()
+  @IsNotEmpty()
+  code: string;
+}

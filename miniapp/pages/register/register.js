@@ -43,6 +43,10 @@ Page({
       wx.showToast({ title: '请填写完整信息', icon: 'none' });
       return;
     }
+    if (!/^1[3-9]\d{9}$/.test(mobile)) {
+      wx.showToast({ title: '手机号有误', icon: 'none' });
+      return;
+    }
     if (password.length < 6) {
       wx.showToast({ title: '密码至少 6 位', icon: 'none' });
       return;
@@ -71,6 +75,15 @@ Page({
     }).then(function (data) {
       app.saveLoginInfo(data.accessToken, data.user, data.expiresIn);
       setupTabBarByRole(data.user.role);
+      // 静默绑定微信（best-effort，失败不影响注册/登录）
+      wx.login({
+        success: function (res) {
+          if (res.code) {
+            post('/auth/wechat/bind', { code: res.code }, { silent: true })
+              .catch(function () {});
+          }
+        }
+      });
       wx.showToast({ title: '注册成功', icon: 'success' });
       wx.switchTab({ url: getHomePage(data.user.role) });
     }).catch(function () {

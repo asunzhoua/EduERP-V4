@@ -227,6 +227,10 @@ Page({
     wx.navigateTo({ url: '/pkgStudent/pages/subscribe' });
   },
 
+  goToChangePassword: function () {
+    wx.navigateTo({ url: '/pages/change-password/change-password' });
+  },
+
   goBack: function () {
     wx.navigateBack({ fail: function () {
       wx.switchTab({ url: '/pages/student/index' });
