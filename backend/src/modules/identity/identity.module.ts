@@ -18,6 +18,7 @@ import { UserRole } from './entities/user-role.entity';
 import { RolePermission } from './entities/role-permission.entity';
 import { LoginLog } from './entities/login-log.entity';
 import { appConfig } from '@config/configuration';
+import type { StringValue } from 'ms';
 import { LoginRateLimitMiddleware } from '@common/middleware/rate-limit.middleware';
 
 @Module({
@@ -36,7 +37,7 @@ import { LoginRateLimitMiddleware } from '@common/middleware/rate-limit.middlewa
         const config = appConfig();
         return {
           secret: config.jwt.secret,
-          signOptions: { expiresIn: config.jwt.expiresIn as any },
+          signOptions: { expiresIn: config.jwt.expiresIn as StringValue },
         };
       },
     }),

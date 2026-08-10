@@ -78,7 +78,7 @@ export class AppLogger implements LoggerService {
 
   log(message: any, context?: string) {
     this.writeToFile(this.systemLog, 'LOG', message, context);
-    this.winstonLogger.info(message, { context });
+    this.winstonLogger.info(message as string, { context });
     console.log(`[${context || 'System'}] ${message}`);
   }
 
@@ -87,25 +87,25 @@ export class AppLogger implements LoggerService {
     if (trace) {
       this.writeToFile(this.errorLog, 'ERROR', trace, context);
     }
-    this.winstonLogger.error(message, { context, trace });
+    this.winstonLogger.error(message as string, { context, trace });
     console.error(`[${context || 'System'}] ERROR: ${message}`);
   }
 
   warn(message: any, context?: string) {
     this.writeToFile(this.systemLog, 'WARN', message, context);
-    this.winstonLogger.warn(message, { context });
+    this.winstonLogger.warn(message as string, { context });
     console.warn(`[${context || 'System'}] WARN: ${message}`);
   }
 
   debug(message: any, context?: string) {
     this.writeToFile(this.systemLog, 'DEBUG', message, context);
-    this.winstonLogger.debug(message, { context });
+    this.winstonLogger.debug(message as string, { context });
     console.debug(`[${context || 'System'}] DEBUG: ${message}`);
   }
 
   verbose(message: any, context?: string) {
     this.writeToFile(this.systemLog, 'VERBOSE', message, context);
-    this.winstonLogger.verbose(message, { context });
+    this.winstonLogger.verbose(message as string, { context });
   }
 
   logApi(method: string, url: string, statusCode: number, duration: number) {

@@ -69,10 +69,10 @@ export class User {
   lastLoginAt: Date;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  refreshToken: string;
+  refreshToken: string | null;
 
   @Column({ type: 'timestamp', nullable: true })
-  refreshTokenExpiresAt: Date;
+  refreshTokenExpiresAt: Date | null;
 
   @CreateDateColumn()
   createTime: Date;

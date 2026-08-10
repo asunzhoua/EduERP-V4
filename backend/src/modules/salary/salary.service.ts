@@ -7,14 +7,31 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SalaryRuleEntity } from './entities/salary-rule.entity';
 import { SalaryRecordEntity } from './entities/salary-record.entity';
-import { SalaryRecordStatus, SalaryRecordSource } from './enums/salary.enums';
+import {
+  SalaryRecordStatus,
+  SalaryRecordSource,
+  SalaryRuleType,
+} from './enums/salary.enums';
 import { validateRuleConfig } from './dto/rule-config.util';
+import { SalaryRuleConfigDto } from './dto/salary-rule-config.dto';
 import {
   CreateSalaryRuleDto,
   UpdateSalaryRuleDto,
   QuerySalaryRecordDto,
   SalaryStatisticsQueryDto,
 } from './dto/salary.dto';
+
+type SalaryTotalsRow = {
+  totalRecords: string;
+  totalAmount: string;
+  totalMinutes: string;
+  teacherCount: string;
+};
+
+type SalaryStatusRow = {
+  status: SalaryRecordStatus;
+  amount: string;
+};
 
 @Injectable()
 export class SalaryService {
@@ -88,7 +105,7 @@ export class SalaryService {
       qb.andWhere('record.teacherId = :teacherId', { teacherId });
     }
 
-    const totals = await qb
+    const totals = (await qb
       .clone()
       .select([
         'COUNT(record.id) AS totalRecords',
@@ -96,13 +113,13 @@ export class SalaryService {
         'SUM(record.duration) AS totalMinutes',
         'COUNT(DISTINCT record.teacherId) AS teacherCount',
       ])
-      .getRawOne();
+      .getRawOne<SalaryTotalsRow>()) as SalaryTotalsRow;
 
     const byStatus = await qb
       .clone()
       .select(['record.status AS status', 'SUM(record.amount) AS amount'])
       .groupBy('record.status')
-      .getRawMany();
+      .getRawMany<SalaryStatusRow>();
 
     let paidAmount = 0;
     let pendingAmount = 0;
@@ -170,11 +187,11 @@ export class SalaryService {
   // ==================== 规则管理 ====================
 
   async createRule(dto: CreateSalaryRuleDto, createdBy: number) {
-    const config = validateRuleConfig(dto.type, dto.config as any);
+    const config = validateRuleConfig(dto.type as SalaryRuleType, dto.config);
 
     const rule = this.salaryRuleRepo.create({
       name: dto.name,
-      type: dto.type as any,
+      type: dto.type as SalaryRuleType,
       baseAmount: dto.baseAmount,
       multiplier: dto.multiplier ?? 1.0,
       courseType: dto.courseType ?? null,
@@ -194,13 +211,19 @@ export class SalaryService {
       throw new NotFoundException(`Salary rule ${id} not found`);
     }
 
-    const nextType = dto.type ?? rule.type;
+    const nextType = (dto.type ?? rule.type) as SalaryRuleType;
     // config 变更时按新 type 校验；若 type 变而 config 未给，沿用旧 config 再校验
     let config = rule.config;
     if (dto.config !== undefined) {
-      config = validateRuleConfig(nextType, dto.config as any);
-    } else if (dto.type !== undefined && dto.type !== rule.type) {
-      config = validateRuleConfig(nextType, rule.config);
+      config = validateRuleConfig(nextType, dto.config);
+    } else if (
+      dto.type !== undefined &&
+      (dto.type as SalaryRuleType) !== rule.type
+    ) {
+      config = validateRuleConfig(
+        nextType,
+        rule.config as SalaryRuleConfigDto | null,
+      );
     }
 
     Object.assign(rule, dto);

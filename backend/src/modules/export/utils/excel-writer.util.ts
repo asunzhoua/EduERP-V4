@@ -4,7 +4,7 @@ import * as ExcelJS from 'exceljs';
 @Injectable()
 export class ExcelWriter {
   async generate(
-    data: any[],
+    data: Array<Record<string, string | number | boolean | null | undefined>>,
     sheetName: string,
     columns?: string[],
     headers?: string[],

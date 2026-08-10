@@ -1,14 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, Like } from 'typeorm';
+import { Repository, Between, Like, FindOptionsWhere } from 'typeorm';
 import { ExportFilterDto } from './dto/export-filter.dto';
 import { CsvWriter } from './utils/csv-writer.util';
 import { ExcelWriter } from './utils/excel-writer.util';
 import { Student } from '../student/entities/student.entity';
+import { StudentStatus } from '../student/enums/student-status.enum';
 import { LessonEntity } from '../teaching/lesson/lesson.entity';
+import { LessonStatus } from '../teaching/lesson/enums/lesson-status.enum';
 import { LessonAttendanceEntity } from '../teaching/lesson-attendance/lesson-attendance.entity';
+import { AttendanceStatus } from '../teaching/lesson-attendance/enums/attendance-status.enum';
 import { ContractEntity } from '../teaching/contract/contract.entity';
+import { ContractStatus } from '../teaching/contract/enums/contract-status.enum';
 import { SalaryRecordEntity } from '../salary/entities/salary-record.entity';
+import { SalaryRecordStatus } from '../salary/enums/salary.enums';
 import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
 import { User } from '../identity/entities/user.entity';
 
@@ -120,8 +125,8 @@ export class ExportService {
     filters: ExportFilterDto,
     format: 'csv' | 'excel',
   ): Promise<Buffer> {
-    const where: any = { deleted: false };
-    if (filters.status) where.status = filters.status;
+    const where: FindOptionsWhere<Student> = { deleted: false };
+    if (filters.status) where.status = filters.status as StudentStatus;
 
     const students = await this.studentRepo.find({ where });
 
@@ -183,13 +188,13 @@ export class ExportService {
     filters: ExportFilterDto,
     format: 'csv' | 'excel',
   ): Promise<Buffer> {
-    const where: any = {};
+    const where: FindOptionsWhere<LessonEntity> = {};
     if (filters.startDate)
       where.scheduledDate = Between(
         filters.startDate,
         filters.endDate ?? filters.startDate,
       );
-    if (filters.status) where.status = filters.status;
+    if (filters.status) where.status = filters.status as LessonStatus;
 
     const lessons = await this.lessonRepo.find({ where });
 
@@ -199,10 +204,10 @@ export class ExportService {
           where: { lessonId: l.id },
         });
         const presentCount = attendances.filter(
-          (a) => a.status === 'PRESENT',
+          (a) => a.status === AttendanceStatus.PRESENT,
         ).length;
         const absentCount = attendances.filter(
-          (a) => a.status === 'ABSENT',
+          (a) => a.status === AttendanceStatus.ABSENT,
         ).length;
 
         return {
@@ -261,8 +266,8 @@ export class ExportService {
     filters: ExportFilterDto,
     format: 'csv' | 'excel',
   ): Promise<Buffer> {
-    const where: any = {};
-    if (filters.status) where.status = filters.status;
+    const where: FindOptionsWhere<ContractEntity> = {};
+    if (filters.status) where.status = filters.status as ContractStatus;
 
     const contracts = await this.contractRepo.find({ where });
 
@@ -318,13 +323,13 @@ export class ExportService {
     filters: ExportFilterDto,
     format: 'csv' | 'excel',
   ): Promise<Buffer> {
-    const where: any = {};
+    const where: FindOptionsWhere<SalaryRecordEntity> = {};
     if (filters.startDate)
       where.lessonDate = Between(
         filters.startDate,
         filters.endDate ?? filters.startDate,
       );
-    if (filters.status) where.status = filters.status;
+    if (filters.status) where.status = filters.status as SalaryRecordStatus;
 
     const records = await this.salaryRepo.find({ where });
 
@@ -388,12 +393,12 @@ export class ExportService {
     format: 'csv' | 'excel',
   ): Promise<Buffer> {
     // 1. Contract revenue data
-    const contractWhere: any = {};
-    if (filters.status) contractWhere.status = filters.status;
+    const contractWhere: FindOptionsWhere<ContractEntity> = {};
+    if (filters.status) contractWhere.status = filters.status as ContractStatus;
     const contracts = await this.contractRepo.find({ where: contractWhere });
 
     // 2. Salary payout data (cost side)
-    const salaryWhere: any = {};
+    const salaryWhere: FindOptionsWhere<SalaryRecordEntity> = {};
     if (filters.startDate)
       salaryWhere.lessonDate = Between(
         filters.startDate,

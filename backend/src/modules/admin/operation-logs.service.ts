@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, Between } from 'typeorm';
+import { Repository, Like, Between, FindOptionsWhere } from 'typeorm';
 import { OperationLog } from './entities/operation-log.entity';
 
 export interface CreateOperationLogInput {
@@ -61,7 +61,7 @@ export class OperationLogsService {
     const pageSize = query.pageSize || 20;
     const skip = (page - 1) * pageSize;
 
-    const where: any = {};
+    const where: FindOptionsWhere<OperationLog> = {};
     if (query.keyword) {
       where.username = Like(`%${query.keyword}%`);
     }

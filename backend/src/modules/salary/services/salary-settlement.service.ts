@@ -17,6 +17,7 @@ import {
   SalaryRecordSource,
   SalaryRuleType,
 } from '../enums/salary.enums';
+import { SalaryRuleConfigDto } from '../dto/salary-rule-config.dto';
 import { computeLessonFee, scoreRule } from './salary-calculator.service';
 
 export interface SettleResult {
@@ -284,7 +285,7 @@ export class SalarySettlementService {
 
       // BASE / DAY / BONUS（按教师月聚合）
       for (const rule of matchedRules.values()) {
-        const config = rule.config ?? null;
+        const config: SalaryRuleConfigDto | null = rule.config ?? null;
         const count = lessonCountByRule.get(rule.id) ?? 0;
 
         // BASE 底薪
@@ -365,7 +366,7 @@ export class SalarySettlementService {
         }
 
         // BONUS 绩效
-        const bonus = config?.bonus as Record<string, any> | undefined;
+        const bonus = config?.bonus;
         if (bonus) {
           let bonusAmount = 0;
           const formula: string[] = [];

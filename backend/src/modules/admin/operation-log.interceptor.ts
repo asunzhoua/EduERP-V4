@@ -5,6 +5,7 @@ import {
   CallHandler,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
+import { AuthedRequest } from '@common/types/authed-request';
 import { OperationLogsService } from './operation-logs.service';
 
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -45,7 +46,7 @@ export class OperationLogInterceptor implements NestInterceptor {
   constructor(private readonly logsService: OperationLogsService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const req = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<AuthedRequest>();
     const method: string = req.method || '';
     const user = req.user as
       { sub: number; username?: string; role?: string } | undefined;
@@ -59,7 +60,7 @@ export class OperationLogInterceptor implements NestInterceptor {
           : params.code !== undefined
             ? String(params.code)
             : undefined;
-      const body = req.body || {};
+      const body = (req.body || {}) as Record<string, unknown>;
       let detail: string | null = null;
       try {
         const safeBody = { ...body };

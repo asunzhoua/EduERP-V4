@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { SalaryRuleConfigDto } from '../dto/salary-rule-config.dto';
 import { SalaryRuleEntity } from '../entities/salary-rule.entity';
 import { SalaryRuleType } from '../enums/salary.enums';
 
@@ -67,7 +68,7 @@ export function findHeadcountTier(
 /** 纯函数课时费计算（无副作用，便于单测）。 */
 export function computeLessonFee(
   type: SalaryRuleType,
-  config: Record<string, any> | null,
+  config: SalaryRuleConfigDto | null,
   rule: Pick<SalaryRuleEntity, 'baseAmount' | 'multiplier'>,
   headcount: number,
   monthlyLessonCount: number,

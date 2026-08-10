@@ -200,7 +200,9 @@ export class LessonService {
 
     // ─── 8. Create class reminders for enrolled students ───
     this.createClassReminders(saved).catch((err) =>
-      this.logger.warn(`Failed to create class reminders: ${err.message}`),
+      this.logger.warn(
+        `Failed to create class reminders: ${(err as Error).message}`,
+      ),
     );
 
     return saved;
@@ -733,7 +735,7 @@ export class LessonService {
       return created;
     } catch (err) {
       this.logger.warn(
-        `createClassReminders failed for lesson ${lesson.id}: ${err.message}`,
+        `createClassReminders failed for lesson ${lesson.id}: ${(err as Error).message}`,
       );
       return 0;
     }

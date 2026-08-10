@@ -46,7 +46,7 @@ export class LessonRepository {
       .createQueryBuilder('l')
       .select('MAX(l.lessonNumber)', 'maxLessonNumber')
       .where('l.classCode = :classCode', { classCode })
-      .getRawOne();
+      .getRawOne<{ maxLessonNumber: number | null }>();
     return result?.maxLessonNumber ?? null;
   }
 
@@ -100,7 +100,7 @@ export class LessonRepository {
       .where('l.classCode IN (:...classCodes)', { classCodes })
       .andWhere('l.status = :status', { status: LessonStatus.FINISHED })
       .groupBy('l.classCode')
-      .getRawMany();
+      .getRawMany<{ classCode: string; count: string }>();
 
     const map = new Map<string, number>();
     results.forEach((r) => map.set(r.classCode, parseInt(r.count, 10)));
@@ -114,7 +114,7 @@ export class LessonRepository {
       .createQueryBuilder('l')
       .select('MAX(l.scheduledDate)', 'maxDate')
       .where('l.classCode = :classCode', { classCode })
-      .getRawOne();
+      .getRawOne<{ maxDate: string | null }>();
     return result?.maxDate ?? null;
   }
 
@@ -129,7 +129,7 @@ export class LessonRepository {
       .addSelect('MAX(l.scheduledDate)', 'maxDate')
       .where('l.classCode IN (:...classCodes)', { classCodes })
       .groupBy('l.classCode')
-      .getRawMany();
+      .getRawMany<{ classCode: string; maxDate: string }>();
 
     const map = new Map<string, string>();
     results.forEach((r) => map.set(r.classCode, r.maxDate));

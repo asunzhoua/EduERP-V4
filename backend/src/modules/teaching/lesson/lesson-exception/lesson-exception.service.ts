@@ -16,6 +16,7 @@ import { LessonStatus } from '../enums/lesson-status.enum';
 import { LessonService } from '../lesson.service';
 import { EventBusService } from '@events/event-bus.service';
 import { QueryExceptionDto } from './dto/query-exception.dto';
+import { AuthedRequest } from '@common/types/authed-request';
 
 /** Valid status transitions for Lesson */
 const VALID_TRANSITIONS: Record<LessonStatus, LessonStatus[]> = {
@@ -470,7 +471,7 @@ export class LessonExceptionService {
         );
       } catch (err) {
         this.logger.warn(
-          `autoRestore failed for lesson ${lesson.id}: ${err.message}`,
+          `autoRestore failed for lesson ${lesson.id}: ${(err as Error).message}`,
         );
       }
     }
@@ -643,7 +644,7 @@ export class LessonExceptionService {
    */
   async findAllExceptionsWithQuery(
     query: QueryExceptionDto,
-    user: any,
+    user: AuthedRequest['user'],
   ): Promise<LessonExceptionEntity[]> {
     const qb = this.exceptionRepo
       .createQueryBuilder('e')
@@ -667,7 +668,7 @@ export class LessonExceptionService {
         .innerJoin('student', 's', 's.studentCode = enr.studentCode')
         .innerJoin('student_parent', 'sp', 'sp.studentId = s.id')
         .where('sp.parentId = :parentId', { parentId: userId })
-        .getRawMany()
+        .getRawMany<{ classCode: string }>()
         .then((rows) => rows.map((r) => r.classCode));
 
       if (classCodes.length === 0) {
@@ -716,7 +717,10 @@ export class LessonExceptionService {
   /**
    * Check whether the given user is permitted to access an exception's data.
    */
-  async canAccessException(exceptionId: number, user: any): Promise<boolean> {
+  async canAccessException(
+    exceptionId: number,
+    user: AuthedRequest['user'],
+  ): Promise<boolean> {
     const role = user.role;
     if (role === 'SuperAdmin' || role === 'Admin') {
       return true;

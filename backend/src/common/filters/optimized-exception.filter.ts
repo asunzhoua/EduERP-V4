@@ -45,7 +45,7 @@ export class OptimizedExceptionFilter implements ExceptionFilter {
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
       } else if (typeof exceptionResponse === 'object') {
-        const resp = exceptionResponse as any;
+        const resp = exceptionResponse as { message?: string };
         message = resp.message || exception.message;
         if (Array.isArray(message)) {
           message = message.join('; ');
@@ -67,7 +67,7 @@ export class OptimizedExceptionFilter implements ExceptionFilter {
       if (exception instanceof HttpException) {
         const exceptionResponse = exception.getResponse();
         if (typeof exceptionResponse === 'object') {
-          const resp = exceptionResponse as any;
+          const resp = exceptionResponse as { error?: string };
           error = resp.error || exception.constructor.name;
         } else {
           error = exception.constructor.name;
@@ -83,7 +83,7 @@ export class OptimizedExceptionFilter implements ExceptionFilter {
     response.status(status).json(errorResponse);
   }
 
-  private optimizeMessage(status: number, message: string): string {
+  private optimizeMessage(status: HttpStatus, message: string): string {
     // Preserve specific app-authored messages for auth failures (401/403) and
     // resource conflicts (409) so users see the real reason (e.g. 密码错误 /
     // 用户名已存在) instead of a generic placeholder. NestJS builds generic

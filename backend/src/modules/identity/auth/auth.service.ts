@@ -43,7 +43,7 @@ export class AuthService {
       throw new UnauthorizedException('用户不存在');
     }
 
-    if (user.status !== 1) {
+    if (user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('用户已被禁用');
     }
 
@@ -165,8 +165,8 @@ export class AuthService {
 
     if (user) {
       await this.userRepository.update(userId, {
-        refreshToken: null as any,
-        refreshTokenExpiresAt: null as any,
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
       });
       await this.createLoginLog(
         user.id,
@@ -199,16 +199,18 @@ export class AuthService {
     }
 
     // Role hierarchy: only SuperAdmin may revoke SuperAdmin or Admin.
+    const operatorRole = operator.role as UserRole;
+    const targetRole = target.role as UserRole;
     if (
-      operator.role !== UserRole.SUPER_ADMIN &&
-      (target.role === UserRole.SUPER_ADMIN || target.role === UserRole.ADMIN)
+      operatorRole !== UserRole.SUPER_ADMIN &&
+      (targetRole === UserRole.SUPER_ADMIN || targetRole === UserRole.ADMIN)
     ) {
       throw new ForbiddenException('无权撤销该用户的会话');
     }
 
     await this.userRepository.update(targetUserId, {
-      refreshToken: null as any,
-      refreshTokenExpiresAt: null as any,
+      refreshToken: null,
+      refreshTokenExpiresAt: null,
     });
 
     await this.createLoginLog(
@@ -249,8 +251,8 @@ export class AuthService {
 
     await this.userRepository.update(userId, {
       password: hashedPassword,
-      refreshToken: null as any,
-      refreshTokenExpiresAt: null as any,
+      refreshToken: null,
+      refreshTokenExpiresAt: null,
     });
 
     await this.createLoginLog(
@@ -296,9 +298,11 @@ export class AuthService {
     }
 
     // Role hierarchy: only SuperAdmin may reset SuperAdmin or Admin.
+    const operatorRole = operator.role as UserRole;
+    const targetRole = target.role as UserRole;
     if (
-      operator.role !== UserRole.SUPER_ADMIN &&
-      (target.role === UserRole.SUPER_ADMIN || target.role === UserRole.ADMIN)
+      operatorRole !== UserRole.SUPER_ADMIN &&
+      (targetRole === UserRole.SUPER_ADMIN || targetRole === UserRole.ADMIN)
     ) {
       throw new ForbiddenException('无权重置该用户的密码');
     }
@@ -307,8 +311,8 @@ export class AuthService {
 
     await this.userRepository.update(targetUserId, {
       password: hashedPassword,
-      refreshToken: null as any,
-      refreshTokenExpiresAt: null as any,
+      refreshToken: null,
+      refreshTokenExpiresAt: null,
     });
 
     const detail = context?.reason
@@ -548,12 +552,12 @@ export class AuthService {
       );
     }
 
-    if (user.status !== 1) {
+    if (user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('用户已被禁用');
     }
 
     // 3. 更新 unionid（如果返回了且用户没有）
-    const unionid = (session as any).unionid;
+    const unionid = session.unionid;
     if (unionid && !user.unionid) {
       await this.userRepository.update(user.id, { unionid });
     }
@@ -670,7 +674,13 @@ export class AuthService {
           });
           res.on('end', () => {
             try {
-              const result = JSON.parse(data);
+              const result = JSON.parse(data) as {
+                openid: string;
+                session_key: string;
+                unionid?: string;
+                errcode?: number;
+                errmsg?: string;
+              };
 
               // 微信返回错误
               if (result.errcode) {
@@ -722,8 +732,12 @@ export class AuthService {
         detail: (detail || '').slice(0, 500),
       });
       await this.loginLogRepository.save(log);
-    } catch (error) {
-      this.logger.error(`Failed to create login log: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to create login log: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   }
 }

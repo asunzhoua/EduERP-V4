@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { Request, Response } from 'express';
 import { AppLogger } from '@utils/logger';
 
 export interface ResponseMetadata {
@@ -24,8 +25,8 @@ export class PerformanceInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const startTime = Date.now();
-    const request = context.switchToHttp().getRequest();
-    const response = context.switchToHttp().getResponse();
+    const request = context.switchToHttp().getRequest<Request>();
+    const response = context.switchToHttp().getResponse<Response>();
 
     const method = request.method;
     const url = request.url;
@@ -48,9 +49,9 @@ export class PerformanceInterceptor implements NestInterceptor {
 
           this.logPerformance(metadata);
         },
-        error: (error) => {
+        error: (error: unknown) => {
           const duration = Date.now() - startTime;
-          const statusCode = error.status || 500;
+          const statusCode = (error as { status?: number }).status || 500;
 
           const metadata: ResponseMetadata = {
             method,

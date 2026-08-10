@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, Like, FindOptionsWhere } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import {
   User,
@@ -49,7 +49,10 @@ export class AdminTeachersService {
     const pageSize = Number(query.pageSize) || 20;
     const skip = (page - 1) * pageSize;
 
-    const where: any = { role: UserRole.TEACHER, deleted: false };
+    const where: FindOptionsWhere<User> = {
+      role: UserRole.TEACHER,
+      deleted: false,
+    };
     if (query.status !== undefined && query.status !== '') {
       where.status = Number(query.status);
     }

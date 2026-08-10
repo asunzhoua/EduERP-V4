@@ -68,9 +68,9 @@ export class AnalyticsController {
   async getStudentTrend(
     @Param('studentCode') studentCode: string,
     @Query('days') days?: string,
-    @Req() req?: any,
+    @Req() req?: AuthedRequest,
   ) {
-    await this.verifyStudentAccess(req, studentCode);
+    await this.verifyStudentAccess(req!, studentCode);
     const parsedDays = this.parseDays(days);
     const result = await this.analyticsService.getStudentTrend(
       studentCode,
@@ -84,9 +84,9 @@ export class AnalyticsController {
   async getTeacherTrend(
     @Param('teacherId', ParseIntPipe) teacherId: number,
     @Query('days') days?: string,
-    @Req() req?: any,
+    @Req() req?: AuthedRequest,
   ) {
-    await this.verifyTeacherAccess(req, teacherId);
+    await this.verifyTeacherAccess(req!, teacherId);
     const parsedDays = this.parseDays(days);
     const result = await this.analyticsService.getTeacherTrend(
       teacherId,

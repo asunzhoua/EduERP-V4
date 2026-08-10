@@ -3,13 +3,18 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppLogger } from '@utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 
+interface EventPayload {
+  eventId?: string;
+  [key: string]: unknown;
+}
+
 @Injectable()
 export class EventBusService {
   private logger = new AppLogger();
 
   constructor(private eventEmitter: EventEmitter2) {}
 
-  publish(eventName: string, payload: any): void {
+  publish(eventName: string, payload: EventPayload): void {
     const eventId = uuidv4();
     const enrichedPayload = {
       ...payload,
@@ -22,7 +27,7 @@ export class EventBusService {
   }
 
   subscribe(eventName: string, handler: (payload: any) => void): void {
-    this.eventEmitter.on(eventName, (payload: any) => {
+    this.eventEmitter.on(eventName, (payload: EventPayload) => {
       this.logger.logEvent(eventName, payload.eventId || 'unknown', 'RECEIVED');
       try {
         handler(payload);
@@ -31,10 +36,12 @@ export class EventBusService {
           payload.eventId || 'unknown',
           'SUCCESS',
         );
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.logEvent(eventName, payload.eventId || 'unknown', 'FAILED');
         this.logger.error(
-          `Event handler failed for ${eventName}: ${error.message}`,
+          `Event handler failed for ${eventName}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         );
       }
     });

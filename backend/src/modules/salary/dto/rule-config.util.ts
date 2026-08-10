@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { SalaryRuleType } from '../enums/salary.enums';
+import { SalaryRuleConfigDto } from './salary-rule-config.dto';
 
 type Tier = {
   min: number;
@@ -8,7 +9,7 @@ type Tier = {
   pricePerHead?: number;
 };
 
-function assertNumber(value: unknown, field: string): void {
+function assertNumber(value: unknown, field: string): asserts value is number {
   if (
     value === undefined ||
     value === null ||
@@ -21,7 +22,7 @@ function assertNumber(value: unknown, field: string): void {
 
 /** 校验阶梯数组：按 min 升序、首档 min=1、max 大于 min、非重叠 */
 function assertTiers(
-  tiers: Tier[],
+  tiers: Tier[] | undefined,
   field: string,
   priceField: 'pricePerLesson' | 'pricePerHead',
 ): void {
@@ -71,9 +72,9 @@ function assertTiers(
  * 返回标准化后的 config（金额统一两位小数）。
  */
 export function validateRuleConfig(
-  type: string,
-  config: Record<string, any> | null | undefined,
-): Record<string, any> | null {
+  type: SalaryRuleType,
+  config: SalaryRuleConfigDto | null | undefined,
+): SalaryRuleConfigDto | null {
   if (config === null || config === undefined) {
     // 历史 HOURLY 与纯 PER_LESSON 允许无 config（用 baseAmount*multiplier）
     if (type === SalaryRuleType.HOURLY || type === SalaryRuleType.PER_LESSON) {
@@ -90,7 +91,7 @@ export function validateRuleConfig(
     throw new BadRequestException('config.effectiveTo 不能早于 effectiveFrom');
   }
 
-  const result: Record<string, any> = { ...config };
+  const result: SalaryRuleConfigDto = { ...config };
 
   const round2 = (v: number): number => Math.round(v * 100) / 100;
 
@@ -123,6 +124,9 @@ export function validateRuleConfig(
       }
       break;
     case SalaryRuleType.TIER:
+      if (!Array.isArray(config.lessonTiers)) {
+        throw new BadRequestException(`config.lessonTiers 必须为非空数组`);
+      }
       assertTiers(config.lessonTiers, 'lessonTiers', 'pricePerLesson');
       result.lessonTiers = [...config.lessonTiers]
         .sort((a, b) => a.min - b.min)
@@ -136,7 +140,7 @@ export function validateRuleConfig(
       // 历史类型，忽略 config
       return null;
     default:
-      throw new BadRequestException(`不支持的规则类型 ${type}`);
+      throw new BadRequestException(`不支持的规则类型 ${String(type)}`);
   }
 
   if (config.baseSalary !== undefined) {

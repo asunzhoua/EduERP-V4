@@ -30,16 +30,25 @@ export class PoolMonitorService implements OnModuleInit {
       const stats = await this.getPoolStats();
       this.logPoolStats(stats);
       this.checkAlerts(stats);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
-        `Failed to monitor pool: ${error.message}`,
+        `Failed to monitor pool: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
         'PoolMonitor',
       );
     }
   }
 
   async getPoolStats(): Promise<PoolStats> {
-    const driver = this.dataSource.driver as any;
+    const driver = this.dataSource.driver as {
+      pool?: {
+        size?: number;
+        active?: number;
+        idle?: number;
+        waiting?: number;
+      };
+    };
 
     if (!driver.pool) {
       return {

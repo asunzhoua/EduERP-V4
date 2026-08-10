@@ -72,7 +72,7 @@ export class CourseController {
   @ApiOperation({ summary: 'Get course by courseCode (enriched)' })
   async findOne(@Param('code') code: string): Promise<ApiResponse> {
     const course = await this.courseService.findByCode(code);
-    const enriched = await this.courseService.enrichCourse(course);
+    const enriched: unknown = await this.courseService.enrichCourse(course);
     return ApiResponse.success(enriched);
   }
 

@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   DataSource,
   EntityManager,
+  FindOptionsWhere,
   Repository,
   In,
   Not,
@@ -532,9 +533,9 @@ export class ContractService {
     page: number;
     pageSize: number;
   }): Promise<{ items: LessonAdjustmentAudit[]; total: number }> {
-    const where: any = {};
-    if (query.action) where.action = query.action;
-    if (query.source) where.source = query.source;
+    const where: FindOptionsWhere<LessonAdjustmentAudit> = {};
+    if (query.action) where.action = query.action as LessonAdjustmentAction;
+    if (query.source) where.source = query.source as LessonAdjustmentSource;
     if (query.operatorId != null) where.operatorId = query.operatorId;
 
     const range = this.toDayRange(query.startDate, query.endDate);

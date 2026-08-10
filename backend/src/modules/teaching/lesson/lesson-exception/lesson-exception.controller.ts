@@ -129,7 +129,7 @@ export class LessonExceptionController {
   async approve(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ApproveExceptionDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthedRequest['user'],
   ) {
     // 教师不能审批自己的课程异常
     if (user.role === 'Teacher') {
@@ -201,7 +201,10 @@ export class LessonExceptionController {
   @ApiQuery({ name: 'endDate', required: false, description: '结束日期（含）' })
   @SwaggerResponse({ status: 200, description: '成功返回异常列表' })
   @SwaggerResponse({ status: 403, description: '无权访问' })
-  async findAll(@Query() query: QueryExceptionDto, @CurrentUser() user: any) {
+  async findAll(
+    @Query() query: QueryExceptionDto,
+    @CurrentUser() user: AuthedRequest['user'],
+  ) {
     const result = await this.lessonExceptionService.findAllExceptionsWithQuery(
       query,
       user,
@@ -221,7 +224,7 @@ export class LessonExceptionController {
   @SwaggerResponse({ status: 404, description: '异常不存在' })
   async findOne(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthedRequest['user'],
   ) {
     // Permission check
     const canAccess = await this.lessonExceptionService.canAccessException(
@@ -256,7 +259,7 @@ export class LessonExceptionController {
   @SwaggerResponse({ status: 403, description: '无权访问' })
   async findReschedule(
     @Param('id', ParseIntPipe) exceptionId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthedRequest['user'],
   ) {
     // Permission check
     const canAccess = await this.lessonExceptionService.canAccessException(

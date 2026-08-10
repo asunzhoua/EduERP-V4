@@ -234,7 +234,7 @@ export class LessonAttendanceService {
         )
         .catch((err) =>
           this.logger.warn(
-            `Failed to credit points for student ${input.studentCode}: ${err.message}`,
+            `Failed to credit points for student ${input.studentCode}: ${(err as Error).message}`,
           ),
         );
 
@@ -248,7 +248,7 @@ export class LessonAttendanceService {
       } catch (err) {
         resolveFailed = true;
         this.logger.warn(
-          `Cannot resolve lesson subject for class ${entity.classCode}: ${err.message}`,
+          `Cannot resolve lesson subject for class ${entity.classCode}: ${(err as Error).message}`,
         );
       }
       if (subject) {
@@ -267,7 +267,7 @@ export class LessonAttendanceService {
           }
         } catch (err) {
           this.logger.warn(
-            `Lesson deduction failed for student ${input.studentCode}: ${err.message}`,
+            `Lesson deduction failed for student ${input.studentCode}: ${(err as Error).message}`,
           );
         }
       } else if (!resolveFailed) {
@@ -282,7 +282,9 @@ export class LessonAttendanceService {
       entity.lessonId,
       entity.classCode,
     ).catch((err) =>
-      this.logger.warn(`Failed to create attendance reminder: ${err.message}`),
+      this.logger.warn(
+        `Failed to create attendance reminder: ${(err as Error).message}`,
+      ),
     );
 
     return saved;
@@ -368,7 +370,7 @@ export class LessonAttendanceService {
       } catch (err) {
         resolveFailed = true;
         this.logger.warn(
-          `Cannot resolve lesson subject for class ${results[0].classCode}: ${err.message}`,
+          `Cannot resolve lesson subject for class ${results[0].classCode}: ${(err as Error).message}`,
         );
       }
     }
@@ -389,7 +391,7 @@ export class LessonAttendanceService {
           )
           .catch((err) =>
             this.logger.warn(
-              `Failed to credit points for student ${entity.studentCode}: ${err.message}`,
+              `Failed to credit points for student ${entity.studentCode}: ${(err as Error).message}`,
             ),
           );
 
@@ -415,7 +417,7 @@ export class LessonAttendanceService {
           }
         } catch (err) {
           this.logger.warn(
-            `Lesson deduction failed for student ${entity.studentCode}: ${err.message}`,
+            `Lesson deduction failed for student ${entity.studentCode}: ${(err as Error).message}`,
           );
         }
       }
@@ -432,7 +434,7 @@ export class LessonAttendanceService {
         results[0].classCode,
       ).catch((err) =>
         this.logger.warn(
-          `Failed to create attendance reminder: ${err.message}`,
+          `Failed to create attendance reminder: ${(err as Error).message}`,
         ),
       );
     }
@@ -973,7 +975,9 @@ export class LessonAttendanceService {
         relatedEntityType: 'LESSON',
       });
     } catch (err) {
-      this.logger.warn(`Failed to create attendance reminder: ${err.message}`);
+      this.logger.warn(
+        `Failed to create attendance reminder: ${(err as Error).message}`,
+      );
     }
   }
 }

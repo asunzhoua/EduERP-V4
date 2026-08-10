@@ -37,7 +37,7 @@ export class ClassRepository {
       .where('c.courseCode IN (:...courseCodes)', { courseCodes })
       .andWhere('c.status = :status', { status: ClassStatus.ACTIVE })
       .groupBy('c.courseCode')
-      .getRawMany();
+      .getRawMany<{ courseCode: string; count: string }>();
 
     const map = new Map<string, number>();
     results.forEach((r) => map.set(r.courseCode, parseInt(r.count, 10)));

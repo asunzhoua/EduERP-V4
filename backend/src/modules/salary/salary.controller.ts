@@ -25,6 +25,7 @@ import {
 } from './dto/salary.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AuthedRequest } from '../../common/types/authed-request';
 
 @ApiTags('salary')
 @Controller('salary')
@@ -41,7 +42,10 @@ export class SalaryController {
   @Roles('Teacher')
   @ApiOperation({ summary: '教师查询自己的工资记录' })
   @ApiResponse({ status: 200, description: '成功返回工资记录列表' })
-  async getMyRecords(@Request() req, @Query() query: QuerySalaryRecordDto) {
+  async getMyRecords(
+    @Request() req: AuthedRequest,
+    @Query() query: QuerySalaryRecordDto,
+  ) {
     const teacherId = req.user.sub;
     return this.salaryService.getRecords({ ...query, teacherId });
   }
@@ -51,7 +55,7 @@ export class SalaryController {
   @ApiOperation({ summary: '教师查询自己的工资统计' })
   @ApiResponse({ status: 200, description: '成功返回工资统计' })
   async getMyStatistics(
-    @Request() req,
+    @Request() req: AuthedRequest,
     @Query() query: SalaryStatisticsQueryDto,
   ) {
     const teacherId = req.user.sub;
@@ -78,7 +82,7 @@ export class SalaryController {
   async updateRecordStatus(
     @Param('id') id: number,
     @Body() dto: UpdateSalaryRecordStatusDto,
-    @Request() req,
+    @Request() req: AuthedRequest,
   ) {
     return this.salaryService.updateRecordStatus(
       id,
@@ -104,7 +108,7 @@ export class SalaryController {
     summary: '月度结算：按当月 FINISHED 课时 + 出勤生成工资记录（幂等）',
   })
   @ApiResponse({ status: 201, description: '成功生成结算记录' })
-  async settle(@Body() dto: SettleDto, @Request() req) {
+  async settle(@Body() dto: SettleDto, @Request() req: AuthedRequest) {
     return this.settlementService.settle(
       dto.month,
       dto.teacherId,
@@ -118,7 +122,10 @@ export class SalaryController {
   @Roles('Admin', 'SuperAdmin')
   @ApiOperation({ summary: '管理员创建工资规则' })
   @ApiResponse({ status: 201, description: '成功创建规则' })
-  async createRule(@Body() dto: CreateSalaryRuleDto, @Request() req) {
+  async createRule(
+    @Body() dto: CreateSalaryRuleDto,
+    @Request() req: AuthedRequest,
+  ) {
     return this.salaryService.createRule(dto, req.user.sub);
   }
 
@@ -129,7 +136,7 @@ export class SalaryController {
   async updateRule(
     @Param('id') id: number,
     @Body() dto: UpdateSalaryRuleDto,
-    @Request() req,
+    @Request() req: AuthedRequest,
   ) {
     return this.salaryService.updateRule(id, dto, req.user.sub);
   }

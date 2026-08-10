@@ -5,7 +5,14 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, Brackets, In } from 'typeorm';
+import {
+  Repository,
+  Like,
+  Brackets,
+  In,
+  FindOptionsWhere,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { Student } from '../entities/student.entity';
 import { StudentParent } from '../entities/student-parent.entity';
 import { StudentAuditLog } from '../entities/student-audit-log.entity';
@@ -144,7 +151,7 @@ export class StudentService {
     const pageSize = query.pageSize || 20;
     const skip = (page - 1) * pageSize;
 
-    const where: any = { deleted: false };
+    const where: FindOptionsWhere<Student> = { deleted: false };
 
     if (query.name) {
       where.name = Like(`%${query.name}%`);
@@ -172,7 +179,7 @@ export class StudentService {
     const keyword = query.keyword;
 
     const [items, total] = await this.studentRepository.findAndCount({
-      where: ((qb: any) => {
+      where: ((qb: SelectQueryBuilder<Student>) => {
         qb.where(where);
         // Teacher 范围过滤：只返回该教师负责的 class 里的学生
         if (teacherId) {
@@ -198,10 +205,10 @@ export class StudentService {
             }),
           );
         }
-      }) as any,
+      }) as unknown as FindOptionsWhere<Student>,
       skip,
       take: pageSize,
-      order: { createTime: 'DESC' } as any,
+      order: { createTime: 'DESC' },
     });
 
     return { items, total, page, pageSize };
@@ -242,17 +249,26 @@ export class StudentService {
       'note',
     ];
 
+    const dtoRecord = dto as unknown as Record<
+      string,
+      string | string[] | null | undefined
+    >;
+    const studentRecord = student as unknown as Record<
+      string,
+      string | string[] | null | undefined
+    >;
+
     for (const field of updatableFields) {
-      if ((dto as any)[field] !== undefined) {
-        const oldVal = String((student as any)[field] ?? '');
-        const newVal = String((dto as any)[field] ?? '');
+      if (dtoRecord[field] !== undefined) {
+        const oldVal = String(studentRecord[field] ?? '');
+        const newVal = String(dtoRecord[field] ?? '');
         if (oldVal !== newVal) {
           changes.push({
             fieldName: field,
             oldValue: oldVal,
             newValue: newVal,
           });
-          (student as any)[field] = (dto as any)[field];
+          studentRecord[field] = dtoRecord[field];
         }
       }
     }
@@ -661,7 +677,7 @@ export class StudentService {
     // Resolve classCode from active enrollment
     const enrollment = await this.enrollmentRepository.findOne({
       where: { studentCode: student.studentCode },
-      order: { enrolledAt: 'DESC' } as any,
+      order: { enrolledAt: 'DESC' },
     });
 
     // Create leave request entity

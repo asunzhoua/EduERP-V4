@@ -62,7 +62,7 @@ export class EnrollmentRepository {
       .where('e.classCode IN (:...classCodes)', { classCodes })
       .andWhere('e.status = :status', { status: EnrollmentStatus.ACTIVE })
       .groupBy('e.classCode')
-      .getRawMany();
+      .getRawMany<{ classCode: string; count: string }>();
 
     const map = new Map<string, number>();
     results.forEach((r) => map.set(r.classCode, parseInt(r.count, 10)));
@@ -80,7 +80,7 @@ export class EnrollmentRepository {
       .distinct(true)
       .where('e.classCode IN (:...classCodes)', { classCodes })
       .andWhere('e.status = :status', { status: EnrollmentStatus.ACTIVE })
-      .getRawMany();
+      .getRawMany<{ studentCode: string }>();
 
     return results.map((r) => r.studentCode);
   }

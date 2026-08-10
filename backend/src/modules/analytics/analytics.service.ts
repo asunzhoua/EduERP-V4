@@ -30,6 +30,39 @@ export interface TrendData {
   label?: string;
 }
 
+type RawCountRow = { count: string };
+type RawLessonRow = { id: string; date: string | Date };
+type RawAttendanceRow = { lessonId: string; status: AttendanceStatus };
+type RawDateCountRow = { date: string; count: string };
+type RawDateStatusCountRow = {
+  date: string | Date;
+  status: AttendanceStatus;
+  count: string;
+};
+type RawCourseStatusCountRow = {
+  courseCode: string;
+  status: AttendanceStatus;
+  count: string;
+};
+type RawContractAggRow = { consumed: string; remaining: string };
+type RawConsumptionAggRow = {
+  totalLessons: string;
+  totalRemaining: string;
+  totalConsumed: string;
+};
+type RawStudentAggRow = {
+  studentCode: string;
+  total: string;
+  remaining: string;
+  consumed: string;
+};
+type RawSubjectAggRow = {
+  subject: string;
+  total: string;
+  remaining: string;
+  consumed: string;
+};
+
 @Injectable()
 export class AnalyticsService {
   constructor(
@@ -83,7 +116,7 @@ export class AnalyticsService {
       .where('log.action = :action', { action: 'LOGIN' })
       .andWhere('log.success = :success', { success: true })
       .andWhere('log.createTime >= :since', { since: todayStart })
-      .getRawOne();
+      .getRawOne<RawCountRow>();
     const dau = parseInt(dauResult?.count || '0', 10);
 
     // WAU: distinct userIds that logged in last 7 days
@@ -93,7 +126,7 @@ export class AnalyticsService {
       .where('log.action = :action', { action: 'LOGIN' })
       .andWhere('log.success = :success', { success: true })
       .andWhere('log.createTime >= :since', { since: weekAgoStart })
-      .getRawOne();
+      .getRawOne<RawCountRow>();
     const wau = parseInt(wauResult?.count || '0', 10);
 
     // MAU: distinct userIds that logged in last 30 days
@@ -103,7 +136,7 @@ export class AnalyticsService {
       .where('log.action = :action', { action: 'LOGIN' })
       .andWhere('log.success = :success', { success: true })
       .andWhere('log.createTime >= :since', { since: monthAgoStart })
-      .getRawOne();
+      .getRawOne<RawCountRow>();
     const mau = parseInt(mauResult?.count || '0', 10);
 
     metrics.push(
@@ -202,7 +235,7 @@ export class AnalyticsService {
       .addSelect('COALESCE(SUM(contract.remainingLessons), 0)', 'remaining')
       .where('contract.studentCode = :studentCode', { studentCode })
       .andWhere('contract.status = :status', { status: ContractStatus.ACTIVE })
-      .getRawOne();
+      .getRawOne<RawContractAggRow>();
 
     const consumedLessons = parseInt(contractAgg?.consumed || '0', 10);
     const remainingLessons = parseInt(contractAgg?.remaining || '0', 10);
@@ -247,7 +280,7 @@ export class AnalyticsService {
         .andWhere('enrollment.status = :status', {
           status: EnrollmentStatus.ACTIVE,
         })
-        .getRawOne();
+        .getRawOne<RawCountRow>();
       studentCount = parseInt(result?.count || '0', 10);
     }
     metrics.push({ name: 'studentCount', value: studentCount, unit: '人' });
@@ -272,7 +305,7 @@ export class AnalyticsService {
       .createQueryBuilder('enrollment')
       .select('COUNT(DISTINCT enrollment.studentCode)', 'count')
       .where('enrollment.status = :status', { status: EnrollmentStatus.ACTIVE })
-      .getRawOne();
+      .getRawOne<RawCountRow>();
     const activeStudents = parseInt(activeResult?.count || '0', 10);
     metrics.push({ name: 'activeStudents', value: activeStudents, unit: '人' });
 
@@ -338,7 +371,7 @@ export class AnalyticsService {
       .addSelect('lesson.scheduledDate', 'date')
       .where('lesson.scheduledDate >= :startDate', { startDate })
       .andWhere('lesson.scheduledDate <= :endDate', { endDate })
-      .getRawMany();
+      .getRawMany<RawLessonRow>();
 
     if (lessons.length === 0) {
       return {
@@ -363,7 +396,7 @@ export class AnalyticsService {
       .addSelect('att.status', 'status')
       .where('att.studentCode = :studentCode', { studentCode })
       .andWhere('att.lessonId IN (:...lessonIds)', { lessonIds })
-      .getRawMany();
+      .getRawMany<RawAttendanceRow>();
 
     // Build both trends from the same result set
     const lessonCountByDate = new Map<string, number>();
@@ -425,7 +458,7 @@ export class AnalyticsService {
       .where('lesson.teacherId = :teacherId', { teacherId })
       .andWhere('lesson.scheduledDate >= :startDate', { startDate })
       .andWhere('lesson.scheduledDate <= :endDate', { endDate })
-      .getRawMany();
+      .getRawMany<RawLessonRow>();
 
     if (teacherLessons.length === 0) {
       return {
@@ -458,7 +491,7 @@ export class AnalyticsService {
       .select('att.lessonId', 'lessonId')
       .addSelect('att.status', 'status')
       .where('att.lessonId IN (:...teacherLessonIds)', { teacherLessonIds })
-      .getRawMany();
+      .getRawMany<RawAttendanceRow>();
 
     const dateStats = new Map<string, { total: number; present: number }>();
     for (const row of attRows) {
@@ -511,7 +544,7 @@ export class AnalyticsService {
       .where('lesson.scheduledDate >= :startDate', { startDate })
       .andWhere('lesson.scheduledDate <= :endDate', { endDate })
       .groupBy('lesson.scheduledDate')
-      .getRawMany();
+      .getRawMany<RawDateCountRow>();
 
     const lessonMap = new Map<string, number>();
     for (const row of lessonRows) {
@@ -537,7 +570,7 @@ export class AnalyticsService {
       .andWhere('student.createTime < :nextDay', { nextDay: nextDayStr })
       .andWhere('student.deleted = :deleted', { deleted: false })
       .groupBy('date')
-      .getRawMany();
+      .getRawMany<RawDateCountRow>();
 
     const enrollMap = new Map<string, number>();
     for (const row of enrollRows) {
@@ -631,7 +664,7 @@ export class AnalyticsService {
       .groupBy('l.scheduledDate')
       .addGroupBy('a.status')
       .orderBy('l.scheduledDate', 'DESC')
-      .getRawMany();
+      .getRawMany<RawDateStatusCountRow>();
 
     // Aggregate by date
     const dateMap = new Map<
@@ -687,7 +720,7 @@ export class AnalyticsService {
       .groupBy('l.courseCode')
       .addGroupBy('a.status')
       .orderBy('COUNT(*)', 'DESC')
-      .getRawMany();
+      .getRawMany<RawCourseStatusCountRow>();
 
     // Aggregate by course
     const courseMap = new Map<
@@ -784,7 +817,7 @@ export class AnalyticsService {
         'totalConsumed',
       )
       .where('contract.status = :status', { status: ContractStatus.ACTIVE })
-      .getRawOne();
+      .getRawOne<RawConsumptionAggRow>();
 
     const totalLessons = parseInt(contractAgg?.totalLessons || '0', 10);
     const totalRemaining = parseInt(contractAgg?.totalRemaining || '0', 10);
@@ -817,7 +850,7 @@ export class AnalyticsService {
         statuses: deductibleStatuses,
       })
       .groupBy('date')
-      .getRawMany();
+      .getRawMany<RawDateCountRow>();
 
     const trendMap = new Map<string, number>();
     for (const row of trendRows) {
@@ -845,7 +878,7 @@ export class AnalyticsService {
       )
       .where('contract.status = :status', { status: ContractStatus.ACTIVE })
       .groupBy('contract.studentCode')
-      .getRawMany();
+      .getRawMany<RawStudentAggRow>();
 
     const byStudent = byStudentRows.map((row) => ({
       studentCode: row.studentCode,
@@ -866,7 +899,7 @@ export class AnalyticsService {
       )
       .where('contract.status = :status', { status: ContractStatus.ACTIVE })
       .groupBy('contract.subject')
-      .getRawMany();
+      .getRawMany<RawSubjectAggRow>();
 
     const byCourse = byCourseRows.map((row) => ({
       subject: row.subject,

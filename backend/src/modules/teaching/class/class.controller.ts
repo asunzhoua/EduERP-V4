@@ -93,7 +93,7 @@ export class ClassController {
   @ApiOperation({ summary: 'Get class by classCode' })
   async findOne(@Param('code') code: string): Promise<ApiResponse> {
     const cls = await this.classService.findByCode(code);
-    const enriched = await this.classService.enrichClass(cls);
+    const enriched: unknown = await this.classService.enrichClass(cls);
     return ApiResponse.success(enriched);
   }
 

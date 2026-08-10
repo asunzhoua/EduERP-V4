@@ -43,9 +43,11 @@ export class SentryService implements OnModuleInit {
     console.log('[Sentry] Initialized successfully');
   }
 
-  captureException(error: Error, context?: any): void {
+  captureException(error: Error, context?: unknown): void {
     if (!this.enabled) return;
-    Sentry.captureException(error, { extra: context });
+    Sentry.captureException(error, {
+      extra: context as Record<string, unknown>,
+    });
   }
 
   captureMessage(message: string, level: Sentry.SeverityLevel = 'info'): void {

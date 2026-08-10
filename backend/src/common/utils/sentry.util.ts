@@ -33,8 +33,10 @@ export function initSentry(config: SentryConfig): void {
   console.log('[Sentry] Initialized successfully');
 }
 
-export function captureException(error: Error, context?: any): void {
-  Sentry.captureException(error, { extra: context });
+export function captureException(error: Error, context?: unknown): void {
+  Sentry.captureException(error, {
+    extra: context as Record<string, unknown>,
+  });
 }
 
 export function captureMessage(

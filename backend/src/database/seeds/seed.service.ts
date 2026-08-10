@@ -107,10 +107,11 @@ export class SeedService {
         'Seed data initialization complete (transaction committed)',
         'Seed',
       );
-    } catch (error) {
+    } catch (error: unknown) {
       await queryRunner.rollbackTransaction();
       this.logger.error(
-        'Seed failed, transaction rolled back: ' + error.message,
+        'Seed failed, transaction rolled back: ' +
+          (error instanceof Error ? error.message : String(error)),
         'Seed',
       );
       throw error;

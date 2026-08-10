@@ -318,7 +318,7 @@ export class LessonAttendanceController {
 
       const enrolled = await this.enrollmentRepo.findByClassAndStudent(
         classCode,
-        student.studentCode,
+        (student as { studentCode: string }).studentCode,
       );
       if (!enrolled || enrolled.status !== EnrollmentStatus.ACTIVE) {
         throw new ForbiddenException('无权访问该课程的出勤记录');

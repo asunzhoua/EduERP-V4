@@ -9,6 +9,7 @@ import { JwtAuthGuard } from '@modules/identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
+import { AuthedRequest } from '@common/types/authed-request';
 import { TeacherService } from './teacher.service';
 import { DataScopeService } from '@common/services/data-scope.service';
 
@@ -48,7 +49,7 @@ export class TeacherController {
   })
   @ApiResponse({ status: 401, description: '未授权' })
   @ApiResponse({ status: 403, description: '权限不足，仅 Teacher 角色可访问' })
-  async getMyCourses(@CurrentUser() user: any) {
+  async getMyCourses(@CurrentUser() user: AuthedRequest['user']) {
     const courseCodes = await this.dataScopeService.getTeacherCourseCodes(
       user.sub,
     );
@@ -79,7 +80,7 @@ export class TeacherController {
   })
   @ApiResponse({ status: 401, description: '未授权' })
   @ApiResponse({ status: 403, description: '权限不足，仅 Teacher 角色可访问' })
-  async getMyClasses(@CurrentUser() user: any) {
+  async getMyClasses(@CurrentUser() user: AuthedRequest['user']) {
     const classCodes = await this.dataScopeService.getTeacherClassCodes(
       user.sub,
     );
@@ -110,7 +111,7 @@ export class TeacherController {
   })
   @ApiResponse({ status: 401, description: '未授权' })
   @ApiResponse({ status: 403, description: '权限不足，仅 Teacher 角色可访问' })
-  async getMyStudents(@CurrentUser() user: any) {
+  async getMyStudents(@CurrentUser() user: AuthedRequest['user']) {
     const studentCodes = await this.dataScopeService.getTeacherStudentCodes(
       user.sub,
     );

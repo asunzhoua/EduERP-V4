@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, LessThanOrEqual } from 'typeorm';
+import { Repository, Like, LessThanOrEqual, FindOptionsWhere } from 'typeorm';
 import {
   PointsProduct,
   PointsProductStatus,
@@ -61,8 +61,8 @@ export class PointsMallService {
   }> {
     const page = query.page || 1;
     const pageSize = query.pageSize || 20;
-    const where: any = { deleted: false };
-    if (query.status) where.status = query.status;
+    const where: FindOptionsWhere<PointsProduct> = { deleted: false };
+    if (query.status) where.status = query.status as PointsProductStatus;
     if (query.keyword) where.name = Like(`%${query.keyword}%`);
     const [items, total] = await this.productRepo.findAndCount({
       where,
@@ -140,8 +140,8 @@ export class PointsMallService {
   }> {
     const page = query.page || 1;
     const pageSize = query.pageSize || 20;
-    const where: any = {};
-    if (query.status) where.status = query.status;
+    const where: FindOptionsWhere<PointsExchangeRecord> = {};
+    if (query.status) where.status = query.status as PointsExchangeStatus;
     if (query.keyword) {
       where.studentName = Like(`%${query.keyword}%`);
     }

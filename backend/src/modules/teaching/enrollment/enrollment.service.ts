@@ -161,7 +161,7 @@ export class EnrollmentService {
         .where('l.classCode IN (:...classCodes)', { classCodes })
         .andWhere('l.status = :status', { status: LessonStatus.FINISHED })
         .groupBy('l.classCode')
-        .getRawMany(),
+        .getRawMany<{ classCode: string; count: string }>(),
     ]);
     const courseNameMap = new Map(courses.map((c) => [c.courseCode, c.name]));
     const completedMap = new Map<string, number>();

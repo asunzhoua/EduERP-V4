@@ -18,11 +18,11 @@ export class ResponseInterceptor<T> implements NestInterceptor<
     next: CallHandler,
   ): Observable<ApiResponse<T>> {
     return next.handle().pipe(
-      map((data) => {
+      map((data: unknown): ApiResponse<T> => {
         if (data instanceof ApiResponse) {
-          return data;
+          return data as ApiResponse<T>;
         }
-        return ApiResponse.success(data);
+        return ApiResponse.success(data as T);
       }),
     );
   }

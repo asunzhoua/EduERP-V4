@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, FindOptionsWhere } from 'typeorm';
 import { TeacherAssignmentEntity } from './teacher-assignment.entity';
 import { TeacherRole } from '@common/enums/teacher-role.enum';
 
@@ -93,7 +93,7 @@ export class TeacherAssignmentRepository {
 
   /** Find all assignments ordered by createTime DESC. */
   async findAll(teacherId?: number): Promise<TeacherAssignmentEntity[]> {
-    const where: any = {};
+    const where: FindOptionsWhere<TeacherAssignmentEntity> = {};
     if (teacherId) {
       where.teacherId = teacherId;
     }
