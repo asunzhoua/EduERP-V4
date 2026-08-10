@@ -26,10 +26,16 @@ export class EventBusService {
       this.logger.logEvent(eventName, payload.eventId || 'unknown', 'RECEIVED');
       try {
         handler(payload);
-        this.logger.logEvent(eventName, payload.eventId || 'unknown', 'SUCCESS');
+        this.logger.logEvent(
+          eventName,
+          payload.eventId || 'unknown',
+          'SUCCESS',
+        );
       } catch (error) {
         this.logger.logEvent(eventName, payload.eventId || 'unknown', 'FAILED');
-        this.logger.error(`Event handler failed for ${eventName}: ${error.message}`);
+        this.logger.error(
+          `Event handler failed for ${eventName}: ${error.message}`,
+        );
       }
     });
   }

@@ -24,7 +24,10 @@ export class CreateLessonDto {
   @Max(999, { message: 'lessonNumber must be <= 999' })
   lessonNumber: number;
 
-  @IsDateString({}, { message: 'scheduledDate must be a valid date (YYYY-MM-DD)' })
+  @IsDateString(
+    {},
+    { message: 'scheduledDate must be a valid date (YYYY-MM-DD)' },
+  )
   scheduledDate: string;
 
   @IsString()

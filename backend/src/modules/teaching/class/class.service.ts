@@ -226,10 +226,14 @@ export class ClassService {
 
   // ─── Data Enrichment ───
 
-  private formatSchedule(dayOfWeek: number[], startTime: string, endTime: string): string {
+  private formatSchedule(
+    dayOfWeek: number[],
+    startTime: string,
+    endTime: string,
+  ): string {
     const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     const sortedDays = [...dayOfWeek].sort((a, b) => a - b);
-    const dayStr = sortedDays.map(d => dayNames[d]).join(',');
+    const dayStr = sortedDays.map((d) => dayNames[d]).join(',');
     return `${dayStr} ${startTime}-${endTime}`;
   }
 
@@ -243,53 +247,69 @@ export class ClassService {
   async enrichClasses(classes: ClassEntity[]): Promise<any[]> {
     if (!classes.length) return [];
 
-    const classCodes = classes.map(c => c.classCode);
-    const courseCodes = [...new Set(classes.map(c => c.courseCode))];
+    const classCodes = classes.map((c) => c.classCode);
+    const courseCodes = [...new Set(classes.map((c) => c.courseCode))];
 
-    const [courses, enrollmentCounts, lessonCounts, endDateMap] = await Promise.all([
-      this.courseRepo.findByCodes(courseCodes),
-      this.enrollmentRepo.countActiveByClassCodes(classCodes),
-      this.lessonRepo.countFinishedByClassCodes(classCodes),
-      this.lessonRepo.findMaxScheduledDateByClassCodes(classCodes),
-    ]);
+    const [courses, enrollmentCounts, lessonCounts, endDateMap] =
+      await Promise.all([
+        this.courseRepo.findByCodes(courseCodes),
+        this.enrollmentRepo.countActiveByClassCodes(classCodes),
+        this.lessonRepo.countFinishedByClassCodes(classCodes),
+        this.lessonRepo.findMaxScheduledDateByClassCodes(classCodes),
+      ]);
 
     const courseNameMap = new Map<string, string>();
-    courses.forEach(c => courseNameMap.set(c.courseCode, c.name));
+    courses.forEach((c) => courseNameMap.set(c.courseCode, c.name));
 
     // Batch resolve teacher names (eliminates N+1: 2N queries → 2 queries)
-    const primaryAssignments = await this.teacherAssignmentService.findActivePrimaryByClassCodes(classCodes);
-    const teacherIds = [...new Set(primaryAssignments.map(a => a.teacherId))];
-    const teachers = teacherIds.length > 0
-      ? await this.userRepo.find({ where: { id: In(teacherIds) } })
-      : [];
-    const teacherNameById = new Map(teachers.map(t => [t.id, t.name]));
+    const primaryAssignments =
+      await this.teacherAssignmentService.findActivePrimaryByClassCodes(
+        classCodes,
+      );
+    const teacherIds = [...new Set(primaryAssignments.map((a) => a.teacherId))];
+    const teachers =
+      teacherIds.length > 0
+        ? await this.userRepo.find({ where: { id: In(teacherIds) } })
+        : [];
+    const teacherNameById = new Map(teachers.map((t) => [t.id, t.name]));
     const teacherNameMap = new Map(
-      primaryAssignments.map(a => [a.classCode, teacherNameById.get(a.teacherId) ?? '']),
+      primaryAssignments.map((a) => [
+        a.classCode,
+        teacherNameById.get(a.teacherId) ?? '',
+      ]),
     );
 
-    return classes.map(cls => ({
+    return classes.map((cls) => ({
       ...cls,
       courseName: courseNameMap.get(cls.courseCode) ?? '',
       teacherName: teacherNameMap.get(cls.classCode) ?? '',
       currentStudents: enrollmentCounts.get(cls.classCode) ?? 0,
       completedLessons: lessonCounts.get(cls.classCode) ?? 0,
       schedule: this.formatSchedule(cls.dayOfWeek, cls.startTime, cls.endTime),
-      endDate: endDateMap.get(cls.classCode) ?? this.computeEndDate(cls.startDate, cls.totalLessons),
+      endDate:
+        endDateMap.get(cls.classCode) ??
+        this.computeEndDate(cls.startDate, cls.totalLessons),
     }));
   }
 
   async enrichClass(cls: ClassEntity): Promise<any> {
-    const [course, currentStudents, completedLessons, endDate, primaryTeacher] = await Promise.all([
-      this.courseRepo.findOneByCode(cls.courseCode),
-      this.enrollmentRepo.countActiveByClassCode(cls.classCode),
-      this.lessonRepo.countByClassCodeAndStatus(cls.classCode, LessonStatus.FINISHED),
-      this.lessonRepo.findMaxScheduledDateByClassCode(cls.classCode),
-      this.teacherAssignmentService.findActivePrimary(cls.classCode),
-    ]);
+    const [course, currentStudents, completedLessons, endDate, primaryTeacher] =
+      await Promise.all([
+        this.courseRepo.findOneByCode(cls.courseCode),
+        this.enrollmentRepo.countActiveByClassCode(cls.classCode),
+        this.lessonRepo.countByClassCodeAndStatus(
+          cls.classCode,
+          LessonStatus.FINISHED,
+        ),
+        this.lessonRepo.findMaxScheduledDateByClassCode(cls.classCode),
+        this.teacherAssignmentService.findActivePrimary(cls.classCode),
+      ]);
 
     let teacherName = '';
     if (primaryTeacher) {
-      const teacher = await this.userRepo.findOne({ where: { id: primaryTeacher.teacherId } });
+      const teacher = await this.userRepo.findOne({
+        where: { id: primaryTeacher.teacherId },
+      });
       teacherName = teacher?.name ?? '';
     }
 

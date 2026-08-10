@@ -17,10 +17,10 @@ describe('CourseCodeGeneratorService', () => {
 
   beforeEach(() => {
     OriginalDate = global.Date;
-    jest.spyOn(global, 'Date').mockImplementation((((...args: any[]) => {
+    jest.spyOn(global, 'Date').mockImplementation(((...args: any[]) => {
       if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
       return new (OriginalDate.bind(null, ...args))();
-    }) as any));
+    }) as any);
   });
 
   afterEach(() => {
@@ -106,10 +106,9 @@ describe('CourseCodeGeneratorService', () => {
 
       await service.generateCourseCode();
 
-      expect(qb.where).toHaveBeenCalledWith(
-        'course.courseCode LIKE :prefix',
-        { prefix: `${expectedPrefix}%` },
-      );
+      expect(qb.where).toHaveBeenCalledWith('course.courseCode LIKE :prefix', {
+        prefix: `${expectedPrefix}%`,
+      });
     });
 
     it('should filter out deleted records', async () => {
@@ -117,10 +116,9 @@ describe('CourseCodeGeneratorService', () => {
 
       await service.generateCourseCode();
 
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        'course.deleted = :deleted',
-        { deleted: false },
-      );
+      expect(qb.andWhere).toHaveBeenCalledWith('course.deleted = :deleted', {
+        deleted: false,
+      });
     });
 
     it('should order by course_code DESC', async () => {

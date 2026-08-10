@@ -12,9 +12,10 @@ export class SentryService implements OnModuleInit {
 
   constructor(private readonly configService: ConfigService) {
     this.dsn = this.configService.get<string>('SENTRY_DSN') || '';
-    this.environment = this.configService.get<string>('NODE_ENV') || 'development';
+    this.environment =
+      this.configService.get<string>('NODE_ENV') || 'development';
     this.tracesSampleRate = parseFloat(
-      this.configService.get<string>('SENTRY_TRACES_SAMPLE_RATE') || '0.1'
+      this.configService.get<string>('SENTRY_TRACES_SAMPLE_RATE') || '0.1',
     );
     this.enabled = this.configService.get<string>('SENTRY_ENABLED') === 'true';
   }

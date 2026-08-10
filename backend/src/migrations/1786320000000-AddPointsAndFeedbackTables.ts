@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddPointsAndFeedbackTables20260808178632000000
-  implements MigrationInterface
-{
+export class AddPointsAndFeedbackTables20260808178632000000 implements MigrationInterface {
   name = 'AddPointsAndFeedbackTables20260808178632000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

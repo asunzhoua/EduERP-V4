@@ -20,10 +20,14 @@ export class ClassRepository {
   }
 
   async countActiveByCourseCode(courseCode: string): Promise<number> {
-    return this.repo.count({ where: { courseCode, status: ClassStatus.ACTIVE } });
+    return this.repo.count({
+      where: { courseCode, status: ClassStatus.ACTIVE },
+    });
   }
 
-  async countActiveByCourseCodes(courseCodes: string[]): Promise<Map<string, number>> {
+  async countActiveByCourseCodes(
+    courseCodes: string[],
+  ): Promise<Map<string, number>> {
     if (!courseCodes.length) return new Map();
 
     const results = await this.repo
@@ -36,7 +40,7 @@ export class ClassRepository {
       .getRawMany();
 
     const map = new Map<string, number>();
-    results.forEach(r => map.set(r.courseCode, parseInt(r.count, 10)));
+    results.forEach((r) => map.set(r.courseCode, parseInt(r.count, 10)));
     return map;
   }
 

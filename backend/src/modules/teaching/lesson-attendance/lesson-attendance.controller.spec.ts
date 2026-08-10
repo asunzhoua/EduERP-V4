@@ -49,7 +49,9 @@ describe('LessonAttendanceController', () => {
 
   const mockLessonRepo = {
     findByClassCodeAndDate: jest.fn().mockResolvedValue([]),
-    findOneById: jest.fn().mockResolvedValue({ id: 1, classCode: 'CLS001', teacherId: 1 }),
+    findOneById: jest
+      .fn()
+      .mockResolvedValue({ id: 1, classCode: 'CLS001', teacherId: 1 }),
   };
 
   const mockEnrollmentRepo = {
@@ -114,7 +116,9 @@ describe('LessonAttendanceController', () => {
 
       const result = await controller.batchRollCall(1, dto, mockReq);
 
-      expect(result).toEqual(ApiResponse.success(mockAttendanceList, 'Attendance recorded'));
+      expect(result).toEqual(
+        ApiResponse.success(mockAttendanceList, 'Attendance recorded'),
+      );
       expect(result.data).toHaveLength(2);
       expect(service.batchRollCall).toHaveBeenCalledWith({
         lessonId: 1,
@@ -147,9 +151,16 @@ describe('LessonAttendanceController', () => {
         note: '补签',
       };
 
-      const result = await controller.updateAttendance(1, 'STU001', body, mockReq);
+      const result = await controller.updateAttendance(
+        1,
+        'STU001',
+        body,
+        mockReq,
+      );
 
-      expect(result).toEqual(ApiResponse.success(mockAttendanceRecord, 'Attendance updated'));
+      expect(result).toEqual(
+        ApiResponse.success(mockAttendanceRecord, 'Attendance updated'),
+      );
       expect(service.recordAttendance).toHaveBeenCalledWith({
         lessonId: 1,
         studentCode: 'STU001',
@@ -192,7 +203,9 @@ describe('LessonAttendanceController', () => {
     it('should call service.confirmAll with lessonId and operator from JWT', async () => {
       const result = await controller.confirmAll(1, mockReq);
 
-      expect(result).toEqual(ApiResponse.success(mockAttendanceList, 'Attendance confirmed'));
+      expect(result).toEqual(
+        ApiResponse.success(mockAttendanceList, 'Attendance confirmed'),
+      );
       expect(service.confirmAll).toHaveBeenCalledWith(1, 42);
     });
   });

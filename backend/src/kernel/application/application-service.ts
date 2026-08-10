@@ -24,7 +24,9 @@ export abstract class ApplicationService {
       return Result.ok(result);
     } catch (error) {
       await tx.rollback();
-      return Result.fail(error instanceof Error ? error : new Error(String(error)));
+      return Result.fail(
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   }
 }

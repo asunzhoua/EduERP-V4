@@ -81,11 +81,16 @@ export class LessonRepository {
 
   // ─── Data Enrichment ───
 
-  async countByClassCodeAndStatus(classCode: string, status: LessonStatus): Promise<number> {
+  async countByClassCodeAndStatus(
+    classCode: string,
+    status: LessonStatus,
+  ): Promise<number> {
     return this.repo.count({ where: { classCode, status } });
   }
 
-  async countFinishedByClassCodes(classCodes: string[]): Promise<Map<string, number>> {
+  async countFinishedByClassCodes(
+    classCodes: string[],
+  ): Promise<Map<string, number>> {
     if (!classCodes.length) return new Map();
 
     const results = await this.repo
@@ -98,11 +103,13 @@ export class LessonRepository {
       .getRawMany();
 
     const map = new Map<string, number>();
-    results.forEach(r => map.set(r.classCode, parseInt(r.count, 10)));
+    results.forEach((r) => map.set(r.classCode, parseInt(r.count, 10)));
     return map;
   }
 
-  async findMaxScheduledDateByClassCode(classCode: string): Promise<string | null> {
+  async findMaxScheduledDateByClassCode(
+    classCode: string,
+  ): Promise<string | null> {
     const result = await this.repo
       .createQueryBuilder('l')
       .select('MAX(l.scheduledDate)', 'maxDate')
@@ -111,7 +118,9 @@ export class LessonRepository {
     return result?.maxDate ?? null;
   }
 
-  async findMaxScheduledDateByClassCodes(classCodes: string[]): Promise<Map<string, string>> {
+  async findMaxScheduledDateByClassCodes(
+    classCodes: string[],
+  ): Promise<Map<string, string>> {
     if (!classCodes.length) return new Map();
 
     const results = await this.repo
@@ -123,7 +132,7 @@ export class LessonRepository {
       .getRawMany();
 
     const map = new Map<string, string>();
-    results.forEach(r => map.set(r.classCode, r.maxDate));
+    results.forEach((r) => map.set(r.classCode, r.maxDate));
     return map;
   }
 
@@ -133,7 +142,9 @@ export class LessonRepository {
    * Find lessons starting within the next N minutes.
    * scheduledDate = today AND startTime between now and now+minutes.
    */
-  async findUpcomingLessons(minutesAhead: number = 30): Promise<LessonEntity[]> {
+  async findUpcomingLessons(
+    minutesAhead: number = 30,
+  ): Promise<LessonEntity[]> {
     const now = new Date();
     const today = now.toISOString().slice(0, 10); // YYYY-MM-DD
     const currentHHMM = now.toISOString().slice(11, 16); // HH:MM (UTC — will adjust in service)

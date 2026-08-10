@@ -12,11 +12,7 @@ import { InvariantViolationException } from '../exception/domain.exception';
 export abstract class AggregateRoot extends BaseEntity {
   private _domainEvents: DomainEvent[] = [];
 
-  constructor(
-    id: number,
-    createdBy: number,
-    createdAt?: Date,
-  ) {
+  constructor(id: number, createdBy: number, createdAt?: Date) {
     super(id, createdBy, createdAt);
   }
 

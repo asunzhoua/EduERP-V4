@@ -5,9 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  PointsAccount,
-} from './points-account.entity';
+import { PointsAccount } from './points-account.entity';
 import {
   PointsTransaction,
   PointsTransactionType,
@@ -173,12 +171,10 @@ export class PointsService {
 
     const totalCost = product.pointsPrice * qty;
     // 先校验积分足够，再扣减
-    await this.debit(
-      studentCode,
-      totalCost,
-      `兑换「${product.name}」×${qty}`,
-      { type: 'POINTS_PRODUCT', id: productId },
-    );
+    await this.debit(studentCode, totalCost, `兑换「${product.name}」×${qty}`, {
+      type: 'POINTS_PRODUCT',
+      id: productId,
+    });
 
     // 减库存
     product.stock -= qty;
@@ -198,15 +194,17 @@ export class PointsService {
     );
 
     // 兑换成功自动推送消息
-    await this.reminderService.createReminder({
-      type: ReminderType.SYSTEM,
-      title: '积分兑换成功',
-      content: `您已成功兑换「${product.name}」×${qty}，消耗 ${totalCost} 积分。`,
-      targetUserId: notifyUserId,
-      targetType: TargetType.STUDENT,
-      relatedEntityId: record.id,
-      relatedEntityType: 'POINTS_EXCHANGE',
-    }).catch((err) => undefined); // 推送失败不影响兑换主流程
+    await this.reminderService
+      .createReminder({
+        type: ReminderType.SYSTEM,
+        title: '积分兑换成功',
+        content: `您已成功兑换「${product.name}」×${qty}，消耗 ${totalCost} 积分。`,
+        targetUserId: notifyUserId,
+        targetType: TargetType.STUDENT,
+        relatedEntityId: record.id,
+        relatedEntityType: 'POINTS_EXCHANGE',
+      })
+      .catch((err) => undefined); // 推送失败不影响兑换主流程
 
     return record;
   }

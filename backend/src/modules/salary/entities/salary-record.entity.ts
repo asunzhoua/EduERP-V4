@@ -7,10 +7,7 @@ import {
   Index,
   Unique,
 } from 'typeorm';
-import {
-  SalaryRecordStatus,
-  SalaryRecordSource,
-} from '../enums/salary.enums';
+import { SalaryRecordStatus, SalaryRecordSource } from '../enums/salary.enums';
 
 /**
  * 工资记录实体
@@ -54,7 +51,11 @@ export class SalaryRecordEntity {
   // ─── 结算维度 ───
 
   /** 记录来源：LESSON_FEE / BASE / DAY / BONUS / DEDUCTION */
-  @Column({ type: 'varchar', length: 20, default: SalaryRecordSource.LESSON_FEE })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: SalaryRecordSource.LESSON_FEE,
+  })
   @Index()
   source: SalaryRecordSource;
 

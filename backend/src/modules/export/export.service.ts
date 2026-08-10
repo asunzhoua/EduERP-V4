@@ -169,7 +169,12 @@ export class ExportService {
 
     return format === 'csv'
       ? this.csvWriter.generate(data, columns, labels(columns, STUDENT_HEADERS))
-      : this.excelWriter.generate(data, '学生数据', columns, labels(columns, STUDENT_HEADERS));
+      : this.excelWriter.generate(
+          data,
+          '学生数据',
+          columns,
+          labels(columns, STUDENT_HEADERS),
+        );
   }
 
   // ─── 2.2 Export Lessons ───
@@ -179,7 +184,11 @@ export class ExportService {
     format: 'csv' | 'excel',
   ): Promise<Buffer> {
     const where: any = {};
-    if (filters.startDate) where.scheduledDate = Between(filters.startDate, filters.endDate ?? filters.startDate);
+    if (filters.startDate)
+      where.scheduledDate = Between(
+        filters.startDate,
+        filters.endDate ?? filters.startDate,
+      );
     if (filters.status) where.status = filters.status;
 
     const lessons = await this.lessonRepo.find({ where });
@@ -238,7 +247,12 @@ export class ExportService {
 
     return format === 'csv'
       ? this.csvWriter.generate(data, columns, labels(columns, LESSON_HEADERS))
-      : this.excelWriter.generate(data, '课程数据', columns, labels(columns, LESSON_HEADERS));
+      : this.excelWriter.generate(
+          data,
+          '课程数据',
+          columns,
+          labels(columns, LESSON_HEADERS),
+        );
   }
 
   // ─── 2.3 Export Consumption ───
@@ -285,8 +299,17 @@ export class ExportService {
     ];
 
     return format === 'csv'
-      ? this.csvWriter.generate(data, columns, labels(columns, CONSUMPTION_HEADERS))
-      : this.excelWriter.generate(data, '课时消耗数据', columns, labels(columns, CONSUMPTION_HEADERS));
+      ? this.csvWriter.generate(
+          data,
+          columns,
+          labels(columns, CONSUMPTION_HEADERS),
+        )
+      : this.excelWriter.generate(
+          data,
+          '课时消耗数据',
+          columns,
+          labels(columns, CONSUMPTION_HEADERS),
+        );
   }
 
   // ─── 2.4 Export Salary ───
@@ -296,20 +319,25 @@ export class ExportService {
     format: 'csv' | 'excel',
   ): Promise<Buffer> {
     const where: any = {};
-    if (filters.startDate) where.lessonDate = Between(filters.startDate, filters.endDate ?? filters.startDate);
+    if (filters.startDate)
+      where.lessonDate = Between(
+        filters.startDate,
+        filters.endDate ?? filters.startDate,
+      );
     if (filters.status) where.status = filters.status;
 
     const records = await this.salaryRepo.find({ where });
 
     // Enrich with teacher data (from user entity) — teacherId is the user ID
-    const teacherIds = [...new Set(records.map(r => r.teacherId))];
-    const teachers = teacherIds.length > 0
-      ? await this.userRepo
-          .createQueryBuilder('user')
-          .where('user.id IN (:...ids)', { ids: teacherIds })
-          .getMany()
-      : [];
-    const teacherMap = new Map(teachers.map(t => [t.id, t.name]));
+    const teacherIds = [...new Set(records.map((r) => r.teacherId))];
+    const teachers =
+      teacherIds.length > 0
+        ? await this.userRepo
+            .createQueryBuilder('user')
+            .where('user.id IN (:...ids)', { ids: teacherIds })
+            .getMany()
+        : [];
+    const teacherMap = new Map(teachers.map((t) => [t.id, t.name]));
 
     const data = records.map((r) => ({
       recordId: r.id,
@@ -345,7 +373,12 @@ export class ExportService {
 
     return format === 'csv'
       ? this.csvWriter.generate(data, columns, labels(columns, SALARY_HEADERS))
-      : this.excelWriter.generate(data, '工资数据', columns, labels(columns, SALARY_HEADERS));
+      : this.excelWriter.generate(
+          data,
+          '工资数据',
+          columns,
+          labels(columns, SALARY_HEADERS),
+        );
   }
 
   // ─── 2.5 Export Finance ───
@@ -361,7 +394,11 @@ export class ExportService {
 
     // 2. Salary payout data (cost side)
     const salaryWhere: any = {};
-    if (filters.startDate) salaryWhere.lessonDate = Between(filters.startDate, filters.endDate ?? filters.startDate);
+    if (filters.startDate)
+      salaryWhere.lessonDate = Between(
+        filters.startDate,
+        filters.endDate ?? filters.startDate,
+      );
     const salaryRecords = await this.salaryRepo.find({ where: salaryWhere });
 
     // Aggregate: contract revenue
@@ -468,7 +505,16 @@ export class ExportService {
     ];
 
     return format === 'csv'
-      ? this.csvWriter.generate(allRows, columns, labels(columns, FINANCE_HEADERS))
-      : this.excelWriter.generate(allRows, '财务数据', columns, labels(columns, FINANCE_HEADERS));
+      ? this.csvWriter.generate(
+          allRows,
+          columns,
+          labels(columns, FINANCE_HEADERS),
+        )
+      : this.excelWriter.generate(
+          allRows,
+          '财务数据',
+          columns,
+          labels(columns, FINANCE_HEADERS),
+        );
   }
 }

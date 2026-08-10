@@ -26,8 +26,12 @@ describe('ReminderController', () => {
 
   const mockService = {
     createReminder: jest.fn().mockResolvedValue(mockReminder),
-    findByUserId: jest.fn().mockResolvedValue({ items: [mockReminder], total: 1 }),
-    markAsRead: jest.fn().mockResolvedValue({ ...mockReminder, status: ReminderStatus.READ }),
+    findByUserId: jest
+      .fn()
+      .mockResolvedValue({ items: [mockReminder], total: 1 }),
+    markAsRead: jest
+      .fn()
+      .mockResolvedValue({ ...mockReminder, status: ReminderStatus.READ }),
     markAllAsRead: jest.fn().mockResolvedValue({ affected: 3 }),
     getUnreadCount: jest.fn().mockResolvedValue(5),
   };
@@ -35,16 +39,20 @@ describe('ReminderController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ReminderController],
-      providers: [
-        { provide: ReminderService, useValue: mockService },
-      ],
+      providers: [{ provide: ReminderService, useValue: mockService }],
     }).compile();
 
     controller = module.get<ReminderController>(ReminderController);
     jest.clearAllMocks();
     mockService.createReminder.mockResolvedValue(mockReminder);
-    mockService.findByUserId.mockResolvedValue({ items: [mockReminder], total: 1 });
-    mockService.markAsRead.mockResolvedValue({ ...mockReminder, status: ReminderStatus.READ });
+    mockService.findByUserId.mockResolvedValue({
+      items: [mockReminder],
+      total: 1,
+    });
+    mockService.markAsRead.mockResolvedValue({
+      ...mockReminder,
+      status: ReminderStatus.READ,
+    });
     mockService.markAllAsRead.mockResolvedValue({ affected: 3 });
     mockService.getUnreadCount.mockResolvedValue(5);
   });
@@ -75,15 +83,27 @@ describe('ReminderController', () => {
       const query = { status: ReminderStatus.PENDING, page: 1, pageSize: 20 };
       const result = await controller.findMyReminders(mockReq, query);
 
-      expect(mockService.findByUserId).toHaveBeenCalledWith(1, ReminderStatus.PENDING, 1, 20);
-      expect(result).toEqual(ApiResponse.success({ items: [mockReminder], total: 1 }));
+      expect(mockService.findByUserId).toHaveBeenCalledWith(
+        1,
+        ReminderStatus.PENDING,
+        1,
+        20,
+      );
+      expect(result).toEqual(
+        ApiResponse.success({ items: [mockReminder], total: 1 }),
+      );
     });
 
     it('should use default page and pageSize when not provided', async () => {
       const query = {};
       await controller.findMyReminders(mockReq, query);
 
-      expect(mockService.findByUserId).toHaveBeenCalledWith(1, undefined, 1, 20);
+      expect(mockService.findByUserId).toHaveBeenCalledWith(
+        1,
+        undefined,
+        1,
+        20,
+      );
     });
   });
 

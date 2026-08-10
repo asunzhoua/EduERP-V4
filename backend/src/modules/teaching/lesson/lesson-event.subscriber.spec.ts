@@ -18,9 +18,11 @@ describe('LessonEventSubscriber', () => {
     handlers.clear();
 
     const mockEventBus = {
-      subscribe: jest.fn((eventName: string, handler: (payload: any) => void) => {
-        handlers.set(eventName, handler);
-      }),
+      subscribe: jest.fn(
+        (eventName: string, handler: (payload: any) => void) => {
+          handlers.set(eventName, handler);
+        },
+      ),
       publish: jest.fn(),
     };
 

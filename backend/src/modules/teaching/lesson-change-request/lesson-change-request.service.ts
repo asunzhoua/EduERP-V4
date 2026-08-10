@@ -1,4 +1,11 @@
-import { Injectable, BadRequestException, NotFoundException, Logger, forwardRef, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Logger,
+  forwardRef,
+  Inject,
+} from '@nestjs/common';
 import { LessonChangeRequestRepository } from './lesson-change-request.repository';
 import { LessonChangeRequestEntity } from './lesson-change-request.entity';
 import { ChangeRequestType } from '@common/enums/change-request-type.enum';
@@ -119,9 +126,7 @@ export class LessonChangeRequestService {
   ): Promise<LessonChangeRequestEntity> {
     const entity = await this.requestRepo.findOneById(requestId);
     if (!entity) {
-      throw new NotFoundException(
-        `Change request not found: id=${requestId}`,
-      );
+      throw new NotFoundException(`Change request not found: id=${requestId}`);
     }
 
     const allowed = VALID_REQUEST_TRANSITIONS[entity.status];
@@ -156,9 +161,7 @@ export class LessonChangeRequestService {
 
     const entity = await this.requestRepo.findOneById(requestId);
     if (!entity) {
-      throw new NotFoundException(
-        `Change request not found: id=${requestId}`,
-      );
+      throw new NotFoundException(`Change request not found: id=${requestId}`);
     }
 
     const allowed = VALID_REQUEST_TRANSITIONS[entity.status];
@@ -194,9 +197,7 @@ export class LessonChangeRequestService {
   ): Promise<LessonChangeRequestEntity> {
     const entity = await this.requestRepo.findOneById(requestId);
     if (!entity) {
-      throw new NotFoundException(
-        `Change request not found: id=${requestId}`,
-      );
+      throw new NotFoundException(`Change request not found: id=${requestId}`);
     }
 
     const allowed = VALID_REQUEST_TRANSITIONS[entity.status];
@@ -242,9 +243,7 @@ export class LessonChangeRequestService {
           executedBy,
           entity.reason,
         );
-        this.logger.log(
-          `CANCEL executed: lesson=${entity.lessonId}`,
-        );
+        this.logger.log(`CANCEL executed: lesson=${entity.lessonId}`);
         break;
       }
 
@@ -255,9 +254,7 @@ export class LessonChangeRequestService {
           executedBy,
           entity.reason,
         );
-        this.logger.log(
-          `REOPEN executed: lesson=${entity.lessonId}`,
-        );
+        this.logger.log(`REOPEN executed: lesson=${entity.lessonId}`);
         break;
       }
 
@@ -291,9 +288,7 @@ export class LessonChangeRequestService {
   }
 
   /** Find all change requests for a lesson. */
-  async findByLessonId(
-    lessonId: number,
-  ): Promise<LessonChangeRequestEntity[]> {
+  async findByLessonId(lessonId: number): Promise<LessonChangeRequestEntity[]> {
     return this.requestRepo.findByLessonId(lessonId);
   }
 

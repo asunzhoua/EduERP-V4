@@ -17,8 +17,12 @@ class FakeTransaction implements ITransaction {
     this.rolledBack = true;
   }
 
-  get isActive(): boolean { return this._active; }
-  get isolationLevel(): IsolationLevel { return IsolationLevel.READ_COMMITTED; }
+  get isActive(): boolean {
+    return this._active;
+  }
+  get isolationLevel(): IsolationLevel {
+    return IsolationLevel.READ_COMMITTED;
+  }
 }
 
 class FakeUnitOfWork implements IUnitOfWork {
@@ -48,7 +52,7 @@ class TestApplicationService extends ApplicationService {
   async failSomething(): Promise<string | null> {
     return this.executeInTransaction(async () => {
       throw new Error('Business error');
-    }).then((r) => (r.isSuccess ? 'ok' : r.error?.message ?? null));
+    }).then((r) => (r.isSuccess ? 'ok' : (r.error?.message ?? null)));
   }
 }
 

@@ -23,7 +23,11 @@ function getSourceFiles(dir: string): string[] {
     if (entry.isDirectory()) {
       if (entry.name === '__tests__' || entry.name === 'node_modules') continue;
       files.push(...getSourceFiles(fullPath));
-    } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts') && !entry.name.endsWith('.d.ts')) {
+    } else if (
+      entry.name.endsWith('.ts') &&
+      !entry.name.endsWith('.spec.ts') &&
+      !entry.name.endsWith('.d.ts')
+    ) {
       files.push(fullPath);
     }
   }
@@ -50,13 +54,27 @@ function getRelativePath(filePath: string): string {
 
 describe('Architecture Enforcement', () => {
   const sharedFiles = getSourceFiles(path.join(SRC_DIR, 'shared'));
-  const kernelDomainFiles = getSourceFiles(path.join(SRC_DIR, 'kernel', 'domain'));
-  const kernelApplicationFiles = getSourceFiles(path.join(SRC_DIR, 'kernel', 'application'));
-  const kernelInfrastructureFiles = getSourceFiles(path.join(SRC_DIR, 'kernel', 'infrastructure'));
-  const kernelDomainEventFiles = getSourceFiles(path.join(SRC_DIR, 'kernel', 'domain-event'));
-  const kernelSpecFiles = getSourceFiles(path.join(SRC_DIR, 'kernel', 'specification'));
-  const kernelPolicyFiles = getSourceFiles(path.join(SRC_DIR, 'kernel', 'policy'));
-  const kernelFactoryFiles = getSourceFiles(path.join(SRC_DIR, 'kernel', 'factory'));
+  const kernelDomainFiles = getSourceFiles(
+    path.join(SRC_DIR, 'kernel', 'domain'),
+  );
+  const kernelApplicationFiles = getSourceFiles(
+    path.join(SRC_DIR, 'kernel', 'application'),
+  );
+  const kernelInfrastructureFiles = getSourceFiles(
+    path.join(SRC_DIR, 'kernel', 'infrastructure'),
+  );
+  const kernelDomainEventFiles = getSourceFiles(
+    path.join(SRC_DIR, 'kernel', 'domain-event'),
+  );
+  const kernelSpecFiles = getSourceFiles(
+    path.join(SRC_DIR, 'kernel', 'specification'),
+  );
+  const kernelPolicyFiles = getSourceFiles(
+    path.join(SRC_DIR, 'kernel', 'policy'),
+  );
+  const kernelFactoryFiles = getSourceFiles(
+    path.join(SRC_DIR, 'kernel', 'factory'),
+  );
 
   describe('Rule 1: shared/ cannot import from kernel/, modules/, @nestjs/*', () => {
     it('should have zero forbidden imports in shared/', () => {
@@ -96,7 +114,9 @@ describe('Architecture Enforcement', () => {
             violations.push(`${relPath}: imports "${imp}" (forbidden @nestjs)`);
           }
           if (imp.includes('kernel/infrastructure')) {
-            violations.push(`${relPath}: imports "${imp}" (forbidden infrastructure)`);
+            violations.push(
+              `${relPath}: imports "${imp}" (forbidden infrastructure)`,
+            );
           }
           if (imp.includes('modules/')) {
             violations.push(`${relPath}: imports "${imp}" (forbidden modules)`);
@@ -121,7 +141,9 @@ describe('Architecture Enforcement', () => {
             violations.push(`${relPath}: imports "${imp}" (forbidden @nestjs)`);
           }
           if (imp.includes('kernel/infrastructure')) {
-            violations.push(`${relPath}: imports "${imp}" (forbidden infrastructure)`);
+            violations.push(
+              `${relPath}: imports "${imp}" (forbidden infrastructure)`,
+            );
           }
           if (imp.includes('modules/')) {
             violations.push(`${relPath}: imports "${imp}" (forbidden modules)`);
@@ -191,7 +213,9 @@ describe('Architecture Enforcement', () => {
             continue;
           }
           if (imp.includes('kernel/') || imp.includes('modules/')) {
-            violations.push(`${relPath}: imports "${imp}" (cross-layer violation)`);
+            violations.push(
+              `${relPath}: imports "${imp}" (cross-layer violation)`,
+            );
           }
         }
       }

@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EnrollmentService, EnrollInput, VALID_ENROLLMENT_TRANSITIONS } from './enrollment.service';
+import {
+  EnrollmentService,
+  EnrollInput,
+  VALID_ENROLLMENT_TRANSITIONS,
+} from './enrollment.service';
 import { EnrollmentRepository } from './enrollment.repository';
 import { ContractRepository } from '../contract/contract.repository';
 import { EnrollmentEntity } from './enrollment.entity';
@@ -219,18 +223,22 @@ describe('EnrollmentService', () => {
       ]);
 
       // Mock classRepo.find to return a class with courseCode
-      classRepo.find.mockResolvedValue([{
-        classCode: 'CL2026070001',
-        courseCode: 'CS2026070001',
-        name: '数学思维训练班',
-        totalLessons: 24,
-      }]);
+      classRepo.find.mockResolvedValue([
+        {
+          classCode: 'CL2026070001',
+          courseCode: 'CS2026070001',
+          name: '数学思维训练班',
+          totalLessons: 24,
+        },
+      ]);
 
       // Mock courseRepo.find to return a course
-      courseRepo.find.mockResolvedValue([{
-        courseCode: 'CS2026070001',
-        name: '数学思维训练',
-      }]);
+      courseRepo.find.mockResolvedValue([
+        {
+          courseCode: 'CS2026070001',
+          name: '数学思维训练',
+        },
+      ]);
 
       // Mock lessonRepo.createQueryBuilder chain
       const mockQueryBuilder = {
@@ -239,10 +247,12 @@ describe('EnrollmentService', () => {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         groupBy: jest.fn().mockReturnThis(),
-        getRawMany: jest.fn().mockResolvedValue([{
-          classCode: 'CL2026070001',
-          count: '10',
-        }]),
+        getRawMany: jest.fn().mockResolvedValue([
+          {
+            classCode: 'CL2026070001',
+            count: '10',
+          },
+        ]),
       };
       lessonRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
@@ -414,9 +424,7 @@ describe('EnrollmentService', () => {
     it('should block resume of ACTIVE enrollment', async () => {
       enrollmentRepo.findOneById.mockResolvedValue({ ...mockEnrollment });
 
-      await expect(service.resume(1, 1)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.resume(1, 1)).rejects.toThrow(BadRequestException);
     });
 
     it('should block resume of WITHDRAWN enrollment', async () => {
@@ -426,9 +434,7 @@ describe('EnrollmentService', () => {
       };
       enrollmentRepo.findOneById.mockResolvedValue(withdrawn);
 
-      await expect(service.resume(1, 1)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.resume(1, 1)).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -447,7 +453,9 @@ describe('EnrollmentService', () => {
     });
 
     it('WITHDRAWN should be terminal', () => {
-      expect(VALID_ENROLLMENT_TRANSITIONS[EnrollmentStatus.WITHDRAWN]).toEqual([]);
+      expect(VALID_ENROLLMENT_TRANSITIONS[EnrollmentStatus.WITHDRAWN]).toEqual(
+        [],
+      );
     });
 
     it('SUSPEND should transition to ACTIVE only', () => {
@@ -457,7 +465,9 @@ describe('EnrollmentService', () => {
     });
 
     it('COMPLETED should be terminal (not activated)', () => {
-      expect(VALID_ENROLLMENT_TRANSITIONS[EnrollmentStatus.COMPLETED]).toEqual([]);
+      expect(VALID_ENROLLMENT_TRANSITIONS[EnrollmentStatus.COMPLETED]).toEqual(
+        [],
+      );
     });
   });
 

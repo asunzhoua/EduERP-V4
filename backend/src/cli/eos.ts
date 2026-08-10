@@ -18,14 +18,12 @@ export interface GenerateOptions {
 }
 
 export type GeneratorType =
-  | 'aggregate'
-  | 'value-object'
-  | 'entity'
-  | 'repository'
-  | 'use-case'
-  | 'event';
+  'aggregate' | 'value-object' | 'entity' | 'repository' | 'use-case' | 'event';
 
-const generators: Record<GeneratorType, (name: string, module: string) => string> = {
+const generators: Record<
+  GeneratorType,
+  (name: string, module: string) => string
+> = {
   aggregate: generateAggregate,
   'value-object': generateValueObject,
   entity: generateEntity,
@@ -37,7 +35,10 @@ const generators: Record<GeneratorType, (name: string, module: string) => string
 /**
  * Generate a skeleton file.
  */
-export function generate(type: GeneratorType, options: GenerateOptions): string {
+export function generate(
+  type: GeneratorType,
+  options: GenerateOptions,
+): string {
   const generator = generators[type];
   if (!generator) {
     throw new Error(`Unknown generator type: ${type}`);

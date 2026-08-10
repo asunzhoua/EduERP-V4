@@ -32,7 +32,9 @@ describe('LessonAttendanceService', () => {
   let service: LessonAttendanceService;
   let mockContractRepo: any;
   // 每个 TestingModule 独立注入 PointsService mock
-  const pointsServiceMock = () => ({ credit: jest.fn().mockResolvedValue({ balance: 10 }) });
+  const pointsServiceMock = () => ({
+    credit: jest.fn().mockResolvedValue({ balance: 10 }),
+  });
 
   beforeEach(async () => {
     const mockRepo = {
@@ -1727,7 +1729,9 @@ describe('LessonAttendanceService', () => {
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           {
             provide: ReminderService,
-            useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) },
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
           },
           { provide: ContractRepository, useValue: contractRepo },
           { provide: getRepositoryToken(ClassEntity), useValue: classRepo },
@@ -1998,9 +2002,7 @@ describe('LessonAttendanceService', () => {
         save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
       };
       classRepo = {
-        findOne: jest
-          .fn()
-          .mockResolvedValue({ courseCode: 'MATH001' }),
+        findOne: jest.fn().mockResolvedValue({ courseCode: 'MATH001' }),
       };
       courseRepo = {
         findOne: jest.fn().mockResolvedValue({ subject: Subject.MATH }),
@@ -2370,7 +2372,9 @@ describe('LessonAttendanceService', () => {
           { provide: LessonAttendanceRepository, useValue: mockRepo },
           {
             provide: ReminderService,
-            useValue: { createReminder: jest.fn().mockResolvedValue({ id: 1 }) },
+            useValue: {
+              createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+            },
           },
           {
             provide: ContractRepository,
@@ -2378,7 +2382,9 @@ describe('LessonAttendanceService', () => {
               findActiveByStudentCodeAndSubject: jest
                 .fn()
                 .mockResolvedValue(null),
-              save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+              save: jest
+                .fn()
+                .mockImplementation((e: any) => Promise.resolve(e)),
             },
           },
           {
@@ -2456,7 +2462,9 @@ describe('LessonAttendanceService', () => {
       expect(report.failure).toBe(0);
       expect(mockRepo.save).toHaveBeenCalled(); // created PENDING record + checked-in save
       const saved = mockRepo.save.mock.calls.flat();
-      const checked = saved.find((e: any) => e.status === AttendanceStatus.PRESENT);
+      const checked = saved.find(
+        (e: any) => e.status === AttendanceStatus.PRESENT,
+      );
       expect(checked).toBeDefined();
       expect(checked.source).toBe(AttendanceSource.IMPORT);
       expect(checked.workflowState).toBe(AttendanceWorkflowState.CHECKED_IN);
@@ -2501,10 +2509,19 @@ describe('LessonAttendanceService', () => {
         deleted: false,
       });
       lessonRepoMock.findByClassCodeAndDate.mockResolvedValue([
-        { id: 9, classCode: 'CL001', teacherId: 10, status: LessonStatus.SCHEDULED },
+        {
+          id: 9,
+          classCode: 'CL001',
+          teacherId: 10,
+          status: LessonStatus.SCHEDULED,
+        },
       ]);
 
-      const report = await service.importAttendance(Buffer.from(''), 'att.xlsx', 1);
+      const report = await service.importAttendance(
+        Buffer.from(''),
+        'att.xlsx',
+        1,
+      );
 
       expect(lessonRepoMock.findByClassCodeAndDate).toHaveBeenCalledWith(
         'CL001',
@@ -2552,7 +2569,11 @@ describe('LessonAttendanceService', () => {
         deleted: false,
       });
 
-      const report = await service.importAttendance(Buffer.from(''), 'att.xlsx', 1);
+      const report = await service.importAttendance(
+        Buffer.from(''),
+        'att.xlsx',
+        1,
+      );
 
       expect(report.failure).toBe(1);
       expect(report.success).toBe(0);
@@ -2606,7 +2627,11 @@ describe('LessonAttendanceService', () => {
         workflowState: AttendanceWorkflowState.CHECKED_IN,
       });
 
-      const report = await service.importAttendance(Buffer.from(''), 'att.xlsx', 1);
+      const report = await service.importAttendance(
+        Buffer.from(''),
+        'att.xlsx',
+        1,
+      );
 
       expect(report.failure).toBe(1);
       expect(report.success).toBe(0);
@@ -2657,7 +2682,11 @@ describe('LessonAttendanceService', () => {
         teacherId: 10,
       });
 
-      const report = await service.importAttendance(Buffer.from(''), 'att.xlsx', 1);
+      const report = await service.importAttendance(
+        Buffer.from(''),
+        'att.xlsx',
+        1,
+      );
 
       expect(report.failure).toBe(1);
       expect(report.details[0].errors[0]).toContain('requires a reason');

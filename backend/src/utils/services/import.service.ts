@@ -35,7 +35,9 @@ export class ImportService {
       throw new Error('Excel 文件中没有工作表');
     }
     const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
+    const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
+      defval: '',
+    });
     return rows;
   }
 
@@ -56,7 +58,8 @@ export class ImportService {
       const normalized: Record<string, string> = {};
       for (const key of Object.keys(row)) {
         const v = row[key];
-        normalized[key.trim().toLowerCase()] = v == null ? '' : String(v).trim();
+        normalized[key.trim().toLowerCase()] =
+          v == null ? '' : String(v).trim();
       }
       return normalized;
     });

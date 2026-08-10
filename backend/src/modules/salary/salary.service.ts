@@ -7,10 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SalaryRuleEntity } from './entities/salary-rule.entity';
 import { SalaryRecordEntity } from './entities/salary-record.entity';
-import {
-  SalaryRecordStatus,
-  SalaryRecordSource,
-} from './enums/salary.enums';
+import { SalaryRecordStatus, SalaryRecordSource } from './enums/salary.enums';
 import { validateRuleConfig } from './dto/rule-config.util';
 import {
   CreateSalaryRuleDto,
@@ -201,9 +198,9 @@ export class SalaryService {
     // config 变更时按新 type 校验；若 type 变而 config 未给，沿用旧 config 再校验
     let config = rule.config;
     if (dto.config !== undefined) {
-      config = validateRuleConfig(nextType as string, dto.config as any);
+      config = validateRuleConfig(nextType, dto.config as any);
     } else if (dto.type !== undefined && dto.type !== rule.type) {
-      config = validateRuleConfig(nextType as string, rule.config);
+      config = validateRuleConfig(nextType, rule.config);
     }
 
     Object.assign(rule, dto);

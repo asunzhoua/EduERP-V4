@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { SuspendRequestEntity, SuspendRequestStatus } from './suspend-request.entity';
+import {
+  SuspendRequestEntity,
+  SuspendRequestStatus,
+} from './suspend-request.entity';
 
 @Injectable()
 export class SuspendRequestRepository {
@@ -18,7 +21,9 @@ export class SuspendRequestRepository {
     return this.repo.findOne({ where: { id } });
   }
 
-  async findByStudentCode(studentCode: string): Promise<SuspendRequestEntity[]> {
+  async findByStudentCode(
+    studentCode: string,
+  ): Promise<SuspendRequestEntity[]> {
     return this.repo.find({
       where: { studentCode },
       order: { createdAt: 'DESC' },
@@ -38,10 +43,14 @@ export class SuspendRequestRepository {
       qb.andWhere('sr.status = :status', { status: options.status });
     }
     if (options.studentCode) {
-      qb.andWhere('sr.studentCode = :studentCode', { studentCode: options.studentCode });
+      qb.andWhere('sr.studentCode = :studentCode', {
+        studentCode: options.studentCode,
+      });
     }
     if (options.classCode) {
-      qb.andWhere('sr.classCode = :classCode', { classCode: options.classCode });
+      qb.andWhere('sr.classCode = :classCode', {
+        classCode: options.classCode,
+      });
     }
 
     qb.orderBy('sr.createdAt', 'DESC');

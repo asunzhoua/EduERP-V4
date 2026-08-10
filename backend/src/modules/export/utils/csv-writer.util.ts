@@ -10,9 +10,7 @@ export class CsvWriter {
 
     // Generate CSV data rows
     const rows = data
-      .map((row) =>
-        columns.map((col) => this.escapeCsv(row[col])).join(','),
-      )
+      .map((row) => columns.map((col) => this.escapeCsv(row[col])).join(','))
       .join('\n');
 
     // Add BOM for Chinese character support (UTF-8)

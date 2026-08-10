@@ -66,7 +66,9 @@ export class ContractRepository {
     const qb = this.repo.createQueryBuilder('c');
 
     if (options.studentCode) {
-      qb.andWhere('c.studentCode = :studentCode', { studentCode: options.studentCode });
+      qb.andWhere('c.studentCode = :studentCode', {
+        studentCode: options.studentCode,
+      });
     }
     if (options.subject) {
       qb.andWhere('c.subject = :subject', { subject: options.subject });

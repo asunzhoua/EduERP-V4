@@ -26,7 +26,9 @@ export class StudentRepository {
     return this.repo.findOne({ where: { studentCode, deleted: false } });
   }
 
-  async findAndCount(options: FindManyOptions<Student>): Promise<[Student[], number]> {
+  async findAndCount(
+    options: FindManyOptions<Student>,
+  ): Promise<[Student[], number]> {
     return this.repo.findAndCount(options);
   }
 

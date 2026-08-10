@@ -57,17 +57,17 @@ export class FeedbackService {
   }
 
   /** 家长/学生端：某个学生的课程反馈（按最近反馈在前） */
-  async findByStudentCode(
-    studentCode: string,
-  ): Promise<
-    Array<LessonFeedback & {
-      lessonDate: string | null;
-      startTime: string | null;
-      endTime: string | null;
-      courseName: string | null;
-      className: string | null;
-      teacherName: string | null;
-    }>
+  async findByStudentCode(studentCode: string): Promise<
+    Array<
+      LessonFeedback & {
+        lessonDate: string | null;
+        startTime: string | null;
+        endTime: string | null;
+        courseName: string | null;
+        className: string | null;
+        teacherName: string | null;
+      }
+    >
   > {
     const rows = await this.feedbackRepo.find({
       where: { studentCode },
@@ -76,7 +76,9 @@ export class FeedbackService {
     if (rows.length === 0) return [];
 
     const lessonIds = [...new Set(rows.map((r) => r.lessonId))];
-    const lessons = await this.lessonRepo.find({ where: { id: In(lessonIds) } });
+    const lessons = await this.lessonRepo.find({
+      where: { id: In(lessonIds) },
+    });
     const lessonMap = new Map(lessons.map((l) => [l.id, l]));
 
     const classCodes = [...new Set(lessons.map((l) => l.classCode))];
@@ -104,8 +106,8 @@ export class FeedbackService {
         lessonDate: lesson?.scheduledDate ?? null,
         startTime: lesson?.startTime ?? null,
         endTime: lesson?.endTime ?? null,
-        courseName: lesson ? courseMap.get(lesson.courseCode) ?? null : null,
-        className: lesson ? classMap.get(lesson.classCode) ?? null : null,
+        courseName: lesson ? (courseMap.get(lesson.courseCode) ?? null) : null,
+        className: lesson ? (classMap.get(lesson.classCode) ?? null) : null,
         teacherName: teacherMap.get(r.teacherId) ?? null,
       };
     });

@@ -349,7 +349,7 @@ describe('LessonService', () => {
       const cls = { ...mockActiveClass, dayOfWeek: [1, 2, 3, 4, 5, 6, 7] };
       classRepo.findOneByCode.mockResolvedValue(cls);
       lessonRepo.findByClassCode.mockResolvedValue([]);
-      lessonRepo.saveAll.mockImplementation(async (lessons) => lessons as any);
+      lessonRepo.saveAll.mockImplementation(async (lessons) => lessons);
 
       const result = await service.generateClassLessons(
         'CL2026070001',
@@ -384,7 +384,7 @@ describe('LessonService', () => {
         status: LessonStatus.SCHEDULED,
       };
       lessonRepo.findByClassCode.mockResolvedValue([existingLesson]);
-      lessonRepo.saveAll.mockImplementation(async (lessons) => lessons as any);
+      lessonRepo.saveAll.mockImplementation(async (lessons) => lessons);
 
       const result = await service.generateClassLessons(
         'CL2026070001',
@@ -478,11 +478,16 @@ describe('LessonService', () => {
           endTime: '11:00',
         },
       ]);
-      lessonRepo.saveAll.mockImplementation(async (lessons) => lessons as any);
+      lessonRepo.saveAll.mockImplementation(async (lessons) => lessons);
 
       const result = await service.generateClassLessons(
         'CL2026070001',
-        { startDate: '2026-09-01', count: 3, teacherId: 5001, checkConflict: true },
+        {
+          startDate: '2026-09-01',
+          count: 3,
+          teacherId: 5001,
+          checkConflict: true,
+        },
         1001,
       );
 

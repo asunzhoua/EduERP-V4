@@ -15,7 +15,9 @@ export class LessonAuditController {
   constructor(private readonly contractService: ContractService) {}
 
   @Get()
-  @ApiOperation({ summary: '课时变更审计（分页，过滤 action/来源/操作者/日期）' })
+  @ApiOperation({
+    summary: '课时变更审计（分页，过滤 action/来源/操作者/日期）',
+  })
   async findAll(@Query() query: QueryLessonAuditDto) {
     const result = await this.contractService.getLessonAudits({
       action: query.action,

@@ -65,7 +65,12 @@ export class AppLogger implements LoggerService {
     }
   }
 
-  private writeToFile(filePath: string, level: string, message: any, context?: string) {
+  private writeToFile(
+    filePath: string,
+    level: string,
+    message: any,
+    context?: string,
+  ) {
     const timestamp = new Date().toISOString();
     const logLine = `[${timestamp}] [${level}]${context ? ' [' + context + ']' : ''} ${typeof message === 'string' ? message : util.inspect(message)}\n`;
     fs.appendFileSync(filePath, logLine);

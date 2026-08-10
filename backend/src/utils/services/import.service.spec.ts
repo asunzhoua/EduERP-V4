@@ -28,7 +28,9 @@ describe('ImportService', () => {
       const result = service.parseBuffer(Buffer.from('fake'), 'test.xlsx');
 
       expect(result).toEqual(rows);
-      expect(XLSX.read).toHaveBeenCalledWith(Buffer.from('fake'), { type: 'buffer' });
+      expect(XLSX.read).toHaveBeenCalledWith(Buffer.from('fake'), {
+        type: 'buffer',
+      });
       expect(XLSX.utils.sheet_to_json).toHaveBeenCalledWith({}, { defval: '' });
     });
 
@@ -38,9 +40,9 @@ describe('ImportService', () => {
         Sheets: {},
       });
 
-      expect(() => service.parseBuffer(Buffer.from('fake'), 'empty.xlsx')).toThrow(
-        'Excel 文件中没有工作表',
-      );
+      expect(() =>
+        service.parseBuffer(Buffer.from('fake'), 'empty.xlsx'),
+      ).toThrow('Excel 文件中没有工作表');
     });
 
     it('should throw when SheetNames contains only undefined/empty', () => {
@@ -49,9 +51,9 @@ describe('ImportService', () => {
         Sheets: {},
       });
 
-      expect(() => service.parseBuffer(Buffer.from('fake'), 'bad.xlsx')).toThrow(
-        'Excel 文件中没有工作表',
-      );
+      expect(() =>
+        service.parseBuffer(Buffer.from('fake'), 'bad.xlsx'),
+      ).toThrow('Excel 文件中没有工作表');
     });
   });
 
@@ -69,7 +71,11 @@ describe('ImportService', () => {
         { 姓名: '李四', 年龄: '22' },
       ];
 
-      const { validRows, report } = service.validateRows(rows, columns, 'students.xlsx');
+      const { validRows, report } = service.validateRows(
+        rows,
+        columns,
+        'students.xlsx',
+      );
 
       expect(validRows).toHaveLength(2);
       expect(report.total).toBe(2);
@@ -85,7 +91,11 @@ describe('ImportService', () => {
         { 姓名: '李四', 年龄: '' },
       ];
 
-      const { validRows, report } = service.validateRows(rows, columns, 'test.xlsx');
+      const { validRows, report } = service.validateRows(
+        rows,
+        columns,
+        'test.xlsx',
+      );
 
       expect(validRows).toHaveLength(0);
       expect(report.total).toBe(2);
@@ -98,14 +108,19 @@ describe('ImportService', () => {
 
     it('should run custom validate functions and collect errors', () => {
       const columnsWithValidate: ImportColumn[] = [
-        { header: '邮箱', required: true, validate: (v) => (v.includes('@') ? null : '邮箱格式错误') },
+        {
+          header: '邮箱',
+          required: true,
+          validate: (v) => (v.includes('@') ? null : '邮箱格式错误'),
+        },
       ];
-      const rows = [
-        { 邮箱: 'bad-email' },
-        { 邮箱: 'ok@test.com' },
-      ];
+      const rows = [{ 邮箱: 'bad-email' }, { 邮箱: 'ok@test.com' }];
 
-      const { validRows, report } = service.validateRows(rows, columnsWithValidate, 'users.xlsx');
+      const { validRows, report } = service.validateRows(
+        rows,
+        columnsWithValidate,
+        'users.xlsx',
+      );
 
       expect(report.details[0].errors).toContain('邮箱格式错误');
       expect(report.details[0].success).toBe(false);
@@ -115,7 +130,11 @@ describe('ImportService', () => {
     });
 
     it('should handle an empty rows array gracefully', () => {
-      const { validRows, report } = service.validateRows([], columns, 'empty.xlsx');
+      const { validRows, report } = service.validateRows(
+        [],
+        columns,
+        'empty.xlsx',
+      );
 
       expect(validRows).toHaveLength(0);
       expect(report.total).toBe(0);
@@ -126,9 +145,13 @@ describe('ImportService', () => {
     });
 
     it('should normalize headers (trim + lowercase) before matching', () => {
-      const rows = [{ ' 姓名 ': '王五', '年龄': '25' }];
+      const rows = [{ ' 姓名 ': '王五', 年龄: '25' }];
 
-      const { validRows, report } = service.validateRows(rows, columns, 'norm.xlsx');
+      const { validRows, report } = service.validateRows(
+        rows,
+        columns,
+        'norm.xlsx',
+      );
 
       expect(validRows).toHaveLength(1);
       expect(report.success).toBe(1);
@@ -201,7 +224,11 @@ describe('ImportService', () => {
       ];
       const rows = [{ studentcode: 'STU_CANON', 学号: 'STU_ALIAS' }];
 
-      const { validRows } = service.validateRows(rows, aliasedColumns, 'p.xlsx');
+      const { validRows } = service.validateRows(
+        rows,
+        aliasedColumns,
+        'p.xlsx',
+      );
 
       expect(validRows[0]['studentcode']).toBe('STU_CANON');
     });

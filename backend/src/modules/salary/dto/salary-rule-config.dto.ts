@@ -18,7 +18,9 @@ export class LessonTierDto {
   @Min(1)
   min: number;
 
-  @ApiPropertyOptional({ description: '档位结束课时数（含）；null = 无上限（最后一档）' })
+  @ApiPropertyOptional({
+    description: '档位结束课时数（含）；null = 无上限（最后一档）',
+  })
   @IsOptional()
   @IsNumber()
   @Min(1)
@@ -37,7 +39,9 @@ export class HeadcountTierDto {
   @Min(1)
   min: number;
 
-  @ApiPropertyOptional({ description: '档位结束人数（含）；null = 无上限（最后一档）' })
+  @ApiPropertyOptional({
+    description: '档位结束人数（含）；null = 无上限（最后一档）',
+  })
   @IsOptional()
   @IsNumber()
   @Min(1)
@@ -100,7 +104,9 @@ export class SalaryRuleConfigDto {
   @Min(0)
   minLessonForBase?: number;
 
-  @ApiPropertyOptional({ description: '固定单价（PER_LESSON/PER_DAY/PART_TIME/OUTING）' })
+  @ApiPropertyOptional({
+    description: '固定单价（PER_LESSON/PER_DAY/PART_TIME/OUTING）',
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)
@@ -112,7 +118,9 @@ export class SalaryRuleConfigDto {
   @Min(0)
   pricePerHead?: number;
 
-  @ApiPropertyOptional({ description: '累计课时阶梯（TIER 模式），按 min 升序' })
+  @ApiPropertyOptional({
+    description: '累计课时阶梯（TIER 模式），按 min 升序',
+  })
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
@@ -120,7 +128,9 @@ export class SalaryRuleConfigDto {
   @Type(() => LessonTierDto)
   lessonTiers?: LessonTierDto[];
 
-  @ApiPropertyOptional({ description: '人数阶梯（PER_HEAD 模式），按 min 升序' })
+  @ApiPropertyOptional({
+    description: '人数阶梯（PER_HEAD 模式），按 min 升序',
+  })
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
@@ -135,12 +145,16 @@ export class SalaryRuleConfigDto {
   @Type(() => BonusConfigDto)
   bonus?: BonusConfigDto;
 
-  @ApiPropertyOptional({ description: '生效起始日（YYYY-MM-DD，缺省长期有效）' })
+  @ApiPropertyOptional({
+    description: '生效起始日（YYYY-MM-DD，缺省长期有效）',
+  })
   @IsOptional()
   @IsDateString()
   effectiveFrom?: string;
 
-  @ApiPropertyOptional({ description: '生效结束日（YYYY-MM-DD，缺省长期有效）' })
+  @ApiPropertyOptional({
+    description: '生效结束日（YYYY-MM-DD，缺省长期有效）',
+  })
   @IsOptional()
   @IsDateString()
   effectiveTo?: string;

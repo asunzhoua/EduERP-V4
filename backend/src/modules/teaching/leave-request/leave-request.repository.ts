@@ -25,7 +25,9 @@ export class LeaveRequestRepository {
     });
   }
 
-  async findByStatus(status: LeaveRequestStatus): Promise<LeaveRequestEntity[]> {
+  async findByStatus(
+    status: LeaveRequestStatus,
+  ): Promise<LeaveRequestEntity[]> {
     return this.repo.find({
       where: { status },
       order: { createdAt: 'DESC' },
@@ -45,10 +47,14 @@ export class LeaveRequestRepository {
       qb.andWhere('lr.status = :status', { status: options.status });
     }
     if (options.studentCode) {
-      qb.andWhere('lr.studentCode = :studentCode', { studentCode: options.studentCode });
+      qb.andWhere('lr.studentCode = :studentCode', {
+        studentCode: options.studentCode,
+      });
     }
     if (options.classCode) {
-      qb.andWhere('lr.classCode = :classCode', { classCode: options.classCode });
+      qb.andWhere('lr.classCode = :classCode', {
+        classCode: options.classCode,
+      });
     }
 
     qb.orderBy('lr.createdAt', 'DESC');

@@ -54,7 +54,10 @@ describe('EnrollmentController', () => {
     jest.clearAllMocks();
     // Re-mock resolved values after clearAllMocks
     mockEnrollmentService.enroll.mockResolvedValue(mockEnrollment);
-    mockEnrollmentService.findAll.mockResolvedValue({ items: [mockEnrollment], total: 1 });
+    mockEnrollmentService.findAll.mockResolvedValue({
+      items: [mockEnrollment],
+      total: 1,
+    });
     mockEnrollmentService.findOne.mockResolvedValue(mockEnrollment);
     mockEnrollmentService.withdraw.mockResolvedValue({
       ...mockEnrollment,
@@ -80,7 +83,9 @@ describe('EnrollmentController', () => {
 
       const result = await controller.enroll(dto);
 
-      expect(result).toEqual(ApiResponse.success(mockEnrollment, 'Student enrolled'));
+      expect(result).toEqual(
+        ApiResponse.success(mockEnrollment, 'Student enrolled'),
+      );
       expect(service.enroll).toHaveBeenCalledWith({
         classCode: 'CLS001',
         studentCode: 'STU001',
@@ -94,7 +99,9 @@ describe('EnrollmentController', () => {
     it('should return paginated enrollments', async () => {
       const result = await controller.findAll({});
 
-      expect(result).toEqual(ApiResponse.success({ items: [mockEnrollment], total: 1 }));
+      expect(result).toEqual(
+        ApiResponse.success({ items: [mockEnrollment], total: 1 }),
+      );
       expect(service.findAll).toHaveBeenCalled();
     });
   });
@@ -139,7 +146,10 @@ describe('EnrollmentController', () => {
 
       const result = await controller.findByStudent('STU001', mockReq);
 
-      expect(dataScopeService.verifyStudentAccess).toHaveBeenCalledWith(mockReq.user, 'STU001');
+      expect(dataScopeService.verifyStudentAccess).toHaveBeenCalledWith(
+        mockReq.user,
+        'STU001',
+      );
       expect(result).toEqual(ApiResponse.success([mockEnrollment]));
       expect(service.findByStudentCode).toHaveBeenCalledWith('STU001');
     });
@@ -150,7 +160,9 @@ describe('EnrollmentController', () => {
       );
       const mockReq = { user: { sub: 2, role: 'Student' } };
 
-      await expect(controller.findByStudent('STU001', mockReq)).rejects.toThrow('Forbidden');
+      await expect(controller.findByStudent('STU001', mockReq)).rejects.toThrow(
+        'Forbidden',
+      );
     });
   });
 });

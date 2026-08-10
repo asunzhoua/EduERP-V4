@@ -31,7 +31,11 @@ export class Reminder {
   @Column({ type: 'enum', enum: TargetType })
   targetType: TargetType;
 
-  @Column({ type: 'enum', enum: ReminderStatus, default: ReminderStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: ReminderStatus,
+    default: ReminderStatus.PENDING,
+  })
   @Index()
   status: ReminderStatus;
 

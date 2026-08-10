@@ -57,7 +57,8 @@ function createMockLessonRepo(lessons: any[]) {
     find: jest.fn().mockImplementation(({ where }: any) => {
       let out = lessons;
       if (where?.status) out = out.filter((l) => l.status === where.status);
-      if (where?.teacherId) out = out.filter((l) => l.teacherId === where.teacherId);
+      if (where?.teacherId)
+        out = out.filter((l) => l.teacherId === where.teacherId);
       return Promise.resolve(out);
     }),
   };
@@ -82,7 +83,9 @@ function createMockCourseRepo(rows: any[]) {
     find: jest.fn().mockImplementation(({ where }: any) => {
       const codes = where?.courseCode?._value;
       if (Array.isArray(codes)) {
-        return Promise.resolve(rows.filter((r) => codes.includes(r.courseCode)));
+        return Promise.resolve(
+          rows.filter((r) => codes.includes(r.courseCode)),
+        );
       }
       return Promise.resolve(rows);
     }),
@@ -125,20 +128,23 @@ function createMockRecordRepo(existing: any[] = []) {
     find: jest.fn().mockImplementation(({ where }: any) => {
       let out = existing;
       if (where?.month) out = out.filter((r) => r.month === where.month);
-      if (where?.teacherId) out = out.filter((r) => r.teacherId === where.teacherId);
+      if (where?.teacherId)
+        out = out.filter((r) => r.teacherId === where.teacherId);
       return Promise.resolve(out);
     }),
   };
 }
 
-function buildService(opts: {
-  lessons?: any[];
-  attendances?: any[];
-  courses?: any[];
-  rules?: any[];
-  existing?: any[];
-  users?: any[];
-} = {}) {
+function buildService(
+  opts: {
+    lessons?: any[];
+    attendances?: any[];
+    courses?: any[];
+    rules?: any[];
+    existing?: any[];
+    users?: any[];
+  } = {},
+) {
   const lessonRepo = createMockLessonRepo(opts.lessons ?? []);
   const attendanceRepo = createMockAttendanceRepo(opts.attendances ?? []);
   const courseRepo = createMockCourseRepo(opts.courses ?? []);
@@ -153,7 +159,15 @@ function buildService(opts: {
     courseRepo as any,
     userRepo as any,
   );
-  return { service, recordRepo, lessonRepo, attendanceRepo, courseRepo, ruleRepo, userRepo };
+  return {
+    service,
+    recordRepo,
+    lessonRepo,
+    attendanceRepo,
+    courseRepo,
+    ruleRepo,
+    userRepo,
+  };
 }
 
 // ─── Tests ───
@@ -278,7 +292,9 @@ describe('SalarySettlementService.settle', () => {
       ],
     });
     const res = await service.settle('2026-07');
-    const base = recordRepo._saved.find((r: any) => r.source === SalaryRecordSource.BASE);
+    const base = recordRepo._saved.find(
+      (r: any) => r.source === SalaryRecordSource.BASE,
+    );
     expect(base).toBeDefined();
     expect(base.amount).toBe(2000);
     expect(base.lessonId).toBeNull();
@@ -294,13 +310,18 @@ describe('SalarySettlementService.settle', () => {
       attendances: [],
       courses: [createCourse()],
       rules: [
-        createRule({ type: SalaryRuleType.MONTHLY, config: { baseSalary: 5000, minLessonForBase: 0 } }),
+        createRule({
+          type: SalaryRuleType.MONTHLY,
+          config: { baseSalary: 5000, minLessonForBase: 0 },
+        }),
       ],
     });
     const res = await service.settle('2026-07');
     const sources = recordRepo._saved.map((r: any) => r.source);
     expect(sources).not.toContain(SalaryRecordSource.LESSON_FEE);
-    const base = recordRepo._saved.find((r: any) => r.source === SalaryRecordSource.BASE);
+    const base = recordRepo._saved.find(
+      (r: any) => r.source === SalaryRecordSource.BASE,
+    );
     expect(base).toBeDefined();
     expect(base.amount).toBe(5000);
     expect(recordRepo._saved).toHaveLength(1);
@@ -316,13 +337,18 @@ describe('SalarySettlementService.settle', () => {
       attendances: [],
       courses: [createCourse()],
       rules: [
-        createRule({ type: SalaryRuleType.PER_DAY, config: { lessonPrice: 300 } }),
+        createRule({
+          type: SalaryRuleType.PER_DAY,
+          config: { lessonPrice: 300 },
+        }),
       ],
     });
     const res = await service.settle('2026-07');
     const sources = recordRepo._saved.map((r: any) => r.source);
     expect(sources).not.toContain(SalaryRecordSource.LESSON_FEE);
-    const dayRecords = recordRepo._saved.filter((r: any) => r.source === SalaryRecordSource.DAY);
+    const dayRecords = recordRepo._saved.filter(
+      (r: any) => r.source === SalaryRecordSource.DAY,
+    );
     expect(dayRecords).toHaveLength(2); // 2 个不同日期
     expect(dayRecords.map((r: any) => r.amount)).toEqual([300, 300]);
   });
@@ -337,12 +363,17 @@ describe('SalarySettlementService.settle', () => {
       courses: [createCourse()],
       rules: [
         createRule({
-          config: { lessonPrice: 80, deductions: { latePerOccurrence: 10, absentPerOccurrence: 20 } },
+          config: {
+            lessonPrice: 80,
+            deductions: { latePerOccurrence: 10, absentPerOccurrence: 20 },
+          },
         }),
       ],
     });
     const res = await service.settle('2026-07');
-    const ded = recordRepo._saved.find((r: any) => r.source === SalaryRecordSource.DEDUCTION);
+    const ded = recordRepo._saved.find(
+      (r: any) => r.source === SalaryRecordSource.DEDUCTION,
+    );
     expect(ded).toBeUndefined();
     expect(recordRepo._saved).toHaveLength(1); // 仅 LESSON_FEE
   });
@@ -353,19 +384,27 @@ describe('SalarySettlementService.settle', () => {
         createLesson({ id: 1, scheduledDate: '2026-07-01' }),
         createLesson({ id: 2, scheduledDate: '2026-07-08' }),
       ],
-      attendances: [createAttendance({ lessonId: 1 }), createAttendance({ lessonId: 2 })],
+      attendances: [
+        createAttendance({ lessonId: 1 }),
+        createAttendance({ lessonId: 2 }),
+      ],
       courses: [createCourse()],
       rules: [
         createRule({
           config: {
             lessonPrice: 80,
-            bonus: { fullAttendance: 100, lessonTarget: { threshold: 2, amount: 200 } },
+            bonus: {
+              fullAttendance: 100,
+              lessonTarget: { threshold: 2, amount: 200 },
+            },
           },
         }),
       ],
     });
     const res = await service.settle('2026-07');
-    const bonus = recordRepo._saved.find((r: any) => r.source === SalaryRecordSource.BONUS);
+    const bonus = recordRepo._saved.find(
+      (r: any) => r.source === SalaryRecordSource.BONUS,
+    );
     expect(bonus).toBeDefined();
     expect(bonus.amount).toBe(300); // 100 + 200
   });
@@ -388,8 +427,12 @@ describe('SalarySettlementService.settle', () => {
 
   it('month 非法格式抛出 BadRequestException', async () => {
     const { service } = buildService();
-    await expect(service.settle('2026/07')).rejects.toThrow(BadRequestException);
-    await expect(service.settle('2026-13')).rejects.toThrow(BadRequestException);
+    await expect(service.settle('2026/07')).rejects.toThrow(
+      BadRequestException,
+    );
+    await expect(service.settle('2026-13')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('ruleVersion 取规则 updateTime 的 YYYY-MM-DD', async () => {
@@ -408,7 +451,9 @@ describe('SalarySettlementService.settle', () => {
       lessons: [createLesson()],
       attendances: [createAttendance()],
       courses: [createCourse()],
-      rules: [createRule({ teacherLevel: '中级', config: { lessonPrice: 120 } })],
+      rules: [
+        createRule({ teacherLevel: '中级', config: { lessonPrice: 120 } }),
+      ],
       users: [{ id: 5001, teacherLevel: '中级' }],
     });
     const res = await service.settle('2026-07');
@@ -423,7 +468,9 @@ describe('SalarySettlementService.settle', () => {
       lessons: [createLesson()],
       attendances: [createAttendance()],
       courses: [createCourse()],
-      rules: [createRule({ teacherLevel: '高级', config: { lessonPrice: 150 } })],
+      rules: [
+        createRule({ teacherLevel: '高级', config: { lessonPrice: 150 } }),
+      ],
       users: [{ id: 5001, teacherLevel: '中级' }],
     });
     const res = await service.settle('2026-07');
@@ -440,7 +487,12 @@ describe('SalarySettlementService.settle', () => {
       courses: [createCourse()],
       rules: [
         createRule({ id: 1, courseType: '1v1', config: { lessonPrice: 100 } }),
-        createRule({ id: 2, courseType: '1v1', teacherLevel: '中级', config: { lessonPrice: 130 } }),
+        createRule({
+          id: 2,
+          courseType: '1v1',
+          teacherLevel: '中级',
+          config: { lessonPrice: 130 },
+        }),
       ],
       users: [{ id: 5001, teacherLevel: '中级' }],
     });
@@ -457,7 +509,11 @@ describe('SalarySettlementService.settle', () => {
       attendances: [createAttendance()],
       courses: [createCourse()],
       rules: [
-        createRule({ id: 1, teacherLevel: '高级', config: { lessonPrice: 150 } }),
+        createRule({
+          id: 1,
+          teacherLevel: '高级',
+          config: { lessonPrice: 150 },
+        }),
         createRule({ id: 2, config: { lessonPrice: 80 } }),
       ],
       users: [{ id: 5001, teacherLevel: null }],

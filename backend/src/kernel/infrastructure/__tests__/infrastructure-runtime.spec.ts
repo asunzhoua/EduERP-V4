@@ -22,7 +22,11 @@ class UserMapper implements IMapper<DomainUser, PersistenceUser> {
   }
 }
 
-class FakeUserAdapter implements IPersistenceAdapter<DomainUser, PersistenceUser, number> {
+class FakeUserAdapter implements IPersistenceAdapter<
+  DomainUser,
+  PersistenceUser,
+  number
+> {
   private store = new Map<number, PersistenceUser>();
   private nextId = 1;
 
@@ -55,7 +59,11 @@ class FakeUserAdapter implements IPersistenceAdapter<DomainUser, PersistenceUser
   }
 }
 
-class UserRepository extends RepositoryBase<DomainUser, PersistenceUser, number> {
+class UserRepository extends RepositoryBase<
+  DomainUser,
+  PersistenceUser,
+  number
+> {
   constructor(adapter: FakeUserAdapter) {
     super(adapter, new UserMapper());
   }
@@ -137,7 +145,8 @@ describe('Infrastructure Runtime', () => {
   describe('ClockAdapter', () => {
     it('should delegate to underlying clock', async () => {
       const { ClockAdapter } = await import('../clock-adapter');
-      const { SystemClock } = await import('../../../shared/clock/system-clock');
+      const { SystemClock } =
+        await import('../../../shared/clock/system-clock');
 
       const adapter = new ClockAdapter(new SystemClock());
       const now = adapter.now();

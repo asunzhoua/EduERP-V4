@@ -35,7 +35,11 @@ import { PointsModule } from '@modules/points/points.module';
     PointsModule,
   ],
   controllers: [LessonAttendanceController],
-  providers: [LessonAttendanceService, LessonAttendanceRepository, ImportService],
+  providers: [
+    LessonAttendanceService,
+    LessonAttendanceRepository,
+    ImportService,
+  ],
   exports: [LessonAttendanceService, LessonAttendanceRepository],
 })
 export class LessonAttendanceModule {}

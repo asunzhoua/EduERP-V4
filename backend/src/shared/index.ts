@@ -5,17 +5,37 @@
  */
 
 // Entity
-export { BaseEntity, AggregateRoot, ValueObject, UniqueId, NumberId, StringId } from './entity';
+export {
+  BaseEntity,
+  AggregateRoot,
+  ValueObject,
+  UniqueId,
+  NumberId,
+  StringId,
+} from './entity';
 
 // Domain Event
-export type { DomainEvent, DomainEventBase, DomainEventHandler } from './domain-event';
+export type {
+  DomainEvent,
+  DomainEventBase,
+  DomainEventHandler,
+} from './domain-event';
 
 // Specification
 export type { ISpecification } from './specification';
-export { CompositeSpecification, AndSpecification, OrSpecification, NotSpecification } from './specification';
+export {
+  CompositeSpecification,
+  AndSpecification,
+  OrSpecification,
+  NotSpecification,
+} from './specification';
 
 // Exception
-export { DomainException, InvariantViolationException, BusinessRuleViolationException } from './exception';
+export {
+  DomainException,
+  InvariantViolationException,
+  BusinessRuleViolationException,
+} from './exception';
 
 // Result
 export { Result } from './result';

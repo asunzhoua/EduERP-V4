@@ -31,13 +31,16 @@ export class PoolMonitorService implements OnModuleInit {
       this.logPoolStats(stats);
       this.checkAlerts(stats);
     } catch (error) {
-      this.logger.error(`Failed to monitor pool: ${error.message}`, 'PoolMonitor');
+      this.logger.error(
+        `Failed to monitor pool: ${error.message}`,
+        'PoolMonitor',
+      );
     }
   }
 
   async getPoolStats(): Promise<PoolStats> {
     const driver = this.dataSource.driver as any;
-    
+
     if (!driver.pool) {
       return {
         total: 0,
@@ -68,7 +71,7 @@ export class PoolMonitorService implements OnModuleInit {
 
   private logPoolStats(stats: PoolStats): void {
     const message = `[DB Pool] total=${stats.total}, active=${stats.active}, idle=${stats.idle}, waiting=${stats.waiting}, usage=${(stats.usage * 100).toFixed(1)}%`;
-    
+
     if (stats.usage > this.warningThreshold) {
       this.logger.warn(message, 'PoolMonitor');
     } else {
@@ -81,7 +84,7 @@ export class PoolMonitorService implements OnModuleInit {
     if (stats.usage > this.warningThreshold) {
       this.logger.warn(
         `[ALERT] Database connection pool usage is high: ${(stats.usage * 100).toFixed(1)}%`,
-        'PoolMonitor'
+        'PoolMonitor',
       );
     }
 
@@ -89,7 +92,7 @@ export class PoolMonitorService implements OnModuleInit {
     if (stats.waiting > 0) {
       this.logger.warn(
         `[ALERT] Database connection pool has ${stats.waiting} waiting requests`,
-        'PoolMonitor'
+        'PoolMonitor',
       );
     }
 
@@ -97,7 +100,7 @@ export class PoolMonitorService implements OnModuleInit {
     if (stats.total > 0 && stats.idle === 0 && stats.active === stats.total) {
       this.logger.error(
         '[ALERT] Database connection pool is fully utilized, no idle connections available',
-        'PoolMonitor'
+        'PoolMonitor',
       );
     }
   }

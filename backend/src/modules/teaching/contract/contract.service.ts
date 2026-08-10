@@ -6,7 +6,14 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { DataSource, EntityManager, Repository, In, Not, Between } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  Repository,
+  In,
+  Not,
+  Between,
+} from 'typeorm';
 import { ContractRepository } from './contract.repository';
 import { ContractCodeGeneratorService } from './contract-code-generator.service';
 import { ContractEntity } from './contract.entity';
@@ -22,10 +29,7 @@ import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
 import { Student } from '@modules/student/entities/student.entity';
 import { ImportService } from '@utils/services/import.service';
-import {
-  ImportColumn,
-  ImportReport,
-} from '@utils/services/import.service';
+import { ImportColumn, ImportReport } from '@utils/services/import.service';
 
 /** Allowed status transitions per ContractStateMachine */
 const VALID_TRANSITIONS: Record<ContractStatus, ContractStatus[]> = {
@@ -183,9 +187,13 @@ export class ContractService {
     return this.contractRepo.findByStudentCode(studentCode);
   }
 
-  async findAll(
-    query: { studentCode?: string; subject?: string; status?: string; page?: number; pageSize?: number },
-  ): Promise<{ items: ContractEntity[]; total: number }> {
+  async findAll(query: {
+    studentCode?: string;
+    subject?: string;
+    status?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<{ items: ContractEntity[]; total: number }> {
     return this.contractRepo.findMany({
       studentCode: query.studentCode,
       subject: query.subject,
@@ -206,7 +214,11 @@ export class ContractService {
    */
   async adjustLessons(
     contractCode: string,
-    input: { totalLessons?: number; remainingLessons?: number; reason?: string },
+    input: {
+      totalLessons?: number;
+      remainingLessons?: number;
+      reason?: string;
+    },
     operatedBy: number,
     operatorName?: string,
   ): Promise<ContractEntity> {
@@ -355,7 +367,12 @@ export class ContractService {
     contract: ContractEntity,
     page: number,
     pageSize: number,
-  ): Promise<{ items: ConsumeRecord[]; total: number; page: number; pageSize: number }> {
+  ): Promise<{
+    items: ConsumeRecord[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }> {
     const where = { deductedContractId: contract.id };
     const total = await this.attendanceRepo.count({ where });
     const rows = await this.attendanceRepo.find({
@@ -390,8 +407,12 @@ export class ContractService {
           endTime: lesson?.endTime ?? null,
           courseName: course?.name ?? null,
           subject: course?.subject ?? contract.subject,
-          lessonType: lesson?.isMakeup ? ('MAKEUP' as const) : ('NORMAL' as const),
-          lessonTypeLabel: lesson?.isMakeup ? ('补课' as const) : ('正常' as const),
+          lessonType: lesson?.isMakeup
+            ? ('MAKEUP' as const)
+            : ('NORMAL' as const),
+          lessonTypeLabel: lesson?.isMakeup
+            ? ('补课' as const)
+            : ('正常' as const),
           lessonsConsumed: 1,
           topic: lesson?.topic ?? null,
           status: a.status ?? null,
@@ -414,7 +435,8 @@ export class ContractService {
    * estimatedDaysLeft：按近 30 天扣课速度估算用完天数；无近期消耗 → null。
    */
   async getRenewalWarnings(threshold?: number): Promise<RenewalWarningItem[]> {
-    const t = threshold ?? this.config.get<number>('app.renewal.warningThreshold', 5);
+    const t =
+      threshold ?? this.config.get<number>('app.renewal.warningThreshold', 5);
 
     const contracts = await this.contractRepo.findActiveAtRisk(t);
     if (contracts.length === 0) return [];
@@ -464,7 +486,9 @@ export class ContractService {
     const lastCourseCodes = [...new Set(lessons.map((l) => l.courseCode))];
     const courses =
       lastCourseCodes.length > 0
-        ? await this.courseRepo.find({ where: { courseCode: In(lastCourseCodes) } })
+        ? await this.courseRepo.find({
+            where: { courseCode: In(lastCourseCodes) },
+          })
         : [];
     const courseMap = new Map(courses.map((c) => [c.courseCode, c]));
 
@@ -472,7 +496,9 @@ export class ContractService {
       // TypeORM 对 MySQL bigint 返回 string，归一为 number 才命中 perContract 的键
       const g = perContract.get(Number(c.id));
       const lastLesson = g?.last ? lessonMap.get(g.last.lessonId) : undefined;
-      const course = lastLesson ? courseMap.get(lastLesson.courseCode) : undefined;
+      const course = lastLesson
+        ? courseMap.get(lastLesson.courseCode)
+        : undefined;
       const dailyRate = g ? g.count30d / 30 : 0;
       const estimatedDaysLeft =
         dailyRate > 0 ? Math.ceil(c.remainingLessons / dailyRate) : null;
@@ -554,7 +580,8 @@ export class ContractService {
         header: 'subject',
         aliases: ['科目'],
         required: true,
-        validate: (v) => (this.parseSubject(v) ? null : '科目无效（如 MATH/数学）'),
+        validate: (v) =>
+          this.parseSubject(v) ? null : '科目无效（如 MATH/数学）',
       },
       {
         header: 'lessons',
@@ -599,14 +626,18 @@ export class ContractService {
 
           const subject = this.parseSubject(row['subject']) as Subject;
           const lessons = Number(row['lessons']);
-          const unitPrice = row['unitprice'] ? Number(row['unitprice']) : undefined;
+          const unitPrice = row['unitprice']
+            ? Number(row['unitprice'])
+            : undefined;
           const validTo = row['validto'] || undefined;
 
           const existing = await manager.findOne(ContractEntity, {
             where: {
               studentCode: student.studentCode,
               subject,
-              status: Not(In([ContractStatus.EXPIRED, ContractStatus.REFUNDED])),
+              status: Not(
+                In([ContractStatus.EXPIRED, ContractStatus.REFUNDED]),
+              ),
             },
             order: { createdAt: 'DESC' },
           });
@@ -639,7 +670,8 @@ export class ContractService {
             });
           } else {
             const contract = new ContractEntity();
-            contract.contractCode = await this.codeGenerator.generateContractCode();
+            contract.contractCode =
+              await this.codeGenerator.generateContractCode();
             contract.studentCode = student.studentCode;
             contract.subject = subject;
             contract.totalLessons = lessons;
@@ -725,21 +757,21 @@ export class ContractService {
       return Subject[upper as keyof typeof Subject];
     }
     const aliases: Record<string, Subject> = {
-      '数学': Subject.MATH,
-      '英语': Subject.ENGLISH,
-      '英文': Subject.ENGLISH,
-      '语文': Subject.CHINESE,
-      '中文': Subject.CHINESE,
-      '物理': Subject.PHYSICS,
-      '化学': Subject.CHEMISTRY,
-      '美术': Subject.ART,
-      '音乐': Subject.MUSIC,
-      '舞蹈': Subject.DANCE,
-      '体育': Subject.SPORTS,
-      '运动': Subject.SPORTS,
-      '编程': Subject.CODING,
-      '计算机': Subject.CODING,
-      '其他': Subject.OTHER,
+      数学: Subject.MATH,
+      英语: Subject.ENGLISH,
+      英文: Subject.ENGLISH,
+      语文: Subject.CHINESE,
+      中文: Subject.CHINESE,
+      物理: Subject.PHYSICS,
+      化学: Subject.CHEMISTRY,
+      美术: Subject.ART,
+      音乐: Subject.MUSIC,
+      舞蹈: Subject.DANCE,
+      体育: Subject.SPORTS,
+      运动: Subject.SPORTS,
+      编程: Subject.CODING,
+      计算机: Subject.CODING,
+      其他: Subject.OTHER,
     };
     return aliases[trimmed] ?? null;
   }

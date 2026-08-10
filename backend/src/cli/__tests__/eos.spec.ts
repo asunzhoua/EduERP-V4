@@ -26,7 +26,10 @@ describe('Developer SDK (eos-cli)', () => {
 
   describe('generate()', () => {
     it('should generate aggregate skeleton', () => {
-      const result = generate('aggregate', { name: 'Student', module: 'student' });
+      const result = generate('aggregate', {
+        name: 'Student',
+        module: 'student',
+      });
 
       expect(result).toContain('StudentAggregate');
       expect(result).toContain('StudentId');
@@ -35,7 +38,10 @@ describe('Developer SDK (eos-cli)', () => {
     });
 
     it('should generate value object skeleton', () => {
-      const result = generate('value-object', { name: 'Email', module: 'student' });
+      const result = generate('value-object', {
+        name: 'Email',
+        module: 'student',
+      });
 
       expect(result).toContain('class Email');
       expect(result).toContain('ValueObject');
@@ -43,21 +49,30 @@ describe('Developer SDK (eos-cli)', () => {
     });
 
     it('should generate entity skeleton', () => {
-      const result = generate('entity', { name: 'Enrollment', module: 'student' });
+      const result = generate('entity', {
+        name: 'Enrollment',
+        module: 'student',
+      });
 
       expect(result).toContain('class Enrollment');
       expect(result).toContain('BaseEntity');
     });
 
     it('should generate repository skeleton', () => {
-      const result = generate('repository', { name: 'Student', module: 'student' });
+      const result = generate('repository', {
+        name: 'Student',
+        module: 'student',
+      });
 
       expect(result).toContain('StudentRepository');
       expect(result).toContain('RepositoryBase');
     });
 
     it('should generate use case skeleton', () => {
-      const result = generate('use-case', { name: 'EnrollStudent', module: 'student' });
+      const result = generate('use-case', {
+        name: 'EnrollStudent',
+        module: 'student',
+      });
 
       expect(result).toContain('EnrollStudentCommand');
       expect(result).toContain('EnrollStudentHandler');
@@ -65,7 +80,10 @@ describe('Developer SDK (eos-cli)', () => {
     });
 
     it('should generate event skeleton', () => {
-      const result = generate('event', { name: 'StudentEnrolled', module: 'student' });
+      const result = generate('event', {
+        name: 'StudentEnrolled',
+        module: 'student',
+      });
 
       expect(result).toContain('StudentEnrolledEvent');
       expect(result).toContain('DomainEventBase');
@@ -73,9 +91,9 @@ describe('Developer SDK (eos-cli)', () => {
     });
 
     it('should throw for unknown generator type', () => {
-      expect(() => generate('unknown' as any, { name: 'Test', module: 'test' })).toThrow(
-        'Unknown generator type: unknown',
-      );
+      expect(() =>
+        generate('unknown' as any, { name: 'Test', module: 'test' }),
+      ).toThrow('Unknown generator type: unknown');
     });
   });
 

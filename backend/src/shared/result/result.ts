@@ -12,7 +12,11 @@ export class Result<T> {
   public readonly _value: T | null;
   public readonly _error: Error | null;
 
-  private constructor(isSuccess: boolean, value: T | null, error: Error | null) {
+  private constructor(
+    isSuccess: boolean,
+    value: T | null,
+    error: Error | null,
+  ) {
     this.isSuccess = isSuccess;
     this.isFailure = !isSuccess;
     this._value = value;

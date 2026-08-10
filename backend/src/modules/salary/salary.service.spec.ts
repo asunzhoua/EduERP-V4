@@ -33,7 +33,10 @@ describe('SalaryService.getStatistics', () => {
     qb = {
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
-      clone: jest.fn().mockReturnValueOnce(totals).mockReturnValueOnce(statusRows),
+      clone: jest
+        .fn()
+        .mockReturnValueOnce(totals)
+        .mockReturnValueOnce(statusRows),
     };
   });
 
@@ -44,7 +47,9 @@ describe('SalaryService.getStatistics', () => {
         { provide: getRepositoryToken(SalaryRuleEntity), useValue: ruleRepo },
         {
           provide: getRepositoryToken(SalaryRecordEntity),
-          useValue: { createQueryBuilder: jest.fn().mockImplementation(() => qb) },
+          useValue: {
+            createQueryBuilder: jest.fn().mockImplementation(() => qb),
+          },
         },
       ],
     }).compile();

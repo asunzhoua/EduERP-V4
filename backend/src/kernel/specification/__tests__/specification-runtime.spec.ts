@@ -90,7 +90,11 @@ describe('SpecificationRuntime', () => {
       const isPositive = new IsPositive();
       const candidates = [1, -2, 3, -4, 5];
 
-      const results = runtime.evaluateMany(candidates, isPositive, 'isPositive');
+      const results = runtime.evaluateMany(
+        candidates,
+        isPositive,
+        'isPositive',
+      );
 
       expect(results).toHaveLength(5);
       expect(results.filter((r) => r.satisfied)).toHaveLength(3);

@@ -49,10 +49,7 @@ import { TeacherDashboardController } from './teacher-dashboard/teacher-dashboar
     SuspendRequestModule,
     TeacherModule,
   ],
-  controllers: [
-    TeacherDashboardController,
-    LessonExceptionController,
-  ],
+  controllers: [TeacherDashboardController, LessonExceptionController],
   providers: [LessonExceptionService],
   exports: [
     CourseModule,

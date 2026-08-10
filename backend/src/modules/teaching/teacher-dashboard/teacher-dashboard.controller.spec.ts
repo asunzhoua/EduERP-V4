@@ -59,7 +59,9 @@ describe('TeacherDashboardController', () => {
       ],
     }).compile();
 
-    controller = module.get<TeacherDashboardController>(TeacherDashboardController);
+    controller = module.get<TeacherDashboardController>(
+      TeacherDashboardController,
+    );
   });
 
   beforeEach(() => {
@@ -107,10 +109,14 @@ describe('TeacherDashboardController', () => {
         distinct: jest.fn().mockReturnThis(),
         getRawMany: jest.fn().mockResolvedValue([{ lessonId: 1 }]),
       };
-      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockLessonAttendanceRepo.createQueryBuilder.mockReturnValue(
+        mockQueryBuilder,
+      );
 
       // Distinct active-enrollment student count
-      mockEnrollmentRepo.findActiveStudentCodesByClassCodes.mockResolvedValue(['STU-001']);
+      mockEnrollmentRepo.findActiveStudentCodesByClassCodes.mockResolvedValue([
+        'STU-001',
+      ]);
 
       const mockReq = { user: { sub: 100 } };
       const result = await controller.getDashboard(mockReq);
@@ -130,7 +136,9 @@ describe('TeacherDashboardController', () => {
       mockLessonRepo.count.mockResolvedValue(0);
       mockLessonRepo.find.mockResolvedValue([]);
 
-      mockEnrollmentRepo.findActiveStudentCodesByClassCodes.mockResolvedValue([]);
+      mockEnrollmentRepo.findActiveStudentCodesByClassCodes.mockResolvedValue(
+        [],
+      );
 
       const mockReq = { user: { sub: 100 } };
       const result = await controller.getDashboard(mockReq);

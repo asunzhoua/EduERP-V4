@@ -54,7 +54,10 @@ describe('OptimizedExceptionFilter', () => {
 
   describe('HttpException', () => {
     it('should handle 400 Bad Request', () => {
-      const exception = new HttpException('Bad Request', HttpStatus.BAD_REQUEST);
+      const exception = new HttpException(
+        'Bad Request',
+        HttpStatus.BAD_REQUEST,
+      );
 
       filter.catch(exception, mockHost);
 
@@ -64,12 +67,15 @@ describe('OptimizedExceptionFilter', () => {
           code: 400,
           message: '请求参数错误，请检查输入',
           path: '/api/v1/test',
-        })
+        }),
       );
     });
 
     it('should handle 401 Unauthorized', () => {
-      const exception = new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+      const exception = new HttpException(
+        'Unauthorized',
+        HttpStatus.UNAUTHORIZED,
+      );
 
       filter.catch(exception, mockHost);
 
@@ -78,7 +84,7 @@ describe('OptimizedExceptionFilter', () => {
         expect.objectContaining({
           code: 401,
           message: '未授权，请先登录',
-        })
+        }),
       );
     });
 
@@ -92,7 +98,7 @@ describe('OptimizedExceptionFilter', () => {
         expect.objectContaining({
           code: 401,
           message: '密码错误',
-        })
+        }),
       );
     });
 
@@ -106,12 +112,15 @@ describe('OptimizedExceptionFilter', () => {
         expect.objectContaining({
           code: 401,
           message: '未授权，请先登录',
-        })
+        }),
       );
     });
 
     it('should preserve a specific 403 message (e.g. 无权访问该学生的记录)', () => {
-      const exception = new HttpException('无权访问该学生的记录', HttpStatus.FORBIDDEN);
+      const exception = new HttpException(
+        '无权访问该学生的记录',
+        HttpStatus.FORBIDDEN,
+      );
 
       filter.catch(exception, mockHost);
 
@@ -120,7 +129,7 @@ describe('OptimizedExceptionFilter', () => {
         expect.objectContaining({
           code: 403,
           message: '无权访问该学生的记录',
-        })
+        }),
       );
     });
 
@@ -134,7 +143,7 @@ describe('OptimizedExceptionFilter', () => {
         expect.objectContaining({
           code: 403,
           message: '权限不足，无法访问该资源',
-        })
+        }),
       );
     });
 
@@ -148,7 +157,7 @@ describe('OptimizedExceptionFilter', () => {
         expect.objectContaining({
           code: 409,
           message: '用户名已存在',
-        })
+        }),
       );
     });
 
@@ -162,7 +171,7 @@ describe('OptimizedExceptionFilter', () => {
         expect.objectContaining({
           code: 409,
           message: '资源冲突，请检查数据',
-        })
+        }),
       );
     });
 
@@ -176,12 +185,15 @@ describe('OptimizedExceptionFilter', () => {
         expect.objectContaining({
           code: 404,
           message: '请求的资源不存在',
-        })
+        }),
       );
     });
 
     it('should handle 500 Internal Server Error', () => {
-      const exception = new HttpException('Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
+      const exception = new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
 
       filter.catch(exception, mockHost);
 
@@ -190,7 +202,7 @@ describe('OptimizedExceptionFilter', () => {
         expect.objectContaining({
           code: 500,
           message: '服务器内部错误，请稍后再试',
-        })
+        }),
       );
     });
   });
@@ -206,7 +218,7 @@ describe('OptimizedExceptionFilter', () => {
         expect.objectContaining({
           code: 500,
           message: '服务器内部错误，请稍后再试',
-        })
+        }),
       );
     });
 
@@ -220,7 +232,7 @@ describe('OptimizedExceptionFilter', () => {
         expect.objectContaining({
           code: 500,
           message: '服务器内部错误，请稍后再试',
-        })
+        }),
       );
     });
   });
@@ -236,7 +248,7 @@ describe('OptimizedExceptionFilter', () => {
           timestamp: expect.any(String),
           path: '/api/v1/test',
           error: expect.any(String),
-        })
+        }),
       );
     });
   });
@@ -244,7 +256,10 @@ describe('OptimizedExceptionFilter', () => {
   describe('Production mode', () => {
     it('should hide error details when NODE_ENV=production', async () => {
       filter = await createTestModule('production');
-      const exception = new HttpException('Test Error', HttpStatus.INTERNAL_SERVER_ERROR);
+      const exception = new HttpException(
+        'Test Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
 
       filter.catch(exception, mockHost);
 

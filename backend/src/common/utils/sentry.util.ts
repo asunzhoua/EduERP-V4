@@ -37,7 +37,10 @@ export function captureException(error: Error, context?: any): void {
   Sentry.captureException(error, { extra: context });
 }
 
-export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info'): void {
+export function captureMessage(
+  message: string,
+  level: Sentry.SeverityLevel = 'info',
+): void {
   Sentry.captureMessage(message, level);
 }
 

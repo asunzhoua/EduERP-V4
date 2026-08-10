@@ -285,7 +285,12 @@ export class LessonService {
     requested: number;
     generated: number;
     skipped: number;
-    conflicts: { date: string; startTime: string; endTime: string; reason: string }[];
+    conflicts: {
+      date: string;
+      startTime: string;
+      endTime: string;
+      reason: string;
+    }[];
     firstLessonNumber: number | null;
     message: string;
   }> {
@@ -305,7 +310,9 @@ export class LessonService {
       throw new BadRequestException('班级未配置上课星期，无法排课');
     }
     if (!cls.startTime || !cls.endTime || cls.endTime <= cls.startTime) {
-      throw new BadRequestException('班级上课时间无效（开始时间需早于结束时间）');
+      throw new BadRequestException(
+        '班级上课时间无效（开始时间需早于结束时间）',
+      );
     }
     if (!cls.totalLessons || cls.totalLessons <= 0) {
       throw new BadRequestException('班级总课时无效');
@@ -371,7 +378,7 @@ export class LessonService {
     }
 
     // 可选：教师时间冲突检测
-    let conflicts: {
+    const conflicts: {
       date: string;
       startTime: string;
       endTime: string;
@@ -442,7 +449,9 @@ export class LessonService {
       conflicts,
       firstLessonNumber: saved.length > 0 ? maxNumber + 1 : null,
       message: `已生成 ${saved.length} 课时${
-        skippedDates.length > 0 ? `，跳过 ${skippedDates.length} 个重复时段` : ''
+        skippedDates.length > 0
+          ? `，跳过 ${skippedDates.length} 个重复时段`
+          : ''
       }${conflicts.length > 0 ? `，发现 ${conflicts.length} 处教师时间冲突` : ''}`,
     };
   }

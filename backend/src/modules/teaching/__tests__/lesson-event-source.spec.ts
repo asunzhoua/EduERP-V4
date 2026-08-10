@@ -369,10 +369,7 @@ describe('Lesson Completed Event Source', () => {
       const fs = require('fs');
       const path = require('path');
       const salaryModuleSource = fs.readFileSync(
-        path.join(
-          __dirname,
-          '../../../modules/salary/salary.module.ts',
-        ),
+        path.join(__dirname, '../../../modules/salary/salary.module.ts'),
         'utf-8',
       );
       const settlementSource = fs.readFileSync(

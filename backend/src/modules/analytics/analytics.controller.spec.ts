@@ -29,7 +29,10 @@ describe('AnalyticsController', () => {
       controllers: [AnalyticsController],
       providers: [
         { provide: AnalyticsService, useValue: mockAnalyticsService },
-        { provide: getRepositoryToken(Student), useValue: mockStudentRepository },
+        {
+          provide: getRepositoryToken(Student),
+          useValue: mockStudentRepository,
+        },
       ],
     }).compile();
 
@@ -62,12 +65,17 @@ describe('AnalyticsController', () => {
       };
       mockAnalyticsService.getStudentMetrics.mockResolvedValue(mockMetrics);
 
-      const result = await controller.getStudentMetrics('STU-001', mockReq(1, 'Teacher'));
+      const result = await controller.getStudentMetrics(
+        'STU-001',
+        mockReq(1, 'Teacher'),
+      );
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('success');
       expect(result.data).toEqual(mockMetrics);
-      expect(mockAnalyticsService.getStudentMetrics).toHaveBeenCalledWith('STU-001');
+      expect(mockAnalyticsService.getStudentMetrics).toHaveBeenCalledWith(
+        'STU-001',
+      );
     });
   });
 
@@ -84,7 +92,10 @@ describe('AnalyticsController', () => {
       };
       mockAnalyticsService.getTeacherMetrics.mockResolvedValue(mockMetrics);
 
-      const result = await controller.getTeacherMetrics(100, mockReq(100, 'Teacher'));
+      const result = await controller.getTeacherMetrics(
+        100,
+        mockReq(100, 'Teacher'),
+      );
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('success');
@@ -132,12 +143,19 @@ describe('AnalyticsController', () => {
       };
       mockAnalyticsService.getStudentTrend.mockResolvedValue(mockTrend);
 
-      const result = await controller.getStudentTrend('STU-001', '7', mockReq(1, 'Teacher'));
+      const result = await controller.getStudentTrend(
+        'STU-001',
+        '7',
+        mockReq(1, 'Teacher'),
+      );
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('success');
       expect(result.data).toEqual(mockTrend);
-      expect(mockAnalyticsService.getStudentTrend).toHaveBeenCalledWith('STU-001', 7);
+      expect(mockAnalyticsService.getStudentTrend).toHaveBeenCalledWith(
+        'STU-001',
+        7,
+      );
     });
 
     it('should default to 7 days when days param is missing', async () => {
@@ -146,9 +164,16 @@ describe('AnalyticsController', () => {
         attendanceTrend: [],
       });
 
-      await controller.getStudentTrend('STU-001', undefined, mockReq(1, 'Teacher'));
+      await controller.getStudentTrend(
+        'STU-001',
+        undefined,
+        mockReq(1, 'Teacher'),
+      );
 
-      expect(mockAnalyticsService.getStudentTrend).toHaveBeenCalledWith('STU-001', 7);
+      expect(mockAnalyticsService.getStudentTrend).toHaveBeenCalledWith(
+        'STU-001',
+        7,
+      );
     });
   });
 
@@ -168,7 +193,11 @@ describe('AnalyticsController', () => {
       };
       mockAnalyticsService.getTeacherTrend.mockResolvedValue(mockTrend);
 
-      const result = await controller.getTeacherTrend(100, '7', mockReq(100, 'Teacher'));
+      const result = await controller.getTeacherTrend(
+        100,
+        '7',
+        mockReq(100, 'Teacher'),
+      );
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('success');
@@ -209,7 +238,10 @@ describe('AnalyticsController', () => {
       mockStudentRepository.findOne.mockResolvedValue({ userId: 42 });
       mockAnalyticsService.getStudentMetrics.mockResolvedValue({ metrics: [] });
 
-      const result = await controller.getStudentMetrics('STU-001', mockReq(42, 'Student'));
+      const result = await controller.getStudentMetrics(
+        'STU-001',
+        mockReq(42, 'Student'),
+      );
       expect(result.code).toBe(0);
     });
 
@@ -233,14 +265,20 @@ describe('AnalyticsController', () => {
       mockStudentRepository.findOne.mockResolvedValue({ userId: 42 });
       mockAnalyticsService.getStudentMetrics.mockResolvedValue({ metrics: [] });
 
-      const result = await controller.getStudentMetrics('STU-001', mockReq(42, 'Parent'));
+      const result = await controller.getStudentMetrics(
+        'STU-001',
+        mockReq(42, 'Parent'),
+      );
       expect(result.code).toBe(0);
     });
 
     it('should allow Teacher to access any student data without ownership check', async () => {
       mockAnalyticsService.getStudentMetrics.mockResolvedValue({ metrics: [] });
 
-      const result = await controller.getStudentMetrics('STU-001', mockReq(1, 'Teacher'));
+      const result = await controller.getStudentMetrics(
+        'STU-001',
+        mockReq(1, 'Teacher'),
+      );
       expect(result.code).toBe(0);
       // Should NOT call findOne for Teacher role
       expect(mockStudentRepository.findOne).not.toHaveBeenCalled();
@@ -253,7 +291,10 @@ describe('AnalyticsController', () => {
     it('should allow Teacher to access their own metrics', async () => {
       mockAnalyticsService.getTeacherMetrics.mockResolvedValue({ metrics: [] });
 
-      const result = await controller.getTeacherMetrics(100, mockReq(100, 'Teacher'));
+      const result = await controller.getTeacherMetrics(
+        100,
+        mockReq(100, 'Teacher'),
+      );
       expect(result.code).toBe(0);
     });
 
@@ -266,14 +307,20 @@ describe('AnalyticsController', () => {
     it('should allow Admin to access any teacher metrics', async () => {
       mockAnalyticsService.getTeacherMetrics.mockResolvedValue({ metrics: [] });
 
-      const result = await controller.getTeacherMetrics(200, mockReq(1, 'Admin'));
+      const result = await controller.getTeacherMetrics(
+        200,
+        mockReq(1, 'Admin'),
+      );
       expect(result.code).toBe(0);
     });
 
     it('should allow SuperAdmin to access any teacher metrics', async () => {
       mockAnalyticsService.getTeacherMetrics.mockResolvedValue({ metrics: [] });
 
-      const result = await controller.getTeacherMetrics(999, mockReq(1, 'SuperAdmin'));
+      const result = await controller.getTeacherMetrics(
+        999,
+        mockReq(1, 'SuperAdmin'),
+      );
       expect(result.code).toBe(0);
     });
   });
@@ -325,7 +372,9 @@ describe('AnalyticsController', () => {
       expect(result.code).toBe(0);
       expect(result.message).toBe('success');
       expect(result.data).toEqual(mockData);
-      expect(mockAnalyticsService.getConsumptionStatistics).toHaveBeenCalledWith(30);
+      expect(
+        mockAnalyticsService.getConsumptionStatistics,
+      ).toHaveBeenCalledWith(30);
     });
 
     it('should default to 7 days when no days param', async () => {
@@ -341,7 +390,9 @@ describe('AnalyticsController', () => {
 
       await controller.getConsumptionStatistics();
 
-      expect(mockAnalyticsService.getConsumptionStatistics).toHaveBeenCalledWith(7);
+      expect(
+        mockAnalyticsService.getConsumptionStatistics,
+      ).toHaveBeenCalledWith(7);
     });
   });
 });

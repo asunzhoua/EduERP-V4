@@ -23,7 +23,13 @@ describe('SalaryCalculator 纯函数', () => {
     });
 
     it('PER_LESSON 无 config 时回退 baseAmount', () => {
-      const res = computeLessonFee(SalaryRuleType.PER_LESSON, null, baseRule, 0, 0);
+      const res = computeLessonFee(
+        SalaryRuleType.PER_LESSON,
+        null,
+        baseRule,
+        0,
+        0,
+      );
       expect(res.amount).toBe(100);
     });
 
@@ -40,12 +46,22 @@ describe('SalaryCalculator 纯函数', () => {
 
     it('PART_TIME / OUTING 同固定课时费', () => {
       expect(
-        computeLessonFee(SalaryRuleType.PART_TIME, { lessonPrice: 60 }, baseRule, 0, 0)
-          .amount,
+        computeLessonFee(
+          SalaryRuleType.PART_TIME,
+          { lessonPrice: 60 },
+          baseRule,
+          0,
+          0,
+        ).amount,
       ).toBe(60);
       expect(
-        computeLessonFee(SalaryRuleType.OUTING, { lessonPrice: 150 }, baseRule, 0, 0)
-          .amount,
+        computeLessonFee(
+          SalaryRuleType.OUTING,
+          { lessonPrice: 150 },
+          baseRule,
+          0,
+          0,
+        ).amount,
       ).toBe(150);
     });
 

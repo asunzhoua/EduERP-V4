@@ -41,7 +41,9 @@ describe('EventBusService', () => {
     };
 
     // Re-mock AppLogger with fresh instance for each test
-    jest.requireMock('@utils/logger').AppLogger.mockImplementation(() => mockLogger);
+    jest
+      .requireMock('@utils/logger')
+      .AppLogger.mockImplementation(() => mockLogger);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -122,7 +124,10 @@ describe('EventBusService', () => {
 
       service.subscribe(eventName, handler);
 
-      expect(eventEmitter.on).toHaveBeenCalledWith(eventName, expect.any(Function));
+      expect(eventEmitter.on).toHaveBeenCalledWith(
+        eventName,
+        expect.any(Function),
+      );
     });
 
     it('should execute handler when event is triggered', () => {
@@ -149,7 +154,11 @@ describe('EventBusService', () => {
       const registeredHandler = handlers.get(eventName);
       registeredHandler!(payload);
 
-      expect(mockLogger.logEvent).toHaveBeenCalledWith(eventName, 'test-event-id', 'SUCCESS');
+      expect(mockLogger.logEvent).toHaveBeenCalledWith(
+        eventName,
+        'test-event-id',
+        'SUCCESS',
+      );
     });
 
     it('should log FAILED when handler throws error', () => {
@@ -165,9 +174,15 @@ describe('EventBusService', () => {
       // Should not throw - error should be caught
       expect(() => registeredHandler!(payload)).not.toThrow();
 
-      expect(mockLogger.logEvent).toHaveBeenCalledWith(eventName, 'test-event-id', 'FAILED');
+      expect(mockLogger.logEvent).toHaveBeenCalledWith(
+        eventName,
+        'test-event-id',
+        'FAILED',
+      );
       expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Event handler failed for test.event: Handler error'),
+        expect.stringContaining(
+          'Event handler failed for test.event: Handler error',
+        ),
       );
     });
 
@@ -181,7 +196,11 @@ describe('EventBusService', () => {
       const registeredHandler = handlers.get(eventName);
       registeredHandler!(payload);
 
-      expect(mockLogger.logEvent).toHaveBeenCalledWith(eventName, 'test-event-id', 'RECEIVED');
+      expect(mockLogger.logEvent).toHaveBeenCalledWith(
+        eventName,
+        'test-event-id',
+        'RECEIVED',
+      );
     });
   });
 
@@ -224,17 +243,18 @@ describe('EventBusService', () => {
       // Re-import uuid to test the actual implementation
       jest.resetModules();
       jest.dontMock('uuid');
-      
+
       // This test validates that uuid v4 is used
       // In actual runtime, uuid v4 follows RFC 4122
-      const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      
+      const uuidV4Regex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
       // Since we mocked uuid, verify the mock is working
       const eventName = 'test.event';
       const payload = { data: 'test' };
-      
+
       service.publish(eventName, payload);
-      
+
       const emittedPayload = eventEmitter.emit.mock.calls[0][1];
       expect(emittedPayload.eventId).toBe('mock-uuid-1234');
     });
@@ -292,7 +312,10 @@ describe('EventBusService', () => {
 
       // Both handlers should be stored (map will only keep last one per event name)
       // This tests that eventEmitter.on was called for each subscription
-      expect(eventEmitter.on).toHaveBeenCalledWith(eventName, expect.any(Function));
+      expect(eventEmitter.on).toHaveBeenCalledWith(
+        eventName,
+        expect.any(Function),
+      );
     });
   });
 
@@ -331,7 +354,9 @@ describe('EventBusService', () => {
 
       const emittedPayload = eventEmitter.emit.mock.calls[0][1];
       // The enrichment should add a new timestamp
-      expect(new Date(emittedPayload.timestamp).toISOString()).toBe(emittedPayload.timestamp);
+      expect(new Date(emittedPayload.timestamp).toISOString()).toBe(
+        emittedPayload.timestamp,
+      );
     });
 
     it('should use "unknown" as eventId when payload has no eventId in subscribe', () => {
@@ -344,8 +369,16 @@ describe('EventBusService', () => {
       const registeredHandler = handlers.get(eventName);
       registeredHandler!(payload);
 
-      expect(mockLogger.logEvent).toHaveBeenCalledWith(eventName, 'unknown', 'RECEIVED');
-      expect(mockLogger.logEvent).toHaveBeenCalledWith(eventName, 'unknown', 'SUCCESS');
+      expect(mockLogger.logEvent).toHaveBeenCalledWith(
+        eventName,
+        'unknown',
+        'RECEIVED',
+      );
+      expect(mockLogger.logEvent).toHaveBeenCalledWith(
+        eventName,
+        'unknown',
+        'SUCCESS',
+      );
     });
 
     it('should handle handler returning a value', () => {
@@ -359,7 +392,11 @@ describe('EventBusService', () => {
       registeredHandler!(payload);
 
       expect(handler).toHaveBeenCalled();
-      expect(mockLogger.logEvent).toHaveBeenCalledWith(eventName, 'test-event-id', 'SUCCESS');
+      expect(mockLogger.logEvent).toHaveBeenCalledWith(
+        eventName,
+        'test-event-id',
+        'SUCCESS',
+      );
     });
   });
 });

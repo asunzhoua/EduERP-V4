@@ -73,10 +73,14 @@ describe('Pipeline', () => {
 
   it('should support fluent chaining', () => {
     const m1: IMiddleware<TestContext> = {
-      execute: async (_ctx, next) => { await next(); },
+      execute: async (_ctx, next) => {
+        await next();
+      },
     };
     const m2: IMiddleware<TestContext> = {
-      execute: async (_ctx, next) => { await next(); },
+      execute: async (_ctx, next) => {
+        await next();
+      },
     };
 
     const result = pipeline.use(m1).use(m2);

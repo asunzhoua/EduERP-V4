@@ -73,7 +73,10 @@ describe('CourseService', () => {
         CourseService,
         { provide: CourseRepository, useValue: mockCourseRepo },
         { provide: CourseCodeGeneratorService, useValue: mockCodeGenerator },
-        { provide: getRepositoryToken(CourseAuditLog), useValue: mockAuditLogRepo },
+        {
+          provide: getRepositoryToken(CourseAuditLog),
+          useValue: mockAuditLogRepo,
+        },
         { provide: ClassRepository, useValue: mockClassRepo },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
       ],
@@ -139,7 +142,10 @@ describe('CourseService', () => {
     it('should allow DRAFT -> PUBLISHED', async () => {
       const draft = { ...mockCourse, status: CourseStatus.DRAFT };
       courseRepo.findOneByCode.mockResolvedValue(draft);
-      courseRepo.save.mockResolvedValue({ ...draft, status: CourseStatus.PUBLISHED });
+      courseRepo.save.mockResolvedValue({
+        ...draft,
+        status: CourseStatus.PUBLISHED,
+      });
       auditLogRepo.create.mockReturnValue({} as CourseAuditLog);
       auditLogRepo.save.mockResolvedValue({} as CourseAuditLog);
 

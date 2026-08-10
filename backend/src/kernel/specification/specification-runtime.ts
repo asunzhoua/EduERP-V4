@@ -78,9 +78,7 @@ export class SpecificationRuntime {
     spec: ISpecification<T>,
     name = 'unnamed',
   ): SpecificationResult[] {
-    return candidates.map((candidate) =>
-      this.evaluate(candidate, spec, name),
-    );
+    return candidates.map((candidate) => this.evaluate(candidate, spec, name));
   }
 
   /**
@@ -91,9 +89,7 @@ export class SpecificationRuntime {
     candidate: T,
     specs: Array<{ spec: ISpecification<T>; name: string }>,
   ): SpecificationResult[] {
-    return specs.map(({ spec, name }) =>
-      this.evaluate(candidate, spec, name),
-    );
+    return specs.map(({ spec, name }) => this.evaluate(candidate, spec, name));
   }
 
   /**

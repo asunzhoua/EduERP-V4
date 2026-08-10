@@ -18,11 +18,16 @@ export class CreateSalaryRuleDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ description: 'PER_LESSON / PER_DAY / PER_HEAD / TIER / PART_TIME / OUTING / MONTHLY' })
+  @ApiProperty({
+    description:
+      'PER_LESSON / PER_DAY / PER_HEAD / TIER / PART_TIME / OUTING / MONTHLY',
+  })
   @IsString()
   type: string;
 
-  @ApiProperty({ description: '兜底单价（历史字段），新规则建议用 config.lessonPrice' })
+  @ApiProperty({
+    description: '兜底单价（历史字段），新规则建议用 config.lessonPrice',
+  })
   @IsNumber()
   baseAmount: number;
 
@@ -36,7 +41,9 @@ export class CreateSalaryRuleDto {
   @IsString()
   courseType?: string;
 
-  @ApiPropertyOptional({ description: '教师等级（与教师档案 teacherLevel 精确匹配）' })
+  @ApiPropertyOptional({
+    description: '教师等级（与教师档案 teacherLevel 精确匹配）',
+  })
   @IsOptional()
   @IsString()
   @IsIn(TEACHER_LEVELS)

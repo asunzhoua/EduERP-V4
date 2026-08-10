@@ -26,7 +26,10 @@ export const VALID_ENROLLMENT_TRANSITIONS: Record<
   EnrollmentStatus,
   EnrollmentStatus[]
 > = {
-  [EnrollmentStatus.ACTIVE]: [EnrollmentStatus.WITHDRAWN, EnrollmentStatus.SUSPEND],
+  [EnrollmentStatus.ACTIVE]: [
+    EnrollmentStatus.WITHDRAWN,
+    EnrollmentStatus.SUSPEND,
+  ],
   [EnrollmentStatus.WITHDRAWN]: [], // ENROLL-005: terminal
   [EnrollmentStatus.SUSPEND]: [EnrollmentStatus.ACTIVE], // ENROLL-006: can resume
   [EnrollmentStatus.COMPLETED]: [], // ENROLL-004: terminal (not activated)
@@ -133,18 +136,21 @@ export class EnrollmentService {
   }
 
   async findByStudentCode(studentCode: string): Promise<any[]> {
-    const enrollments = await this.enrollmentRepo.findByStudentCode(studentCode);
+    const enrollments =
+      await this.enrollmentRepo.findByStudentCode(studentCode);
     if (!enrollments.length) return [];
 
     // Collect class codes
-    const classCodes = enrollments.map(e => e.classCode);
+    const classCodes = enrollments.map((e) => e.classCode);
 
     // Batch get classes (needed first to derive courseCodes)
-    const classes = await this.classRepo.find({ where: { classCode: In(classCodes) } });
-    const classMap = new Map(classes.map(c => [c.classCode, c]));
+    const classes = await this.classRepo.find({
+      where: { classCode: In(classCodes) },
+    });
+    const classMap = new Map(classes.map((c) => [c.classCode, c]));
 
     // Optimization: parallelize 2 independent enrichment queries (was sequential)
-    const courseCodes = [...new Set(classes.map(c => c.courseCode))];
+    const courseCodes = [...new Set(classes.map((c) => c.courseCode))];
     const [courses, completedLessonCounts] = await Promise.all([
       this.courseRepo.find({ where: { courseCode: In(courseCodes) } }),
       this.lessonRepo
@@ -156,12 +162,14 @@ export class EnrollmentService {
         .groupBy('l.classCode')
         .getRawMany(),
     ]);
-    const courseNameMap = new Map(courses.map(c => [c.courseCode, c.name]));
+    const courseNameMap = new Map(courses.map((c) => [c.courseCode, c.name]));
     const completedMap = new Map<string, number>();
-    completedLessonCounts.forEach(r => completedMap.set(r.classCode, parseInt(r.count, 10)));
+    completedLessonCounts.forEach((r) =>
+      completedMap.set(r.classCode, parseInt(r.count, 10)),
+    );
 
     // Assemble enriched response
-    return enrollments.map(enrollment => {
+    return enrollments.map((enrollment) => {
       const cls = classMap.get(enrollment.classCode);
       return {
         classCode: enrollment.classCode,
@@ -175,9 +183,13 @@ export class EnrollmentService {
     });
   }
 
-  async findAll(
-    query: { classCode?: string; studentCode?: string; status?: string; page?: number; pageSize?: number },
-  ): Promise<{ items: EnrollmentEntity[]; total: number }> {
+  async findAll(query: {
+    classCode?: string;
+    studentCode?: string;
+    status?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<{ items: EnrollmentEntity[]; total: number }> {
     return this.enrollmentRepo.findMany({
       classCode: query.classCode,
       studentCode: query.studentCode,
@@ -194,9 +206,9 @@ export class EnrollmentService {
   async findStudentsByClassCode(classCode: string) {
     const enrollments = await this.enrollmentRepo.findByClassCode(classCode);
     const activeEnrollments = enrollments.filter(
-      e => e.status === EnrollmentStatus.ACTIVE,
+      (e) => e.status === EnrollmentStatus.ACTIVE,
     );
-    const studentCodes = activeEnrollments.map(e => e.studentCode);
+    const studentCodes = activeEnrollments.map((e) => e.studentCode);
 
     if (studentCodes.length === 0) {
       return [];
@@ -205,9 +217,9 @@ export class EnrollmentService {
     const students = await this.studentRepo.raw.find({
       where: { studentCode: In(studentCodes), deleted: false },
     });
-    const studentMap = new Map(students.map(s => [s.studentCode, s]));
+    const studentMap = new Map(students.map((s) => [s.studentCode, s]));
 
-    return activeEnrollments.map(e => {
+    return activeEnrollments.map((e) => {
       const student = studentMap.get(e.studentCode);
       return {
         enrollmentId: e.id,
@@ -225,10 +237,7 @@ export class EnrollmentService {
 
   // ─── State transition guard ───
 
-  private assertTransition(
-    from: EnrollmentStatus,
-    to: EnrollmentStatus,
-  ): void {
+  private assertTransition(from: EnrollmentStatus, to: EnrollmentStatus): void {
     const allowed = VALID_ENROLLMENT_TRANSITIONS[from];
     if (!allowed || !allowed.includes(to)) {
       throw new BadRequestException(
@@ -265,10 +274,7 @@ export class EnrollmentService {
 
   // ─── Resume ───
 
-  async resume(
-    id: number,
-    _operatedBy: number,
-  ): Promise<EnrollmentEntity> {
+  async resume(id: number, _operatedBy: number): Promise<EnrollmentEntity> {
     const enrollment = await this.findOne(id);
 
     this.assertTransition(enrollment.status, EnrollmentStatus.ACTIVE);

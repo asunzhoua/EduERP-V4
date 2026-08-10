@@ -5,12 +5,19 @@ import {
   Logger,
 } from '@nestjs/common';
 import { LeaveRequestRepository } from './leave-request.repository';
-import { LeaveRequestEntity, LeaveRequestStatus, LeaveType } from './leave-request.entity';
+import {
+  LeaveRequestEntity,
+  LeaveRequestStatus,
+  LeaveType,
+} from './leave-request.entity';
 import { StudentRepository } from '@modules/student/student.repository';
 
 /** Allowed status transitions. */
 const VALID_TRANSITIONS: Record<LeaveRequestStatus, LeaveRequestStatus[]> = {
-  [LeaveRequestStatus.PENDING]: [LeaveRequestStatus.APPROVED, LeaveRequestStatus.REJECTED],
+  [LeaveRequestStatus.PENDING]: [
+    LeaveRequestStatus.APPROVED,
+    LeaveRequestStatus.REJECTED,
+  ],
   [LeaveRequestStatus.APPROVED]: [],
   [LeaveRequestStatus.REJECTED]: [],
 };
@@ -40,7 +47,9 @@ export class LeaveRequestService {
    * Submit a new leave request. Status = PENDING.
    * Parent/Student self-service endpoint.
    */
-  async createRequest(input: CreateLeaveRequestInput): Promise<LeaveRequestEntity> {
+  async createRequest(
+    input: CreateLeaveRequestInput,
+  ): Promise<LeaveRequestEntity> {
     // Validate required fields
     if (!input.reason?.trim()) {
       throw new BadRequestException('请假原因不能为空');
@@ -68,7 +77,9 @@ export class LeaveRequestService {
       page: 1,
       pageSize: 1,
     });
-    const sameDatePending = existing.items.find(r => r.leaveDate === input.leaveDate);
+    const sameDatePending = existing.items.find(
+      (r) => r.leaveDate === input.leaveDate,
+    );
     if (sameDatePending) {
       throw new BadRequestException(
         `该学生在 ${input.leaveDate} 已有待审批的请假申请`,
@@ -112,7 +123,9 @@ export class LeaveRequestService {
     entity.reviewedAt = new Date();
 
     const saved = await this.requestRepo.save(entity);
-    this.logger.log(`Leave request approved: id=${saved.id}, reviewedBy=${reviewedBy}`);
+    this.logger.log(
+      `Leave request approved: id=${saved.id}, reviewedBy=${reviewedBy}`,
+    );
     return saved;
   }
 
@@ -186,9 +199,7 @@ export class LeaveRequestService {
   ): void {
     const allowed = VALID_TRANSITIONS[current];
     if (!allowed || !allowed.includes(target)) {
-      throw new BadRequestException(
-        `状态转换无效: ${current} → ${target}`,
-      );
+      throw new BadRequestException(`状态转换无效: ${current} → ${target}`);
     }
   }
 }

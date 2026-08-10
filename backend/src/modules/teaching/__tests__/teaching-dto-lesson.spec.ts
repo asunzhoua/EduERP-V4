@@ -50,7 +50,10 @@ describe('CreateLessonDto', () => {
   });
 
   it('should fail when courseCode is not a string', async () => {
-    const dto = plainToInstance(CreateLessonDto, { ...valid, courseCode: true });
+    const dto = plainToInstance(CreateLessonDto, {
+      ...valid,
+      courseCode: true,
+    });
     const errors = await validate(dto);
     expect(errors.length).toBeGreaterThan(0);
   });
@@ -62,7 +65,10 @@ describe('CreateLessonDto', () => {
   });
 
   it('should fail when lessonNumber > 999', async () => {
-    const dto = plainToInstance(CreateLessonDto, { ...valid, lessonNumber: 1000 });
+    const dto = plainToInstance(CreateLessonDto, {
+      ...valid,
+      lessonNumber: 1000,
+    });
     const errors = await validate(dto);
     expect(errors.length).toBeGreaterThan(0);
   });
@@ -92,7 +98,10 @@ describe('CreateLessonDto', () => {
   });
 
   it('should fail when teacherId is missing', async () => {
-    const dto = plainToInstance(CreateLessonDto, { ...valid, teacherId: undefined });
+    const dto = plainToInstance(CreateLessonDto, {
+      ...valid,
+      teacherId: undefined,
+    });
     const errors = await validate(dto);
     expect(errors.length).toBeGreaterThan(0);
   });

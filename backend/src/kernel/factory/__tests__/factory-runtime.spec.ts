@@ -9,7 +9,9 @@ import { IValueObjectFactory } from '../value-object-factory';
 
 class TestId extends ValueObject<{ value: number }> {
   // @ts-ignore: intentional override for test
-  get value(): number { return this._value.value; }
+  get value(): number {
+    return this._value.value;
+  }
 
   static create(id: number): TestId {
     return new TestId({ value: id });
@@ -24,7 +26,9 @@ class TestAggregate extends AggregateRoot {
     this._name = name;
   }
 
-  get name(): string { return this._name; }
+  get name(): string {
+    return this._name;
+  }
 }
 
 class TestAggregateFactory implements IAggregateFactory<TestAggregate> {
@@ -38,8 +42,12 @@ class TestAggregateFactory implements IAggregateFactory<TestAggregate> {
 }
 
 class TestValueObject extends ValueObject<{ x: number; y: number }> {
-  get x(): number { return this._value.x; }
-  get y(): number { return this._value.y; }
+  get x(): number {
+    return this._value.x;
+  }
+  get y(): number {
+    return this._value.y;
+  }
 
   static create(x: number, y: number): TestValueObject {
     return new TestValueObject({ x, y });

@@ -46,11 +46,31 @@ describe('RolesGuard', () => {
   // =========================================
   describe('Scenario 1: Teacher accessing student data', () => {
     it.each([
-      { role: 'SuperAdmin', required: ['SuperAdmin', 'Admin', 'Teacher'], expected: true },
-      { role: 'Admin', required: ['SuperAdmin', 'Admin', 'Teacher'], expected: true },
-      { role: 'Teacher', required: ['SuperAdmin', 'Admin', 'Teacher'], expected: true },
-      { role: 'Student', required: ['SuperAdmin', 'Admin', 'Teacher'], expected: false },
-      { role: 'Parent', required: ['SuperAdmin', 'Admin', 'Teacher'], expected: false },
+      {
+        role: 'SuperAdmin',
+        required: ['SuperAdmin', 'Admin', 'Teacher'],
+        expected: true,
+      },
+      {
+        role: 'Admin',
+        required: ['SuperAdmin', 'Admin', 'Teacher'],
+        expected: true,
+      },
+      {
+        role: 'Teacher',
+        required: ['SuperAdmin', 'Admin', 'Teacher'],
+        expected: true,
+      },
+      {
+        role: 'Student',
+        required: ['SuperAdmin', 'Admin', 'Teacher'],
+        expected: false,
+      },
+      {
+        role: 'Parent',
+        required: ['SuperAdmin', 'Admin', 'Teacher'],
+        expected: false,
+      },
     ])(
       'role=$role on Teacher-accessible endpoint => $expected',
       ({ role, required, expected }) => {
@@ -114,7 +134,9 @@ describe('RolesGuard', () => {
     it('denies all roles when @Roles() has empty array (no role can match)', () => {
       // Behavior: empty array means "no roles allowed" — includes() returns false for all
       mockReflector.getAllAndOverride.mockReturnValue([]);
-      expect(guard.canActivate(mockContext({ role: 'SuperAdmin' }))).toBe(false);
+      expect(guard.canActivate(mockContext({ role: 'SuperAdmin' }))).toBe(
+        false,
+      );
       expect(guard.canActivate(mockContext({ role: 'Admin' }))).toBe(false);
       expect(guard.canActivate(mockContext({ role: 'Teacher' }))).toBe(false);
       expect(guard.canActivate(mockContext({ role: 'Student' }))).toBe(false);

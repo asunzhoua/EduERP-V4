@@ -12,19 +12,31 @@ describe('validateRuleConfig 强校验', () => {
   });
 
   it('PER_LESSON 缺 lessonPrice 抛错', () => {
-    expect(() => validateRuleConfig('PER_LESSON', {})).toThrow(BadRequestException);
+    expect(() => validateRuleConfig('PER_LESSON', {})).toThrow(
+      BadRequestException,
+    );
   });
 
   it('PART_TIME / OUTING / PER_DAY 需 lessonPrice', () => {
-    expect(() => validateRuleConfig('PART_TIME', {})).toThrow(BadRequestException);
+    expect(() => validateRuleConfig('PART_TIME', {})).toThrow(
+      BadRequestException,
+    );
     expect(() => validateRuleConfig('OUTING', {})).toThrow(BadRequestException);
-    expect(() => validateRuleConfig('PER_DAY', {})).toThrow(BadRequestException);
-    expect(validateRuleConfig('PER_DAY', { lessonPrice: 200 })?.lessonPrice).toBe(200);
+    expect(() => validateRuleConfig('PER_DAY', {})).toThrow(
+      BadRequestException,
+    );
+    expect(
+      validateRuleConfig('PER_DAY', { lessonPrice: 200 })?.lessonPrice,
+    ).toBe(200);
   });
 
   it('PER_HEAD 至少提供 pricePerHead 或 headcountTiers', () => {
-    expect(() => validateRuleConfig('PER_HEAD', {})).toThrow(BadRequestException);
-    expect(validateRuleConfig('PER_HEAD', { pricePerHead: 25 })?.pricePerHead).toBe(25);
+    expect(() => validateRuleConfig('PER_HEAD', {})).toThrow(
+      BadRequestException,
+    );
+    expect(
+      validateRuleConfig('PER_HEAD', { pricePerHead: 25 })?.pricePerHead,
+    ).toBe(25);
   });
 
   it('PER_HEAD headcountTiers 校验并排序', () => {
@@ -61,8 +73,12 @@ describe('validateRuleConfig 强校验', () => {
   });
 
   it('MONTHLY 需 baseSalary', () => {
-    expect(() => validateRuleConfig('MONTHLY', {})).toThrow(BadRequestException);
-    expect(validateRuleConfig('MONTHLY', { baseSalary: 3000 })?.baseSalary).toBe(3000);
+    expect(() => validateRuleConfig('MONTHLY', {})).toThrow(
+      BadRequestException,
+    );
+    expect(
+      validateRuleConfig('MONTHLY', { baseSalary: 3000 })?.baseSalary,
+    ).toBe(3000);
   });
 
   it('HOURLY 忽略 config 返回 null', () => {
@@ -70,7 +86,9 @@ describe('validateRuleConfig 强校验', () => {
   });
 
   it('不支持的类型抛错', () => {
-    expect(() => validateRuleConfig('UNKNOWN', {})).toThrow(BadRequestException);
+    expect(() => validateRuleConfig('UNKNOWN', {})).toThrow(
+      BadRequestException,
+    );
   });
 
   it('effectiveTo 早于 effectiveFrom 抛错', () => {

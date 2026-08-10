@@ -46,7 +46,9 @@ describe('AppLogger', () => {
 
       const newLogger = new AppLogger();
 
-      expect(mockFs.mkdirSync).toHaveBeenCalledWith(mockLogDir, { recursive: true });
+      expect(mockFs.mkdirSync).toHaveBeenCalledWith(mockLogDir, {
+        recursive: true,
+      });
       expect(newLogger).toBeDefined();
     });
 
@@ -198,7 +200,9 @@ describe('AppLogger', () => {
 
       expect(mockFs.appendFileSync).toHaveBeenCalledWith(
         mockEventLog,
-        expect.stringContaining('[EVENT] Event: UserCreated [evt-123] → SUCCESS'),
+        expect.stringContaining(
+          '[EVENT] Event: UserCreated [evt-123] → SUCCESS',
+        ),
       );
     });
   });

@@ -371,7 +371,9 @@ function createMockCourseRepo() {
     find: jest.fn().mockImplementation(({ where }: any) => {
       const codes = where?.courseCode?._value;
       if (Array.isArray(codes)) {
-        return Promise.resolve(rows.filter((r) => codes.includes(r.courseCode)));
+        return Promise.resolve(
+          rows.filter((r) => codes.includes(r.courseCode)),
+        );
       }
       return Promise.resolve(rows);
     }),
@@ -1043,7 +1045,9 @@ describe('Core Business Consistency Audit', () => {
 
       const second = await settlement.settle('2026-08');
       expect(second.created).toBe(0);
-      expect(Array.from(mockSalaryRecordRepo._records.values())).toHaveLength(1);
+      expect(Array.from(mockSalaryRecordRepo._records.values())).toHaveLength(
+        1,
+      );
     });
 
     it('无适用规则 → 生成 needsReview 兜底记录而非静默丢失', async () => {

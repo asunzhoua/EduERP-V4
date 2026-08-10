@@ -129,7 +129,9 @@ describe('ContractController', () => {
 
       const result = await controller.create(dto, mockReq);
 
-      expect(result).toEqual(ApiResponse.success(mockContract, 'Contract created'));
+      expect(result).toEqual(
+        ApiResponse.success(mockContract, 'Contract created'),
+      );
       expect(mockService.create).toHaveBeenCalledWith({
         studentCode: 'STU20260001',
         subject: 'MATH',
@@ -183,7 +185,9 @@ describe('ContractController', () => {
     it('should return paginated contracts', async () => {
       const result = await controller.findAll({});
 
-      expect(result).toEqual(ApiResponse.success({ items: [mockContract], total: 1 }));
+      expect(result).toEqual(
+        ApiResponse.success({ items: [mockContract], total: 1 }),
+      );
       expect(mockService.findAll).toHaveBeenCalled();
     });
   });
@@ -195,9 +199,7 @@ describe('ContractController', () => {
       const result = await controller.findOneByCode('CTR2026070001');
 
       expect(result).toEqual(ApiResponse.success(mockContract));
-      expect(mockService.findOneByCode).toHaveBeenCalledWith(
-        'CTR2026070001',
-      );
+      expect(mockService.findOneByCode).toHaveBeenCalledWith('CTR2026070001');
     });
 
     it('should throw NotFoundException when contract does not exist', async () => {
@@ -205,9 +207,9 @@ describe('ContractController', () => {
         new NotFoundException('Contract not found: code=INVALID'),
       );
 
-      await expect(
-        controller.findOneByCode('INVALID'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(controller.findOneByCode('INVALID')).rejects.toThrow(
+        NotFoundException,
+      );
 
       expect(mockService.findOneByCode).toHaveBeenCalledWith('INVALID');
     });
@@ -221,10 +223,7 @@ describe('ContractController', () => {
       const result = await controller.freeze('CTR2026070001', mockReq);
 
       expect(result.data.status).toBe('FROZEN');
-      expect(mockService.freeze).toHaveBeenCalledWith(
-        'CTR2026070001',
-        42,
-      );
+      expect(mockService.freeze).toHaveBeenCalledWith('CTR2026070001', 42);
     });
   });
 
@@ -236,10 +235,7 @@ describe('ContractController', () => {
       const result = await controller.unfreeze('CTR2026070001', mockReq);
 
       expect(result.data.status).toBe('ACTIVE');
-      expect(mockService.unfreeze).toHaveBeenCalledWith(
-        'CTR2026070001',
-        42,
-      );
+      expect(mockService.unfreeze).toHaveBeenCalledWith('CTR2026070001', 42);
     });
   });
 
@@ -254,7 +250,11 @@ describe('ContractController', () => {
         reason: '家长续费',
       } as any;
 
-      const result = await controller.adjustLessons('CTR2026070001', dto, mockReq);
+      const result = await controller.adjustLessons(
+        'CTR2026070001',
+        dto,
+        mockReq,
+      );
 
       expect(result.data.totalLessons).toBe(35);
       expect(result.data.remainingLessons).toBe(35);
@@ -275,9 +275,7 @@ describe('ContractController', () => {
       const result = await controller.findByStudentCode('STU20260001', mockReq);
 
       expect(result).toEqual(ApiResponse.success([mockContract]));
-      expect(mockService.findByStudentCode).toHaveBeenCalledWith(
-        'STU20260001',
-      );
+      expect(mockService.findByStudentCode).toHaveBeenCalledWith('STU20260001');
       expect(mockDataScopeService.verifyStudentAccess).toHaveBeenCalledWith(
         mockReq.user,
         'STU20260001',
@@ -292,7 +290,7 @@ describe('ContractController', () => {
       const mockReq = { user: { sub: 7, role: 'Parent' } };
       const result = await controller.getConsumeRecords(
         'CTR2026070001',
-        { page: 1, pageSize: 20 } as any,
+        { page: 1, pageSize: 20 },
         mockReq,
       );
 

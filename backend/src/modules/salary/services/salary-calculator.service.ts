@@ -8,7 +8,12 @@ export interface FeeResult {
   calcFormula: string;
 }
 
-type Tier = { min: number; max: number | null; pricePerLesson?: number; pricePerHead?: number };
+type Tier = {
+  min: number;
+  max: number | null;
+  pricePerLesson?: number;
+  pricePerHead?: number;
+};
 
 const round2 = (v: number): number => Math.round(v * 100) / 100;
 
@@ -24,7 +29,10 @@ export function findLessonTier(
   const sorted = [...tiers].sort((a, b) => a.min - b.min);
   for (let i = 0; i < sorted.length; i++) {
     const t = sorted[i];
-    if (cumulativeCount >= t.min && (t.max === null || t.max === undefined || cumulativeCount <= t.max)) {
+    if (
+      cumulativeCount >= t.min &&
+      (t.max === null || t.max === undefined || cumulativeCount <= t.max)
+    ) {
       return { tier: t, level: i + 1 };
     }
   }
@@ -45,7 +53,10 @@ export function findHeadcountTier(
   const sorted = [...tiers].sort((a, b) => a.min - b.min);
   for (let i = 0; i < sorted.length; i++) {
     const t = sorted[i];
-    if (headcount >= t.min && (t.max === null || t.max === undefined || headcount <= t.max)) {
+    if (
+      headcount >= t.min &&
+      (t.max === null || t.max === undefined || headcount <= t.max)
+    ) {
       return { tier: t, level: i + 1 };
     }
   }
@@ -66,7 +77,10 @@ export function computeLessonFee(
     case SalaryRuleType.PART_TIME:
     case SalaryRuleType.OUTING: {
       const price = config?.lessonPrice ?? Number(rule.baseAmount);
-      return { amount: round2(price * Number(rule.multiplier)), calcFormula: `lessonPrice(${price})` };
+      return {
+        amount: round2(price * Number(rule.multiplier)),
+        calcFormula: `lessonPrice(${price})`,
+      };
     }
     case SalaryRuleType.HOURLY: {
       // 历史遗留：按 baseAmount * multiplier
@@ -79,7 +93,8 @@ export function computeLessonFee(
       const tiers: Tier[] | undefined = config?.headcountTiers;
       if (tiers && tiers.length > 0) {
         const hit = findHeadcountTier(tiers, headcount);
-        const pricePerHead = hit?.tier.pricePerHead ?? config?.pricePerHead ?? 0;
+        const pricePerHead =
+          hit?.tier.pricePerHead ?? config?.pricePerHead ?? 0;
         return {
           amount: round2(pricePerHead * headcount),
           tierLevel: hit?.level,

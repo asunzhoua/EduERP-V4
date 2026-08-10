@@ -10,9 +10,7 @@ import { getMetadataArgsStorage } from 'typeorm';
 
 describe('User entity', () => {
   it('should be decorated as @Entity("user")', () => {
-    const meta = getMetadataArgsStorage().tables.find(
-      (t) => t.target === User,
-    );
+    const meta = getMetadataArgsStorage().tables.find((t) => t.target === User);
     expect(meta).toBeDefined();
     expect(meta!.name).toBe('user');
   });
@@ -20,10 +18,10 @@ describe('User entity', () => {
   it('should instantiate with correct property defaults', () => {
     const user = new User();
     expect(user.id).toBeUndefined();
-    expect(user.status).toBeUndefined();   // TypeORM column default: 1 (ACTIVE)
-    expect(user.campusId).toBeUndefined();  // TypeORM column default: 0
-    expect(user.deleted).toBeUndefined();   // TypeORM column default: 0
-    expect(user.version).toBeUndefined();   // TypeORM column default: 1
+    expect(user.status).toBeUndefined(); // TypeORM column default: 1 (ACTIVE)
+    expect(user.campusId).toBeUndefined(); // TypeORM column default: 0
+    expect(user.deleted).toBeUndefined(); // TypeORM column default: 0
+    expect(user.version).toBeUndefined(); // TypeORM column default: 1
     expect(user.avatar).toBeUndefined();
     expect(user.lastLoginAt).toBeUndefined();
     expect(user.refreshToken).toBeUndefined();
@@ -116,9 +114,7 @@ describe('UserRole enum', () => {
 
 describe('Role entity', () => {
   it('should be decorated as @Entity("role")', () => {
-    const meta = getMetadataArgsStorage().tables.find(
-      (t) => t.target === Role,
-    );
+    const meta = getMetadataArgsStorage().tables.find((t) => t.target === Role);
     expect(meta).toBeDefined();
     expect(meta!.name).toBe('role');
   });
@@ -126,9 +122,9 @@ describe('Role entity', () => {
   it('should instantiate with correct property defaults', () => {
     const role = new Role();
     expect(role.id).toBeUndefined();
-    expect(role.status).toBeUndefined();   // TypeORM column default: 1
-    expect(role.deleted).toBeUndefined();   // TypeORM column default: 0
-    expect(role.version).toBeUndefined();   // TypeORM column default: 1
+    expect(role.status).toBeUndefined(); // TypeORM column default: 1
+    expect(role.deleted).toBeUndefined(); // TypeORM column default: 0
+    expect(role.version).toBeUndefined(); // TypeORM column default: 1
     expect(role.description).toBeUndefined();
   });
 
@@ -187,9 +183,9 @@ describe('Permission entity', () => {
   it('should instantiate with correct property defaults', () => {
     const perm = new Permission();
     expect(perm.id).toBeUndefined();
-    expect(perm.status).toBeUndefined();   // TypeORM column default: 1
-    expect(perm.deleted).toBeUndefined();   // TypeORM column default: 0
-    expect(perm.version).toBeUndefined();   // TypeORM column default: 1
+    expect(perm.status).toBeUndefined(); // TypeORM column default: 1
+    expect(perm.deleted).toBeUndefined(); // TypeORM column default: 0
+    expect(perm.version).toBeUndefined(); // TypeORM column default: 1
     expect(perm.description).toBeUndefined();
     expect(perm.module).toBeUndefined();
     expect(perm.action).toBeUndefined();
@@ -252,7 +248,7 @@ describe('LoginLog entity', () => {
   it('should instantiate with correct property defaults', () => {
     const log = new LoginLog();
     expect(log.id).toBeUndefined();
-    expect(log.success).toBeUndefined();   // TypeORM column default: 1
+    expect(log.success).toBeUndefined(); // TypeORM column default: 1
     expect(log.role).toBeUndefined();
     expect(log.ip).toBeUndefined();
     expect(log.device).toBeUndefined();

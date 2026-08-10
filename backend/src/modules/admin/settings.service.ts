@@ -20,18 +20,28 @@ export class SettingsService {
 
   /** 按分类分组返回全部设置 */
   async findAllGrouped(): Promise<Record<string, SettingEntry[]>> {
-    const settings = await this.settingRepo.find({ order: { category: 'ASC', key: 'ASC' } });
+    const settings = await this.settingRepo.find({
+      order: { category: 'ASC', key: 'ASC' },
+    });
     const grouped: Record<string, SettingEntry[]> = {};
     for (const s of settings) {
       const category = s.category || 'system';
       if (!grouped[category]) grouped[category] = [];
-      grouped[category].push({ key: s.key, value: s.value || '', category, description: s.description });
+      grouped[category].push({
+        key: s.key,
+        value: s.value || '',
+        category,
+        description: s.description,
+      });
     }
     return grouped;
   }
 
   /** 批量保存（按 key upsert），返回更新后的分组结果 */
-  async bulkSave(entries: SettingEntry[], operatorId: number): Promise<Record<string, SettingEntry[]>> {
+  async bulkSave(
+    entries: SettingEntry[],
+    operatorId: number,
+  ): Promise<Record<string, SettingEntry[]>> {
     for (const e of entries) {
       const key = e.key?.trim();
       if (!key) continue;

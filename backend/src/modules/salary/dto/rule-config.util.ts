@@ -1,16 +1,30 @@
 import { BadRequestException } from '@nestjs/common';
 import { SalaryRuleType } from '../enums/salary.enums';
 
-type Tier = { min: number; max: number | null; pricePerLesson?: number; pricePerHead?: number };
+type Tier = {
+  min: number;
+  max: number | null;
+  pricePerLesson?: number;
+  pricePerHead?: number;
+};
 
 function assertNumber(value: unknown, field: string): void {
-  if (value === undefined || value === null || typeof value !== 'number' || Number.isNaN(value)) {
+  if (
+    value === undefined ||
+    value === null ||
+    typeof value !== 'number' ||
+    Number.isNaN(value)
+  ) {
     throw new BadRequestException(`config.${field} 必填且必须为数字`);
   }
 }
 
 /** 校验阶梯数组：按 min 升序、首档 min=1、max 大于 min、非重叠 */
-function assertTiers(tiers: Tier[], field: string, priceField: 'pricePerLesson' | 'pricePerHead'): void {
+function assertTiers(
+  tiers: Tier[],
+  field: string,
+  priceField: 'pricePerLesson' | 'pricePerHead',
+): void {
   if (!Array.isArray(tiers) || tiers.length === 0) {
     throw new BadRequestException(`config.${field} 必须为非空数组`);
   }
@@ -24,21 +38,25 @@ function assertTiers(tiers: Tier[], field: string, priceField: 'pricePerLesson' 
       throw new BadRequestException(`config.${field} 档位 min 必须 >= 1`);
     }
     if (prevMax !== Infinity && tier.min <= prevMax) {
-      throw new BadRequestException(`config.${field} 档位区间不能重叠，且需按 min 升序`);
+      throw new BadRequestException(
+        `config.${field} 档位区间不能重叠，且需按 min 升序`,
+      );
     }
     if (tier.max !== null && tier.max !== undefined) {
       if (typeof tier.max !== 'number' || tier.max < tier.min) {
         throw new BadRequestException(`config.${field} 档位 max 必须 >= min`);
       }
       if (tier.max <= prevMax) {
-        throw new BadRequestException(`config.${field} 档位区间不能重叠，且需按 min 升序`);
+        throw new BadRequestException(
+          `config.${field} 档位区间不能重叠，且需按 min 升序`,
+        );
       }
       prevMax = tier.max;
     } else {
       // max:null = 最后一档无上限
       prevMax = Infinity;
     }
-    if (typeof tier[priceField] !== 'number' || tier[priceField]! < 0) {
+    if (typeof tier[priceField] !== 'number' || tier[priceField] < 0) {
       throw new BadRequestException(`config.${field} 档位价格必须 >= 0`);
     }
   }
@@ -64,7 +82,11 @@ export function validateRuleConfig(
     throw new BadRequestException(`规则类型 ${type} 必须提供 config 配置`);
   }
 
-  if (config.effectiveFrom && config.effectiveTo && config.effectiveTo < config.effectiveFrom) {
+  if (
+    config.effectiveFrom &&
+    config.effectiveTo &&
+    config.effectiveTo < config.effectiveFrom
+  ) {
     throw new BadRequestException('config.effectiveTo 不能早于 effectiveFrom');
   }
 
@@ -81,8 +103,13 @@ export function validateRuleConfig(
       result.lessonPrice = round2(config.lessonPrice);
       break;
     case SalaryRuleType.PER_HEAD:
-      if (config.pricePerHead === undefined && !Array.isArray(config.headcountTiers)) {
-        throw new BadRequestException('PER_HEAD 必须提供 pricePerHead 或 headcountTiers');
+      if (
+        config.pricePerHead === undefined &&
+        !Array.isArray(config.headcountTiers)
+      ) {
+        throw new BadRequestException(
+          'PER_HEAD 必须提供 pricePerHead 或 headcountTiers',
+        );
       }
       if (config.pricePerHead !== undefined) {
         assertNumber(config.pricePerHead, 'pricePerHead');

@@ -18,7 +18,10 @@ export class AttendanceRecordDto {
   @IsEnum(AttendanceStatus)
   status: AttendanceStatus;
 
-  @ApiProperty({ description: 'Reason (required for LATE/LEAVE/ABSENT)', required: false })
+  @ApiProperty({
+    description: 'Reason (required for LATE/LEAVE/ABSENT)',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   reason?: string;
@@ -46,7 +49,10 @@ export class CreateLessonWithAttendanceDto {
   @IsString()
   topic?: string;
 
-  @ApiProperty({ description: 'Attendance records', type: [AttendanceRecordDto] })
+  @ApiProperty({
+    description: 'Attendance records',
+    type: [AttendanceRecordDto],
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AttendanceRecordDto)

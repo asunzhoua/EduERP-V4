@@ -18,7 +18,10 @@ import { DeductionSkipReason } from './enums/deduction-skip-reason.enum';
 import { ReminderService } from '@modules/reminder/reminder.service';
 import { ReminderType } from '@modules/reminder/enums/reminder-type.enum';
 import { TargetType } from '@modules/reminder/enums/target-type.enum';
-import { PointsService, POINTS_PER_ATTENDED_LESSON } from '@modules/points/points.service';
+import {
+  PointsService,
+  POINTS_PER_ATTENDED_LESSON,
+} from '@modules/points/points.service';
 import { ContractRepository } from '@modules/teaching/contract/contract.repository';
 import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
 import { ContractEntity } from '@modules/teaching/contract/contract.entity';
@@ -504,7 +507,9 @@ export class LessonAttendanceService {
       const row = detail.data;
       try {
         const studentCode = row['studentcode'];
-        const status = this.parseAttendanceStatus(row['status']) as AttendanceStatus;
+        const status = this.parseAttendanceStatus(
+          row['status'],
+        ) as AttendanceStatus;
         const reason = row['reason'] || undefined;
         const lessonId = row['lessonid'] ? Number(row['lessonid']) : undefined;
 
@@ -638,18 +643,18 @@ export class LessonAttendanceService {
       return AttendanceStatus[upper as keyof typeof AttendanceStatus];
     }
     const aliases: Record<string, AttendanceStatus> = {
-      '出勤': AttendanceStatus.PRESENT,
-      '到场': AttendanceStatus.PRESENT,
-      '正常': AttendanceStatus.PRESENT,
-      '缺勤': AttendanceStatus.ABSENT,
-      '未到': AttendanceStatus.ABSENT,
-      '迟到': AttendanceStatus.LATE,
-      '请假': AttendanceStatus.LEAVE,
-      '生病': AttendanceStatus.SICK,
-      '病假': AttendanceStatus.SICK,
-      '补课': AttendanceStatus.MAKEUP,
-      '线上': AttendanceStatus.ONLINE,
-      '线下': AttendanceStatus.OFFLINE,
+      出勤: AttendanceStatus.PRESENT,
+      到场: AttendanceStatus.PRESENT,
+      正常: AttendanceStatus.PRESENT,
+      缺勤: AttendanceStatus.ABSENT,
+      未到: AttendanceStatus.ABSENT,
+      迟到: AttendanceStatus.LATE,
+      请假: AttendanceStatus.LEAVE,
+      生病: AttendanceStatus.SICK,
+      病假: AttendanceStatus.SICK,
+      补课: AttendanceStatus.MAKEUP,
+      线上: AttendanceStatus.ONLINE,
+      线下: AttendanceStatus.OFFLINE,
     };
     return aliases[trimmed] ?? null;
   }

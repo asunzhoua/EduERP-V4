@@ -62,7 +62,10 @@ describe('CreateClassDto', () => {
   });
 
   it('should fail when startDate is not YYYY-MM-DD', async () => {
-    const dto = plainToInstance(CreateClassDto, { ...valid, startDate: '2026/07/12' });
+    const dto = plainToInstance(CreateClassDto, {
+      ...valid,
+      startDate: '2026/07/12',
+    });
     const errors = await validate(dto);
     expect(errors.length).toBeGreaterThan(0);
   });
@@ -74,7 +77,10 @@ describe('CreateClassDto', () => {
   });
 
   it('should fail when defaultDuration < 15', async () => {
-    const dto = plainToInstance(CreateClassDto, { ...valid, defaultDuration: 10 });
+    const dto = plainToInstance(CreateClassDto, {
+      ...valid,
+      defaultDuration: 10,
+    });
     const errors = await validate(dto);
     expect(errors.length).toBeGreaterThan(0);
   });
@@ -95,7 +101,10 @@ describe('CreateClassDto', () => {
   });
 
   it('should fail when startTime format is invalid', async () => {
-    const dto = plainToInstance(CreateClassDto, { ...valid, startTime: '10:00:00' });
+    const dto = plainToInstance(CreateClassDto, {
+      ...valid,
+      startTime: '10:00:00',
+    });
     const errors = await validate(dto);
     expect(errors.length).toBeGreaterThan(0);
   });
@@ -342,7 +351,10 @@ describe('CreateCourseDto', () => {
   });
 
   it('should fail when defaultDuration < 15', async () => {
-    const dto = plainToInstance(CreateCourseDto, { ...valid, defaultDuration: 10 });
+    const dto = plainToInstance(CreateCourseDto, {
+      ...valid,
+      defaultDuration: 10,
+    });
     const errors = await validate(dto);
     expect(errors.length).toBeGreaterThan(0);
   });

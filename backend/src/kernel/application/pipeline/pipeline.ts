@@ -21,7 +21,10 @@ export class Pipeline<TContext> {
   /**
    * Execute the pipeline with a final handler.
    */
-  async execute(context: TContext, handler: () => Promise<void>): Promise<void> {
+  async execute(
+    context: TContext,
+    handler: () => Promise<void>,
+  ): Promise<void> {
     let index = 0;
 
     const next = async (): Promise<void> => {

@@ -17,10 +17,10 @@ describe('ContractCodeGeneratorService', () => {
 
   beforeEach(() => {
     OriginalDate = global.Date;
-    jest.spyOn(global, 'Date').mockImplementation((((...args: any[]) => {
+    jest.spyOn(global, 'Date').mockImplementation(((...args: any[]) => {
       if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
       return new (OriginalDate.bind(null, ...args))();
-    }) as any));
+    }) as any);
   });
 
   afterEach(() => {
@@ -105,10 +105,9 @@ describe('ContractCodeGeneratorService', () => {
 
       await service.generateContractCode();
 
-      expect(qb.where).toHaveBeenCalledWith(
-        'c.contractCode LIKE :prefix',
-        { prefix: `${expectedPrefix}%` },
-      );
+      expect(qb.where).toHaveBeenCalledWith('c.contractCode LIKE :prefix', {
+        prefix: `${expectedPrefix}%`,
+      });
     });
 
     it('should NOT filter deleted records (no deleted column)', async () => {

@@ -26,7 +26,9 @@ describe('Result', () => {
     it('should throw on failure', () => {
       const result = Result.fail(new Error('fail'));
 
-      expect(() => result.value).toThrow('Cannot get value from a failed result');
+      expect(() => result.value).toThrow(
+        'Cannot get value from a failed result',
+      );
     });
   });
 
@@ -34,7 +36,9 @@ describe('Result', () => {
     it('should throw on success', () => {
       const result = Result.ok(42);
 
-      expect(() => result.error).toThrow('Cannot get error from a successful result');
+      expect(() => result.error).toThrow(
+        'Cannot get error from a successful result',
+      );
     });
   });
 
@@ -101,7 +105,8 @@ describe('Result', () => {
 
     it('should propagate inner failure', () => {
       const result = Result.ok(5);
-      const failFn = (_x: number) => Result.fail<number>(new Error('inner fail'));
+      const failFn = (_x: number) =>
+        Result.fail<number>(new Error('inner fail'));
 
       const chained = result.flatMap(failFn);
 

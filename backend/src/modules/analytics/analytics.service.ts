@@ -11,7 +11,10 @@ import { CourseEntity } from '@modules/teaching/course/course.entity';
 import { ClassEntity } from '@modules/teaching/class/class.entity';
 import { ContractEntity } from '@modules/teaching/contract/contract.entity';
 import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
-import { AttendanceStatus, DEDUCTIBLE_STATUSES } from '@modules/teaching/lesson-attendance/enums/attendance-status.enum';
+import {
+  AttendanceStatus,
+  DEDUCTIBLE_STATUSES,
+} from '@modules/teaching/lesson-attendance/enums/attendance-status.enum';
 import { LessonStatus } from '@modules/teaching/lesson/enums/lesson-status.enum';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 
@@ -53,15 +56,25 @@ export class AnalyticsService {
   /**
    * Student metrics: DAU/WAU/MAU (global) + per-student attendance & progress
    */
-  async getStudentMetrics(studentCode: string): Promise<{ metrics: MetricItem[] }> {
+  async getStudentMetrics(
+    studentCode: string,
+  ): Promise<{ metrics: MetricItem[] }> {
     const metrics: MetricItem[] = [];
 
     // --- DAU / WAU / MAU (global active student counts) ---
     const now = new Date();
 
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekAgoStart = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthAgoStart = new Date(todayStart.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const weekAgoStart = new Date(
+      todayStart.getTime() - 7 * 24 * 60 * 60 * 1000,
+    );
+    const monthAgoStart = new Date(
+      todayStart.getTime() - 30 * 24 * 60 * 60 * 1000,
+    );
 
     // DAU: distinct userIds that logged in today
     const dauResult = await this.loginLogRepository
@@ -128,9 +141,18 @@ export class AnalyticsService {
     }
 
     const totalAttendance = presentCount;
-    const attendanceRate = totalRecords > 0 ? Math.round((presentCount / totalRecords) * 10000) / 100 : 0;
-    const absenceRate = totalRecords > 0 ? Math.round((absentCount / totalRecords) * 10000) / 100 : 0;
-    const lateRate = totalRecords > 0 ? Math.round((lateCount / totalRecords) * 10000) / 100 : 0;
+    const attendanceRate =
+      totalRecords > 0
+        ? Math.round((presentCount / totalRecords) * 10000) / 100
+        : 0;
+    const absenceRate =
+      totalRecords > 0
+        ? Math.round((absentCount / totalRecords) * 10000) / 100
+        : 0;
+    const lateRate =
+      totalRecords > 0
+        ? Math.round((lateCount / totalRecords) * 10000) / 100
+        : 0;
 
     metrics.push(
       { name: 'totalAttendance', value: totalAttendance, unit: '次' },
@@ -146,7 +168,7 @@ export class AnalyticsService {
 
     let courseProgress = 0;
     if (activeEnrollments.length > 0) {
-      const classCodes = activeEnrollments.map(e => e.classCode);
+      const classCodes = activeEnrollments.map((e) => e.classCode);
 
       // Count completed lessons for these classes
       const completedLessons = await this.lessonRepository.count({
@@ -157,11 +179,15 @@ export class AnalyticsService {
       const classes = await this.classRepository.find({
         where: { classCode: In(classCodes) },
       });
-      const totalLessonsSum = classes.reduce((sum, c) => sum + c.totalLessons, 0);
+      const totalLessonsSum = classes.reduce(
+        (sum, c) => sum + c.totalLessons,
+        0,
+      );
 
-      courseProgress = totalLessonsSum > 0
-        ? Math.round((completedLessons / totalLessonsSum) * 10000) / 100
-        : 0;
+      courseProgress =
+        totalLessonsSum > 0
+          ? Math.round((completedLessons / totalLessonsSum) * 10000) / 100
+          : 0;
     }
 
     metrics.push({ name: 'courseProgress', value: courseProgress, unit: '%' });
@@ -169,7 +195,10 @@ export class AnalyticsService {
     // --- Contract consumption metrics (over the student's ACTIVE contracts) ---
     const contractAgg = await this.contractRepository
       .createQueryBuilder('contract')
-      .select('COALESCE(SUM(contract.totalLessons - contract.remainingLessons), 0)', 'consumed')
+      .select(
+        'COALESCE(SUM(contract.totalLessons - contract.remainingLessons), 0)',
+        'consumed',
+      )
       .addSelect('COALESCE(SUM(contract.remainingLessons), 0)', 'remaining')
       .where('contract.studentCode = :studentCode', { studentCode })
       .andWhere('contract.status = :status', { status: ContractStatus.ACTIVE })
@@ -189,7 +218,9 @@ export class AnalyticsService {
   /**
    * Teacher metrics: teaching count, class count, student count
    */
-  async getTeacherMetrics(teacherId: number): Promise<{ metrics: MetricItem[] }> {
+  async getTeacherMetrics(
+    teacherId: number,
+  ): Promise<{ metrics: MetricItem[] }> {
     const metrics: MetricItem[] = [];
 
     // Teaching count: total lessons taught by this teacher
@@ -202,7 +233,7 @@ export class AnalyticsService {
     const assignments = await this.teacherAssignmentRepository.find({
       where: { teacherId },
     });
-    const classCodes = [...new Set(assignments.map(a => a.classCode))];
+    const classCodes = [...new Set(assignments.map((a) => a.classCode))];
     const classCount = classCodes.length;
     metrics.push({ name: 'classCount', value: classCount, unit: '个' });
 
@@ -213,7 +244,9 @@ export class AnalyticsService {
         .createQueryBuilder('enrollment')
         .select('COUNT(DISTINCT enrollment.studentCode)', 'count')
         .where('enrollment.classCode IN (:...classCodes)', { classCodes })
-        .andWhere('enrollment.status = :status', { status: EnrollmentStatus.ACTIVE })
+        .andWhere('enrollment.status = :status', {
+          status: EnrollmentStatus.ACTIVE,
+        })
         .getRawOne();
       studentCount = parseInt(result?.count || '0', 10);
     }
@@ -309,16 +342,17 @@ export class AnalyticsService {
 
     if (lessons.length === 0) {
       return {
-        learningTrend: dateRange.map(d => ({ date: d, value: 0 })),
-        attendanceTrend: dateRange.map(d => ({ date: d, value: 0 })),
+        learningTrend: dateRange.map((d) => ({ date: d, value: 0 })),
+        attendanceTrend: dateRange.map((d) => ({ date: d, value: 0 })),
       };
     }
 
-    const lessonIds = lessons.map(l => parseInt(l.id, 10));
+    const lessonIds = lessons.map((l) => parseInt(l.id, 10));
     const lessonIdToDate = new Map<number, string>();
     for (const l of lessons) {
       const id = parseInt(l.id, 10);
-      const date = typeof l.date === 'string' ? l.date : this.formatDate(l.date);
+      const date =
+        typeof l.date === 'string' ? l.date : this.formatDate(l.date);
       lessonIdToDate.set(id, date);
     }
 
@@ -347,7 +381,10 @@ export class AnalyticsService {
       if (!dateStats.has(date)) dateStats.set(date, { total: 0, present: 0 });
       const stats = dateStats.get(date)!;
       stats.total++;
-      if (row.status === AttendanceStatus.PRESENT || row.status === AttendanceStatus.LATE) {
+      if (
+        row.status === AttendanceStatus.PRESENT ||
+        row.status === AttendanceStatus.LATE
+      ) {
         stats.present++;
       }
     }
@@ -360,7 +397,10 @@ export class AnalyticsService {
     const attendanceTrend: TrendData[] = dateRange.map((date) => {
       const stats = dateStats.get(date);
       if (!stats || stats.total === 0) return { date, value: 0 };
-      return { date, value: Math.round((stats.present / stats.total) * 1000) / 10 };
+      return {
+        date,
+        value: Math.round((stats.present / stats.total) * 1000) / 10,
+      };
     });
 
     return { learningTrend, attendanceTrend };
@@ -389,8 +429,8 @@ export class AnalyticsService {
 
     if (teacherLessons.length === 0) {
       return {
-        lessonTrend: dateRange.map(d => ({ date: d, value: 0 })),
-        attendanceTrend: dateRange.map(d => ({ date: d, value: 0 })),
+        lessonTrend: dateRange.map((d) => ({ date: d, value: 0 })),
+        attendanceTrend: dateRange.map((d) => ({ date: d, value: 0 })),
       };
     }
 
@@ -399,7 +439,8 @@ export class AnalyticsService {
     const teacherLessonIdToDate = new Map<number, string>();
     for (const l of teacherLessons) {
       const id = parseInt(l.id, 10);
-      const date = typeof l.date === 'string' ? l.date : this.formatDate(l.date);
+      const date =
+        typeof l.date === 'string' ? l.date : this.formatDate(l.date);
       lessonCountByDate.set(date, (lessonCountByDate.get(date) || 0) + 1);
       teacherLessonIdToDate.set(id, date);
     }
@@ -409,7 +450,7 @@ export class AnalyticsService {
       value: lessonCountByDate.get(date) || 0,
     }));
 
-    const teacherLessonIds = teacherLessons.map(l => parseInt(l.id, 10));
+    const teacherLessonIds = teacherLessons.map((l) => parseInt(l.id, 10));
 
     // Step 2: Get attendance records for these lessons
     const attRows = await this.lessonAttendanceRepository
@@ -427,14 +468,20 @@ export class AnalyticsService {
       if (!dateStats.has(date)) dateStats.set(date, { total: 0, present: 0 });
       const stats = dateStats.get(date)!;
       stats.total++;
-      if (row.status === AttendanceStatus.PRESENT || row.status === AttendanceStatus.LATE) {
+      if (
+        row.status === AttendanceStatus.PRESENT ||
+        row.status === AttendanceStatus.LATE
+      ) {
         stats.present++;
       }
     }
 
     const attMap = new Map<string, number>();
     for (const [date, stats] of dateStats) {
-      const rate = stats.total > 0 ? Math.round((stats.present / stats.total) * 1000) / 10 : 0;
+      const rate =
+        stats.total > 0
+          ? Math.round((stats.present / stats.total) * 1000) / 10
+          : 0;
       attMap.set(date, rate);
     }
 
@@ -521,8 +568,22 @@ export class AnalyticsService {
     leaveCount: number;
     lateCount: number;
     attendanceRate: number;
-    byDate: Array<{ date: string; present: number; absent: number; leave: number; late: number; total: number }>;
-    byCourse: Array<{ courseCode: string; present: number; absent: number; leave: number; late: number; total: number }>;
+    byDate: Array<{
+      date: string;
+      present: number;
+      absent: number;
+      leave: number;
+      late: number;
+      total: number;
+    }>;
+    byCourse: Array<{
+      courseCode: string;
+      present: number;
+      absent: number;
+      leave: number;
+      late: number;
+      total: number;
+    }>;
   }> {
     // Present statuses: PRESENT, LATE, ONLINE, OFFLINE (these count as "attended")
     const presentStatuses = [
@@ -555,9 +616,10 @@ export class AnalyticsService {
       .where('a.status = :status', { status: AttendanceStatus.LATE })
       .getCount();
 
-    const attendanceRate = totalRecords > 0
-      ? Math.round((presentCount / totalRecords) * 10000) / 100
-      : 0;
+    const attendanceRate =
+      totalRecords > 0
+        ? Math.round((presentCount / totalRecords) * 10000) / 100
+        : 0;
 
     // 2. By date — join attendance with lesson to get scheduledDate
     const byDateRaw = await this.lessonAttendanceRepository
@@ -572,11 +634,27 @@ export class AnalyticsService {
       .getRawMany();
 
     // Aggregate by date
-    const dateMap = new Map<string, { present: number; absent: number; leave: number; late: number; total: number }>();
+    const dateMap = new Map<
+      string,
+      {
+        present: number;
+        absent: number;
+        leave: number;
+        late: number;
+        total: number;
+      }
+    >();
     for (const row of byDateRaw) {
-      const date = typeof row.date === 'string' ? row.date : this.formatDate(row.date);
+      const date =
+        typeof row.date === 'string' ? row.date : this.formatDate(row.date);
       if (!dateMap.has(date)) {
-        dateMap.set(date, { present: 0, absent: 0, leave: 0, late: 0, total: 0 });
+        dateMap.set(date, {
+          present: 0,
+          absent: 0,
+          leave: 0,
+          late: 0,
+          total: 0,
+        });
       }
       const entry = dateMap.get(date)!;
       const count = parseInt(row.count, 10);
@@ -612,11 +690,26 @@ export class AnalyticsService {
       .getRawMany();
 
     // Aggregate by course
-    const courseMap = new Map<string, { present: number; absent: number; leave: number; late: number; total: number }>();
+    const courseMap = new Map<
+      string,
+      {
+        present: number;
+        absent: number;
+        leave: number;
+        late: number;
+        total: number;
+      }
+    >();
     for (const row of byCourseRaw) {
       const courseCode = row.courseCode;
       if (!courseMap.has(courseCode)) {
-        courseMap.set(courseCode, { present: 0, absent: 0, leave: 0, late: 0, total: 0 });
+        courseMap.set(courseCode, {
+          present: 0,
+          absent: 0,
+          leave: 0,
+          late: 0,
+          total: 0,
+        });
       }
       const entry = courseMap.get(courseCode)!;
       const count = parseInt(row.count, 10);
@@ -634,10 +727,12 @@ export class AnalyticsService {
         entry.late += count;
       }
     }
-    const byCourse = Array.from(courseMap.entries()).map(([courseCode, stats]) => ({
-      courseCode,
-      ...stats,
-    }));
+    const byCourse = Array.from(courseMap.entries()).map(
+      ([courseCode, stats]) => ({
+        courseCode,
+        ...stats,
+      }),
+    );
 
     return {
       totalRecords,
@@ -663,15 +758,31 @@ export class AnalyticsService {
     totalLessons: number;
     completedLessons: number;
     consumptionTrend: TrendData[];
-    byStudent: Array<{ studentCode: string; consumed: number; remaining: number; total: number }>;
-    byCourse: Array<{ subject: string; consumed: number; remaining: number; total: number }>;
+    byStudent: Array<{
+      studentCode: string;
+      consumed: number;
+      remaining: number;
+      total: number;
+    }>;
+    byCourse: Array<{
+      subject: string;
+      consumed: number;
+      remaining: number;
+      total: number;
+    }>;
   }> {
     // 1. Aggregate from ACTIVE contracts
     const contractAgg = await this.contractRepository
       .createQueryBuilder('contract')
       .select('COALESCE(SUM(contract.totalLessons), 0)', 'totalLessons')
-      .addSelect('COALESCE(SUM(contract.remainingLessons), 0)', 'totalRemaining')
-      .addSelect('COALESCE(SUM(contract.totalLessons - contract.remainingLessons), 0)', 'totalConsumed')
+      .addSelect(
+        'COALESCE(SUM(contract.remainingLessons), 0)',
+        'totalRemaining',
+      )
+      .addSelect(
+        'COALESCE(SUM(contract.totalLessons - contract.remainingLessons), 0)',
+        'totalConsumed',
+      )
       .where('contract.status = :status', { status: ContractStatus.ACTIVE })
       .getRawOne();
 
@@ -702,15 +813,18 @@ export class AnalyticsService {
       .addSelect('COUNT(*)', 'count')
       .where('attendance.checkInTime >= :startDate', { startDate })
       .andWhere('attendance.checkInTime < :nextDay', { nextDay: nextDayStr })
-      .andWhere('attendance.status IN (:...statuses)', { statuses: deductibleStatuses })
+      .andWhere('attendance.status IN (:...statuses)', {
+        statuses: deductibleStatuses,
+      })
       .groupBy('date')
       .getRawMany();
 
     const trendMap = new Map<string, number>();
     for (const row of trendRows) {
-      const dateKey = typeof row.date === 'string'
-        ? row.date.substring(0, 10)
-        : this.formatDate(row.date);
+      const dateKey =
+        typeof row.date === 'string'
+          ? row.date.substring(0, 10)
+          : this.formatDate(row.date);
       trendMap.set(dateKey, parseInt(row.count, 10));
     }
 
@@ -725,7 +839,10 @@ export class AnalyticsService {
       .select('contract.studentCode', 'studentCode')
       .addSelect('SUM(contract.totalLessons)', 'total')
       .addSelect('SUM(contract.remainingLessons)', 'remaining')
-      .addSelect('SUM(contract.totalLessons - contract.remainingLessons)', 'consumed')
+      .addSelect(
+        'SUM(contract.totalLessons - contract.remainingLessons)',
+        'consumed',
+      )
       .where('contract.status = :status', { status: ContractStatus.ACTIVE })
       .groupBy('contract.studentCode')
       .getRawMany();
@@ -743,7 +860,10 @@ export class AnalyticsService {
       .select('contract.subject', 'subject')
       .addSelect('SUM(contract.totalLessons)', 'total')
       .addSelect('SUM(contract.remainingLessons)', 'remaining')
-      .addSelect('SUM(contract.totalLessons - contract.remainingLessons)', 'consumed')
+      .addSelect(
+        'SUM(contract.totalLessons - contract.remainingLessons)',
+        'consumed',
+      )
       .where('contract.status = :status', { status: ContractStatus.ACTIVE })
       .groupBy('contract.subject')
       .getRawMany();

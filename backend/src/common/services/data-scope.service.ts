@@ -33,7 +33,7 @@ export class DataScopeService {
       where: { teacherId },
       select: { classCode: true },
     });
-    return assignments.map(a => a.classCode);
+    return assignments.map((a) => a.classCode);
   }
 
   /**
@@ -50,8 +50,8 @@ export class DataScopeService {
       .getMany();
 
     const courseCodes = classes
-      .map(c => c.courseCode)
-      .filter(code => code != null);
+      .map((c) => c.courseCode)
+      .filter((code) => code != null);
 
     return [...new Set(courseCodes)];
   }
@@ -69,14 +69,17 @@ export class DataScopeService {
       .select(['enrollment.studentCode'])
       .getMany();
 
-    const studentCodes = enrollments.map(e => e.studentCode);
+    const studentCodes = enrollments.map((e) => e.studentCode);
     return [...new Set(studentCodes)];
   }
 
   /**
    * 验证教师是否有权访问指定班级
    */
-  async canTeacherAccessClass(teacherId: number, classCode: string): Promise<boolean> {
+  async canTeacherAccessClass(
+    teacherId: number,
+    classCode: string,
+  ): Promise<boolean> {
     const classCodes = await this.getTeacherClassCodes(teacherId);
     return classCodes.includes(classCode);
   }
@@ -84,7 +87,10 @@ export class DataScopeService {
   /**
    * 验证教师是否有权访问指定课程
    */
-  async canTeacherAccessCourse(teacherId: number, courseCode: string): Promise<boolean> {
+  async canTeacherAccessCourse(
+    teacherId: number,
+    courseCode: string,
+  ): Promise<boolean> {
     const courseCodes = await this.getTeacherCourseCodes(teacherId);
     return courseCodes.includes(courseCode);
   }
@@ -92,7 +98,10 @@ export class DataScopeService {
   /**
    * 验证教师是否有权访问指定学生
    */
-  async canTeacherAccessStudent(teacherId: number, studentCode: string): Promise<boolean> {
+  async canTeacherAccessStudent(
+    teacherId: number,
+    studentCode: string,
+  ): Promise<boolean> {
     const studentCodes = await this.getTeacherStudentCodes(teacherId);
     return studentCodes.includes(studentCode);
   }
@@ -137,7 +146,7 @@ export class DataScopeService {
         throw new ForbiddenException('无权访问该学生的记录');
       }
       // Get the student IDs linked to this parent
-      const studentIds = parentRelations.map(sp => sp.studentId);
+      const studentIds = parentRelations.map((sp) => sp.studentId);
       const student = await this.studentRepo.findOne({
         where: { id: In(studentIds), deleted: false },
       });

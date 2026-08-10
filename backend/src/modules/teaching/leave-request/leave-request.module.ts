@@ -7,10 +7,7 @@ import { LeaveRequestEntity } from './leave-request.entity';
 import { StudentModule } from '@modules/student/student.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([LeaveRequestEntity]),
-    StudentModule,
-  ],
+  imports: [TypeOrmModule.forFeature([LeaveRequestEntity]), StudentModule],
   controllers: [LeaveRequestController],
   providers: [LeaveRequestService, LeaveRequestRepository],
   exports: [LeaveRequestService, LeaveRequestRepository],

@@ -13,7 +13,8 @@ export const databaseConfig: TypeOrmModuleOptions = {
   charset: 'utf8mb4',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   synchronize: false,
-  logging: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  logging:
+    process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   extra: {
     connectionLimit: 10,
     connectTimeout: 10000,

@@ -14,11 +14,7 @@ export abstract class BaseEntity {
   protected _version: number;
   protected _deleted: boolean;
 
-  constructor(
-    id: number,
-    createdBy: number,
-    createdAt?: Date,
-  ) {
+  constructor(id: number, createdBy: number, createdAt?: Date) {
     this._id = id;
     this._createdBy = createdBy;
     this._createdAt = createdAt ?? new Date();

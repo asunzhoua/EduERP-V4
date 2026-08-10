@@ -36,11 +36,26 @@ describe('ExportService', () => {
         CsvWriter,
         ExcelWriter,
         { provide: getRepositoryToken(Student), useValue: { ...mockRepo } },
-        { provide: getRepositoryToken(LessonEntity), useValue: { ...mockRepo } },
-        { provide: getRepositoryToken(LessonAttendanceEntity), useValue: { ...mockRepo } },
-        { provide: getRepositoryToken(ContractEntity), useValue: { ...mockRepo } },
-        { provide: getRepositoryToken(SalaryRecordEntity), useValue: { ...mockRepo } },
-        { provide: getRepositoryToken(EnrollmentEntity), useValue: { ...mockRepo } },
+        {
+          provide: getRepositoryToken(LessonEntity),
+          useValue: { ...mockRepo },
+        },
+        {
+          provide: getRepositoryToken(LessonAttendanceEntity),
+          useValue: { ...mockRepo },
+        },
+        {
+          provide: getRepositoryToken(ContractEntity),
+          useValue: { ...mockRepo },
+        },
+        {
+          provide: getRepositoryToken(SalaryRecordEntity),
+          useValue: { ...mockRepo },
+        },
+        {
+          provide: getRepositoryToken(EnrollmentEntity),
+          useValue: { ...mockRepo },
+        },
         { provide: getRepositoryToken(User), useValue: { ...mockRepo } },
       ],
     }).compile();
@@ -118,10 +133,17 @@ describe('ExportService', () => {
     it('should use Chinese headers when provided', async () => {
       const writer = new ExcelWriter();
       const data = [{ name: '张三', age: 10 }];
-      const buffer = await writer.generate(data, '测试', ['name', 'age'], ['姓名', '年龄']);
+      const buffer = await writer.generate(
+        data,
+        '测试',
+        ['name', 'age'],
+        ['姓名', '年龄'],
+      );
       const XLSX = require('xlsx');
       const wb = XLSX.read(buffer, { type: 'buffer' });
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {
+        header: 1,
+      });
       expect(rows[0]).toEqual(['姓名', '年龄']);
       expect(rows[1]).toEqual(['张三', 10]);
     });
@@ -255,8 +277,34 @@ describe('ExportService', () => {
 
     it('should include teacherName in export', async () => {
       const mockRecords = [
-        { id: 1, teacherId: 101, lessonId: 1, lessonDate: '2026-07-01', duration: 2, amount: 100, salaryRuleId: 1, ruleVersion: 'v1', status: 'PAID', notes: null, createdBy: 1, createTime: new Date() },
-        { id: 2, teacherId: 102, lessonId: 2, lessonDate: '2026-07-02', duration: 1, amount: 150, salaryRuleId: 2, ruleVersion: 'v1', status: 'PAID', notes: null, createdBy: 2, createTime: new Date() },
+        {
+          id: 1,
+          teacherId: 101,
+          lessonId: 1,
+          lessonDate: '2026-07-01',
+          duration: 2,
+          amount: 100,
+          salaryRuleId: 1,
+          ruleVersion: 'v1',
+          status: 'PAID',
+          notes: null,
+          createdBy: 1,
+          createTime: new Date(),
+        },
+        {
+          id: 2,
+          teacherId: 102,
+          lessonId: 2,
+          lessonDate: '2026-07-02',
+          duration: 1,
+          amount: 150,
+          salaryRuleId: 2,
+          ruleVersion: 'v1',
+          status: 'PAID',
+          notes: null,
+          createdBy: 2,
+          createTime: new Date(),
+        },
       ];
 
       const mockTeachers = [
@@ -280,7 +328,20 @@ describe('ExportService', () => {
 
     it('should handle missing teacher gracefully', async () => {
       const mockRecords = [
-        { id: 1, teacherId: 999, lessonId: 1, lessonDate: '2026-07-01', duration: 2, amount: 100, salaryRuleId: 1, ruleVersion: 'v1', status: 'PAID', notes: null, createdBy: 1, createTime: new Date() },
+        {
+          id: 1,
+          teacherId: 999,
+          lessonId: 1,
+          lessonDate: '2026-07-01',
+          duration: 2,
+          amount: 100,
+          salaryRuleId: 1,
+          ruleVersion: 'v1',
+          status: 'PAID',
+          notes: null,
+          createdBy: 1,
+          createTime: new Date(),
+        },
       ];
 
       mockFind.mockResolvedValue(mockRecords);
@@ -341,7 +402,7 @@ describe('ExportService', () => {
       ];
 
       mockFind
-        .mockResolvedValueOnce(mockContracts)  // contractRepo.find
+        .mockResolvedValueOnce(mockContracts) // contractRepo.find
         .mockResolvedValueOnce(mockSalaryRecords); // salaryRepo.find
 
       const buffer = await service.exportFinance({}, 'csv');

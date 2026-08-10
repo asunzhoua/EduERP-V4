@@ -56,7 +56,9 @@ describe('ReminderService', () => {
     jest.clearAllMocks();
     // Re-set repository mock implementations (clearAllMocks wipes them)
     mockRepository.create.mockReturnValue(mockReminder);
-    mockRepository.save.mockImplementation((entity: any) => Promise.resolve(entity));
+    mockRepository.save.mockImplementation((entity: any) =>
+      Promise.resolve(entity),
+    );
     mockRepository.update.mockResolvedValue({ affected: 3 });
     mockRepository.count.mockResolvedValue(5);
     // Re-set queryBuilder mock implementations
@@ -95,15 +97,24 @@ describe('ReminderService', () => {
     it('should build query with userId filter', async () => {
       const result = await service.findByUserId(10);
 
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('r.targetUserId = :userId', { userId: 10 });
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('r.createdAt', 'DESC');
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'r.targetUserId = :userId',
+        { userId: 10 },
+      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'r.createdAt',
+        'DESC',
+      );
       expect(result).toEqual({ items: [mockReminder], total: 1 });
     });
 
     it('should add status filter when provided', async () => {
       await service.findByUserId(10, ReminderStatus.PENDING);
 
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('r.status = :status', { status: ReminderStatus.PENDING });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'r.status = :status',
+        { status: ReminderStatus.PENDING },
+      );
     });
 
     it('should apply pagination', async () => {
@@ -140,7 +151,9 @@ describe('ReminderService', () => {
     it('should throw NotFoundException when reminder not found', async () => {
       mockRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.markAsRead(999, 10)).rejects.toThrow(NotFoundException);
+      await expect(service.markAsRead(999, 10)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

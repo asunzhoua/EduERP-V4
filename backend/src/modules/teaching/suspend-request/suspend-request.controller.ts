@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
+import { AuthedRequest } from '@common/types/authed-request';
 
 @ApiTags('SuspendRequest')
 @ApiBearerAuth()
@@ -31,10 +32,7 @@ export class SuspendRequestController {
   @Post('students/self/suspend-requests')
   @Roles('SuperAdmin', 'Admin', 'Student', 'Parent')
   @ApiOperation({ summary: 'Submit a suspend request (parent/student)' })
-  async createRequest(
-    @Body() body: CreateSuspendRequestDto,
-    @Req() req: any,
-  ) {
+  async createRequest(@Body() body: CreateSuspendRequestDto, @Req() req: AuthedRequest) {
     const result = await this.service.createRequest({
       studentCode: body.studentCode,
       classCode: body.classCode,
@@ -76,10 +74,7 @@ export class SuspendRequestController {
   @Post('admin/suspend-requests/:id/approve')
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Approve a suspend request (admin)' })
-  async approve(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: any,
-  ) {
+  async approve(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
     const result = await this.service.approve(id, req.user.sub);
     return ApiResponse.success(result, 'Suspend request approved');
   }
@@ -90,7 +85,7 @@ export class SuspendRequestController {
   async reject(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: ReviewSuspendRequestDto,
-    @Req() req: any,
+    @Req() req: AuthedRequest,
   ) {
     const result = await this.service.reject(
       id,

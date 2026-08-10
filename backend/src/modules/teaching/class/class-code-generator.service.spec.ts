@@ -17,10 +17,10 @@ describe('ClassCodeGeneratorService', () => {
 
   beforeEach(() => {
     OriginalDate = global.Date;
-    jest.spyOn(global, 'Date').mockImplementation((((...args: any[]) => {
+    jest.spyOn(global, 'Date').mockImplementation(((...args: any[]) => {
       if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
       return new (OriginalDate.bind(null, ...args))();
-    }) as any));
+    }) as any);
   });
 
   afterEach(() => {
@@ -106,10 +106,9 @@ describe('ClassCodeGeneratorService', () => {
 
       await service.generateClassCode();
 
-      expect(qb.where).toHaveBeenCalledWith(
-        'cls.classCode LIKE :prefix',
-        { prefix: `${expectedPrefix}%` },
-      );
+      expect(qb.where).toHaveBeenCalledWith('cls.classCode LIKE :prefix', {
+        prefix: `${expectedPrefix}%`,
+      });
     });
 
     it('should filter out deleted records', async () => {
@@ -117,10 +116,9 @@ describe('ClassCodeGeneratorService', () => {
 
       await service.generateClassCode();
 
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        'cls.deleted = :deleted',
-        { deleted: false },
-      );
+      expect(qb.andWhere).toHaveBeenCalledWith('cls.deleted = :deleted', {
+        deleted: false,
+      });
     });
 
     it('should order by class_code DESC', async () => {

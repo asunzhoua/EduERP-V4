@@ -59,7 +59,7 @@ export class TeacherService {
     });
 
     // 通过 classCode 获取班级和课程信息
-    const classCodes = [...new Set(assignments.map(a => a.classCode))];
+    const classCodes = [...new Set(assignments.map((a) => a.classCode))];
     if (classCodes.length === 0) return [];
 
     const classes = await this.classRepo
@@ -67,7 +67,7 @@ export class TeacherService {
       .where('class.classCode IN (:...classCodes)', { classCodes })
       .getMany();
 
-    const courseCodes = [...new Set(classes.map(c => c.courseCode))];
+    const courseCodes = [...new Set(classes.map((c) => c.courseCode))];
     if (courseCodes.length === 0) return [];
 
     const courses = await this.courseRepo
@@ -87,7 +87,7 @@ export class TeacherService {
       where: { teacherId },
     });
 
-    const classCodes = [...new Set(assignments.map(a => a.classCode))];
+    const classCodes = [...new Set(assignments.map((a) => a.classCode))];
     if (classCodes.length === 0) return [];
 
     return this.classRepo
@@ -102,7 +102,7 @@ export class TeacherService {
   async getStudentsByTeacherId(teacherId: number): Promise<Student[]> {
     // 先获取教师关联的班级
     const classes = await this.getClassesByTeacherId(teacherId);
-    const classIds = classes.map(c => c.id);
+    const classIds = classes.map((c) => c.id);
 
     if (classIds.length === 0) {
       return [];

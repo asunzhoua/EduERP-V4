@@ -57,11 +57,26 @@ import { ImportHistory } from '../src/modules/student/entities/import-history.en
 
 // Collect all entities
 const ALL_ENTITIES = [
-  User, LoginLog, Role, Permission, UserRole, RolePermission,
-  Student, StudentAuditLog, StudentParent,
-  ClassEntity, CourseEntity, CourseAuditLog, ContractEntity, EnrollmentEntity,
-  LessonEntity, LessonAttendanceEntity, LessonChangeRequestEntity,
-  TeacherAssignmentEntity, Reminder, ImportHistory,
+  User,
+  LoginLog,
+  Role,
+  Permission,
+  UserRole,
+  RolePermission,
+  Student,
+  StudentAuditLog,
+  StudentParent,
+  ClassEntity,
+  CourseEntity,
+  CourseAuditLog,
+  ContractEntity,
+  EnrollmentEntity,
+  LessonEntity,
+  LessonAttendanceEntity,
+  LessonChangeRequestEntity,
+  TeacherAssignmentEntity,
+  Reminder,
+  ImportHistory,
 ];
 
 describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
@@ -170,7 +185,16 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     const adminResult: any = await dataSource.query(
       `INSERT INTO user (username, password, name, mobile, role, status, campusId, deleted)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [adminUsername, adminPassword, 'E2E测试管理员', adminMobile, 'SuperAdmin', 1, 1, 0],
+      [
+        adminUsername,
+        adminPassword,
+        'E2E测试管理员',
+        adminMobile,
+        'SuperAdmin',
+        1,
+        1,
+        0,
+      ],
     );
     testIds.adminUserId = Number(adminResult.insertId);
 
@@ -178,7 +202,16 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     const teacherResult: any = await dataSource.query(
       `INSERT INTO user (username, password, name, mobile, role, status, campusId, deleted)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [teacherUsername, teacherPassword, 'E2E测试教师', teacherMobile, 'Teacher', 1, 1, 0],
+      [
+        teacherUsername,
+        teacherPassword,
+        'E2E测试教师',
+        teacherMobile,
+        'Teacher',
+        1,
+        1,
+        0,
+      ],
     );
     testIds.teacherUserId = Number(teacherResult.insertId);
 
@@ -186,7 +219,16 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     const studentResult: any = await dataSource.query(
       `INSERT INTO user (username, password, name, mobile, role, status, campusId, deleted)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [studentUsername, studentPassword, 'E2E测试学生用户', studentMobile, 'Student', 1, 1, 0],
+      [
+        studentUsername,
+        studentPassword,
+        'E2E测试学生用户',
+        studentMobile,
+        'Student',
+        1,
+        1,
+        0,
+      ],
     );
     testIds.studentUserId = Number(studentResult.insertId);
 
@@ -194,7 +236,16 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     const parentResult: any = await dataSource.query(
       `INSERT INTO user (username, password, name, mobile, role, status, campusId, deleted)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [parentUsername, parentPassword, 'E2E测试家长', parentMobile, 'Parent', 1, 1, 0],
+      [
+        parentUsername,
+        parentPassword,
+        'E2E测试家长',
+        parentMobile,
+        'Parent',
+        1,
+        1,
+        0,
+      ],
     );
     testIds.parentUserId = Number(parentResult.insertId);
 
@@ -237,26 +288,46 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
           `DELETE FROM lesson_attendance WHERE lessonId IN (SELECT id FROM lesson WHERE classCode = ?)`,
           [testIds.classCode],
         );
-        await dataSource.query(`DELETE FROM lesson WHERE classCode = ?`, [testIds.classCode]);
-        await dataSource.query(`DELETE FROM teacher_assignment WHERE classCode = ?`, [testIds.classCode]);
+        await dataSource.query(`DELETE FROM lesson WHERE classCode = ?`, [
+          testIds.classCode,
+        ]);
+        await dataSource.query(
+          `DELETE FROM teacher_assignment WHERE classCode = ?`,
+          [testIds.classCode],
+        );
       }
       if (testIds.studentCode) {
-        await dataSource.query(`DELETE FROM enrollment WHERE studentCode = ?`, [testIds.studentCode]);
+        await dataSource.query(`DELETE FROM enrollment WHERE studentCode = ?`, [
+          testIds.studentCode,
+        ]);
       }
       if (testIds.classCode) {
-        await dataSource.query(`DELETE FROM class WHERE classCode = ?`, [testIds.classCode]);
+        await dataSource.query(`DELETE FROM class WHERE classCode = ?`, [
+          testIds.classCode,
+        ]);
       }
       if (testIds.contractCode) {
-        await dataSource.query(`DELETE FROM contract WHERE contractCode = ?`, [testIds.contractCode]);
+        await dataSource.query(`DELETE FROM contract WHERE contractCode = ?`, [
+          testIds.contractCode,
+        ]);
       }
       if (testIds.courseCode) {
-        await dataSource.query(`DELETE FROM course WHERE courseCode = ?`, [testIds.courseCode]);
+        await dataSource.query(`DELETE FROM course WHERE courseCode = ?`, [
+          testIds.courseCode,
+        ]);
       }
       if (testIds.studentCode) {
-        await dataSource.query(`DELETE FROM student WHERE studentCode = ?`, [testIds.studentCode]);
+        await dataSource.query(`DELETE FROM student WHERE studentCode = ?`, [
+          testIds.studentCode,
+        ]);
       }
 
-      for (const id of [testIds.adminUserId, testIds.teacherUserId, testIds.studentUserId, testIds.parentUserId]) {
+      for (const id of [
+        testIds.adminUserId,
+        testIds.teacherUserId,
+        testIds.studentUserId,
+        testIds.parentUserId,
+      ]) {
         if (id) {
           await dataSource.query(`DELETE FROM user WHERE id = ?`, [id]);
         }

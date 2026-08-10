@@ -314,7 +314,9 @@ describe('LessonEntity', () => {
 
 describe('LessonAttendanceEntity', () => {
   it('should instantiate with undefined fields', () => {
-    const { LessonAttendanceEntity } = require('../lesson-attendance/lesson-attendance.entity');
+    const {
+      LessonAttendanceEntity,
+    } = require('../lesson-attendance/lesson-attendance.entity');
     const entity = new LessonAttendanceEntity();
     expect(entity).toBeDefined();
     expect(entity.id).toBeUndefined();
@@ -346,7 +348,9 @@ describe('LessonAttendanceEntity', () => {
   });
 
   it('should assign all required properties', () => {
-    const { LessonAttendanceEntity } = require('../lesson-attendance/lesson-attendance.entity');
+    const {
+      LessonAttendanceEntity,
+    } = require('../lesson-attendance/lesson-attendance.entity');
     const entity = new LessonAttendanceEntity();
     entity.lessonId = 10;
     entity.studentCode = 'STU-001';
@@ -368,7 +372,9 @@ describe('LessonAttendanceEntity', () => {
   });
 
   it('should support nullable checkInTime, reason, note, and status', () => {
-    const { LessonAttendanceEntity } = require('../lesson-attendance/lesson-attendance.entity');
+    const {
+      LessonAttendanceEntity,
+    } = require('../lesson-attendance/lesson-attendance.entity');
     const entity = new LessonAttendanceEntity();
     entity.checkInTime = null;
     entity.reason = null;
@@ -386,7 +392,9 @@ describe('LessonAttendanceEntity', () => {
 
 describe('LessonChangeRequestEntity', () => {
   it('should instantiate with undefined fields', () => {
-    const { LessonChangeRequestEntity } = require('../lesson-change-request/lesson-change-request.entity');
+    const {
+      LessonChangeRequestEntity,
+    } = require('../lesson-change-request/lesson-change-request.entity');
     const entity = new LessonChangeRequestEntity();
     expect(entity).toBeDefined();
     expect(entity.id).toBeUndefined();
@@ -408,7 +416,9 @@ describe('LessonChangeRequestEntity', () => {
   });
 
   it('should assign all required properties', () => {
-    const { LessonChangeRequestEntity } = require('../lesson-change-request/lesson-change-request.entity');
+    const {
+      LessonChangeRequestEntity,
+    } = require('../lesson-change-request/lesson-change-request.entity');
     const entity = new LessonChangeRequestEntity();
     entity.lessonId = 10;
     entity.requestType = ChangeRequestType.RESCHEDULE;
@@ -424,7 +434,9 @@ describe('LessonChangeRequestEntity', () => {
   });
 
   it('should support reschedule fields (previous/new date and time)', () => {
-    const { LessonChangeRequestEntity } = require('../lesson-change-request/lesson-change-request.entity');
+    const {
+      LessonChangeRequestEntity,
+    } = require('../lesson-change-request/lesson-change-request.entity');
     const entity = new LessonChangeRequestEntity();
     entity.previousDate = '2026-09-08';
     entity.newDate = '2026-09-10';
@@ -440,7 +452,9 @@ describe('LessonChangeRequestEntity', () => {
   });
 
   it('should support teacher change fields', () => {
-    const { LessonChangeRequestEntity } = require('../lesson-change-request/lesson-change-request.entity');
+    const {
+      LessonChangeRequestEntity,
+    } = require('../lesson-change-request/lesson-change-request.entity');
     const entity = new LessonChangeRequestEntity();
     entity.previousTeacherId = 42;
     entity.newTeacherId = 55;
@@ -450,7 +464,9 @@ describe('LessonChangeRequestEntity', () => {
   });
 
   it('should support nullable approval and execution fields', () => {
-    const { LessonChangeRequestEntity } = require('../lesson-change-request/lesson-change-request.entity');
+    const {
+      LessonChangeRequestEntity,
+    } = require('../lesson-change-request/lesson-change-request.entity');
     const entity = new LessonChangeRequestEntity();
     entity.approvedBy = null;
     entity.approvedAt = null;
@@ -470,7 +486,9 @@ describe('LessonChangeRequestEntity', () => {
 
 describe('TeacherAssignmentEntity', () => {
   it('should instantiate with undefined fields', () => {
-    const { TeacherAssignmentEntity } = require('../teacher-assignment/teacher-assignment.entity');
+    const {
+      TeacherAssignmentEntity,
+    } = require('../teacher-assignment/teacher-assignment.entity');
     const entity = new TeacherAssignmentEntity();
     expect(entity).toBeDefined();
     expect(entity.id).toBeUndefined();
@@ -484,7 +502,9 @@ describe('TeacherAssignmentEntity', () => {
   });
 
   it('should assign all required properties', () => {
-    const { TeacherAssignmentEntity } = require('../teacher-assignment/teacher-assignment.entity');
+    const {
+      TeacherAssignmentEntity,
+    } = require('../teacher-assignment/teacher-assignment.entity');
     const entity = new TeacherAssignmentEntity();
     entity.classCode = 'CLS-001';
     entity.teacherId = 42;
@@ -500,7 +520,9 @@ describe('TeacherAssignmentEntity', () => {
   });
 
   it('should support nullable effectiveTo and reason', () => {
-    const { TeacherAssignmentEntity } = require('../teacher-assignment/teacher-assignment.entity');
+    const {
+      TeacherAssignmentEntity,
+    } = require('../teacher-assignment/teacher-assignment.entity');
     const entity = new TeacherAssignmentEntity();
     entity.effectiveTo = null;
     entity.reason = null;
@@ -510,7 +532,9 @@ describe('TeacherAssignmentEntity', () => {
   });
 
   it('should allow substitute role assignment', () => {
-    const { TeacherAssignmentEntity } = require('../teacher-assignment/teacher-assignment.entity');
+    const {
+      TeacherAssignmentEntity,
+    } = require('../teacher-assignment/teacher-assignment.entity');
     const entity = new TeacherAssignmentEntity();
     entity.role = TeacherRole.SUBSTITUTE;
     entity.effectiveFrom = '2026-10-01';
@@ -528,8 +552,17 @@ describe('TeacherAssignmentEntity', () => {
 describe('Subject enum (shared)', () => {
   it('should contain all expected subjects', () => {
     const expected = [
-      'MATH', 'ENGLISH', 'CHINESE', 'PHYSICS', 'CHEMISTRY',
-      'ART', 'MUSIC', 'DANCE', 'SPORTS', 'CODING', 'OTHER',
+      'MATH',
+      'ENGLISH',
+      'CHINESE',
+      'PHYSICS',
+      'CHEMISTRY',
+      'ART',
+      'MUSIC',
+      'DANCE',
+      'SPORTS',
+      'CODING',
+      'OTHER',
     ];
     for (const value of expected) {
       expect(Subject[value as keyof typeof Subject]).toBe(value);

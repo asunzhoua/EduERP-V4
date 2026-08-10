@@ -24,7 +24,19 @@ import { LeaveRequestEntity } from '../teaching/leave-request/leave-request.enti
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Student, StudentParent, StudentAuditLog, ImportHistory, LessonEntity, User, EnrollmentEntity, TeacherAssignmentEntity, ClassEntity, CourseEntity, LeaveRequestEntity]),
+    TypeOrmModule.forFeature([
+      Student,
+      StudentParent,
+      StudentAuditLog,
+      ImportHistory,
+      LessonEntity,
+      User,
+      EnrollmentEntity,
+      TeacherAssignmentEntity,
+      ClassEntity,
+      CourseEntity,
+      LeaveRequestEntity,
+    ]),
     MulterModule.register({
       limits: {
         fileSize: 10 * 1024 * 1024, // 10MB

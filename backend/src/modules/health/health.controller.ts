@@ -7,12 +7,12 @@ import { Public } from '@common/decorators/public.decorator';
 export class HealthController {
   @Get()
   @Public()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: '健康检查',
-    description: '检查服务是否正常运行，无需认证'
+    description: '检查服务是否正常运行，无需认证',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: '服务健康',
     schema: {
       example: {
@@ -20,9 +20,9 @@ export class HealthController {
         timestamp: '2026-07-28T00:00:00.000Z',
         uptime: 3600,
         environment: 'production',
-        version: '1.1.0'
-      }
-    }
+        version: '1.1.0',
+      },
+    },
   })
   check() {
     return {

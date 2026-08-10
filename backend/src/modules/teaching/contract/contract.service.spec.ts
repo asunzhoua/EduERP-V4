@@ -279,11 +279,7 @@ describe('ContractService', () => {
       contractRepo.findOneByCode.mockResolvedValue(partial);
 
       await expect(
-        service.adjustLessons(
-          'CT2026070001',
-          { remainingLessons: 10 },
-          1,
-        ),
+        service.adjustLessons('CT2026070001', { remainingLessons: 10 }, 1),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -291,11 +287,7 @@ describe('ContractService', () => {
       contractRepo.findOneByCode.mockResolvedValue({ ...baseContract });
 
       await expect(
-        service.adjustLessons(
-          'CT2026070001',
-          { remainingLessons: -1 },
-          1,
-        ),
+        service.adjustLessons('CT2026070001', { remainingLessons: -1 }, 1),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -330,11 +322,7 @@ describe('ContractService', () => {
       });
 
       await expect(
-        service.adjustLessons(
-          'CT2026070001',
-          { remainingLessons: 25 },
-          1,
-        ),
+        service.adjustLessons('CT2026070001', { remainingLessons: 25 }, 1),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -646,7 +634,10 @@ describe('ContractService', () => {
 
       await service.getRenewalWarnings();
 
-      expect(config.get).toHaveBeenCalledWith('app.renewal.warningThreshold', 5);
+      expect(config.get).toHaveBeenCalledWith(
+        'app.renewal.warningThreshold',
+        5,
+      );
       expect(contractRepo.findActiveAtRisk).toHaveBeenCalledWith(5);
     });
 

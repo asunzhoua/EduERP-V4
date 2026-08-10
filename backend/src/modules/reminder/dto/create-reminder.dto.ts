@@ -1,4 +1,10 @@
-import { IsEnum, IsString, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import {
+  IsEnum,
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+} from 'class-validator';
 import { ReminderType } from '../enums/reminder-type.enum';
 import { TargetType } from '../enums/target-type.enum';
 

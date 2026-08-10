@@ -1,10 +1,11 @@
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import {
-  Controller,
-  Post,
-  Body,
-  UseGuards,
-} from '@nestjs/common';
-import { IsString, IsNotEmpty, IsNumber, IsOptional, Min } from 'class-validator';
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  Min,
+} from 'class-validator';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';

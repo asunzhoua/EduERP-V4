@@ -1,4 +1,9 @@
-import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import {
+  Module,
+  NestModule,
+  MiddlewareConsumer,
+  RequestMethod,
+} from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -17,7 +22,14 @@ import { LoginRateLimitMiddleware } from '@common/middleware/rate-limit.middlewa
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Role, Permission, UserRole, RolePermission, LoginLog]),
+    TypeOrmModule.forFeature([
+      User,
+      Role,
+      Permission,
+      UserRole,
+      RolePermission,
+      LoginLog,
+    ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: () => {

@@ -25,7 +25,8 @@ export class OptimizedExceptionFilter implements ExceptionFilter {
   constructor(@Inject(ConfigService) private configService?: ConfigService) {}
 
   private get isProduction(): boolean {
-    const env = this.configService?.get<string>('NODE_ENV') || process.env.NODE_ENV;
+    const env =
+      this.configService?.get<string>('NODE_ENV') || process.env.NODE_ENV;
     return env === 'production';
   }
 

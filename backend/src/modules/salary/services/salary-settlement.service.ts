@@ -44,7 +44,10 @@ function monthRange(month: string): { start: string; end: string } {
   const mo = Number(m[2]);
   if (mo < 1 || mo > 12) throw new BadRequestException('month 月份非法');
   const lastDay = new Date(y, mo, 0).getDate();
-  return { start: `${month}-01`, end: `${month}-${String(lastDay).padStart(2, '0')}` };
+  return {
+    start: `${month}-01`,
+    end: `${month}-${String(lastDay).padStart(2, '0')}`,
+  };
 }
 
 @Injectable()
@@ -66,7 +69,11 @@ export class SalarySettlementService {
     private readonly userRepo: Repository<User>,
   ) {}
 
-  async settle(month: string, teacherId?: number, operatedBy = 0): Promise<SettleResult> {
+  async settle(
+    month: string,
+    teacherId?: number,
+    operatedBy = 0,
+  ): Promise<SettleResult> {
     const { start, end } = monthRange(month);
 
     const lessonWhere: Record<string, any> = {
@@ -77,7 +84,15 @@ export class SalarySettlementService {
 
     const lessons = await this.lessonRepo.find({ where: lessonWhere });
     if (lessons.length === 0) {
-      return { month, teacherId, teachers: 0, lessons: 0, created: 0, skipped: 0, summary: [] };
+      return {
+        month,
+        teacherId,
+        teachers: 0,
+        lessons: 0,
+        created: 0,
+        skipped: 0,
+        summary: [],
+      };
     }
 
     const lessonIds = lessons.map((l) => l.id);
@@ -89,7 +104,9 @@ export class SalarySettlementService {
       this.ruleRepo.find({ where: { isActive: true } }),
     ]);
 
-    const courseTypeByCode = new Map(courses.map((c) => [c.courseCode, c.type]));
+    const courseTypeByCode = new Map(
+      courses.map((c) => [c.courseCode, c.type]),
+    );
     const activeRules = rules;
 
     // 按教师分组
@@ -99,7 +116,8 @@ export class SalarySettlementService {
     const teacherLevelByUser = new Map<number, string | null>();
     if (teacherIds.length > 0) {
       const users = await this.userRepo.find({ where: { id: In(teacherIds) } });
-      for (const u of users) teacherLevelByUser.set(Number(u.id), u.teacherLevel ?? null);
+      for (const u of users)
+        teacherLevelByUser.set(Number(u.id), u.teacherLevel ?? null);
     }
 
     const existingRecords = teacherId
@@ -107,7 +125,9 @@ export class SalarySettlementService {
       : await this.recordRepo.find({ where: { month } });
 
     const existingKeys = new Set(
-      existingRecords.map((r) => this.recordKey(r.teacherId, r.source, r.lessonId, r.lessonDate)),
+      existingRecords.map((r) =>
+        this.recordKey(r.teacherId, r.source, r.lessonId, r.lessonDate),
+      ),
     );
 
     const toCreate: Partial<SalaryRecordEntity>[] = [];
@@ -143,7 +163,9 @@ export class SalarySettlementService {
           }
         }
         const list = attendanceByLesson.get(lesson.id) ?? [];
-        const headcount = list.filter((a) => DEDUCTIBLE_STATUSES.has(a.status as AttendanceStatus)).length;
+        const headcount = list.filter((a) =>
+          DEDUCTIBLE_STATUSES.has(a.status as AttendanceStatus),
+        ).length;
         matched.push({ lesson, rule: bestScore > 0 ? best : null, headcount });
       }
 
@@ -151,18 +173,28 @@ export class SalarySettlementService {
       const lessonCountByRule = new Map<number, number>();
       for (const m of matched) {
         if (m.rule) {
-          lessonCountByRule.set(m.rule.id, (lessonCountByRule.get(m.rule.id) ?? 0) + 1);
+          lessonCountByRule.set(
+            m.rule.id,
+            (lessonCountByRule.get(m.rule.id) ?? 0) + 1,
+          );
         }
       }
 
       // 已累计计数（TIER：按 lesson 日期升序累加）
       const tierCountByRule = new Map<number, number>();
-      const ordered = [...matched].sort((a, b) => a.lesson.scheduledDate.localeCompare(b.lesson.scheduledDate));
+      const ordered = [...matched].sort((a, b) =>
+        a.lesson.scheduledDate.localeCompare(b.lesson.scheduledDate),
+      );
 
       for (const m of ordered) {
         if (!m.rule) {
           // 无适用规则 → needsReview 兜底
-          const key = this.recordKey(tid, SalaryRecordSource.LESSON_FEE, m.lesson.id, m.lesson.scheduledDate);
+          const key = this.recordKey(
+            tid,
+            SalaryRecordSource.LESSON_FEE,
+            m.lesson.id,
+            m.lesson.scheduledDate,
+          );
           if (!existingKeys.has(key)) {
             toCreate.push({
               teacherId: tid,
@@ -178,7 +210,11 @@ export class SalarySettlementService {
               status: SalaryRecordStatus.PENDING,
               needsReview: true,
               notes: '无适用工资规则',
-              detail: { reason: '无适用工资规则', courseCode: m.lesson.courseCode, headcount: m.headcount },
+              detail: {
+                reason: '无适用工资规则',
+                courseCode: m.lesson.courseCode,
+                headcount: m.headcount,
+              },
               createdBy: operatedBy,
             });
             existingKeys.add(key);
@@ -199,10 +235,21 @@ export class SalarySettlementService {
         }
 
         const count = tierCountByRule.get(rule.id) ?? 0;
-        const fee = computeLessonFee(rule.type as SalaryRuleType, config, rule, m.headcount, count + 1);
+        const fee = computeLessonFee(
+          rule.type,
+          config,
+          rule,
+          m.headcount,
+          count + 1,
+        );
         tierCountByRule.set(rule.id, count + 1);
 
-        const key = this.recordKey(tid, SalaryRecordSource.LESSON_FEE, m.lesson.id, m.lesson.scheduledDate);
+        const key = this.recordKey(
+          tid,
+          SalaryRecordSource.LESSON_FEE,
+          m.lesson.id,
+          m.lesson.scheduledDate,
+        );
         if (!existingKeys.has(key)) {
           toCreate.push({
             teacherId: tid,
@@ -244,7 +291,12 @@ export class SalarySettlementService {
         if (config?.baseSalary !== undefined) {
           const minForBase = config.minLessonForBase ?? 0;
           if (count >= minForBase) {
-            const key = this.recordKey(tid, SalaryRecordSource.BASE, null, null);
+            const key = this.recordKey(
+              tid,
+              SalaryRecordSource.BASE,
+              null,
+              null,
+            );
             if (!existingKeys.has(key)) {
               toCreate.push({
                 teacherId: tid,
@@ -273,10 +325,17 @@ export class SalarySettlementService {
         }
 
         // DAY 按天
-        if (rule.type === SalaryRuleType.PER_DAY && config?.lessonPrice !== undefined) {
-          const dates = [...new Set(teacherLessons.map((l) => l.scheduledDate))].sort();
+        if (
+          rule.type === SalaryRuleType.PER_DAY &&
+          config?.lessonPrice !== undefined
+        ) {
+          const dates = [
+            ...new Set(teacherLessons.map((l) => l.scheduledDate)),
+          ].sort();
           for (const d of dates) {
-            const dayLessons = teacherLessons.filter((l) => l.scheduledDate === d).length;
+            const dayLessons = teacherLessons.filter(
+              (l) => l.scheduledDate === d,
+            ).length;
             const key = this.recordKey(tid, SalaryRecordSource.DAY, null, d);
             if (!existingKeys.has(key)) {
               toCreate.push({
@@ -318,7 +377,8 @@ export class SalarySettlementService {
               formula.push(`fullAttendance(${fullAttendanceBonus})`);
             }
           }
-          const target = bonus.lessonTarget as { threshold?: number; amount?: number } | undefined;
+          const target = bonus.lessonTarget as
+            { threshold?: number; amount?: number } | undefined;
           if (target?.threshold && target.amount) {
             if (count >= target.threshold) {
               bonusAmount += target.amount;
@@ -326,7 +386,12 @@ export class SalarySettlementService {
             }
           }
           if (bonusAmount > 0) {
-            const key = this.recordKey(tid, SalaryRecordSource.BONUS, null, null);
+            const key = this.recordKey(
+              tid,
+              SalaryRecordSource.BONUS,
+              null,
+              null,
+            );
             if (!existingKeys.has(key)) {
               toCreate.push({
                 teacherId: tid,
@@ -357,7 +422,10 @@ export class SalarySettlementService {
 
     // 单事务写入
     const created = await this.recordRepo.manager.transaction(async (em) => {
-      const saved = await em.save(SalaryRecordEntity, toCreate as SalaryRecordEntity[]);
+      const saved = await em.save(
+        SalaryRecordEntity,
+        toCreate as SalaryRecordEntity[],
+      );
       return saved.length;
     });
 
@@ -384,8 +452,10 @@ export class SalarySettlementService {
     lessonId: number | null,
     lessonDate: string | null,
   ): string {
-    if (source === SalaryRecordSource.LESSON_FEE) return `${teacherId}:${source}:${lessonId}`;
-    if (source === SalaryRecordSource.DAY) return `${teacherId}:${source}:${lessonDate}`;
+    if (source === SalaryRecordSource.LESSON_FEE)
+      return `${teacherId}:${source}:${lessonId}`;
+    if (source === SalaryRecordSource.DAY)
+      return `${teacherId}:${source}:${lessonDate}`;
     return `${teacherId}:${source}`;
   }
 
@@ -424,10 +494,14 @@ export class SalarySettlementService {
 
   private isFullAttendance(attendances: LessonAttendanceEntity[]): boolean {
     if (attendances.length === 0) return false;
-    return attendances.every((a) => a.status && DEDUCTIBLE_STATUSES.has(a.status));
+    return attendances.every(
+      (a) => a.status && DEDUCTIBLE_STATUSES.has(a.status),
+    );
   }
 
-  private buildSummary(records: Partial<SalaryRecordEntity>[]): { source: string; count: number; amount: number }[] {
+  private buildSummary(
+    records: Partial<SalaryRecordEntity>[],
+  ): { source: string; count: number; amount: number }[] {
     const map = new Map<string, { count: number; amount: number }>();
     for (const r of records) {
       const key = r.source as string;
@@ -436,6 +510,10 @@ export class SalarySettlementService {
       cur.amount += Number(r.amount) || 0;
       map.set(key, cur);
     }
-    return [...map.entries()].map(([source, v]) => ({ source, count: v.count, amount: Math.round(v.amount * 100) / 100 }));
+    return [...map.entries()].map(([source, v]) => ({
+      source,
+      count: v.count,
+      amount: Math.round(v.amount * 100) / 100,
+    }));
   }
 }

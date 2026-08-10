@@ -14,7 +14,11 @@ async function bootstrap() {
     await seedService.seed();
     logger.log('Seed completed successfully', 'SeedCLI');
   } catch (error) {
-    logger.error(`Seed failed: ${(error as Error).message}`, (error as Error).stack, 'SeedCLI');
+    logger.error(
+      `Seed failed: ${(error as Error).message}`,
+      (error as Error).stack,
+      'SeedCLI',
+    );
   } finally {
     await app.close();
   }

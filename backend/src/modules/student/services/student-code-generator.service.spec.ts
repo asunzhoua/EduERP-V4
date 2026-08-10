@@ -19,10 +19,10 @@ describe('StudentCodeGeneratorService', () => {
 
   beforeEach(() => {
     OriginalDate = global.Date;
-    jest.spyOn(global, 'Date').mockImplementation((((...args: any[]) => {
+    jest.spyOn(global, 'Date').mockImplementation(((...args: any[]) => {
       if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
       return new (OriginalDate.bind(null, ...args))();
-    }) as any));
+    }) as any);
   });
 
   afterEach(() => {

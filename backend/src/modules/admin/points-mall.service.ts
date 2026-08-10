@@ -73,7 +73,10 @@ export class PointsMallService {
     return { items, total, page, pageSize };
   }
 
-  async createProduct(dto: CreateProductInput, operatorId: number): Promise<PointsProduct> {
+  async createProduct(
+    dto: CreateProductInput,
+    operatorId: number,
+  ): Promise<PointsProduct> {
     const product = this.productRepo.create({
       name: dto.name,
       description: dto.description ?? null,
@@ -87,8 +90,13 @@ export class PointsMallService {
     return this.productRepo.save(product);
   }
 
-  async updateProduct(id: number, dto: UpdateProductInput): Promise<PointsProduct> {
-    const product = await this.productRepo.findOne({ where: { id, deleted: false } });
+  async updateProduct(
+    id: number,
+    dto: UpdateProductInput,
+  ): Promise<PointsProduct> {
+    const product = await this.productRepo.findOne({
+      where: { id, deleted: false },
+    });
     if (!product) throw new NotFoundException('商品不存在');
     if (dto.name !== undefined) product.name = dto.name;
     if (dto.description !== undefined) product.description = dto.description;
@@ -99,8 +107,13 @@ export class PointsMallService {
     return this.productRepo.save(product);
   }
 
-  async updateProductStatus(id: number, status: PointsProductStatus): Promise<PointsProduct> {
-    const product = await this.productRepo.findOne({ where: { id, deleted: false } });
+  async updateProductStatus(
+    id: number,
+    status: PointsProductStatus,
+  ): Promise<PointsProduct> {
+    const product = await this.productRepo.findOne({
+      where: { id, deleted: false },
+    });
     if (!product) throw new NotFoundException('商品不存在');
     product.status = status;
     return this.productRepo.save(product);

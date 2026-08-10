@@ -36,16 +36,16 @@ export class ExportController {
   @Post('students')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '导出学生数据' })
-  async exportStudents(
-    @Body() filters: ExportFilterDto,
-    @Res() res: Response,
-  ) {
+  async exportStudents(@Body() filters: ExportFilterDto, @Res() res: Response) {
     const format = filters.format || 'csv';
     const buffer = await this.exportService.exportStudents(filters, format);
 
     const filename = `学生数据_${Date.now()}.${this.ext(format)}`;
     res.set({
-      'Content-Type': format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        format === 'csv'
+          ? 'text/csv'
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': this.disposition(filename, format),
     });
     res.send(buffer);
@@ -54,16 +54,16 @@ export class ExportController {
   @Post('lessons')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '导出课程记录' })
-  async exportLessons(
-    @Body() filters: ExportFilterDto,
-    @Res() res: Response,
-  ) {
+  async exportLessons(@Body() filters: ExportFilterDto, @Res() res: Response) {
     const format = filters.format || 'csv';
     const buffer = await this.exportService.exportLessons(filters, format);
 
     const filename = `课时记录_${Date.now()}.${this.ext(format)}`;
     res.set({
-      'Content-Type': format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        format === 'csv'
+          ? 'text/csv'
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': this.disposition(filename, format),
     });
     res.send(buffer);
@@ -81,7 +81,10 @@ export class ExportController {
 
     const filename = `课时消耗_${Date.now()}.${this.ext(format)}`;
     res.set({
-      'Content-Type': format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        format === 'csv'
+          ? 'text/csv'
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': this.disposition(filename, format),
     });
     res.send(buffer);
@@ -90,16 +93,16 @@ export class ExportController {
   @Post('salary')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '导出工资记录' })
-  async exportSalary(
-    @Body() filters: ExportFilterDto,
-    @Res() res: Response,
-  ) {
+  async exportSalary(@Body() filters: ExportFilterDto, @Res() res: Response) {
     const format = filters.format || 'csv';
     const buffer = await this.exportService.exportSalary(filters, format);
 
     const filename = `工资数据_${Date.now()}.${this.ext(format)}`;
     res.set({
-      'Content-Type': format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        format === 'csv'
+          ? 'text/csv'
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': this.disposition(filename, format),
     });
     res.send(buffer);
@@ -108,16 +111,16 @@ export class ExportController {
   @Post('finance')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '导出财务记录' })
-  async exportFinance(
-    @Body() filters: ExportFilterDto,
-    @Res() res: Response,
-  ) {
+  async exportFinance(@Body() filters: ExportFilterDto, @Res() res: Response) {
     const format = filters.format || 'csv';
     const buffer = await this.exportService.exportFinance(filters, format);
 
     const filename = `财务数据_${Date.now()}.${this.ext(format)}`;
     res.set({
-      'Content-Type': format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        format === 'csv'
+          ? 'text/csv'
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': this.disposition(filename, format),
     });
     res.send(buffer);

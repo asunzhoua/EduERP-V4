@@ -107,9 +107,10 @@ export class CourseService {
 
   async enrichCourses(courses: CourseEntity[]): Promise<any[]> {
     if (!courses.length) return [];
-    const courseCodes = courses.map(c => c.courseCode);
-    const enrolledClassCounts = await this.classRepo.countActiveByCourseCodes(courseCodes);
-    return courses.map(course => ({
+    const courseCodes = courses.map((c) => c.courseCode);
+    const enrolledClassCounts =
+      await this.classRepo.countActiveByCourseCodes(courseCodes);
+    return courses.map((course) => ({
       ...course,
       lessonCount: course.totalLessons,
       enrolledClasses: enrolledClassCounts.get(course.courseCode) ?? 0,
@@ -117,7 +118,9 @@ export class CourseService {
   }
 
   async enrichCourse(course: CourseEntity): Promise<any> {
-    const enrolledClasses = await this.classRepo.countActiveByCourseCode(course.courseCode);
+    const enrolledClasses = await this.classRepo.countActiveByCourseCode(
+      course.courseCode,
+    );
     return {
       ...course,
       lessonCount: course.totalLessons,

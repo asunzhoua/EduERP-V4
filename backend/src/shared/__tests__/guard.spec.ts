@@ -8,7 +8,9 @@ describe('Guard', () => {
     });
 
     it('should throw for undefined', () => {
-      expect(() => Guard.againstNull(undefined, 'name')).toThrow(DomainException);
+      expect(() => Guard.againstNull(undefined, 'name')).toThrow(
+        DomainException,
+      );
     });
 
     it('should not throw for valid value', () => {
@@ -34,7 +36,9 @@ describe('Guard', () => {
     });
 
     it('should throw for null', () => {
-      expect(() => Guard.againstEmpty(null as any, 'name')).toThrow(DomainException);
+      expect(() => Guard.againstEmpty(null as any, 'name')).toThrow(
+        DomainException,
+      );
     });
 
     it('should not throw for valid string', () => {
@@ -44,11 +48,15 @@ describe('Guard', () => {
 
   describe('againstRange()', () => {
     it('should throw for value below min', () => {
-      expect(() => Guard.againstRange(0, 1, 10, 'age')).toThrow(DomainException);
+      expect(() => Guard.againstRange(0, 1, 10, 'age')).toThrow(
+        DomainException,
+      );
     });
 
     it('should throw for value above max', () => {
-      expect(() => Guard.againstRange(11, 1, 10, 'age')).toThrow(DomainException);
+      expect(() => Guard.againstRange(11, 1, 10, 'age')).toThrow(
+        DomainException,
+      );
     });
 
     it('should not throw for value in range', () => {
@@ -87,7 +95,9 @@ describe('Guard', () => {
 
   describe('againstEmptyArray()', () => {
     it('should throw for empty array', () => {
-      expect(() => Guard.againstEmptyArray([], 'items')).toThrow(DomainException);
+      expect(() => Guard.againstEmptyArray([], 'items')).toThrow(
+        DomainException,
+      );
     });
 
     it('should throw for non-array', () => {

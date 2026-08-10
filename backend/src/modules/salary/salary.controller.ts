@@ -50,7 +50,10 @@ export class SalaryController {
   @Roles('Teacher')
   @ApiOperation({ summary: '教师查询自己的工资统计' })
   @ApiResponse({ status: 200, description: '成功返回工资统计' })
-  async getMyStatistics(@Request() req, @Query() query: SalaryStatisticsQueryDto) {
+  async getMyStatistics(
+    @Request() req,
+    @Query() query: SalaryStatisticsQueryDto,
+  ) {
     const teacherId = req.user.sub;
     return this.salaryService.getStatistics({ ...query, teacherId });
   }
@@ -67,7 +70,10 @@ export class SalaryController {
 
   @Put('records/:id/status')
   @Roles('Admin', 'SuperAdmin')
-  @ApiOperation({ summary: '管理员更新工资记录状态（PENDING→APPROVED→PAID；APPROVED→PENDING）' })
+  @ApiOperation({
+    summary:
+      '管理员更新工资记录状态（PENDING→APPROVED→PAID；APPROVED→PENDING）',
+  })
   @ApiResponse({ status: 200, description: '成功更新状态' })
   async updateRecordStatus(
     @Param('id') id: number,
@@ -94,10 +100,16 @@ export class SalaryController {
 
   @Post('settle')
   @Roles('Admin', 'SuperAdmin')
-  @ApiOperation({ summary: '月度结算：按当月 FINISHED 课时 + 出勤生成工资记录（幂等）' })
+  @ApiOperation({
+    summary: '月度结算：按当月 FINISHED 课时 + 出勤生成工资记录（幂等）',
+  })
   @ApiResponse({ status: 201, description: '成功生成结算记录' })
   async settle(@Body() dto: SettleDto, @Request() req) {
-    return this.settlementService.settle(dto.month, dto.teacherId, req.user.sub);
+    return this.settlementService.settle(
+      dto.month,
+      dto.teacherId,
+      req.user.sub,
+    );
   }
 
   // ==================== 规则管理接口 ====================

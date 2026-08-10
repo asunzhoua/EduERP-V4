@@ -37,7 +37,10 @@ export class CreateMakeupDto {
     description: '上课日期 (YYYY-MM-DD)',
     example: '2026-07-20',
   })
-  @IsDateString({}, { message: 'scheduledDate must be a valid date (YYYY-MM-DD)' })
+  @IsDateString(
+    {},
+    { message: 'scheduledDate must be a valid date (YYYY-MM-DD)' },
+  )
   scheduledDate: string;
 
   @ApiProperty({

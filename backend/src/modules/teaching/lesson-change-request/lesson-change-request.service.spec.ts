@@ -359,7 +359,9 @@ describe('LessonChangeRequestService', () => {
     });
 
     it('should throw BadRequestException when rejection reason is empty', async () => {
-      await expect(service.reject(1, 1, '')).rejects.toThrow(BadRequestException);
+      await expect(service.reject(1, 1, '')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException when already executed', async () => {
@@ -369,7 +371,9 @@ describe('LessonChangeRequestService', () => {
       entity.status = ChangeRequestStatus.EXECUTED;
       mockRepo.findOneById.mockResolvedValue(entity);
 
-      await expect(service.reject(1, 1, '某理由')).rejects.toThrow(BadRequestException);
+      await expect(service.reject(1, 1, '某理由')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -388,7 +392,12 @@ describe('LessonChangeRequestService', () => {
       mockRepo.findOneById.mockResolvedValue(entity);
       mockRepo.save.mockImplementation(async (e) => e);
 
-      const mockLesson = { id: 10, scheduledDate: '2026-07-20', startTime: '09:00', endTime: '10:00' };
+      const mockLesson = {
+        id: 10,
+        scheduledDate: '2026-07-20',
+        startTime: '09:00',
+        endTime: '10:00',
+      };
       mockLessonService.findOne.mockResolvedValue(mockLesson);
       mockLessonService.lessonRepo.save.mockResolvedValue(mockLesson);
 
@@ -416,7 +425,12 @@ describe('LessonChangeRequestService', () => {
 
       const result = await service.execute(2, 5);
       expect(result.status).toBe(ChangeRequestStatus.EXECUTED);
-      expect(mockLessonService.updateStatus).toHaveBeenCalledWith(10, 'CANCELLED', 5, '测试取消');
+      expect(mockLessonService.updateStatus).toHaveBeenCalledWith(
+        10,
+        'CANCELLED',
+        5,
+        '测试取消',
+      );
     });
 
     it('should throw BadRequestException when not approved', async () => {
@@ -452,7 +466,9 @@ describe('LessonChangeRequestService', () => {
   describe('findByLessonId', () => {
     it('should return an array of requests', async () => {
       const mockRepo = (service as any).requestRepo;
-      mockRepo.findByLessonId.mockResolvedValue([new LessonChangeRequestEntity()]);
+      mockRepo.findByLessonId.mockResolvedValue([
+        new LessonChangeRequestEntity(),
+      ]);
 
       const result = await service.findByLessonId(1);
       expect(result).toHaveLength(1);

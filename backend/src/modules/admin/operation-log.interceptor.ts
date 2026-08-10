@@ -48,13 +48,17 @@ export class OperationLogInterceptor implements NestInterceptor {
     const req = context.switchToHttp().getRequest();
     const method: string = req.method || '';
     const user = req.user as
-      | { sub: number; username?: string; role?: string }
-      | undefined;
+      { sub: number; username?: string; role?: string } | undefined;
 
     if (MUTATING_METHODS.has(method.toUpperCase()) && user?.sub) {
       const path: string = req.originalUrl || req.url || '';
       const params = req.params || {};
-      const resourceId = params.id !== undefined ? String(params.id) : params.code !== undefined ? String(params.code) : undefined;
+      const resourceId =
+        params.id !== undefined
+          ? String(params.id)
+          : params.code !== undefined
+            ? String(params.code)
+            : undefined;
       const body = req.body || {};
       let detail: string | null = null;
       try {

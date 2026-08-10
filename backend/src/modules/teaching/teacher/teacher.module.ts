@@ -10,7 +10,12 @@ import { DataScopeModule } from '@common/services/data-scope.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CourseEntity, ClassEntity, Student, TeacherAssignmentEntity]),
+    TypeOrmModule.forFeature([
+      CourseEntity,
+      ClassEntity,
+      Student,
+      TeacherAssignmentEntity,
+    ]),
     DataScopeModule,
   ],
   controllers: [TeacherController],

@@ -85,9 +85,15 @@ describe('SentryService', () => {
     });
 
     it('should accept different log levels', () => {
-      expect(() => service.captureMessage('Info message', 'info')).not.toThrow();
-      expect(() => service.captureMessage('Warning message', 'warning')).not.toThrow();
-      expect(() => service.captureMessage('Error message', 'error')).not.toThrow();
+      expect(() =>
+        service.captureMessage('Info message', 'info'),
+      ).not.toThrow();
+      expect(() =>
+        service.captureMessage('Warning message', 'warning'),
+      ).not.toThrow();
+      expect(() =>
+        service.captureMessage('Error message', 'error'),
+      ).not.toThrow();
     });
   });
 

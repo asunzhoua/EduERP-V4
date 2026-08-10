@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsEnum, IsOptional, IsNumber, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsNumber,
+  IsDateString,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ChangeRequestType } from '@common/enums/change-request-type.enum';
 
@@ -8,22 +15,35 @@ export class CreateChangeRequestDto {
   @IsNotEmpty()
   lessonId!: number;
 
-  @ApiProperty({ description: 'Request type', enum: ChangeRequestType, example: ChangeRequestType.RESCHEDULE })
+  @ApiProperty({
+    description: 'Request type',
+    enum: ChangeRequestType,
+    example: ChangeRequestType.RESCHEDULE,
+  })
   @IsEnum(ChangeRequestType)
   @IsNotEmpty()
   requestType!: ChangeRequestType;
 
-  @ApiProperty({ description: 'Reason for the change request', example: '学生需要调课' })
+  @ApiProperty({
+    description: 'Reason for the change request',
+    example: '学生需要调课',
+  })
   @IsString()
   @IsNotEmpty()
   reason!: string;
 
-  @ApiPropertyOptional({ description: 'Previous lesson date', example: '2026-07-20' })
+  @ApiPropertyOptional({
+    description: 'Previous lesson date',
+    example: '2026-07-20',
+  })
   @IsOptional()
   @IsDateString()
   previousDate?: string;
 
-  @ApiPropertyOptional({ description: 'New lesson date', example: '2026-07-22' })
+  @ApiPropertyOptional({
+    description: 'New lesson date',
+    example: '2026-07-22',
+  })
   @IsOptional()
   @IsDateString()
   newDate?: string;

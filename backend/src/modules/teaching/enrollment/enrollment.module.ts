@@ -13,7 +13,12 @@ import { LessonEntity } from '../lesson/lesson.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([EnrollmentEntity, ClassEntity, CourseEntity, LessonEntity]),
+    TypeOrmModule.forFeature([
+      EnrollmentEntity,
+      ClassEntity,
+      CourseEntity,
+      LessonEntity,
+    ]),
     ContractModule,
     forwardRef(() => StudentModule),
     DataScopeModule,

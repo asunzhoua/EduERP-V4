@@ -7,7 +7,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { User, UserRole, UserStatus } from '@modules/identity/entities/user.entity';
+import {
+  User,
+  UserRole,
+  UserStatus,
+} from '@modules/identity/entities/user.entity';
 import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
 import { LessonStatus } from '@modules/teaching/lesson/enums/lesson-status.enum';
 import { SalaryRecordEntity } from '@modules/salary/entities/salary-record.entity';
@@ -30,7 +34,12 @@ export class AdminTeachersService {
     private readonly salaryRepo: Repository<SalaryRecordEntity>,
   ) {}
 
-  async findAll(query: { keyword?: string; status?: string; page?: number; pageSize?: number }): Promise<{
+  async findAll(query: {
+    keyword?: string;
+    status?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<{
     items: TeacherListItem[];
     total: number;
     page: number;
@@ -61,7 +70,11 @@ export class AdminTeachersService {
 
     const items: TeacherListItem[] = users.map((u) => {
       const s = stats.get(Number(u.id)) || { teachingCount: 0, monthSalary: 0 };
-      return { ...u, teachingCount: s.teachingCount, monthSalary: s.monthSalary };
+      return {
+        ...u,
+        teachingCount: s.teachingCount,
+        monthSalary: s.monthSalary,
+      };
     });
 
     return { items, total, page, pageSize };
@@ -72,7 +85,9 @@ export class AdminTeachersService {
     if (!username) {
       throw new BadRequestException('用户名不能为空');
     }
-    const existingUsername = await this.userRepo.findOne({ where: { username } });
+    const existingUsername = await this.userRepo.findOne({
+      where: { username },
+    });
     if (existingUsername) {
       throw new ConflictException('用户名已存在');
     }
@@ -98,29 +113,52 @@ export class AdminTeachersService {
       teacherLevel: dto.teacherLevel?.trim() ? dto.teacherLevel.trim() : null,
     });
     const saved = await this.userRepo.save(user);
-    const { password: _p, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safe } = saved;
+    const {
+      password: _p,
+      refreshToken: _rt,
+      refreshTokenExpiresAt: _rtea,
+      ...safe
+    } = saved;
     return safe as User;
   }
 
   async findById(id: number): Promise<TeacherListItem> {
-    const user = await this.userRepo.findOne({ where: { id, role: UserRole.TEACHER, deleted: false } });
+    const user = await this.userRepo.findOne({
+      where: { id, role: UserRole.TEACHER, deleted: false },
+    });
     if (!user) {
       throw new NotFoundException('教师不存在');
     }
     const stats = await this.computeStats([Number(user.id)]);
-    const s = stats.get(Number(user.id)) || { teachingCount: 0, monthSalary: 0 };
-    const { password: _p, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safe } = user;
-    return { ...(safe as User), teachingCount: s.teachingCount, monthSalary: s.monthSalary };
+    const s = stats.get(Number(user.id)) || {
+      teachingCount: 0,
+      monthSalary: 0,
+    };
+    const {
+      password: _p,
+      refreshToken: _rt,
+      refreshTokenExpiresAt: _rtea,
+      ...safe
+    } = user;
+    return {
+      ...(safe as User),
+      teachingCount: s.teachingCount,
+      monthSalary: s.monthSalary,
+    };
   }
 
   async update(id: number, dto: UpdateTeacherDto): Promise<User> {
-    const user = await this.userRepo.findOne({ where: { id, role: UserRole.TEACHER, deleted: false } });
+    const user = await this.userRepo.findOne({
+      where: { id, role: UserRole.TEACHER, deleted: false },
+    });
     if (!user) {
       throw new NotFoundException('教师不存在');
     }
 
     if (dto.mobile !== undefined && dto.mobile !== user.mobile) {
-      const existing = await this.userRepo.findOne({ where: { mobile: dto.mobile } });
+      const existing = await this.userRepo.findOne({
+        where: { mobile: dto.mobile },
+      });
       if (existing) {
         throw new ConflictException('手机号已存在');
       }
@@ -130,25 +168,39 @@ export class AdminTeachersService {
       user.name = dto.name;
     }
     if (dto.teacherLevel !== undefined) {
-      user.teacherLevel = dto.teacherLevel?.trim() ? dto.teacherLevel.trim() : null;
+      user.teacherLevel = dto.teacherLevel?.trim()
+        ? dto.teacherLevel.trim()
+        : null;
     }
     if (dto.password) {
       user.password = await bcrypt.hash(dto.password, 10);
     }
 
     const saved = await this.userRepo.save(user);
-    const { password: _p, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safe } = saved;
+    const {
+      password: _p,
+      refreshToken: _rt,
+      refreshTokenExpiresAt: _rtea,
+      ...safe
+    } = saved;
     return safe as User;
   }
 
   async updateStatus(id: number, status: number): Promise<User> {
-    const user = await this.userRepo.findOne({ where: { id, role: UserRole.TEACHER, deleted: false } });
+    const user = await this.userRepo.findOne({
+      where: { id, role: UserRole.TEACHER, deleted: false },
+    });
     if (!user) {
       throw new NotFoundException('教师不存在');
     }
     user.status = status === 1 ? UserStatus.ACTIVE : UserStatus.INACTIVE;
     const saved = await this.userRepo.save(user);
-    const { password: _p, refreshToken: _rt, refreshTokenExpiresAt: _rtea, ...safe } = saved;
+    const {
+      password: _p,
+      refreshToken: _rt,
+      refreshTokenExpiresAt: _rtea,
+      ...safe
+    } = saved;
     return safe as User;
   }
 
@@ -156,7 +208,10 @@ export class AdminTeachersService {
   private async computeStats(
     teacherIds: number[],
   ): Promise<Map<number, { teachingCount: number; monthSalary: number }>> {
-    const map = new Map<number, { teachingCount: number; monthSalary: number }>();
+    const map = new Map<
+      number,
+      { teachingCount: number; monthSalary: number }
+    >();
     if (teacherIds.length === 0) return map;
 
     const now = new Date();

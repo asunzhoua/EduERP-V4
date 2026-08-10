@@ -12,11 +12,12 @@ export enum PointsExchangeStatus {
   CANCELLED = 'CANCELLED',
 }
 
-export const PointsExchangeStatusLabels: Record<PointsExchangeStatus, string> = {
-  [PointsExchangeStatus.PENDING]: '待兑换',
-  [PointsExchangeStatus.COMPLETED]: '已兑换',
-  [PointsExchangeStatus.CANCELLED]: '已取消',
-};
+export const PointsExchangeStatusLabels: Record<PointsExchangeStatus, string> =
+  {
+    [PointsExchangeStatus.PENDING]: '待兑换',
+    [PointsExchangeStatus.COMPLETED]: '已兑换',
+    [PointsExchangeStatus.CANCELLED]: '已取消',
+  };
 
 @Entity('points_exchange_record')
 export class PointsExchangeRecord {

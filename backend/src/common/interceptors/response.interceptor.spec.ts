@@ -49,10 +49,12 @@ describe('ResponseInterceptor', () => {
 
   it('should return ApiResponse as-is when already wrapped', (done) => {
     const already = ApiResponse.success({ id: 1 }, 'ok');
-    interceptor.intercept(mockContext(), mockHandler(already)).subscribe((res) => {
-      expect(res).toBe(already);
-      done();
-    });
+    interceptor
+      .intercept(mockContext(), mockHandler(already))
+      .subscribe((res) => {
+        expect(res).toBe(already);
+        done();
+      });
   });
 
   it('should not catch errors thrown by the handler', (done) => {

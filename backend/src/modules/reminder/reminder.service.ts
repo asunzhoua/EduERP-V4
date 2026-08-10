@@ -23,7 +23,8 @@ export class ReminderService {
     page: number = 1,
     pageSize: number = 20,
   ): Promise<{ items: Reminder[]; total: number }> {
-    const qb = this.reminderRepository.createQueryBuilder('r')
+    const qb = this.reminderRepository
+      .createQueryBuilder('r')
       .where('r.targetUserId = :userId', { userId });
 
     if (status) {

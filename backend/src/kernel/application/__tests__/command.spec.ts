@@ -11,7 +11,10 @@ class CreateStudentCommand extends CommandBase {
   }
 }
 
-class CreateStudentHandler implements ICommandHandler<CreateStudentCommand, number> {
+class CreateStudentHandler implements ICommandHandler<
+  CreateStudentCommand,
+  number
+> {
   async execute(command: CreateStudentCommand): Promise<Result<number>> {
     if (!command.name) {
       return Result.fail(new Error('Name is required'));

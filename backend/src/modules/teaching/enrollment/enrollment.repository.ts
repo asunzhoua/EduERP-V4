@@ -46,7 +46,9 @@ export class EnrollmentRepository {
     });
   }
 
-  async countActiveByClassCodes(classCodes: string[]): Promise<Map<string, number>> {
+  async countActiveByClassCodes(
+    classCodes: string[],
+  ): Promise<Map<string, number>> {
     if (!classCodes.length) return new Map();
 
     const results = await this.repo
@@ -59,11 +61,13 @@ export class EnrollmentRepository {
       .getRawMany();
 
     const map = new Map<string, number>();
-    results.forEach(r => map.set(r.classCode, parseInt(r.count, 10)));
+    results.forEach((r) => map.set(r.classCode, parseInt(r.count, 10)));
     return map;
   }
 
-  async findActiveStudentCodesByClassCodes(classCodes: string[]): Promise<string[]> {
+  async findActiveStudentCodesByClassCodes(
+    classCodes: string[],
+  ): Promise<string[]> {
     if (!classCodes.length) return [];
 
     const results = await this.repo
@@ -74,7 +78,7 @@ export class EnrollmentRepository {
       .andWhere('e.status = :status', { status: EnrollmentStatus.ACTIVE })
       .getRawMany();
 
-    return results.map(r => r.studentCode);
+    return results.map((r) => r.studentCode);
   }
 
   async findActiveByClassAndStudentCodes(
@@ -103,7 +107,9 @@ export class EnrollmentRepository {
       qb.andWhere('e.classCode = :classCode', { classCode: options.classCode });
     }
     if (options.studentCode) {
-      qb.andWhere('e.studentCode = :studentCode', { studentCode: options.studentCode });
+      qb.andWhere('e.studentCode = :studentCode', {
+        studentCode: options.studentCode,
+      });
     }
     if (options.status) {
       qb.andWhere('e.status = :status', { status: options.status });
