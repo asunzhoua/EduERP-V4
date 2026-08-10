@@ -13,6 +13,7 @@ import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { ContractStatus } from '../contract/enums/contract-status.enum';
 import { StudentRepository } from '../../student/student.repository';
 import { ClassEntity } from '../class/class.entity';
+import { ClassStatus } from '../class/enums/class-status.enum';
 import { CourseEntity } from '../course/course.entity';
 import { LessonEntity } from '../lesson/lesson.entity';
 import { LessonStatus } from '../lesson/enums/lesson-status.enum';
@@ -318,5 +319,78 @@ export class EnrollmentService {
       `Enrollment withdrawn: id=${id}, class=${enrollment.classCode}, student=${enrollment.studentCode}`,
     );
     return saved;
+  }
+
+  // ─── Transfer (调班) ───
+
+  async transfer(
+    id: number,
+    targetClassCode: string,
+    reason: string | undefined,
+    operatedBy: number,
+  ): Promise<{ source: EnrollmentEntity; target: EnrollmentEntity }> {
+    const source = await this.enrollmentRepo.findOneById(id);
+    if (!source) {
+      throw new NotFoundException(`报名记录不存在：id=${id}`);
+    }
+    if (source.status !== EnrollmentStatus.ACTIVE) {
+      throw new BadRequestException(
+        `仅 ACTIVE 状态可调班（当前：${source.status}）`,
+      );
+    }
+    if (source.classCode === targetClassCode) {
+      throw new BadRequestException('目标班级不能与当前班级相同');
+    }
+
+    const targetClass = await this.classRepo.findOne({
+      where: { classCode: targetClassCode, deleted: false },
+    });
+    if (!targetClass) {
+      throw new NotFoundException(`目标班级 ${targetClassCode} 不存在`);
+    }
+    if (targetClass.status !== ClassStatus.ACTIVE) {
+      throw new BadRequestException(
+        `目标班级 ${targetClassCode} 不是进行中状态（${targetClass.status}）`,
+      );
+    }
+
+    const existingTarget = await this.enrollmentRepo.findByClassAndStudent(
+      targetClassCode,
+      source.studentCode,
+    );
+    if (existingTarget && existingTarget.status === EnrollmentStatus.ACTIVE) {
+      throw new BadRequestException(`该学生已在目标班级 ${targetClassCode} 中`);
+    }
+
+    return this.enrollmentRepo.inTransaction(async (em) => {
+      const emRepo = em.getRepository(EnrollmentEntity);
+
+      // Capacity check INSIDE the transaction to shrink the TOCTOU window
+      const activeCount = await emRepo.count({
+        where: { classCode: targetClassCode, status: EnrollmentStatus.ACTIVE },
+      });
+      if (activeCount >= targetClass.maxStudents) {
+        throw new BadRequestException(
+          `目标班级 ${targetClassCode} 已满（${activeCount}/${targetClass.maxStudents}）`,
+        );
+      }
+
+      // Mark source withdrawn
+      source.status = EnrollmentStatus.WITHDRAWN;
+      source.withdrawReason = reason || `调班至 ${targetClassCode}`;
+      await emRepo.save(source);
+
+      // Create or reuse target (contract is subject-based, not class-bound)
+      const target = existingTarget ?? new EnrollmentEntity();
+      target.classCode = targetClassCode;
+      target.studentCode = source.studentCode;
+      target.contractCode = source.contractCode;
+      target.status = EnrollmentStatus.ACTIVE;
+      target.withdrawReason = null;
+      target.enrolledBy = operatedBy;
+      const savedTarget = await emRepo.save(target);
+
+      return { source, target: savedTarget };
+    });
   }
 }

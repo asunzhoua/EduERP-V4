@@ -132,3 +132,14 @@ export function importLessons(file: File): Promise<ImportReport> {
   form.append('file', file)
   return http.post<ImportReport>('/contracts/import-lessons', form)
 }
+
+// ─── 调班 / 升班 ───
+
+export interface TransferEnrollmentPayload {
+  targetClassCode: string
+  reason?: string
+}
+
+export function transferEnrollment(id: number | string, payload: TransferEnrollmentPayload): Promise<Enrollment> {
+  return http.post<Enrollment>(`/enrollments/${id}/transfer`, payload)
+}

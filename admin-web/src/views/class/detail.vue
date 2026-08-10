@@ -9,6 +9,7 @@ import {
   assignClassTeacher,
   removeClassTeacher,
   fetchClassStudents,
+  fetchClasses,
   generateClassLessons,
   type ClassItem,
   type TeacherAssignment,
@@ -16,6 +17,7 @@ import {
   type TeacherRole,
   type BatchGenerateResult,
 } from '@/api/class'
+import { transferEnrollment } from '@/api/enrollment'
 import { fetchTeachers, type Teacher } from '@/api/teacher'
 import {
   fetchClassLessons,
@@ -340,6 +342,53 @@ async function submitCancel() {
   }
 }
 
+// ─── 调班 / 升班 ───
+
+const transferOpen = ref(false)
+const transferLoading = ref(false)
+const transferForm = reactive({ targetClassCode: '', reason: '' })
+const classOptions = ref<ClassItem[]>([])
+const transferTarget = ref<ClassStudent | null>(null)
+
+async function openTransfer(row: ClassStudent) {
+  transferForm.targetClassCode = ''
+  transferForm.reason = ''
+  transferTarget.value = row
+  try {
+    const res = await fetchClasses({ status: 'ACTIVE', pageSize: 200 })
+    classOptions.value = res.items
+    transferOpen.value = true
+  } catch (e) {
+    message.error((e as Error).message || '班级列表加载失败')
+  }
+}
+
+async function submitTransfer() {
+  if (!transferTarget.value) return
+  if (!transferForm.targetClassCode) {
+    message.warning('请选择目标班级')
+    return
+  }
+  if (cls.value && transferForm.targetClassCode === cls.value.classCode) {
+    message.warning('目标班级不能与当前班级相同')
+    return
+  }
+  transferLoading.value = true
+  try {
+    await transferEnrollment(transferTarget.value.enrollmentId, {
+      targetClassCode: transferForm.targetClassCode,
+      reason: transferForm.reason || undefined,
+    })
+    message.success('调班成功')
+    transferOpen.value = false
+    loadAll()
+  } catch (e) {
+    message.error((e as Error).message || '调班失败')
+  } finally {
+    transferLoading.value = false
+  }
+}
+
 onMounted(async () => {
   await loadTeacherOptions()
   loadAll()
@@ -502,6 +551,11 @@ onMounted(async () => {
           <a-table-column title="报名时间" data-index="enrolledAt" key="enrolledAt" width="120">
             <template #default="{ record }">{{ formatDate(record.enrolledAt) }}</template>
           </a-table-column>
+          <a-table-column title="操作" key="action" width="80">
+            <template #default="{ record }">
+              <a-button type="link" size="small" @click="openTransfer(record)">调班</a-button>
+            </template>
+          </a-table-column>
         </a-table>
       </a-tab-pane>
     </a-tabs>
@@ -524,6 +578,27 @@ onMounted(async () => {
         </a-form-item>
         <a-form-item label="分配原因">
           <a-textarea v-model:value="assignForm.reason" :rows="2" placeholder="分配原因（可选）" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <!-- 调班 / 升班 -->
+    <a-modal v-model:open="transferOpen" title="调班 / 升班" :confirm-loading="transferLoading" ok-text="确认调班" cancel-text="取消" @ok="submitTransfer">
+      <a-form layout="vertical">
+        <a-form-item label="目标班级" required>
+          <a-select v-model:value="transferForm.targetClassCode" placeholder="请选择目标班级" style="width: 100%" show-search option-filter-prop="label">
+            <a-select-option
+              v-for="c in classOptions.filter(o => !cls || o.classCode !== cls.classCode)"
+              :key="String(c.id)"
+              :value="c.classCode"
+              :label="`${c.classCode} ${c.name}（${c.courseName}）${c.schedule}${c.currentStudents}/${c.maxStudents}`"
+            >
+              {{ c.classCode }} {{ c.name }}（{{ c.courseName }}）{{ c.schedule }}{{ c.currentStudents }}/{{ c.maxStudents }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="调班原因">
+          <a-textarea v-model:value="transferForm.reason" :rows="2" placeholder="调班原因（可选）" />
         </a-form-item>
       </a-form>
     </a-modal>

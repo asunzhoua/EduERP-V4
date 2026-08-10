@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, EntityManager } from 'typeorm';
 import { EnrollmentEntity } from './enrollment.entity';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 
@@ -10,6 +10,10 @@ export class EnrollmentRepository {
     @InjectRepository(EnrollmentEntity)
     private readonly repo: Repository<EnrollmentEntity>,
   ) {}
+
+  async inTransaction<T>(work: (em: EntityManager) => Promise<T>): Promise<T> {
+    return this.repo.manager.transaction(work);
+  }
 
   async save(entity: EnrollmentEntity): Promise<EnrollmentEntity> {
     return this.repo.save(entity);

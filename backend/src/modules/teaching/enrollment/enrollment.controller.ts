@@ -14,6 +14,7 @@ import { EnrollmentService } from './enrollment.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { QueryEnrollmentDto } from './dto/query-enrollment.dto';
 import { WithdrawEnrollmentDto } from './dto/withdraw-enrollment.dto';
+import { TransferEnrollmentDto } from './dto/transfer-enrollment.dto';
 import { ApiResponse } from '@common/dto/api-response';
 import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
@@ -80,6 +81,23 @@ export class EnrollmentController {
       operatorId,
     );
     return ApiResponse.success(result, 'Enrollment withdrawn');
+  }
+
+  @Post(':id/transfer')
+  @Roles('SuperAdmin', 'Admin')
+  @ApiOperation({ summary: 'Transfer enrollment to another class (换班/升班)' })
+  async transfer(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: TransferEnrollmentDto,
+    @Req() req: AuthedRequest,
+  ) {
+    const result = await this.enrollmentService.transfer(
+      id,
+      body.targetClassCode,
+      body.reason,
+      req.user.sub,
+    );
+    return ApiResponse.success(result, '调班成功');
   }
 
   @Get('classes/:code/enrollments')

@@ -28,6 +28,10 @@ describe('EnrollmentController', () => {
       status: 'WITHDRAWN',
       withdrawReason: '个人原因',
     }),
+    transfer: jest.fn().mockResolvedValue({
+      source: { id: 1 },
+      target: { id: 2 },
+    }),
     findByClassCode: jest.fn().mockResolvedValue([mockEnrollment]),
     findByStudentCode: jest.fn().mockResolvedValue([mockEnrollment]),
   };
@@ -63,6 +67,10 @@ describe('EnrollmentController', () => {
       ...mockEnrollment,
       status: 'WITHDRAWN',
       withdrawReason: '个人原因',
+    });
+    mockEnrollmentService.transfer.mockResolvedValue({
+      source: { id: 1 },
+      target: { id: 2 },
     });
     mockEnrollmentService.findByClassCode.mockResolvedValue([mockEnrollment]);
     mockEnrollmentService.findByStudentCode.mockResolvedValue([mockEnrollment]);
@@ -129,7 +137,31 @@ describe('EnrollmentController', () => {
     });
   });
 
-  // 4. findByClassCode - GET classes/:code/enrollments
+  // 4. transfer - POST :id/transfer
+  describe('transfer', () => {
+    it('should transfer an enrollment to another class', async () => {
+      const dto = { targetClassCode: 'CL2026070002', reason: '换班' };
+      const mockReq = { user: { sub: 9 } };
+
+      const result = await controller.transfer(1, dto, mockReq);
+
+      expect(result).toEqual(
+        ApiResponse.success(
+          { source: { id: 1 }, target: { id: 2 } },
+          '调班成功',
+        ),
+      );
+      expect(result.message).toBe('调班成功');
+      expect(service.transfer).toHaveBeenCalledWith(
+        1,
+        'CL2026070002',
+        '换班',
+        9,
+      );
+    });
+  });
+
+  // 5. findByClassCode - GET classes/:code/enrollments
   describe('findByClass', () => {
     it('should return enrollments for a class', async () => {
       const result = await controller.findByClass('CLS001');
@@ -139,7 +171,7 @@ describe('EnrollmentController', () => {
     });
   });
 
-  // 5. findByStudentCode - GET students/:studentCode/enrollments
+  // 6. findByStudentCode - GET students/:studentCode/enrollments
   describe('findByStudent', () => {
     it('should return enrollments for a student', async () => {
       const mockReq = { user: { sub: 1, role: 'Admin' } };

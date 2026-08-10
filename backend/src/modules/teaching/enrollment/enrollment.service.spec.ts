@@ -15,6 +15,7 @@ import { Subject } from '@common/enums/subject.enum';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ClassEntity } from '../class/class.entity';
+import { ClassStatus } from '../class/enums/class-status.enum';
 import { CourseEntity } from '../course/course.entity';
 import { LessonEntity } from '../lesson/lesson.entity';
 
@@ -26,6 +27,7 @@ describe('EnrollmentService', () => {
   let classRepo: jest.Mocked<any>;
   let courseRepo: jest.Mocked<any>;
   let lessonRepo: jest.Mocked<any>;
+  let emRepoMock: { count: jest.Mock; save: jest.Mock };
 
   const mockEnrollInput: EnrollInput = {
     classCode: 'CL2026070001',
@@ -42,6 +44,15 @@ describe('EnrollmentService', () => {
     withdrawReason: null,
     enrolledBy: 0,
     enrolledAt: new Date(),
+  };
+
+  const mockClass = {
+    id: 1,
+    classCode: 'CL2026070002',
+    name: '目标班级',
+    status: ClassStatus.ACTIVE,
+    maxStudents: 20,
+    deleted: false,
   };
 
   const mockActiveContract: ContractEntity = {
@@ -63,6 +74,14 @@ describe('EnrollmentService', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
+    emRepoMock = {
+      count: jest.fn(),
+      save: jest.fn(),
+    };
+    emRepoMock.save.mockImplementation((e: any) => Promise.resolve(e));
+
     const mockEnrollmentRepo = {
       save: jest.fn(),
       findOneById: jest.fn(),
@@ -71,6 +90,9 @@ describe('EnrollmentService', () => {
       findByClassAndStudent: jest.fn(),
       countActiveByClassCode: jest.fn(),
       findMany: jest.fn(),
+      inTransaction: jest.fn((fn: any) =>
+        fn({ getRepository: () => emRepoMock }),
+      ),
     };
 
     const mockContractRepo = {
@@ -95,6 +117,7 @@ describe('EnrollmentService', () => {
 
     const mockClassRepo = {
       find: jest.fn(),
+      findOne: jest.fn(),
     };
 
     const mockCourseRepo = {
@@ -483,6 +506,138 @@ describe('EnrollmentService', () => {
 
       await expect(service.enroll(mockEnrollInput)).rejects.toThrow(
         'does not belong to student',
+      );
+    });
+  });
+
+  // ─── Transfer (调班) ───
+
+  describe('transfer', () => {
+    beforeEach(() => {
+      enrollmentRepo.findOneById.mockResolvedValue({ ...mockEnrollment });
+      classRepo.findOne.mockResolvedValue({ ...mockClass });
+      enrollmentRepo.findByClassAndStudent.mockResolvedValue(null);
+      emRepoMock.count.mockResolvedValue(10);
+    });
+
+    it('should withdraw source and enroll target with same contract', async () => {
+      const result = await service.transfer(1, 'CL2026070002', undefined, 9);
+
+      expect(emRepoMock.save).toHaveBeenCalledTimes(2);
+
+      // Source marked withdrawn
+      expect(result.source.status).toBe(EnrollmentStatus.WITHDRAWN);
+      expect(result.source.withdrawReason).toBe('调班至 CL2026070002');
+      expect(result.source.classCode).toBe('CL2026070001');
+
+      // Target created with source's contract carried over
+      expect(result.target.classCode).toBe('CL2026070002');
+      expect(result.target.contractCode).toBe('CT2026070001');
+      expect(result.target.status).toBe(EnrollmentStatus.ACTIVE);
+      expect(result.target.enrolledBy).toBe(9);
+
+      // Capacity check ran inside the transaction with the correct filter
+      expect(emRepoMock.count).toHaveBeenCalledWith({
+        where: {
+          classCode: 'CL2026070002',
+          status: EnrollmentStatus.ACTIVE,
+        },
+      });
+    });
+
+    it('should use custom reason as withdrawReason', async () => {
+      const result = await service.transfer(
+        1,
+        'CL2026070002',
+        '家长要求换班',
+        9,
+      );
+      expect(result.source.withdrawReason).toBe('家长要求换班');
+    });
+
+    it('should throw NotFoundException when source not found', async () => {
+      enrollmentRepo.findOneById.mockResolvedValue(null);
+
+      await expect(
+        service.transfer(1, 'CL2026070002', undefined, 9),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException when source is not ACTIVE', async () => {
+      enrollmentRepo.findOneById.mockResolvedValue({
+        ...mockEnrollment,
+        status: EnrollmentStatus.WITHDRAWN,
+      });
+
+      await expect(
+        service.transfer(1, 'CL2026070002', undefined, 9),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException when target is the same class', async () => {
+      await expect(
+        service.transfer(1, 'CL2026070001', undefined, 9),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw NotFoundException when target class not found', async () => {
+      classRepo.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.transfer(1, 'CL2026070002', undefined, 9),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException when target class is not ACTIVE', async () => {
+      classRepo.findOne.mockResolvedValue({
+        ...mockClass,
+        status: ClassStatus.DRAFT,
+      });
+
+      await expect(
+        service.transfer(1, 'CL2026070002', undefined, 9),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException when target class is full and not save', async () => {
+      emRepoMock.count.mockResolvedValue(20);
+
+      await expect(
+        service.transfer(1, 'CL2026070002', undefined, 9),
+      ).rejects.toThrow(BadRequestException);
+      expect(emRepoMock.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when student already ACTIVE in target', async () => {
+      enrollmentRepo.findByClassAndStudent.mockResolvedValue({
+        ...mockEnrollment,
+        id: 5,
+        classCode: 'CL2026070002',
+      });
+
+      await expect(
+        service.transfer(1, 'CL2026070002', undefined, 9),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reuse existing WITHDRAWN target enrollment', async () => {
+      const withdrawnTarget = {
+        ...mockEnrollment,
+        id: 99,
+        classCode: 'CL2026070002',
+        status: EnrollmentStatus.WITHDRAWN,
+      };
+      enrollmentRepo.findByClassAndStudent.mockResolvedValue(withdrawnTarget);
+
+      const result = await service.transfer(1, 'CL2026070002', undefined, 9);
+
+      expect(result.target.id).toBe(99);
+      expect(result.target.status).toBe(EnrollmentStatus.ACTIVE);
+      expect(emRepoMock.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 99,
+          status: EnrollmentStatus.ACTIVE,
+        }),
       );
     });
   });
