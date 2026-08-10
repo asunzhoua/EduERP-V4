@@ -4,6 +4,7 @@ import {
   BookOutlined,
   CheckSquareOutlined,
   ClockCircleOutlined,
+  ContactsOutlined,
   DashboardOutlined,
   FileTextOutlined,
   GiftOutlined,
@@ -22,13 +23,14 @@ export interface MenuItem {
 }
 
 /**
- * 全部 12 个菜单（与 WebDashboardDesign.md 一致）；MainLayout 仅渲染已有路由且角色可见的项。
+ * 全部 13 个菜单（在 WebDashboardDesign.md 基础上新增「家长管理」）；MainLayout 仅渲染已有路由且角色可见的项。
  * roles 与后端各 controller @Roles 保持一致（详见 src/router/index.ts 同名字段）。
  */
 export const menuItems: MenuItem[] = [
   { path: '/dashboard', title: '首页', icon: DashboardOutlined, roles: ['SuperAdmin', 'Admin'] },
   { path: '/students', title: '学生管理', icon: TeamOutlined, roles: ['SuperAdmin', 'Admin', 'Teacher'] },
   { path: '/teachers', title: '教师管理', icon: UserOutlined, roles: ['SuperAdmin', 'Admin'] },
+  { path: '/parents', title: '家长管理', icon: ContactsOutlined, roles: ['SuperAdmin', 'Admin'] },
   { path: '/classes', title: '班级管理', icon: ReadOutlined, roles: ['SuperAdmin', 'Admin', 'Teacher'] },
   { path: '/courses', title: '课程管理', icon: BookOutlined, roles: ['SuperAdmin', 'Admin', 'Teacher'] },
   { path: '/enrollments', title: '报名收费', icon: FileTextOutlined, roles: ['SuperAdmin', 'Admin', 'Teacher'] },

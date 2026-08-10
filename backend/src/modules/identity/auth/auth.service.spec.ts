@@ -63,6 +63,7 @@ describe('AuthService', () => {
       findByMobile: jest.fn(),
       save: jest.fn(),
       findAndCountByRole: jest.fn(),
+      raw: { findOne: jest.fn(), createQueryBuilder: jest.fn() },
     };
 
     const mockLoginLogRepo = {
@@ -799,6 +800,19 @@ describe('AuthService', () => {
 
   // ─── listParents ───
 
+  function makeQbMock(items: User[], total: number) {
+    const chain = {
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn().mockResolvedValue([items, total]),
+    };
+    userRepo.raw.createQueryBuilder.mockReturnValue(chain as never);
+    return chain;
+  }
+
   describe('listParents', () => {
     it('should return paginated parent users with safe fields', async () => {
       const items = [
@@ -821,11 +835,11 @@ describe('AuthService', () => {
           mobile: '13800000002',
         },
       ] as unknown as User[];
-      userRepo.findAndCountByRole.mockResolvedValue({ items, total: 2 });
+      makeQbMock(items, 2);
 
       const result = await service.listParents(1, 20);
 
-      expect(userRepo.findAndCountByRole).toHaveBeenCalledWith('Parent', 1, 20);
+      expect(userRepo.raw.createQueryBuilder).toHaveBeenCalledWith('u');
       expect(result.total).toBe(2);
       expect(result.items).toHaveLength(2);
       expect(result.items[0]).not.toHaveProperty('password');
@@ -834,11 +848,78 @@ describe('AuthService', () => {
     });
 
     it('should default to page 1 pageSize 20', async () => {
-      userRepo.findAndCountByRole.mockResolvedValue({ items: [], total: 0 });
+      makeQbMock([], 0);
 
       await service.listParents();
 
-      expect(userRepo.findAndCountByRole).toHaveBeenCalledWith('Parent', 1, 20);
+      const qb = userRepo.raw.createQueryBuilder.mock.results[0].value;
+      expect(qb.skip).toHaveBeenCalledWith(0);
+      expect(qb.take).toHaveBeenCalledWith(20);
+    });
+
+    it('should filter by keyword and status', async () => {
+      makeQbMock([], 0);
+
+      await service.listParents(1, 10, '张', 0);
+
+      const qb = userRepo.raw.createQueryBuilder.mock.results[0].value;
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        '(u.username LIKE :kw OR u.name LIKE :kw OR u.mobile LIKE :kw)',
+        { kw: '%张%' },
+      );
+      expect(qb.andWhere).toHaveBeenCalledWith('u.status = :status', {
+        status: 0,
+      });
+    });
+  });
+
+  // ─── updateParentStatus ───
+
+  describe('updateParentStatus', () => {
+    const parent = {
+      ...mockUser,
+      id: 20,
+      username: 'parent1',
+      role: 'Parent',
+      password: 'x',
+      refreshToken: 'rt',
+    } as unknown as User;
+
+    it('should enable (ACTIVE) when status is 1 and strip sensitive fields', async () => {
+      userRepo.raw.findOne.mockResolvedValue(parent);
+      userRepo.save.mockResolvedValue({ ...parent, status: 1 });
+
+      const result = await service.updateParentStatus(20, 1);
+
+      expect(userRepo.raw.findOne).toHaveBeenCalledWith({
+        where: { id: 20, role: 'Parent', deleted: false },
+      });
+      expect(userRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 1 }),
+      );
+      expect(result).not.toHaveProperty('password');
+      expect(result).not.toHaveProperty('refreshToken');
+      expect(result).toHaveProperty('status', 1);
+    });
+
+    it('should disable (INACTIVE) when status is 0', async () => {
+      userRepo.raw.findOne.mockResolvedValue(parent);
+      userRepo.save.mockResolvedValue({ ...parent, status: 0 });
+
+      const result = await service.updateParentStatus(20, 0);
+
+      expect(userRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 0 }),
+      );
+      expect(result).toHaveProperty('status', 0);
+    });
+
+    it('should throw NotFoundException when parent does not exist', async () => {
+      userRepo.raw.findOne.mockResolvedValue(null);
+
+      await expect(service.updateParentStatus(20, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

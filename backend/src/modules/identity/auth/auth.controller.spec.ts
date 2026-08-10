@@ -20,6 +20,7 @@ describe('AuthController', () => {
       listParents: jest.fn(),
       changePassword: jest.fn(),
       adminResetPassword: jest.fn(),
+      updateParentStatus: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -182,7 +183,32 @@ describe('AuthController', () => {
 
       expect(result.code).toBe(0);
       expect(result.data).toEqual(pageData);
-      expect(authService.listParents).toHaveBeenCalledWith(1, 20);
+      expect(authService.listParents).toHaveBeenCalledWith(1, 20, undefined, undefined);
+    });
+
+    it('should pass keyword and status filters', async () => {
+      const pageData = { items: [], total: 0 };
+      authService.listParents.mockResolvedValue(pageData);
+
+      await controller.listParents({ page: 2, pageSize: 10, keyword: '张', status: '0' });
+
+      expect(authService.listParents).toHaveBeenCalledWith(2, 10, '张', 0);
+    });
+  });
+
+  describe('PATCH /auth/admin/parents/:id/status', () => {
+    it('should call updateParentStatus with id and numeric status', async () => {
+      const updated = { id: 5, username: 'parent1', role: 'Parent', status: 0 };
+      authService.updateParentStatus.mockResolvedValue(updated);
+
+      const result = await controller.updateParentStatus(5, {
+        status: '0',
+      } as any);
+
+      expect(result.code).toBe(0);
+      expect(result.message).toBe('状态已更新');
+      expect(result.data).toEqual(updated);
+      expect(authService.updateParentStatus).toHaveBeenCalledWith(5, 0);
     });
   });
 

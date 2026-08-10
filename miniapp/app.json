@@ -54,7 +54,6 @@
       "root": "pkgOperation",
       "pages": [
         "pages/dashboard",
-        "pages/parent-manage",
         "pages/exception-list",
         "pages/exception-approve",
         "pages/reschedule-view"

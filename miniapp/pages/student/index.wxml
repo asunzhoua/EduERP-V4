@@ -148,10 +148,6 @@
           <view class="nav-item" bindtap="goToLeaveApply"><view class="ni ic ic-list"></view><text class="nav-text">教师请假</text></view>
         </view>
 
-        <view class="quick-nav" style="margin-top: 20rpx;" wx:if="{{isAdmin}}">
-          <view class="nav-item" bindtap="goToParentManage"><view class="ni ic ic-user"></view><text class="nav-text">家长开户</text></view>
-        </view>
-
         <view class="logout-section">
           <button class="logout-btn" bindtap="handleLogout">退出登录</button>
         </view>

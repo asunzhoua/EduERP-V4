@@ -464,12 +464,29 @@ export class AuthService {
   async listParents(
     page = 1,
     pageSize = 20,
+    keyword?: string,
+    status?: number,
   ): Promise<{ items: Partial<User>[]; total: number }> {
-    const { items, total } = await this.userRepository.findAndCountByRole(
-      UserRole.PARENT,
-      page,
-      pageSize,
-    );
+    const qb = this.userRepository.raw
+      .createQueryBuilder('u')
+      .where('u.role = :role', { role: UserRole.PARENT })
+      .andWhere('u.deleted = :deleted', { deleted: false });
+
+    if (keyword && keyword.trim()) {
+      qb.andWhere(
+        '(u.username LIKE :kw OR u.name LIKE :kw OR u.mobile LIKE :kw)',
+        { kw: `%${keyword.trim()}%` },
+      );
+    }
+    if (status !== undefined) {
+      qb.andWhere('u.status = :status', { status });
+    }
+
+    const [items, total] = await qb
+      .orderBy('u.createTime', 'DESC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .getManyAndCount();
 
     const safeItems = items.map((u) => {
       const {
@@ -481,6 +498,24 @@ export class AuthService {
       return safeUser;
     });
     return { items: safeItems, total };
+  }
+
+  async updateParentStatus(id: number, status: number): Promise<Partial<User>> {
+    const user = await this.userRepository.raw.findOne({
+      where: { id, role: UserRole.PARENT, deleted: false },
+    });
+    if (!user) {
+      throw new NotFoundException('家长不存在');
+    }
+    user.status = status === 1 ? UserStatus.ACTIVE : UserStatus.INACTIVE;
+    const saved = await this.userRepository.save(user);
+    const {
+      password: _p,
+      refreshToken: _rt,
+      refreshTokenExpiresAt: _rtea,
+      ...safe
+    } = saved;
+    return safe as User;
   }
 
   async wechatLogin(

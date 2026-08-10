@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   Param,
   Query,
@@ -15,7 +16,11 @@ import { AuthService } from './auth.service';
 import { LoginDto, WechatLoginDto } from '../dto/login.dto';
 import { RefreshDto } from '../dto/refresh.dto';
 import { RegisterDto } from '../dto/register.dto';
-import { CreateParentDto, QueryParentsDto } from '../dto/create-parent.dto';
+import {
+  CreateParentDto,
+  QueryParentsDto,
+  UpdateParentStatusDto,
+} from '../dto/create-parent.dto';
 import {
   ChangePasswordDto,
   ResetPasswordDto,
@@ -102,8 +107,27 @@ export class AuthController {
   async listParents(@Query() query: QueryParentsDto) {
     const page = query.page || 1;
     const pageSize = query.pageSize || 20;
-    const result = await this.authService.listParents(page, pageSize);
+    const result = await this.authService.listParents(
+      page,
+      pageSize,
+      query.keyword,
+      query.status !== undefined ? Number(query.status) : undefined,
+    );
     return ApiResponse.success(result);
+  }
+
+  @Patch('admin/parents/:id/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin', 'Admin')
+  async updateParentStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateParentStatusDto,
+  ) {
+    const user = await this.authService.updateParentStatus(
+      id,
+      Number(dto.status),
+    );
+    return ApiResponse.success(user, '状态已更新');
   }
 
   @Post('logout')

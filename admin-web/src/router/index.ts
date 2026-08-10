@@ -39,6 +39,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '教师管理', icon: 'UserOutlined', roles: ['SuperAdmin', 'Admin'] },
       },
       {
+        path: 'parents',
+        name: 'Parents',
+        component: () => import('@/views/parent/index.vue'),
+        meta: { title: '家长管理', icon: 'ContactsOutlined', roles: ['SuperAdmin', 'Admin'] },
+      },
+      {
         path: 'classes',
         name: 'Classes',
         component: () => import('@/views/class/index.vue'),

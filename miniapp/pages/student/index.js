@@ -15,7 +15,6 @@ Page({
     teacherInfo: { name: '', username: '', mobile: '', role: '', avatar: '' },
     stats: { totalClasses: 0, totalStudents: 0, totalLessons: 0 },
     overview: { monthLessons: 0, monthAttendanceRate: '--', todayLessons: 0, pendingAttendance: 0 },
-    isAdmin: false,
     // 家长「我的」视图
     children: [],
     subs: { lesson: true, balance: true, approval: true }
@@ -240,8 +239,7 @@ Page({
           mobile: data.mobile || '未绑定',
           role: roleText,
           avatar: data.avatar || ''
-        },
-        isAdmin: data.role === 'Admin' || data.role === 'SuperAdmin'
+        }
       });
     }).catch(function (err) {
       console.warn('[StudentIndex] 获取个人信息失败:', err);
@@ -255,8 +253,7 @@ Page({
           mobile: userInfo.mobile || '未绑定',
           role: userInfo.role === 'Teacher' ? '教师' : userInfo.role || '教师',
           avatar: userInfo.avatar || ''
-        },
-        isAdmin: userInfo.role === 'Admin' || userInfo.role === 'SuperAdmin'
+        }
       });
     });
   },
@@ -396,9 +393,5 @@ Page({
 
   goToLeaveApply() {
     wx.navigateTo({ url: '/pkgTeacher/pages/leave-apply' });
-  },
-
-  goToParentManage() {
-    wx.navigateTo({ url: '/pkgOperation/pages/parent-manage' });
   }
 });
