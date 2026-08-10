@@ -38,6 +38,7 @@ venv/
 dist/
 build/
 *.tsbuildinfo
+backend/coverage/
 
 ## Logs
 logs/
