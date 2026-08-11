@@ -52,3 +52,19 @@ export async function exportFinance(filters: ExportFilter = {}): Promise<void> {
   const blob = await http.postBlob<Blob>('/export/finance', { ...filters, format: fmt })
   triggerDownload(blob, `财务数据_${Date.now()}.${fmt === 'excel' ? 'xlsx' : fmt}`)
 }
+
+/** 导出工资条（按月份/状态等筛选） */
+export async function exportSalarySlips(filters: {
+  month?: string
+  teacherId?: number
+  status?: string
+} = {}): Promise<void> {
+  const blob = await http.postBlob<Blob>('/salary/slips/export', filters)
+  triggerDownload(blob, `工资条_${Date.now()}.xlsx`)
+}
+
+/** 导出发放批次（含教师名明细） */
+export async function exportSalaryPayroll(id: number | string): Promise<void> {
+  const blob = await http.postBlob<Blob>(`/salary/payroll/${id}/export`)
+  triggerDownload(blob, `发放批次_${Date.now()}.xlsx`)
+}

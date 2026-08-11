@@ -34,8 +34,9 @@ request.interceptors.response.use(
   (error: AxiosError<ApiResponse>) => {
     if (error.response?.status === 401) {
       clearAuth()
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login'
+      const loginPath = `${import.meta.env.BASE_URL}login`
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith(loginPath)) {
+        window.location.href = loginPath
       }
     }
     const message = error.response?.data?.message || error.message || '网络错误'

@@ -21,3 +21,8 @@ export function getMe(): Promise<UserInfo> {
 export function logout(): Promise<null> {
   return http.post<null>('/auth/logout')
 }
+
+/** 修改本人密码（成功后会话被清空，需重新登录） */
+export function changePassword(oldPassword: string, newPassword: string): Promise<null> {
+  return http.post<null>('/auth/change-password', { oldPassword, newPassword })
+}
