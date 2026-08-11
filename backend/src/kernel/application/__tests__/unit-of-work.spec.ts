@@ -7,14 +7,16 @@ class FakeTransaction implements ITransaction {
   public committed = false;
   public rolledBack = false;
 
-  async commit(): Promise<void> {
+  commit(): Promise<void> {
     this._active = false;
     this.committed = true;
+    return Promise.resolve();
   }
 
-  async rollback(): Promise<void> {
+  rollback(): Promise<void> {
     this._active = false;
     this.rolledBack = true;
+    return Promise.resolve();
   }
 
   get isActive(): boolean {
@@ -28,9 +30,9 @@ class FakeTransaction implements ITransaction {
 class FakeUnitOfWork implements IUnitOfWork {
   private _transaction: FakeTransaction | null = null;
 
-  async begin(): Promise<FakeTransaction> {
+  begin(): Promise<FakeTransaction> {
     this._transaction = new FakeTransaction();
-    return this._transaction;
+    return Promise.resolve(this._transaction);
   }
 
   get isActive(): boolean {
@@ -44,13 +46,13 @@ class TestApplicationService extends ApplicationService {
   }
 
   async doSomething(): Promise<number> {
-    return this.executeInTransaction(async () => {
-      return 42;
-    }).then((r) => (r.isSuccess ? r.value : -1));
+    return this.executeInTransaction(() => Promise.resolve(42)).then((r) =>
+      r.isSuccess ? r.value : -1,
+    );
   }
 
   async failSomething(): Promise<string | null> {
-    return this.executeInTransaction(async () => {
+    return this.executeInTransaction(() => {
       throw new Error('Business error');
     }).then((r) => (r.isSuccess ? 'ok' : (r.error?.message ?? null)));
   }

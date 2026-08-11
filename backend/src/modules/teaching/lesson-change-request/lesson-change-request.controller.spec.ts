@@ -2,13 +2,21 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { LessonChangeRequestController } from './lesson-change-request.controller';
 import { LessonChangeRequestService } from './lesson-change-request.service';
 import { LessonChangeRequestEntity } from './lesson-change-request.entity';
+import { CreateChangeRequestDto } from './dto/create-change-request.dto';
 import { ChangeRequestType } from '@common/enums/change-request-type.enum';
 import { ChangeRequestStatus } from './enums/change-request-status.enum';
 import { ApiResponse } from '@common/dto/api-response';
 
+type MockLessonChangeRequestService = {
+  createRequest: jest.Mock;
+  findByLessonId: jest.Mock;
+  approve: jest.Mock;
+  reject: jest.Mock;
+};
+
 describe('LessonChangeRequestController', () => {
   let controller: LessonChangeRequestController;
-  let service: jest.Mocked<LessonChangeRequestService>;
+  let service: MockLessonChangeRequestService;
 
   beforeEach(async () => {
     const mockService = {
@@ -38,7 +46,8 @@ describe('LessonChangeRequestController', () => {
 
   describe('createRequest', () => {
     it('should call service.createRequest with mapped input', async () => {
-      const dto = {
+      const dto: CreateChangeRequestDto = {
+        lessonId: 1,
         requestType: ChangeRequestType.RESCHEDULE,
         reason: '需要调课',
         previousDate: '2026-07-20',
@@ -48,7 +57,7 @@ describe('LessonChangeRequestController', () => {
       service.createRequest.mockResolvedValue(entity);
 
       const mockReq = { user: { sub: 42 } };
-      const result = await controller.createRequest(1, dto as any, mockReq);
+      const result = await controller.createRequest(1, dto, mockReq);
 
       expect(service.createRequest).toHaveBeenCalledWith({
         lessonId: 1,

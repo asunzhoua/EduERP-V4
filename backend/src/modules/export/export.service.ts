@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, Like, FindOptionsWhere } from 'typeorm';
+import { Repository, Between, FindOptionsWhere } from 'typeorm';
 import { ExportFilterDto } from './dto/export-filter.dto';
 import { CsvWriter } from './utils/csv-writer.util';
 import { ExcelWriter } from './utils/excel-writer.util';

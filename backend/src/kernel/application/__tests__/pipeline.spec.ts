@@ -15,8 +15,9 @@ describe('Pipeline', () => {
   });
 
   it('should execute handler directly when no middleware', async () => {
-    await pipeline.execute(context, async () => {
+    await pipeline.execute(context, () => {
       context.logs.push('handler');
+      return Promise.resolve();
     });
 
     expect(context.logs).toEqual(['handler']);
@@ -32,8 +33,9 @@ describe('Pipeline', () => {
 
     pipeline.use(middleware);
 
-    await pipeline.execute(context, async () => {
+    await pipeline.execute(context, () => {
       context.logs.push('handler');
+      return Promise.resolve();
     });
 
     expect(context.logs).toEqual(['before', 'handler']);
@@ -58,8 +60,9 @@ describe('Pipeline', () => {
 
     pipeline.use(middleware1).use(middleware2);
 
-    await pipeline.execute(context, async () => {
+    await pipeline.execute(context, () => {
       context.logs.push('handler');
+      return Promise.resolve();
     });
 
     expect(context.logs).toEqual([
@@ -91,16 +94,18 @@ describe('Pipeline', () => {
 
   it('should allow middleware to short-circuit', async () => {
     const shortCircuit: IMiddleware<TestContext> = {
-      execute: async (ctx, _next) => {
+      execute: (ctx, _next) => {
         ctx.logs.push('blocked');
         // Not calling next()
+        return Promise.resolve();
       },
     };
 
     pipeline.use(shortCircuit);
 
-    await pipeline.execute(context, async () => {
+    await pipeline.execute(context, () => {
       context.logs.push('handler');
+      return Promise.resolve();
     });
 
     expect(context.logs).toEqual(['blocked']);

@@ -5,7 +5,7 @@
  * Queries represent requests for information without side effects.
  */
 
-export interface IQuery<TResult> {
+export interface IQuery<_TResult> {
   /**
    * Unique query identifier.
    */

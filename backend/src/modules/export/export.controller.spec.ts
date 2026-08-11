@@ -3,6 +3,7 @@ import { ExportController } from './export.controller';
 import { ExportService } from './export.service';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Reflector } from '@nestjs/core';
+import { Response } from 'express';
 
 describe('ExportController', () => {
   let controller: ExportController;
@@ -39,7 +40,10 @@ describe('ExportController', () => {
       send: jest.fn(),
     };
 
-    await controller.exportStudents({ format: 'csv' } as any, res as any);
+    await controller.exportStudents(
+      { format: 'csv' },
+      res as unknown as Response,
+    );
 
     expect(res.set).toHaveBeenCalled();
     expect(res.send).toHaveBeenCalled();
@@ -51,7 +55,10 @@ describe('ExportController', () => {
       send: jest.fn(),
     };
 
-    await controller.exportStudents({ format: 'excel' } as any, res as any);
+    await controller.exportStudents(
+      { format: 'excel' },
+      res as unknown as Response,
+    );
 
     expect(res.set).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -68,7 +75,7 @@ describe('ExportController', () => {
       send: jest.fn(),
     };
 
-    await controller.exportLessons({}, res as any);
+    await controller.exportLessons({}, res as unknown as Response);
 
     expect(res.set).toHaveBeenCalled();
     expect(res.send).toHaveBeenCalled();
@@ -80,7 +87,7 @@ describe('ExportController', () => {
       send: jest.fn(),
     };
 
-    await controller.exportConsumption({}, res as any);
+    await controller.exportConsumption({}, res as unknown as Response);
 
     expect(res.set).toHaveBeenCalled();
     expect(res.send).toHaveBeenCalled();
@@ -92,7 +99,7 @@ describe('ExportController', () => {
       send: jest.fn(),
     };
 
-    await controller.exportSalary({}, res as any);
+    await controller.exportSalary({}, res as unknown as Response);
 
     expect(res.set).toHaveBeenCalled();
     expect(res.send).toHaveBeenCalled();
@@ -104,7 +111,7 @@ describe('ExportController', () => {
       send: jest.fn(),
     };
 
-    await controller.exportFinance({}, res as any);
+    await controller.exportFinance({}, res as unknown as Response);
 
     expect(res.set).toHaveBeenCalled();
     expect(res.send).toHaveBeenCalled();
@@ -116,7 +123,7 @@ describe('ExportController', () => {
       send: jest.fn(),
     };
 
-    await controller.exportStudents({}, res as any);
+    await controller.exportStudents({}, res as unknown as Response);
 
     expect(res.set).toHaveBeenCalledWith(
       expect.objectContaining({

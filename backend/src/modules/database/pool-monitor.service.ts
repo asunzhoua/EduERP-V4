@@ -40,7 +40,7 @@ export class PoolMonitorService implements OnModuleInit {
     }
   }
 
-  async getPoolStats(): Promise<PoolStats> {
+  getPoolStats(): Promise<PoolStats> {
     const driver = this.dataSource.driver as {
       pool?: {
         size?: number;
@@ -51,14 +51,14 @@ export class PoolMonitorService implements OnModuleInit {
     };
 
     if (!driver.pool) {
-      return {
+      return Promise.resolve({
         total: 0,
         active: 0,
         idle: 0,
         waiting: 0,
         usage: 0,
         timestamp: new Date().toISOString(),
-      };
+      });
     }
 
     const pool = driver.pool;
@@ -68,14 +68,14 @@ export class PoolMonitorService implements OnModuleInit {
     const waiting = pool.waiting || 0;
     const usage = total > 0 ? active / total : 0;
 
-    return {
+    return Promise.resolve({
       total,
       active,
       idle,
       waiting,
       usage,
       timestamp: new Date().toISOString(),
-    };
+    });
   }
 
   private logPoolStats(stats: PoolStats): void {

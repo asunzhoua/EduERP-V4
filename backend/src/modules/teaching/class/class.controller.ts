@@ -170,9 +170,8 @@ export class ClassController {
   async removeTeacher(
     @Param('code') _code: string,
     @Param('assignmentId') assignmentId: string,
-    @Req() req: AuthedRequest,
+    @Req() _req: AuthedRequest,
   ): Promise<ApiResponse> {
-    const operatorId = req.user.sub;
     await this.classService.removeTeacher(Number(assignmentId));
     return ApiResponse.success(null, 'Teacher assignment ended');
   }

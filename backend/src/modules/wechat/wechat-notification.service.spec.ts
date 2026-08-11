@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { WechatNotificationService } from './wechat-notification.service';
 import { WechatService } from './wechat.service';
 import { WechatMessageLog } from './entities/wechat-message-log.entity';
@@ -14,12 +13,12 @@ import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
 describe('WechatNotificationService', () => {
   let service: WechatNotificationService;
   let wechatService: jest.Mocked<Pick<WechatService, 'sendSubscribeMessage'>>;
-  let messageLogRepo: jest.Mocked<Partial<Repository<WechatMessageLog>>>;
-  let attendanceRepo: jest.Mocked<Partial<Repository<LessonAttendanceEntity>>>;
-  let studentRepo: jest.Mocked<Partial<Repository<Student>>>;
-  let studentParentRepo: jest.Mocked<Partial<Repository<StudentParent>>>;
-  let courseRepo: jest.Mocked<Partial<Repository<CourseEntity>>>;
-  let enrollmentRepo: jest.Mocked<Partial<Repository<EnrollmentEntity>>>;
+  let messageLogRepo: { findOne: jest.Mock };
+  let attendanceRepo: { find: jest.Mock };
+  let studentRepo: { findOne: jest.Mock };
+  let studentParentRepo: { find: jest.Mock };
+  let courseRepo: { findOne: jest.Mock };
+  let enrollmentRepo: { find: jest.Mock };
 
   beforeEach(async () => {
     wechatService = {
@@ -127,7 +126,9 @@ describe('WechatNotificationService', () => {
         expect.objectContaining({
           userId: 901,
           templateType: 'ATTENDANCE_NOTICE',
-          data: expect.objectContaining({ phrase3: { value: '迟到' } }),
+          data: expect.objectContaining({
+            phrase3: { value: '迟到' },
+          }) as unknown,
         }),
       );
     });
@@ -284,7 +285,7 @@ describe('WechatNotificationService', () => {
           data: expect.objectContaining({
             thing2: { value: '停课' },
             thing3: { value: '教师临时请假' },
-          }),
+          }) as unknown,
           relatedEntityId: 12,
           relatedEntityType: 'lesson',
         }),

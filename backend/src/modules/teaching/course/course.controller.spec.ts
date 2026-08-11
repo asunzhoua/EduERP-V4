@@ -7,10 +7,19 @@ import { QueryCourseDto } from './dto/query-course.dto';
 import { Subject } from '@common/enums/subject.enum';
 import { CourseType } from './enums/course-type.enum';
 import { CourseStatus } from './enums/course-status.enum';
+import { CourseEntity } from './course.entity';
+import { AuthedRequest } from '@common/types/authed-request';
 
 describe('CourseController', () => {
   let controller: CourseController;
-  let service: CourseService;
+  let service: {
+    create: jest.Mock;
+    findAll: jest.Mock;
+    findByCode: jest.Mock;
+    update: jest.Mock;
+    updateStatus: jest.Mock;
+    remove: jest.Mock;
+  };
 
   const mockCourse = {
     id: 'course-1',
@@ -33,14 +42,14 @@ describe('CourseController', () => {
       .fn()
       .mockResolvedValue({ ...mockCourse, status: CourseStatus.PUBLISHED }),
     remove: jest.fn().mockResolvedValue(undefined),
-    enrichCourses: jest.fn().mockImplementation((items) =>
-      items.map((c) => ({
+    enrichCourses: jest.fn().mockImplementation((items: CourseEntity[]) =>
+      items.map((c: CourseEntity) => ({
         ...c,
         lessonCount: c.totalLessons,
         enrolledClasses: 0,
       })),
     ),
-    enrichCourse: jest.fn().mockImplementation((c) => ({
+    enrichCourse: jest.fn().mockImplementation((c: CourseEntity) => ({
       ...c,
       lessonCount: c.totalLessons,
       enrolledClasses: 0,
@@ -85,14 +94,15 @@ describe('CourseController', () => {
       status: CourseStatus.PUBLISHED,
     });
     mockCourseService.remove.mockResolvedValue(undefined);
-    mockCourseService.enrichCourses.mockImplementation((items) =>
-      items.map((c) => ({
-        ...c,
-        lessonCount: c.totalLessons,
-        enrolledClasses: 0,
-      })),
+    mockCourseService.enrichCourses.mockImplementation(
+      (items: CourseEntity[]) =>
+        items.map((c: CourseEntity) => ({
+          ...c,
+          lessonCount: c.totalLessons,
+          enrolledClasses: 0,
+        })),
     );
-    mockCourseService.enrichCourse.mockImplementation((c) => ({
+    mockCourseService.enrichCourse.mockImplementation((c: CourseEntity) => ({
       ...c,
       lessonCount: c.totalLessons,
       enrolledClasses: 0,
@@ -112,7 +122,10 @@ describe('CourseController', () => {
         defaultDuration: 60,
       };
 
-      const result = await controller.create(dto, fakeReq as any);
+      const result = await controller.create(
+        dto,
+        fakeReq as unknown as AuthedRequest,
+      );
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('Course created');
@@ -126,7 +139,13 @@ describe('CourseController', () => {
       const query: QueryCourseDto = { page: 1, pageSize: 20 };
       const mockReq = { user: { sub: 42, role: 'Admin' } };
 
-      const result = await controller.findAll(query, mockReq);
+      const result = (await controller.findAll(query, mockReq)) as unknown as {
+        code: number;
+        data: {
+          items: Array<{ lessonCount: number; enrolledClasses: number }>;
+          total: number;
+        };
+      };
 
       expect(result.code).toBe(0);
       expect(result.data.items).toHaveLength(1);
@@ -149,7 +168,10 @@ describe('CourseController', () => {
 
   describe('GET /courses/:code', () => {
     it('should return a course by code', async () => {
-      const result = await controller.findOne('ENG101');
+      const result = (await controller.findOne('ENG101')) as unknown as {
+        code: number;
+        data: { lessonCount: number; enrolledClasses: number };
+      };
 
       expect(result.code).toBe(0);
       expect(result.data.lessonCount).toBe(mockCourse.totalLessons);
@@ -162,7 +184,11 @@ describe('CourseController', () => {
     it('should update a course', async () => {
       const dto: UpdateCourseDto = { name: 'Updated' };
 
-      const result = await controller.update('ENG101', dto, fakeReq as any);
+      const result = await controller.update(
+        'ENG101',
+        dto,
+        fakeReq as unknown as AuthedRequest,
+      );
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('Course updated');
@@ -178,7 +204,7 @@ describe('CourseController', () => {
       const result = await controller.updateStatus(
         'ENG101',
         dto,
-        fakeReq as any,
+        fakeReq as unknown as AuthedRequest,
       );
 
       expect(result.code).toBe(0);
@@ -197,7 +223,10 @@ describe('CourseController', () => {
 
   describe('DELETE /courses/:code', () => {
     it('should remove a course', async () => {
-      const result = await controller.remove('ENG101', fakeReq as any);
+      const result = await controller.remove(
+        'ENG101',
+        fakeReq as unknown as AuthedRequest,
+      );
 
       expect(result.code).toBe(0);
       expect(result.message).toBe('Course deleted');

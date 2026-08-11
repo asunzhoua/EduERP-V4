@@ -13,6 +13,37 @@ import { ChangeRequestType } from '@common/enums/change-request-type.enum';
 import { ChangeRequestStatus } from './enums/change-request-status.enum';
 import { LessonService } from '../lesson/lesson.service';
 
+type MockChangeRequestRepository = {
+  save: jest.Mock<
+    Promise<LessonChangeRequestEntity>,
+    [LessonChangeRequestEntity]
+  >;
+  findOneById: jest.Mock<Promise<LessonChangeRequestEntity | null>, [number]>;
+  findByLessonId: jest.Mock<Promise<LessonChangeRequestEntity[]>, [number]>;
+  countPendingByLessonAndType: jest.Mock<
+    Promise<number>,
+    [number, ChangeRequestType]
+  >;
+  countRescheduleByLessonId: jest.Mock<Promise<number>, [number]>;
+};
+
+type MockLesson = {
+  id: number;
+  scheduledDate: string;
+  startTime: string;
+  endTime: string;
+  teacherId?: number;
+};
+
+type MockLessonService = {
+  findOne: jest.Mock<Promise<MockLesson>, [number]>;
+  updateStatus: jest.Mock<
+    Promise<{ id: number }>,
+    [number, string, number, string]
+  >;
+  lessonRepo: { save: jest.Mock<Promise<MockLesson>, [MockLesson]> };
+};
+
 describe('LessonChangeRequestService', () => {
   let service: LessonChangeRequestService;
 
@@ -241,9 +272,11 @@ describe('LessonChangeRequestService', () => {
 
   describe('createRequest', () => {
     it('should create a RESCHEDULE request successfully', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       mockRepo.countRescheduleByLessonId.mockResolvedValue(0);
-      mockRepo.save.mockImplementation(async (e) => e);
+      mockRepo.save.mockImplementation((e) => Promise.resolve(e));
 
       const input: CreateChangeRequestInput = {
         lessonId: 1,
@@ -265,8 +298,10 @@ describe('LessonChangeRequestService', () => {
     });
 
     it('should create a TEACHER_CHANGE request successfully', async () => {
-      const mockRepo = (service as any).requestRepo;
-      mockRepo.save.mockImplementation(async (e) => e);
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
+      mockRepo.save.mockImplementation((e) => Promise.resolve(e));
 
       const input: CreateChangeRequestInput = {
         lessonId: 2,
@@ -297,7 +332,9 @@ describe('LessonChangeRequestService', () => {
     });
 
     it('should throw BadRequestException when reschedule limit exceeded', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       mockRepo.countRescheduleByLessonId.mockResolvedValue(3);
 
       await expect(
@@ -313,12 +350,14 @@ describe('LessonChangeRequestService', () => {
 
   describe('approve', () => {
     it('should approve a PENDING request', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       const entity = new LessonChangeRequestEntity();
       entity.id = 1;
       entity.status = ChangeRequestStatus.PENDING;
       mockRepo.findOneById.mockResolvedValue(entity);
-      mockRepo.save.mockImplementation(async (e) => e);
+      mockRepo.save.mockImplementation((e) => Promise.resolve(e));
 
       const result = await service.approve(1, 5);
       expect(result.status).toBe(ChangeRequestStatus.APPROVED);
@@ -327,14 +366,18 @@ describe('LessonChangeRequestService', () => {
     });
 
     it('should throw NotFoundException when request does not exist', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       mockRepo.findOneById.mockResolvedValue(null);
 
       await expect(service.approve(999, 1)).rejects.toThrow(NotFoundException);
     });
 
     it('should throw BadRequestException when already approved', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       const entity = new LessonChangeRequestEntity();
       entity.id = 1;
       entity.status = ChangeRequestStatus.APPROVED;
@@ -346,12 +389,14 @@ describe('LessonChangeRequestService', () => {
 
   describe('reject', () => {
     it('should reject a PENDING request', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       const entity = new LessonChangeRequestEntity();
       entity.id = 1;
       entity.status = ChangeRequestStatus.PENDING;
       mockRepo.findOneById.mockResolvedValue(entity);
-      mockRepo.save.mockImplementation(async (e) => e);
+      mockRepo.save.mockImplementation((e) => Promise.resolve(e));
 
       const result = await service.reject(1, 5, '理由不充分');
       expect(result.status).toBe(ChangeRequestStatus.REJECTED);
@@ -365,7 +410,9 @@ describe('LessonChangeRequestService', () => {
     });
 
     it('should throw BadRequestException when already executed', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       const entity = new LessonChangeRequestEntity();
       entity.id = 1;
       entity.status = ChangeRequestStatus.EXECUTED;
@@ -379,8 +426,12 @@ describe('LessonChangeRequestService', () => {
 
   describe('execute', () => {
     it('should execute an APPROVED RESCHEDULE request', async () => {
-      const mockRepo = (service as any).requestRepo;
-      const mockLessonService = (service as any).lessonService;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
+      const mockLessonService = (
+        service as unknown as { lessonService: MockLessonService }
+      ).lessonService;
       const entity = new LessonChangeRequestEntity();
       entity.id = 1;
       entity.status = ChangeRequestStatus.APPROVED;
@@ -390,7 +441,7 @@ describe('LessonChangeRequestService', () => {
       entity.newStartTime = '10:00';
       entity.newEndTime = '11:00';
       mockRepo.findOneById.mockResolvedValue(entity);
-      mockRepo.save.mockImplementation(async (e) => e);
+      mockRepo.save.mockImplementation((e) => Promise.resolve(e));
 
       const mockLesson = {
         id: 10,
@@ -411,8 +462,12 @@ describe('LessonChangeRequestService', () => {
     });
 
     it('should execute an APPROVED CANCEL request', async () => {
-      const mockRepo = (service as any).requestRepo;
-      const mockLessonService = (service as any).lessonService;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
+      const mockLessonService = (
+        service as unknown as { lessonService: MockLessonService }
+      ).lessonService;
       const entity = new LessonChangeRequestEntity();
       entity.id = 2;
       entity.status = ChangeRequestStatus.APPROVED;
@@ -420,7 +475,7 @@ describe('LessonChangeRequestService', () => {
       entity.lessonId = 10;
       entity.reason = '测试取消';
       mockRepo.findOneById.mockResolvedValue(entity);
-      mockRepo.save.mockImplementation(async (e) => e);
+      mockRepo.save.mockImplementation((e) => Promise.resolve(e));
       mockLessonService.updateStatus.mockResolvedValue({ id: 10 });
 
       const result = await service.execute(2, 5);
@@ -434,7 +489,9 @@ describe('LessonChangeRequestService', () => {
     });
 
     it('should throw BadRequestException when not approved', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       const entity = new LessonChangeRequestEntity();
       entity.id = 1;
       entity.status = ChangeRequestStatus.PENDING;
@@ -446,7 +503,9 @@ describe('LessonChangeRequestService', () => {
 
   describe('findOne', () => {
     it('should return entity when found', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       const entity = new LessonChangeRequestEntity();
       entity.id = 1;
       mockRepo.findOneById.mockResolvedValue(entity);
@@ -456,7 +515,9 @@ describe('LessonChangeRequestService', () => {
     });
 
     it('should throw NotFoundException when not found', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       mockRepo.findOneById.mockResolvedValue(null);
 
       await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
@@ -465,7 +526,9 @@ describe('LessonChangeRequestService', () => {
 
   describe('findByLessonId', () => {
     it('should return an array of requests', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       mockRepo.findByLessonId.mockResolvedValue([
         new LessonChangeRequestEntity(),
       ]);
@@ -475,7 +538,9 @@ describe('LessonChangeRequestService', () => {
     });
 
     it('should return empty array when no requests exist', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       mockRepo.findByLessonId.mockResolvedValue([]);
 
       const result = await service.findByLessonId(999);
@@ -485,7 +550,9 @@ describe('LessonChangeRequestService', () => {
 
   describe('hasExceededRescheduleLimit', () => {
     it('should return true when count >= MAX', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       mockRepo.countRescheduleByLessonId.mockResolvedValue(3);
 
       const result = await service.hasExceededRescheduleLimit(1);
@@ -493,7 +560,9 @@ describe('LessonChangeRequestService', () => {
     });
 
     it('should return false when count < MAX', async () => {
-      const mockRepo = (service as any).requestRepo;
+      const mockRepo = (
+        service as unknown as { requestRepo: MockChangeRequestRepository }
+      ).requestRepo;
       mockRepo.countRescheduleByLessonId.mockResolvedValue(1);
 
       const result = await service.hasExceededRescheduleLimit(1);

@@ -5,7 +5,6 @@ import {
   IsDateString,
   IsOptional,
   MinLength,
-  ArrayMinSize,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 

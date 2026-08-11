@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   BadRequestException,
   ConflictException,
@@ -27,10 +27,26 @@ const mockedBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 
 describe('AuthService', () => {
   let service: AuthService;
-  let userRepo: jest.Mocked<UserRepository>;
-  let loginLogRepo: jest.Mocked<Repository<LoginLog>>;
-  let jwtService: jest.Mocked<JwtService>;
+  let userRepo: UserRepoMock;
+  let loginLogRepo: {
+    create: jest.Mock<LoginLog, any[]>;
+    save: jest.Mock<LoginLog, any[]>;
+  };
+  let jwtService: { sign: jest.Mock };
   let dataSource: { transaction: jest.Mock };
+
+  type UserRepoMock = jest.Mocked<Omit<UserRepository, 'raw'>> & {
+    raw: { findOne: jest.Mock; createQueryBuilder: jest.Mock };
+  };
+  type QbChain = {
+    where: jest.Mock;
+    andWhere: jest.Mock;
+    orderBy: jest.Mock;
+    skip: jest.Mock;
+    take: jest.Mock;
+    getManyAndCount: jest.Mock;
+  };
+  type AuthServiceWithWxMock = { getWxSession: jest.Mock };
 
   const mockUser = {
     id: 1,
@@ -93,7 +109,7 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    userRepo = module.get(UserRepository);
+    userRepo = mockUserRepo;
     loginLogRepo = module.get(getRepositoryToken(LoginLog));
     jwtService = module.get(JwtService);
     dataSource = module.get(DataSource);
@@ -197,9 +213,9 @@ describe('AuthService', () => {
       expect(userRepo.update).toHaveBeenCalledWith(
         mockUser.id,
         expect.objectContaining({
-          refreshToken: expect.any(String),
-          refreshTokenExpiresAt: expect.any(Date),
-          lastLoginAt: expect.any(Date),
+          refreshToken: expect.any(String) as string,
+          refreshTokenExpiresAt: expect.any(Date) as Date,
+          lastLoginAt: expect.any(Date) as Date,
         }),
       );
     });
@@ -312,8 +328,8 @@ describe('AuthService', () => {
       expect(userRepo.update).toHaveBeenCalledWith(
         mockUser.id,
         expect.objectContaining({
-          refreshToken: expect.any(String),
-          refreshTokenExpiresAt: expect.any(Date),
+          refreshToken: expect.any(String) as string,
+          refreshTokenExpiresAt: expect.any(Date) as Date,
         }),
       );
     });
@@ -661,21 +677,25 @@ describe('AuthService', () => {
       manager.findOne
         .mockResolvedValueOnce(null) // username unique check
         .mockResolvedValueOnce(null) // mobile unique check
-        .mockResolvedValueOnce({ id: 5, name: '学生' } as any); // student exists
+        .mockResolvedValueOnce({ id: 5, name: '学生' }); // student exists
       const savedParent = {
         ...mockUser,
         id: 20,
         username: 'parent9',
         role: 'Parent',
         password: 'hashed',
-      } as any;
+      };
       manager.save
         .mockResolvedValueOnce(savedParent) // parent user
-        .mockResolvedValueOnce({ id: 1 } as any); // student_parent link
-      manager.create.mockImplementation((_entity: any, data: any) => ({
-        ...data,
-      }));
-      dataSource.transaction.mockImplementation((cb) => cb(manager));
+        .mockResolvedValueOnce({ id: 1 }); // student_parent link
+      manager.create.mockImplementation(
+        (_entity: unknown, data: Record<string, unknown>) => ({
+          ...data,
+        }),
+      );
+      dataSource.transaction.mockImplementation(
+        (cb: (m: typeof manager) => unknown) => cb(manager),
+      );
 
       userRepo.findById.mockResolvedValue(mockOperator());
       loginLogRepo.create.mockReturnValue({} as LoginLog);
@@ -706,7 +726,9 @@ describe('AuthService', () => {
         .mockResolvedValueOnce(null) // username unique check
         .mockResolvedValueOnce(null) // mobile unique check
         .mockResolvedValueOnce(null); // student not found
-      dataSource.transaction.mockImplementation((cb) => cb(manager));
+      dataSource.transaction.mockImplementation(
+        (cb: (m: typeof manager) => unknown) => cb(manager),
+      );
 
       userRepo.findById.mockResolvedValue(mockOperator());
 
@@ -721,8 +743,10 @@ describe('AuthService', () => {
       manager.findOne.mockResolvedValueOnce({
         ...mockUser,
         username: 'parent9',
-      } as any);
-      dataSource.transaction.mockImplementation((cb) => cb(manager));
+      });
+      dataSource.transaction.mockImplementation(
+        (cb: (m: typeof manager) => unknown) => cb(manager),
+      );
 
       userRepo.findById.mockResolvedValue(mockOperator());
 
@@ -746,7 +770,7 @@ describe('AuthService', () => {
       manager.findOne
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce({ id: 5 } as any);
+        .mockResolvedValueOnce({ id: 5 });
       manager.save
         .mockResolvedValueOnce({
           ...mockUser,
@@ -754,12 +778,16 @@ describe('AuthService', () => {
           username: 'parent9',
           role: 'Parent',
           password: 'hashed',
-        } as any)
-        .mockResolvedValueOnce({ id: 1 } as any);
-      manager.create.mockImplementation((_entity: any, data: any) => ({
-        ...data,
-      }));
-      dataSource.transaction.mockImplementation((cb) => cb(manager));
+        })
+        .mockResolvedValueOnce({ id: 1 });
+      manager.create.mockImplementation(
+        (_entity: unknown, data: Record<string, unknown>) => ({
+          ...data,
+        }),
+      );
+      dataSource.transaction.mockImplementation(
+        (cb: (m: typeof manager) => unknown) => cb(manager),
+      );
 
       userRepo.findById.mockResolvedValue(mockOperator());
       loginLogRepo.create.mockReturnValue({} as LoginLog);
@@ -789,12 +817,16 @@ describe('AuthService', () => {
         username: 'parent10',
         role: 'Parent',
         password: 'hashed',
-      } as any;
+      };
       manager.save.mockResolvedValueOnce(savedParent);
-      manager.create.mockImplementation((_entity: any, data: any) => ({
-        ...data,
-      }));
-      dataSource.transaction.mockImplementation((cb) => cb(manager));
+      manager.create.mockImplementation(
+        (_entity: unknown, data: Record<string, unknown>) => ({
+          ...data,
+        }),
+      );
+      dataSource.transaction.mockImplementation(
+        (cb: (m: typeof manager) => unknown) => cb(manager),
+      );
 
       userRepo.findById.mockResolvedValue(mockOperator());
 
@@ -815,7 +847,9 @@ describe('AuthService', () => {
     it('should throw BadRequestException when mobile is empty', async () => {
       const manager = mockTransactionManager();
       manager.findOne.mockResolvedValueOnce(null); // username unique check
-      dataSource.transaction.mockImplementation((cb) => cb(manager));
+      dataSource.transaction.mockImplementation(
+        (cb: (m: typeof manager) => unknown) => cb(manager),
+      );
 
       userRepo.findById.mockResolvedValue(mockOperator());
 
@@ -883,7 +917,8 @@ describe('AuthService', () => {
 
       await service.listParents();
 
-      const qb = userRepo.raw.createQueryBuilder.mock.results[0].value;
+      const qb = userRepo.raw.createQueryBuilder.mock.results[0]
+        .value as QbChain;
       expect(qb.skip).toHaveBeenCalledWith(0);
       expect(qb.take).toHaveBeenCalledWith(20);
     });
@@ -893,7 +928,8 @@ describe('AuthService', () => {
 
       await service.listParents(1, 10, '张', 0);
 
-      const qb = userRepo.raw.createQueryBuilder.mock.results[0].value;
+      const qb = userRepo.raw.createQueryBuilder.mock.results[0]
+        .value as QbChain;
       expect(qb.andWhere).toHaveBeenCalledWith(
         '(u.username LIKE :kw OR u.name LIKE :kw OR u.mobile LIKE :kw)',
         { kw: '%张%' },
@@ -1169,11 +1205,13 @@ describe('AuthService', () => {
 
   describe('bindWechat', () => {
     function mockWxSession(openid: string, unionid?: string) {
-      (service as any).getWxSession = jest.fn().mockResolvedValue({
-        openid,
-        session_key: 'sk',
-        unionid,
-      });
+      (service as unknown as AuthServiceWithWxMock).getWxSession = jest
+        .fn()
+        .mockResolvedValue({
+          openid,
+          session_key: 'sk',
+          unionid,
+        });
     }
 
     it('should throw UnauthorizedException when user does not exist', async () => {
@@ -1190,7 +1228,7 @@ describe('AuthService', () => {
 
     it('should pass through 500 when wechat config is missing', async () => {
       userRepo.findById.mockResolvedValue(mockUser);
-      (service as any).getWxSession = jest
+      (service as unknown as AuthServiceWithWxMock).getWxSession = jest
         .fn()
         .mockRejectedValue(
           new InternalServerErrorException(
@@ -1206,7 +1244,7 @@ describe('AuthService', () => {
 
     it('should throw InternalServerErrorException when no openid returned', async () => {
       userRepo.findById.mockResolvedValue(mockUser);
-      (service as any).getWxSession = jest
+      (service as unknown as AuthServiceWithWxMock).getWxSession = jest
         .fn()
         .mockResolvedValue({ openid: null, session_key: 'sk' });
 
@@ -1266,7 +1304,7 @@ describe('AuthService', () => {
 
   describe('wechatLogin', () => {
     it('should throw actionable UnauthorizedException when openid is not bound', async () => {
-      (service as any).getWxSession = jest
+      (service as unknown as AuthServiceWithWxMock).getWxSession = jest
         .fn()
         .mockResolvedValue({ openid: 'oX-new', session_key: 'sk' });
       userRepo.findByOpenid.mockResolvedValue(null);

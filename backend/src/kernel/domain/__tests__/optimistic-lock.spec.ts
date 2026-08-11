@@ -18,9 +18,10 @@ describe('OptimisticLock', () => {
       try {
         OptimisticLock.check('Lesson', 1, 1, 2);
       } catch (error) {
-        expect(error).toBeInstanceOf(OptimisticLockException);
-        expect(error.code).toBe('OPTIMISTIC_LOCK');
-        expect(error.metadata).toEqual({
+        const exception = error as OptimisticLockException;
+        expect(exception).toBeInstanceOf(OptimisticLockException);
+        expect(exception.code).toBe('OPTIMISTIC_LOCK');
+        expect(exception.metadata).toEqual({
           entityType: 'Lesson',
           entityId: 1,
           expectedVersion: 1,

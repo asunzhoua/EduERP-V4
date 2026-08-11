@@ -36,7 +36,10 @@ export class TeacherAssignmentController {
   @Post()
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Create teacher assignment' })
-  async create(@Body() body: CreateTeacherAssignmentDto, @Req() req: AuthedRequest) {
+  async create(
+    @Body() body: CreateTeacherAssignmentDto,
+    @Req() req: AuthedRequest,
+  ) {
     const result = await this.service.assign({
       classCode: body.classCode,
       teacherId: body.teacherId,
@@ -61,7 +64,10 @@ export class TeacherAssignmentController {
   @Get(':id')
   @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Get teacher assignment by ID' })
-  async findOne(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthedRequest,
+  ) {
     const assignment = await this.assignmentRepo.findOneBy({ id });
     if (!assignment) {
       throw new NotFoundException(`Teacher assignment #${id} not found`);

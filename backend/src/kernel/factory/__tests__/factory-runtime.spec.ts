@@ -7,17 +7,6 @@ import { IValueObjectFactory } from '../value-object-factory';
  * Test implementations to verify factory interfaces work correctly.
  */
 
-class TestId extends ValueObject<{ value: number }> {
-  // @ts-ignore: intentional override for test
-  get value(): number {
-    return this._value.value;
-  }
-
-  static create(id: number): TestId {
-    return new TestId({ value: id });
-  }
-}
-
 class TestAggregate extends AggregateRoot {
   private _name: string;
 
@@ -36,7 +25,7 @@ class TestAggregateFactory implements IAggregateFactory<TestAggregate> {
     return new TestAggregate(Date.now(), name);
   }
 
-  reconstitute(data: Record<string, any>): TestAggregate {
+  reconstitute(data: { id: number; name: string }): TestAggregate {
     return new TestAggregate(data.id, data.name);
   }
 }

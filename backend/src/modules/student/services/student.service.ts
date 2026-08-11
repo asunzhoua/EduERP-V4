@@ -33,7 +33,6 @@ import { LessonAttendanceRepository } from '@modules/teaching/lesson-attendance/
 import {
   LeaveRequestEntity,
   LeaveRequestStatus,
-  LeaveType,
 } from '@modules/teaching/leave-request/leave-request.entity';
 import { CreateParentLeaveRequestDto } from '../dto/create-parent-leave-request.dto';
 import { EnrollmentEntity } from '@modules/teaching/enrollment/enrollment.entity';

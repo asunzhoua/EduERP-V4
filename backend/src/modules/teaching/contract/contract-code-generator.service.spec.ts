@@ -17,10 +17,12 @@ describe('ContractCodeGeneratorService', () => {
 
   beforeEach(() => {
     OriginalDate = global.Date;
-    jest.spyOn(global, 'Date').mockImplementation(((...args: any[]) => {
-      if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
-      return new (OriginalDate.bind(null, ...args))();
-    }) as any);
+    jest
+      .spyOn(global, 'Date')
+      .mockImplementation((...args: (string | number | Date)[]): Date => {
+        if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
+        return Reflect.construct(OriginalDate, args) as Date;
+      });
   });
 
   afterEach(() => {
@@ -45,13 +47,21 @@ describe('ContractCodeGeneratorService', () => {
 
   // ── helpers ──────────────────────────────────────────────────────────
 
+  /** Mock shape of the query builder (jest.Mock members to avoid unbound-method). */
+  type QbMock = {
+    where: jest.Mock;
+    orderBy: jest.Mock;
+    getOne: jest.Mock;
+    andWhere: jest.Mock;
+  };
+
   /** Wire up the createQueryBuilder mock chain to return `entity` */
   const setupQueryMock = (entity: ContractEntity | null) => {
-    const qb: any = {
+    const qb = {
       where: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       getOne: jest.fn().mockResolvedValue(entity),
-    };
+    } as unknown as QbMock;
     contractRepo.createQueryBuilder.mockReturnValue(qb);
     return qb;
   };

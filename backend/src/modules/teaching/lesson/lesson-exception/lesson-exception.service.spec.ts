@@ -10,21 +10,55 @@ import { LessonService } from '../lesson.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventBusService } from '@events/event-bus.service';
 import { getRepositoryToken, getEntityManagerToken } from '@nestjs/typeorm';
-import { Repository, EntityManager } from 'typeorm';
+
+type MockExceptionRepo = {
+  find: jest.Mock<Promise<LessonExceptionEntity[]>, [unknown]>;
+  findOne: jest.Mock<Promise<LessonExceptionEntity | null>, [unknown]>;
+  save: jest.Mock<Promise<LessonExceptionEntity>, [unknown]>;
+};
+
+type MockLogRepo = {
+  find: jest.Mock<Promise<LessonExceptionLogEntity[]>, [unknown]>;
+  save: jest.Mock<Promise<LessonExceptionLogEntity>, [unknown]>;
+};
+
+type MockRescheduleRepo = {
+  find: jest.Mock<Promise<LessonRescheduleEntity[]>, [unknown]>;
+  save: jest.Mock<Promise<LessonRescheduleEntity>, [unknown]>;
+};
+
+type MockLessonRepo = {
+  find: jest.Mock<Promise<LessonEntity[]>, [unknown]>;
+  findOne: jest.Mock<Promise<LessonEntity | null>, [unknown]>;
+  save: jest.Mock<Promise<LessonEntity>, [unknown]>;
+};
+
+type MockEventBus = {
+  publish: jest.Mock;
+};
 
 jest.mock('uuid', () => ({
   v4: jest.fn(() => 'test-uuid'),
 }));
 
+// Private method surface, exposed for state-transition tests.
+type LessonExceptionServicePrivate = {
+  transitionLessonStatus(
+    lessonId: number,
+    newStatus: LessonStatus,
+    operatorId: number,
+    operatorType: 'USER' | 'SYSTEM',
+    remark?: string,
+  ): Promise<void>;
+};
+
 describe('LessonExceptionService', () => {
   let service: LessonExceptionService;
-  let exceptionRepo: jest.Mocked<Repository<LessonExceptionEntity>>;
-  let exceptionLogRepo: jest.Mocked<Repository<LessonExceptionLogEntity>>;
-  let rescheduleRepo: jest.Mocked<Repository<LessonRescheduleEntity>>;
-  let attachmentRepo: jest.Mocked<Repository<LessonExceptionAttachmentEntity>>;
-  let lessonRepo: jest.Mocked<Repository<LessonEntity>>;
-  let lessonService: jest.Mocked<LessonService>;
-  let eventBus: jest.Mocked<EventBusService>;
+  let exceptionRepo: MockExceptionRepo;
+  let exceptionLogRepo: MockLogRepo;
+  let rescheduleRepo: MockRescheduleRepo;
+  let lessonRepo: MockLessonRepo;
+  let eventBus: MockEventBus;
 
   // ─── Mock Data ───
 
@@ -154,11 +188,7 @@ describe('LessonExceptionService', () => {
     exceptionRepo = module.get(getRepositoryToken(LessonExceptionEntity));
     exceptionLogRepo = module.get(getRepositoryToken(LessonExceptionLogEntity));
     rescheduleRepo = module.get(getRepositoryToken(LessonRescheduleEntity));
-    attachmentRepo = module.get(
-      getRepositoryToken(LessonExceptionAttachmentEntity),
-    );
     lessonRepo = module.get(getRepositoryToken(LessonEntity));
-    lessonService = module.get(LessonService);
     eventBus = module.get(EventBusService);
   });
 
@@ -175,7 +205,9 @@ describe('LessonExceptionService', () => {
         exceptionType: 'LEAVE_SICK',
         attachments: [{ url: 'http://example.com/proof.jpg' }],
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const result = await service.applyLeave(
         1,
@@ -200,7 +232,9 @@ describe('LessonExceptionService', () => {
         exceptionType: 'LEAVE_SICK',
         attachments: null,
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const result = await service.applyLeave(
         1,
@@ -237,7 +271,9 @@ describe('LessonExceptionService', () => {
         status: LessonStatus.CANCELLED,
         cancelledReason: '异常(LEAVE_SICK)审批通过',
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const result = await service.approve(1, 2001, '同意请假');
 
@@ -272,7 +308,9 @@ describe('LessonExceptionService', () => {
         startTime: futureStart,
         endTime: futureEnd,
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const result = await service.applyLeave(
         1,
@@ -327,7 +365,9 @@ describe('LessonExceptionService', () => {
         ...mockLesson,
         status: LessonStatus.SUSPENDED,
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const result = await service.approve(2, 2001, '同意事假');
 
@@ -351,7 +391,9 @@ describe('LessonExceptionService', () => {
         id: 3,
         exceptionType: 'SUSPEND_SHORT',
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const now = new Date();
       const startTime = new Date(now.getTime() + 86400000); // tomorrow
@@ -407,7 +449,9 @@ describe('LessonExceptionService', () => {
         ...mockLesson,
         status: LessonStatus.SUSPENDED,
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const result = await service.approve(3, 2001);
 
@@ -449,7 +493,9 @@ describe('LessonExceptionService', () => {
         ...suspendedLesson,
         status: LessonStatus.SCHEDULED,
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       await service.autoRestore();
 
@@ -542,7 +588,9 @@ describe('LessonExceptionService', () => {
         ...cancelledLesson,
         status: LessonStatus.RESCHEDULED,
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const result = await service.applyMakeup(
         1,
@@ -590,23 +638,27 @@ describe('LessonExceptionService', () => {
 
   describe('Scenario 6: Complete Makeup → MAKEUP_COMPLETED', () => {
     it('should complete makeup lesson and update original lesson', async () => {
-      lessonRepo.findOne.mockImplementation((options: any) => {
-        const id = options?.where?.id;
-        if (id === 2) {
-          return Promise.resolve({ ...mockMakeupLesson });
-        }
-        if (id === 1) {
-          return Promise.resolve({
-            ...mockLesson,
-            status: LessonStatus.RESCHEDULED,
-            id: 1,
-          });
-        }
-        return Promise.resolve(null);
-      });
+      lessonRepo.findOne.mockImplementation(
+        (options: { where: { id: number } }) => {
+          const id = options?.where?.id;
+          if (id === 2) {
+            return Promise.resolve({ ...mockMakeupLesson });
+          }
+          if (id === 1) {
+            return Promise.resolve({
+              ...mockLesson,
+              status: LessonStatus.RESCHEDULED,
+              id: 1,
+            });
+          }
+          return Promise.resolve(null);
+        },
+      );
 
-      lessonRepo.save.mockResolvedValue({} as any);
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      lessonRepo.save.mockResolvedValue({} as unknown as LessonEntity);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       await service.completeMakeupLesson(2);
 
@@ -664,7 +716,9 @@ describe('LessonExceptionService', () => {
         approvedBy: 2001,
         approvedAt: new Date(),
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const result = await service.reject(1, 2001, '证明材料不足');
 
@@ -692,8 +746,10 @@ describe('LessonExceptionService', () => {
   describe('Status Transition Validation', () => {
     it('should allow SCHEDULED -> SUSPENDED', async () => {
       lessonRepo.findOne.mockResolvedValue({ ...mockLesson });
-      lessonRepo.save.mockResolvedValue({} as any);
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      lessonRepo.save.mockResolvedValue({} as unknown as LessonEntity);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       // This is called internally by the service's transitionLessonStatus
       // which is private. We test it indirectly via approve.
@@ -729,13 +785,9 @@ describe('LessonExceptionService', () => {
 
       // Directly call private method via any cast for testing
       await expect(
-        (service as any).transitionLessonStatus(
-          1,
-          LessonStatus.SUSPENDED,
-          1,
-          'USER',
-          'test',
-        ),
+        (
+          service as unknown as LessonExceptionServicePrivate
+        ).transitionLessonStatus(1, LessonStatus.SUSPENDED, 1, 'USER', 'test'),
       ).rejects.toThrow(BadRequestException);
     });
   });

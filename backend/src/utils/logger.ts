@@ -12,9 +12,9 @@ const sharedWinstonLogger = winston.createLogger({
   format: winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     winston.format.printf(({ timestamp, level, message, context, ...meta }) => {
-      const ctx = context ? ` [${context}]` : '';
+      const ctx = typeof context === 'string' && context ? ` [${context}]` : '';
       const metaStr = Object.keys(meta).length ? ` ${util.inspect(meta)}` : '';
-      return `[${timestamp}] [${level.toUpperCase()}]${ctx} ${message}${metaStr}`;
+      return `[${String(timestamp)}] [${level.toUpperCase()}]${ctx} ${String(message)}${metaStr}`;
     }),
   ),
   transports: [

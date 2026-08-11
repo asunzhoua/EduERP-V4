@@ -6,8 +6,16 @@ import { ApiResponse } from '@common/dto/api-response';
 
 describe('EnrollmentController', () => {
   let controller: EnrollmentController;
-  let service: EnrollmentService;
-  let dataScopeService: DataScopeService;
+  let service: {
+    enroll: jest.Mock;
+    findAll: jest.Mock;
+    findOne: jest.Mock;
+    withdraw: jest.Mock;
+    transfer: jest.Mock;
+    findByClassCode: jest.Mock;
+    findByStudentCode: jest.Mock;
+  };
+  let dataScopeService: { verifyStudentAccess: jest.Mock };
 
   const mockEnrollment = {
     id: 1,

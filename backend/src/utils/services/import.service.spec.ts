@@ -31,7 +31,10 @@ describe('ImportService', () => {
       expect(XLSX.read).toHaveBeenCalledWith(Buffer.from('fake'), {
         type: 'buffer',
       });
-      expect(XLSX.utils.sheet_to_json).toHaveBeenCalledWith({}, { defval: '' });
+      expect(XLSX.utils['sheet_to_json']).toHaveBeenCalledWith(
+        {},
+        { defval: '' },
+      );
     });
 
     it('should throw when the workbook has no sheets', () => {

@@ -7,6 +7,7 @@ import { LessonSource } from './enums/lesson-source.enum';
 import { ClassRepository } from '../class/class.repository';
 import { ClassStatus } from '../class/enums/class-status.enum';
 import { EnrollmentRepository } from '../enrollment/enrollment.repository';
+import { EnrollmentEntity } from '../enrollment/enrollment.entity';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventBusService } from '@events/event-bus.service';
@@ -349,7 +350,9 @@ describe('LessonService', () => {
       const cls = { ...mockActiveClass, dayOfWeek: [1, 2, 3, 4, 5, 6, 7] };
       classRepo.findOneByCode.mockResolvedValue(cls);
       lessonRepo.findByClassCode.mockResolvedValue([]);
-      lessonRepo.saveAll.mockImplementation(async (lessons) => lessons);
+      lessonRepo.saveAll.mockImplementation((lessons) =>
+        Promise.resolve(lessons),
+      );
 
       const result = await service.generateClassLessons(
         'CL2026070001',
@@ -361,7 +364,7 @@ describe('LessonService', () => {
       expect(result.requested).toBe(3);
       expect(result.firstLessonNumber).toBe(1);
 
-      const saved = lessonRepo.saveAll.mock.calls[0][0] as any[];
+      const saved = lessonRepo.saveAll.mock.calls[0][0];
       expect(saved).toHaveLength(3);
       expect(saved[0].status).toBe(LessonStatus.SCHEDULED);
       expect(saved[0].source).toBe(LessonSource.ADMIN_BATCH);
@@ -384,7 +387,9 @@ describe('LessonService', () => {
         status: LessonStatus.SCHEDULED,
       };
       lessonRepo.findByClassCode.mockResolvedValue([existingLesson]);
-      lessonRepo.saveAll.mockImplementation(async (lessons) => lessons);
+      lessonRepo.saveAll.mockImplementation((lessons) =>
+        Promise.resolve(lessons),
+      );
 
       const result = await service.generateClassLessons(
         'CL2026070001',
@@ -396,7 +401,7 @@ describe('LessonService', () => {
       expect(result.generated).toBe(3);
       expect(result.firstLessonNumber).toBe(2);
 
-      const saved = lessonRepo.saveAll.mock.calls[0][0] as any[];
+      const saved = lessonRepo.saveAll.mock.calls[0][0];
       expect(saved[0].scheduledDate).toBe('2026-09-02');
       expect(saved[0].lessonNumber).toBe(2);
     });
@@ -478,7 +483,9 @@ describe('LessonService', () => {
           endTime: '11:00',
         },
       ]);
-      lessonRepo.saveAll.mockImplementation(async (lessons) => lessons);
+      lessonRepo.saveAll.mockImplementation((lessons) =>
+        Promise.resolve(lessons),
+      );
 
       const result = await service.generateClassLessons(
         'CL2026070001',
@@ -531,7 +538,7 @@ describe('LessonService', () => {
         classCode: 'CL2026070001',
         studentCode: 'STU001',
         status: EnrollmentStatus.ACTIVE,
-      } as any);
+      } as unknown as EnrollmentEntity);
 
       await expect(
         service.ensureStudentEnrolled('CL2026070001', 'STU001'),
@@ -551,7 +558,7 @@ describe('LessonService', () => {
         classCode: 'CL2026070001',
         studentCode: 'STU001',
         status: EnrollmentStatus.WITHDRAWN,
-      } as any);
+      } as unknown as EnrollmentEntity);
 
       await expect(
         service.ensureStudentEnrolled('CL2026070001', 'STU001'),
@@ -562,8 +569,14 @@ describe('LessonService', () => {
   describe('ensureAllStudentsEnrolled', () => {
     it('should pass when all students are enrolled', async () => {
       enrollmentRepo.findActiveByClassAndStudentCodes.mockResolvedValue([
-        { studentCode: 'STU001', status: EnrollmentStatus.ACTIVE } as any,
-        { studentCode: 'STU002', status: EnrollmentStatus.ACTIVE } as any,
+        {
+          studentCode: 'STU001',
+          status: EnrollmentStatus.ACTIVE,
+        } as unknown as EnrollmentEntity,
+        {
+          studentCode: 'STU002',
+          status: EnrollmentStatus.ACTIVE,
+        } as unknown as EnrollmentEntity,
       ]);
 
       await expect(
@@ -573,7 +586,10 @@ describe('LessonService', () => {
 
     it('should throw when some students are not enrolled', async () => {
       enrollmentRepo.findActiveByClassAndStudentCodes.mockResolvedValue([
-        { studentCode: 'STU001', status: EnrollmentStatus.ACTIVE } as any,
+        {
+          studentCode: 'STU001',
+          status: EnrollmentStatus.ACTIVE,
+        } as unknown as EnrollmentEntity,
       ]);
 
       await expect(

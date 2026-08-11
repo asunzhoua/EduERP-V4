@@ -15,9 +15,22 @@ jest.mock('@utils/logger', () => ({
   })),
 }));
 
+import { AppLogger } from '@utils/logger';
+
+interface EmittedEvent {
+  data?: string;
+  eventId: string;
+  timestamp: string;
+}
+
+type MockEventEmitter = {
+  emit: jest.Mock<boolean, [string, EmittedEvent]>;
+  on: jest.Mock<void, [string, (payload: EmittedEvent) => void]>;
+};
+
 describe('EventBusService', () => {
   let service: EventBusService;
-  let eventEmitter: jest.Mocked<EventEmitter2>;
+  let eventEmitter: MockEventEmitter;
   let mockLogger: { logEvent: jest.Mock; error: jest.Mock };
 
   // Store registered handlers for testing
@@ -41,9 +54,7 @@ describe('EventBusService', () => {
     };
 
     // Re-mock AppLogger with fresh instance for each test
-    jest
-      .requireMock('@utils/logger')
-      .AppLogger.mockImplementation(() => mockLogger);
+    (AppLogger as unknown as jest.Mock).mockImplementation(() => mockLogger);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -53,7 +64,7 @@ describe('EventBusService', () => {
     }).compile();
 
     service = module.get<EventBusService>(EventBusService);
-    eventEmitter = module.get(EventEmitter2);
+    eventEmitter = mockEventEmitter;
   });
 
   afterEach(() => {
@@ -76,7 +87,7 @@ describe('EventBusService', () => {
         expect.objectContaining({
           data: 'test-data',
           eventId: 'mock-uuid-1234',
-          timestamp: expect.any(String),
+          timestamp: expect.any(String) as string,
         }),
       );
     });
@@ -244,11 +255,6 @@ describe('EventBusService', () => {
       jest.resetModules();
       jest.dontMock('uuid');
 
-      // This test validates that uuid v4 is used
-      // In actual runtime, uuid v4 follows RFC 4122
-      const uuidV4Regex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
       // Since we mocked uuid, verify the mock is working
       const eventName = 'test.event';
       const payload = { data: 'test' };
@@ -330,7 +336,7 @@ describe('EventBusService', () => {
         eventName,
         expect.objectContaining({
           eventId: 'mock-uuid-1234',
-          timestamp: expect.any(String),
+          timestamp: expect.any(String) as string,
         }),
       );
     });

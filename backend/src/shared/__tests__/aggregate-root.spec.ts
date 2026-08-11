@@ -78,7 +78,15 @@ describe('AggregateRoot', () => {
       const aggregate = new TestAggregate(1, 100);
 
       expect(() => {
-        (aggregate as any).invariant(false, 'INV-001', 'Test invariant');
+        (
+          aggregate as unknown as {
+            invariant: (
+              condition: boolean,
+              invariantId: string,
+              message: string,
+            ) => void;
+          }
+        ).invariant(false, 'INV-001', 'Test invariant');
       }).toThrow(InvariantViolationException);
     });
 
@@ -86,7 +94,15 @@ describe('AggregateRoot', () => {
       const aggregate = new TestAggregate(1, 100);
 
       expect(() => {
-        (aggregate as any).invariant(true, 'INV-001', 'Test invariant');
+        (
+          aggregate as unknown as {
+            invariant: (
+              condition: boolean,
+              invariantId: string,
+              message: string,
+            ) => void;
+          }
+        ).invariant(true, 'INV-001', 'Test invariant');
       }).not.toThrow();
     });
   });

@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Repository } from 'typeorm';
 import { CourseService } from './course.service';
 import { CourseRepository } from './course.repository';
 import { CourseCodeGeneratorService } from './course-code-generator.service';
@@ -10,16 +9,21 @@ import { CourseAuditLog } from './course-audit-log.entity';
 import { CourseStatus } from './enums/course-status.enum';
 import { Subject } from '@common/enums/subject.enum';
 import { CourseType } from './enums/course-type.enum';
-import { AuditAction } from '@common/enums/audit-action.enum';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ClassRepository } from '../class/class.repository';
 
 describe('CourseService', () => {
   let service: CourseService;
-  let courseRepo: jest.Mocked<CourseRepository>;
-  let codeGenerator: jest.Mocked<CourseCodeGeneratorService>;
-  let auditLogRepo: jest.Mocked<Repository<CourseAuditLog>>;
-  let classRepo: jest.Mocked<ClassRepository>;
+  let courseRepo: {
+    raw: { create: jest.Mock; find: jest.Mock };
+    save: jest.Mock;
+    findOneByCode: jest.Mock;
+  };
+  let codeGenerator: { generateCourseCode: jest.Mock };
+  let auditLogRepo: {
+    create: jest.Mock<CourseAuditLog, any[]>;
+    save: jest.Mock<CourseAuditLog, any[]>;
+  };
 
   const mockCourse: CourseEntity = {
     id: 1,
@@ -86,7 +90,6 @@ describe('CourseService', () => {
     courseRepo = module.get(CourseRepository);
     codeGenerator = module.get(CourseCodeGeneratorService);
     auditLogRepo = module.get(getRepositoryToken(CourseAuditLog));
-    classRepo = module.get(ClassRepository);
   });
 
   // ─── Create ───
@@ -94,7 +97,7 @@ describe('CourseService', () => {
   describe('create', () => {
     it('should create a course with DRAFT status and auto-generated code', async () => {
       codeGenerator.generateCourseCode.mockResolvedValue('CS2026070001');
-      (courseRepo.raw.create as jest.Mock).mockReturnValue({ ...mockCourse });
+      courseRepo.raw.create.mockReturnValue({ ...mockCourse });
       courseRepo.save.mockResolvedValue({ ...mockCourse });
       auditLogRepo.create.mockReturnValue({} as CourseAuditLog);
       auditLogRepo.save.mockResolvedValue({} as CourseAuditLog);

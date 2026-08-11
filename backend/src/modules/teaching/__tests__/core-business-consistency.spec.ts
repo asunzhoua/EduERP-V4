@@ -15,7 +15,6 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException } from '@nestjs/common';
 
@@ -25,7 +24,6 @@ import { LessonRepository } from '../lesson/lesson.repository';
 import { LessonEntity } from '../lesson/lesson.entity';
 import { LessonStatus } from '../lesson/enums/lesson-status.enum';
 import { EventBusService } from '@events/event-bus.service';
-import { SalaryCalculator } from '@modules/salary/services/salary-calculator.service';
 import { SalarySettlementService } from '@modules/salary/services/salary-settlement.service';
 import { SalaryRecordEntity } from '@modules/salary/entities/salary-record.entity';
 import { SalaryRuleEntity } from '@modules/salary/entities/salary-rule.entity';
@@ -45,8 +43,47 @@ import { EnrollmentRepository } from '../enrollment/enrollment.repository';
 import { ContractRepository } from '../contract/contract.repository';
 import { Student } from '@modules/student/entities/student.entity';
 import { ClassStatus } from '../class/enums/class-status.enum';
-import { ContractStatus } from '../contract/enums/contract-status.enum';
 import { Subject } from '@common/enums/subject.enum';
+import { Repository } from 'typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
+import { LessonAttendanceRepository } from '../lesson-attendance/lesson-attendance.repository';
+import { ClassEntity } from '../class/class.entity';
+import { CourseEntity } from '../course/course.entity';
+import { PointsService } from '@modules/points/points.service';
+import { User } from '@modules/identity/entities/user.entity';
+
+// ─── Mock type helpers ───
+
+interface MockContractRecord {
+  id: number;
+  contractCode: string;
+  studentCode: string;
+  subject: Subject;
+  totalLessons: number;
+  remainingLessons: number;
+  status: string;
+}
+
+type PublishedEvent = { name: string; payload: unknown };
+type CompletedEventPayload = { teacherId: number; lessonId: number };
+type LessonFindOptions = {
+  where?: { status?: LessonStatus; teacherId?: number };
+};
+type SalaryRecordFindOneOptions = { where?: { lessonId?: number } };
+type SalaryRecordFindOptions = { where?: { month?: string } };
+type SettlementAttendanceFindOptions = {
+  where?: { lessonId?: { _value: number[] } };
+};
+type CourseFindOptions = { where?: { courseCode?: { _value: string[] } } };
+type ClassFindOneWhere = { where: { classCode?: string } };
+type CourseFindOneWhere = { where: { courseCode?: string } };
+type SettlementTxCallback = (manager: {
+  save: (
+    entityClass: unknown,
+    arr: SalaryRecordEntity[],
+  ) => Promise<SalaryRecordEntity[]>;
+}) => Promise<SalaryRecordEntity[]>;
 
 // ══════════════════════════════════════════════════════════════
 //  State Machine Reference (mirrors the one in lesson.service.ts)
@@ -136,12 +173,12 @@ function createMockLessonRepo() {
     findMaxScheduledDateByClassCode: jest.fn().mockResolvedValue(null),
     findMaxScheduledDateByClassCodes: jest.fn().mockResolvedValue(new Map()),
     findUpcomingLessons: jest.fn().mockResolvedValue([]),
-    find: jest.fn().mockImplementation((opts: any) => {
-      const where = opts?.where ?? {};
+    find: jest.fn().mockImplementation((opts: LessonFindOptions) => {
+      const where = opts?.where;
       return Promise.resolve(
         Array.from(store.values()).filter((l) => {
-          if (where.status && l.status !== where.status) return false;
-          if (where.teacherId && l.teacherId !== where.teacherId) return false;
+          if (where?.status && l.status !== where.status) return false;
+          if (where?.teacherId && l.teacherId !== where.teacherId) return false;
           return true;
         }),
       );
@@ -187,10 +224,10 @@ function createMockReminderService() {
 }
 
 function createMockContractRepo() {
-  const store: any[] = [];
+  const store: MockContractRecord[] = [];
   return {
     _store: store,
-    save: jest.fn().mockImplementation((entity: any) => {
+    save: jest.fn().mockImplementation((entity: MockContractRecord) => {
       const idx = store.findIndex(
         (c) => c.contractCode === entity.contractCode,
       );
@@ -290,16 +327,18 @@ function createMockSalaryRecordRepo() {
   let nextId = 1;
   return {
     _records: records,
-    findOne: jest.fn().mockImplementation(({ where }: any) => {
-      if (where?.lessonId !== undefined) {
-        const found = Array.from(records.values()).find(
-          (r) => r.lessonId === where.lessonId,
-        );
-        return Promise.resolve(found || null);
-      }
-      return Promise.resolve(null);
-    }),
-    find: jest.fn().mockImplementation(({ where }: any) => {
+    findOne: jest
+      .fn()
+      .mockImplementation(({ where }: SalaryRecordFindOneOptions) => {
+        if (where?.lessonId !== undefined) {
+          const found = Array.from(records.values()).find(
+            (r) => r.lessonId === where.lessonId,
+          );
+          return Promise.resolve(found || null);
+        }
+        return Promise.resolve(null);
+      }),
+    find: jest.fn().mockImplementation(({ where }: SalaryRecordFindOptions) => {
       if (where?.month) {
         return Promise.resolve(
           Array.from(records.values()).filter((r) => r.month === where.month),
@@ -315,16 +354,18 @@ function createMockSalaryRecordRepo() {
       .fn()
       .mockImplementation((data: any) => data as SalaryRecordEntity),
     manager: {
-      transaction: jest.fn().mockImplementation(async (cb: any) => {
-        return cb({
-          save: async (_cls: any, arr: SalaryRecordEntity[]) => {
-            for (const e of arr) {
-              records.set(e.lessonId ?? nextId++, e);
-            }
-            return arr;
-          },
-        });
-      }),
+      transaction: jest
+        .fn()
+        .mockImplementation(async (cb: SettlementTxCallback) => {
+          return cb({
+            save: (_cls: any, arr: SalaryRecordEntity[]) => {
+              for (const e of arr) {
+                records.set(e.lessonId ?? nextId++, e);
+              }
+              return Promise.resolve(arr);
+            },
+          });
+        }),
     },
   };
 }
@@ -354,21 +395,23 @@ function createSettlementAttendanceRepo() {
   const rows: LessonAttendanceEntity[] = [];
   return {
     _rows: rows,
-    find: jest.fn().mockImplementation(({ where }: any) => {
-      const ids = where?.lessonId?._value;
-      if (Array.isArray(ids)) {
-        return Promise.resolve(rows.filter((r) => ids.includes(r.lessonId)));
-      }
-      return Promise.resolve(rows);
-    }),
+    find: jest
+      .fn()
+      .mockImplementation(({ where }: SettlementAttendanceFindOptions) => {
+        const ids = where?.lessonId?._value;
+        if (Array.isArray(ids)) {
+          return Promise.resolve(rows.filter((r) => ids.includes(r.lessonId)));
+        }
+        return Promise.resolve(rows);
+      }),
   };
 }
 
 function createMockCourseRepo() {
-  const rows: any[] = [];
+  const rows: Array<{ courseCode: string; type: string }> = [];
   return {
     _rows: rows,
-    find: jest.fn().mockImplementation(({ where }: any) => {
+    find: jest.fn().mockImplementation(({ where }: CourseFindOptions) => {
       const codes = where?.courseCode?._value;
       if (Array.isArray(codes)) {
         return Promise.resolve(
@@ -444,14 +487,14 @@ describe('Core Business Consistency Audit', () => {
     let lessonService: LessonService;
     let mockEventBus: ReturnType<typeof createMockEventBus>;
     let mockLessonRepo: ReturnType<typeof createMockLessonRepo>;
-    let publishedEvents: Array<{ name: string; payload: any }>;
+    let publishedEvents: PublishedEvent[];
 
     beforeEach(async () => {
       publishedEvents = [];
       mockEventBus = createMockEventBus();
       // Intercept publish to track events
       const origPublish = mockEventBus.publish;
-      mockEventBus.publish = jest.fn((name: string, payload: any) => {
+      mockEventBus.publish = jest.fn((name: string, payload: unknown) => {
         publishedEvents.push({ name, payload });
         return origPublish(name, payload);
       });
@@ -568,8 +611,6 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('Event 不应重复触发 — 工资幂等由结算唯一索引保证', () => {
-      const fs = require('fs');
-      const path = require('path');
       const source = fs.readFileSync(
         path.join(
           __dirname,
@@ -582,10 +623,8 @@ describe('Core Business Consistency Audit', () => {
       expect(source).toContain("teacherId', 'month', 'source', 'lessonId");
     });
 
-    it('LessonService 无直接 SalaryService 调用', async () => {
+    it('LessonService 无直接 SalaryService 调用', () => {
       // Read the actual source file for static analysis
-      const fs = require('fs');
-      const path = require('path');
       const sourcePath = path.join(__dirname, '../lesson/lesson.service.ts');
       const source = fs.readFileSync(sourcePath, 'utf-8');
 
@@ -609,8 +648,11 @@ describe('Core Business Consistency Audit', () => {
     beforeEach(async () => {
       mockEventBus = createMockEventBus();
       mockLessonRepo = createMockLessonRepo();
-      mockEventBus.publish = jest.fn();
-      mockEventBus.subscribe = jest.fn();
+      mockEventBus.publish = jest.fn<void, [eventName: string, payload: any]>();
+      mockEventBus.subscribe = jest.fn<
+        void,
+        [eventName: string, handler: (payload: any) => void]
+      >();
 
       const module: TestingModule = await Test.createTestingModule({
         providers: [
@@ -773,7 +815,7 @@ describe('Core Business Consistency Audit', () => {
   // ═══════════════════════════════════════════════════════════
 
   describe('3. 课时 Ledger 检查', () => {
-    let lessonService: LessonService;
+    let _lessonService: LessonService;
     let mockEventBus: ReturnType<typeof createMockEventBus>;
     let mockLessonRepo: ReturnType<typeof createMockLessonRepo>;
     let mockContractRepo: ReturnType<typeof createMockContractRepo>;
@@ -787,29 +829,31 @@ describe('Core Business Consistency Audit', () => {
       const mockAttendanceRepo = createMockAttendanceRepo();
       const mockReminderService = createMockReminderService();
       const mockClassRepo = {
-        findOne: jest.fn().mockImplementation(({ where }: any) =>
+        findOne: jest.fn().mockImplementation(({ where }: ClassFindOneWhere) =>
           Promise.resolve({
             classCode: where.classCode,
             courseCode: 'MATH001',
           }),
         ),
-      } as any;
+      } as unknown as Repository<ClassEntity>;
       const mockCourseRepo = {
-        findOne: jest.fn().mockImplementation(({ where }: any) =>
+        findOne: jest.fn().mockImplementation(({ where }: CourseFindOneWhere) =>
           Promise.resolve({
             courseCode: where.courseCode,
             subject: Subject.MATH,
           }),
         ),
-      } as any;
+      } as unknown as Repository<CourseEntity>;
 
       attendanceService = new LessonAttendanceService(
-        mockAttendanceRepo as any,
-        mockReminderService as any,
-        mockContractRepo as any,
+        mockAttendanceRepo as unknown as LessonAttendanceRepository,
+        mockReminderService as unknown as ReminderService,
+        mockContractRepo as unknown as ContractRepository,
         mockClassRepo,
         mockCourseRepo,
-        { credit: jest.fn().mockResolvedValue({ balance: 10 }) } as any,
+        {
+          credit: jest.fn().mockResolvedValue({ balance: 10 }),
+        } as unknown as PointsService,
       );
 
       const module: TestingModule = await Test.createTestingModule({
@@ -830,12 +874,10 @@ describe('Core Business Consistency Audit', () => {
         ],
       }).compile();
 
-      lessonService = module.get<LessonService>(LessonService);
+      _lessonService = module.get<LessonService>(LessonService);
     });
 
     it('课时变化唯一来源 — LessonService 不直接管理课时余额', () => {
-      const fs = require('fs');
-      const path = require('path');
       const source = fs.readFileSync(
         path.join(__dirname, '../lesson/lesson.service.ts'),
         'utf-8',
@@ -851,8 +893,6 @@ describe('Core Business Consistency Audit', () => {
     it('课时变化唯一来源 — 余额通过考勤记录的合约扣减实现，不与 Lesson 状态耦合', () => {
       // LessonAttendanceService.deductLessonFromContract is the sole mechanism
       // It's triggered by attendance recording, NOT by lesson status changes
-      const fs = require('fs');
-      const path = require('path');
       const attendanceSource = fs.readFileSync(
         path.join(
           __dirname,
@@ -911,8 +951,6 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('课时变化唯一来源 — SalarySettlementService 不能修改课时余额', () => {
-      const fs = require('fs');
-      const path = require('path');
       const source = fs.readFileSync(
         path.join(
           __dirname,
@@ -969,14 +1007,16 @@ describe('Core Business Consistency Audit', () => {
     });
 
     function createSettlement() {
-      const mockUserRepo = { find: jest.fn().mockResolvedValue([]) };
+      const mockUserRepo = {
+        find: jest.fn().mockResolvedValue([]),
+      } as unknown as Repository<User>;
       return new SalarySettlementService(
-        mockSalaryRecordRepo as any,
-        mockSalaryRuleRepo as any,
-        mockLessonRepo as any,
-        mockAttendanceRepo as any,
-        mockCourseRepo as any,
-        mockUserRepo as any,
+        mockSalaryRecordRepo as unknown as Repository<SalaryRecordEntity>,
+        mockSalaryRuleRepo as unknown as Repository<SalaryRuleEntity>,
+        mockLessonRepo as unknown as Repository<LessonEntity>,
+        mockAttendanceRepo as unknown as Repository<LessonAttendanceEntity>,
+        mockCourseRepo as unknown as Repository<CourseEntity>,
+        mockUserRepo,
       );
     }
 
@@ -988,10 +1028,12 @@ describe('Core Business Consistency Audit', () => {
       });
       mockLessonRepo._store.set(10, lesson);
 
-      const events: any[] = [];
-      mockEventBus.publish = jest.fn((name, payload) => {
-        if (name === 'lesson.completed') events.push(payload);
-      });
+      const events: CompletedEventPayload[] = [];
+      mockEventBus.publish = jest.fn(
+        (name: string, payload: CompletedEventPayload) => {
+          if (name === 'lesson.completed') events.push(payload);
+        },
+      );
 
       await lessonService.updateStatus(10, LessonStatus.TEACHING, 100);
       await lessonService.updateStatus(10, LessonStatus.FINISHED, 100);
@@ -1080,8 +1122,8 @@ describe('Core Business Consistency Audit', () => {
       });
       mockLessonRepo._store.set(30, lesson);
 
-      const events: any[] = [];
-      mockEventBus.publish = jest.fn((name, payload) => {
+      const events: PublishedEvent[] = [];
+      mockEventBus.publish = jest.fn((name: string, payload: unknown) => {
         events.push({ name, payload });
       });
 
@@ -1105,8 +1147,8 @@ describe('Core Business Consistency Audit', () => {
       });
       mockLessonRepo._store.set(40, lesson);
 
-      const events: any[] = [];
-      mockEventBus.publish = jest.fn((name, payload) => {
+      const events: PublishedEvent[] = [];
+      mockEventBus.publish = jest.fn((name: string, payload: unknown) => {
         events.push({ name, payload });
       });
 
@@ -1125,8 +1167,8 @@ describe('Core Business Consistency Audit', () => {
       });
       mockLessonRepo._store.set(50, lesson);
 
-      const events: any[] = [];
-      mockEventBus.publish = jest.fn((name, payload) => {
+      const events: PublishedEvent[] = [];
+      mockEventBus.publish = jest.fn((name: string, payload: unknown) => {
         events.push({ name, payload });
       });
 
@@ -1141,8 +1183,6 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('工资不再由 lesson.completed 事件即时生成，改由月度结算读取 FINISHED 课时（源码分析）', () => {
-      const fs = require('fs');
-      const path = require('path');
       const salaryModuleSource = fs.readFileSync(
         path.join(__dirname, '../../../modules/salary/salary.module.ts'),
         'utf-8',
@@ -1168,8 +1208,6 @@ describe('Core Business Consistency Audit', () => {
 
   describe('5. 模块依赖检查', () => {
     it('Lesson 不应直接调用 Salary Service（通过源码分析）', () => {
-      const fs = require('fs');
-      const path = require('path');
       const source = fs.readFileSync(
         path.join(__dirname, '../lesson/lesson.service.ts'),
         'utf-8',
@@ -1184,8 +1222,6 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('Salary 不调用 Lesson Service / LessonModule（通过源码分析）', () => {
-      const fs = require('fs');
-      const path = require('path');
       const settlementSource = fs.readFileSync(
         path.join(
           __dirname,
@@ -1214,8 +1250,6 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('工资链路 — Lesson FINISHED → 月度结算读取课时 → 生成记录（源码分析）', () => {
-      const fs = require('fs');
-      const path = require('path');
       const lessonSource = fs.readFileSync(
         path.join(__dirname, '../lesson/lesson.service.ts'),
         'utf-8',
@@ -1237,8 +1271,6 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('LessonModule 不导入 SalaryModule', () => {
-      const fs = require('fs');
-      const path = require('path');
       const source = fs.readFileSync(
         path.join(__dirname, '../lesson/lesson.module.ts'),
         'utf-8',
@@ -1249,8 +1281,6 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('SalaryModule 不导入 LessonModule', () => {
-      const fs = require('fs');
-      const path = require('path');
       const source = fs.readFileSync(
         path.join(__dirname, '../../../modules/salary/salary.module.ts'),
         'utf-8',
@@ -1260,8 +1290,6 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('教学模块内 LessonAttendanceService 对 salary 无跨模块依赖（已移除事件发射）', () => {
-      const fs = require('fs');
-      const path = require('path');
       const source = fs.readFileSync(
         path.join(
           __dirname,
@@ -1290,8 +1318,6 @@ describe('Core Business Consistency Audit', () => {
       namePattern: RegExp,
       excludePattern?: RegExp,
     ): string[] {
-      const fs = require('fs');
-      const path = require('path');
       const results: string[] = [];
       try {
         const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -1309,13 +1335,13 @@ describe('Core Business Consistency Audit', () => {
             }
           }
         }
-      } catch {}
+      } catch {
+        /* ignore missing directories */
+      }
       return results;
     }
 
     it('Points listener 未实现 — 架构图示有点但代码未找到', () => {
-      const fs = require('fs');
-      const path = require('path');
       const searchDir = path.join(__dirname, '../../..');
       // Search specifically for *listener* files related to points
       const listenerFiles = findFiles(searchDir, /\.listener\.ts$/i);
@@ -1324,8 +1350,6 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('Notification listener for lesson events 未找到', () => {
-      const fs = require('fs');
-      const path = require('path');
       const searchDir = path.join(__dirname, '../../..');
       const listenerFiles = findFiles(searchDir, /\.listener\.ts$/i);
       const notificationListeners = listenerFiles.filter((f) =>
@@ -1335,8 +1359,6 @@ describe('Core Business Consistency Audit', () => {
     });
 
     it('课时 Ledger 独立模块不存在 — 合约扣减作为课时管理方式', () => {
-      const fs = require('fs');
-      const path = require('path');
       const teachingDir = path.join(__dirname, '..');
       const entries = fs.readdirSync(teachingDir, { withFileTypes: true });
       const submodules = entries

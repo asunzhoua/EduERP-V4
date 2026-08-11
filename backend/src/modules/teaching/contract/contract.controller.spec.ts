@@ -7,7 +7,6 @@ import { ApiResponse } from '@common/dto/api-response';
 
 describe('ContractController', () => {
   let controller: ContractController;
-  let service: ContractService;
 
   const mockContract = {
     id: 1,
@@ -74,7 +73,6 @@ describe('ContractController', () => {
     }).compile();
 
     controller = module.get(ContractController);
-    service = module.get(ContractService);
   });
 
   beforeEach(() => {
@@ -124,7 +122,7 @@ describe('ContractController', () => {
         totalAmount: 6000.0,
         note: null,
         tags: null,
-      } as any;
+      };
       const mockReq = { user: { sub: 42, name: '管理员' } };
 
       const result = await controller.create(dto, mockReq);
@@ -158,7 +156,7 @@ describe('ContractController', () => {
         totalAmount: undefined,
         note: undefined,
         tags: undefined,
-      } as any;
+      };
       const mockReq = { user: { sub: 7, name: '系统管理员' } };
 
       await controller.create(dto, mockReq);
@@ -248,7 +246,7 @@ describe('ContractController', () => {
         totalLessons: 35,
         remainingLessons: 35,
         reason: '家长续费',
-      } as any;
+      };
 
       const result = await controller.adjustLessons(
         'CTR2026070001',
@@ -317,8 +315,8 @@ describe('ContractController', () => {
       await expect(
         controller.getConsumeRecords(
           'CTR2026070001',
-          { page: 1, pageSize: 20 } as any,
-          { user: { sub: 7, role: 'Parent' } } as any,
+          { page: 1, pageSize: 20 },
+          { user: { sub: 7, role: 'Parent' } },
         ),
       ).rejects.toThrow(ForbiddenException);
 
@@ -333,8 +331,8 @@ describe('ContractController', () => {
       await expect(
         controller.getConsumeRecords(
           'INVALID',
-          { page: 1, pageSize: 20 } as any,
-          { user: { sub: 1, role: 'Teacher' } } as any,
+          { page: 1, pageSize: 20 },
+          { user: { sub: 1, role: 'Teacher' } },
         ),
       ).rejects.toThrow(NotFoundException);
     });

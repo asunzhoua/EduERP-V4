@@ -22,7 +22,10 @@
  * 8. ABSENT/LEAVE/MAKEUP do NOT deduct
  */
 
-import { LessonAttendanceService } from '../lesson-attendance/lesson-attendance.service';
+import {
+  LessonAttendanceService,
+  VALID_WORKFLOW_TRANSITIONS,
+} from '../lesson-attendance/lesson-attendance.service';
 import { LessonAttendanceEntity } from '../lesson-attendance/lesson-attendance.entity';
 import {
   AttendanceStatus,
@@ -34,6 +37,16 @@ import { ContractEntity } from '../contract/contract.entity';
 import { ContractStatus } from '../contract/enums/contract-status.enum';
 import { Subject } from '@common/enums/subject.enum';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { LessonAttendanceRepository } from '../lesson-attendance/lesson-attendance.repository';
+import { ClassEntity } from '../class/class.entity';
+import { CourseEntity } from '../course/course.entity';
+import { ContractRepository } from '../contract/contract.repository';
+import { ReminderService } from '@modules/reminder/reminder.service';
+import { PointsService } from '@modules/points/points.service';
+
+type ClassFindOneWhere = { where: { classCode?: string } };
+type CourseFindOneWhere = { where: { courseCode?: string } };
 
 // ═══════════════════════════════════════════════════════════════
 // Test Helpers — Shared mock factories
@@ -182,27 +195,31 @@ function createAttendanceService(
   mockReminderService?: ReturnType<typeof createMockReminderService>,
 ) {
   const mockClassRepo = {
-    findOne: jest
-      .fn()
-      .mockImplementation(({ where }: any) =>
-        Promise.resolve({ classCode: where.classCode, courseCode: 'MATH001' }),
-      ),
-  } as any;
+    findOne: jest.fn().mockImplementation(({ where }: ClassFindOneWhere) =>
+      Promise.resolve({
+        classCode: where.classCode,
+        courseCode: 'MATH001',
+      }),
+    ),
+  } as unknown as Repository<ClassEntity>;
   const mockCourseRepo = {
-    findOne: jest.fn().mockImplementation(({ where }: any) =>
+    findOne: jest.fn().mockImplementation(({ where }: CourseFindOneWhere) =>
       Promise.resolve({
         courseCode: where.courseCode,
         subject: Subject.MATH,
       }),
     ),
-  } as any;
+  } as unknown as Repository<CourseEntity>;
   return new LessonAttendanceService(
-    mockAttendanceRepo as any,
-    (mockReminderService || createMockReminderService()) as any,
-    mockContractRepo as any,
+    mockAttendanceRepo as unknown as LessonAttendanceRepository,
+    (mockReminderService ||
+      createMockReminderService()) as unknown as ReminderService,
+    mockContractRepo as unknown as ContractRepository,
     mockClassRepo,
     mockCourseRepo,
-    { credit: jest.fn().mockResolvedValue({ balance: 10 }) } as any,
+    {
+      credit: jest.fn().mockResolvedValue({ balance: 10 }),
+    } as unknown as PointsService,
   );
 }
 
@@ -895,29 +912,20 @@ describe('Business Flow Integration: Scenario 5 — Workflow State Machine', () 
     expect(record!.workflowState).toBe(AttendanceWorkflowState.LOCKED);
   });
 
-  it('should block LOCKED → anything (terminal state)', async () => {
+  it('should block LOCKED → anything (terminal state)', () => {
     // Verify via the exported state machine
-    const {
-      VALID_WORKFLOW_TRANSITIONS,
-    } = require('../lesson-attendance/lesson-attendance.service');
     const allowedFromLocked =
       VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.LOCKED];
     expect(allowedFromLocked).toEqual([]);
   });
 
-  it('should allow admin reverse: CONFIRMED → CHECKED_IN', async () => {
-    const {
-      VALID_WORKFLOW_TRANSITIONS,
-    } = require('../lesson-attendance/lesson-attendance.service');
+  it('should allow admin reverse: CONFIRMED → CHECKED_IN', () => {
     const allowedFromConfirmed =
       VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED];
     expect(allowedFromConfirmed).toContain(AttendanceWorkflowState.CHECKED_IN);
   });
 
-  it('should allow admin reverse: CHECKED_IN → PENDING', async () => {
-    const {
-      VALID_WORKFLOW_TRANSITIONS,
-    } = require('../lesson-attendance/lesson-attendance.service');
+  it('should allow admin reverse: CHECKED_IN → PENDING', () => {
     const allowedFromCheckedIn =
       VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN];
     expect(allowedFromCheckedIn).toContain(AttendanceWorkflowState.PENDING);
@@ -1189,7 +1197,7 @@ describe('Business Flow Integration: Scenario 7 — Edge Cases', () => {
       service.recordAttendance({
         lessonId: 1,
         studentCode: 'STU001',
-        status: 'INVALID_STATUS' as any,
+        status: 'INVALID_STATUS' as unknown as AttendanceStatus,
         operator: 10,
       }),
     ).rejects.toThrow(BadRequestException);
@@ -1211,7 +1219,7 @@ describe('Business Flow Integration: Scenario 7 — Edge Cases', () => {
       service.recordAttendance({
         lessonId: 1,
         studentCode: 'STU001',
-        status: '' as any,
+        status: '' as unknown as AttendanceStatus,
         operator: 10,
       }),
     ).rejects.toThrow(BadRequestException);

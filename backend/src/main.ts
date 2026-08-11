@@ -42,4 +42,4 @@ async function bootstrap() {
   logger.log(`EduOS API Server started on port ${port}`, 'Bootstrap');
 }
 
-bootstrap();
+void bootstrap();

@@ -7,8 +7,6 @@
 
 import { AggregateRoot } from '../../shared/entity/aggregate-root';
 import { DomainEvent } from '../../shared/domain-event/domain-event';
-import { EventCollection } from './event-collection';
-import { OptimisticLock, OptimisticLockException } from './optimistic-lock';
 import { InvariantValidator } from './invariant-validator';
 import { IEventDispatcher } from '../infrastructure/event-dispatcher';
 

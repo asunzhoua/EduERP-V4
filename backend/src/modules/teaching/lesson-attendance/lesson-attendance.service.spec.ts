@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   LessonAttendanceService,
   VALID_WORKFLOW_TRANSITIONS,
   REASON_REQUIRED_STATUSES,
+  LessonDeductionResult,
 } from './lesson-attendance.service';
 import { LessonAttendanceRepository } from './lesson-attendance.repository';
 import { LessonAttendanceEntity } from './lesson-attendance.entity';
@@ -17,6 +17,7 @@ import { AttendanceWorkflowState } from './enums/attendance-workflow-state.enum'
 import { AttendanceSource } from './enums/attendance-source.enum';
 import { ReminderService } from '@modules/reminder/reminder.service';
 import { ContractRepository } from '@modules/teaching/contract/contract.repository';
+import { ContractEntity } from '@modules/teaching/contract/contract.entity';
 import { ContractStatus } from '@modules/teaching/contract/enums/contract-status.enum';
 import { PointsService } from '@modules/points/points.service';
 import { ClassEntity } from '../class/class.entity';
@@ -24,13 +25,27 @@ import { CourseEntity } from '../course/course.entity';
 import { Subject } from '@common/enums/subject.enum';
 import { ImportService } from '@utils/services/import.service';
 import { LessonRepository } from '../lesson/lesson.repository';
-import { LessonEntity } from '../lesson/lesson.entity';
 import { LessonStatus } from '../lesson/enums/lesson-status.enum';
 import { Student } from '@modules/student/entities/student.entity';
 
+/** Loose-typed mock repo: every method is a jest.Mock (accepts partial entities / any args). */
+type MockRepo = Record<string, jest.Mock>;
+
+/** Accesses private deduction helpers for unit tests. */
+type TestableLessonAttendanceService = {
+  deductLessonFromContract(
+    studentCode: string,
+    subject: Subject,
+  ): Promise<LessonDeductionResult | null>;
+  rollbackLessonDeduction(
+    record: unknown,
+    subject: Subject | null,
+  ): Promise<LessonDeductionResult | null>;
+};
+
 describe('LessonAttendanceService', () => {
   let service: LessonAttendanceService;
-  let mockContractRepo: any;
+  let mockContractRepo: MockRepo;
   // 每个 TestingModule 独立注入 PointsService mock
   const pointsServiceMock = () => ({
     credit: jest.fn().mockResolvedValue({ balance: 10 }),
@@ -343,14 +358,20 @@ describe('LessonAttendanceService', () => {
   // ══════════════════════════════════════════════════════════════�?  // Service Behavior Tests (Phase 2a Implementation)
   // ══════════════════════════════════════════════════════════════�?
   describe('autoCreateForLesson()', () => {
-    let mockRepo: any;
+    let mockRepo: MockRepo;
 
     beforeEach(async () => {
       mockRepo = {
-        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        save: jest
+          .fn()
+          .mockImplementation((e: LessonAttendanceEntity) =>
+            Promise.resolve(e),
+          ),
         saveAll: jest
           .fn()
-          .mockImplementation((es: any[]) => Promise.resolve(es)),
+          .mockImplementation((es: LessonAttendanceEntity[]) =>
+            Promise.resolve(es),
+          ),
         findByLessonAndStudent: jest.fn(),
         findByLessonId: jest.fn(),
         countUnconfirmedByLessonId: jest.fn(),
@@ -374,7 +395,7 @@ describe('LessonAttendanceService', () => {
                 .mockResolvedValue(null),
               save: jest
                 .fn()
-                .mockImplementation((e: any) => Promise.resolve(e)),
+                .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
             },
           },
           {
@@ -442,11 +463,15 @@ describe('LessonAttendanceService', () => {
   });
 
   describe('recordAttendance()', () => {
-    let mockRepo: any;
+    let mockRepo: MockRepo;
 
     beforeEach(async () => {
       mockRepo = {
-        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        save: jest
+          .fn()
+          .mockImplementation((e: LessonAttendanceEntity) =>
+            Promise.resolve(e),
+          ),
         findByLessonAndStudent: jest.fn(),
       };
 
@@ -468,7 +493,7 @@ describe('LessonAttendanceService', () => {
                 .mockResolvedValue(null),
               save: jest
                 .fn()
-                .mockImplementation((e: any) => Promise.resolve(e)),
+                .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
             },
           },
           {
@@ -595,14 +620,20 @@ describe('LessonAttendanceService', () => {
   });
 
   describe('batchRollCall()', () => {
-    let mockRepo: any;
+    let mockRepo: MockRepo;
 
     beforeEach(async () => {
       mockRepo = {
-        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        save: jest
+          .fn()
+          .mockImplementation((e: LessonAttendanceEntity) =>
+            Promise.resolve(e),
+          ),
         saveAll: jest
           .fn()
-          .mockImplementation((es: any[]) => Promise.resolve(es)),
+          .mockImplementation((es: LessonAttendanceEntity[]) =>
+            Promise.resolve(es),
+          ),
         findByLessonAndStudent: jest.fn(),
         findByLessonIdAndStudentCodes: jest.fn(),
       };
@@ -625,7 +656,7 @@ describe('LessonAttendanceService', () => {
                 .mockResolvedValue(null),
               save: jest
                 .fn()
-                .mockImplementation((e: any) => Promise.resolve(e)),
+                .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
             },
           },
           {
@@ -705,14 +736,20 @@ describe('LessonAttendanceService', () => {
   });
 
   describe('confirmAll()', () => {
-    let mockRepo: any;
+    let mockRepo: MockRepo;
 
     beforeEach(async () => {
       mockRepo = {
-        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        save: jest
+          .fn()
+          .mockImplementation((e: LessonAttendanceEntity) =>
+            Promise.resolve(e),
+          ),
         saveAll: jest
           .fn()
-          .mockImplementation((es: any[]) => Promise.resolve(es)),
+          .mockImplementation((es: LessonAttendanceEntity[]) =>
+            Promise.resolve(es),
+          ),
         findByLessonId: jest.fn(),
       };
 
@@ -734,7 +771,7 @@ describe('LessonAttendanceService', () => {
                 .mockResolvedValue(null),
               save: jest
                 .fn()
-                .mockImplementation((e: any) => Promise.resolve(e)),
+                .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
             },
           },
           {
@@ -806,14 +843,20 @@ describe('LessonAttendanceService', () => {
   });
 
   describe('lockByLessonId()', () => {
-    let mockRepo: any;
+    let mockRepo: MockRepo;
 
     beforeEach(async () => {
       mockRepo = {
-        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        save: jest
+          .fn()
+          .mockImplementation((e: LessonAttendanceEntity) =>
+            Promise.resolve(e),
+          ),
         saveAll: jest
           .fn()
-          .mockImplementation((es: any[]) => Promise.resolve(es)),
+          .mockImplementation((es: LessonAttendanceEntity[]) =>
+            Promise.resolve(es),
+          ),
         findByLessonId: jest.fn(),
       };
 
@@ -835,7 +878,7 @@ describe('LessonAttendanceService', () => {
                 .mockResolvedValue(null),
               save: jest
                 .fn()
-                .mockImplementation((e: any) => Promise.resolve(e)),
+                .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
             },
           },
           {
@@ -904,14 +947,20 @@ describe('LessonAttendanceService', () => {
   });
 
   describe('reverseToCheckedIn()', () => {
-    let mockRepo: any;
+    let mockRepo: MockRepo;
 
     beforeEach(async () => {
       mockRepo = {
-        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        save: jest
+          .fn()
+          .mockImplementation((e: LessonAttendanceEntity) =>
+            Promise.resolve(e),
+          ),
         saveAll: jest
           .fn()
-          .mockImplementation((es: any[]) => Promise.resolve(es)),
+          .mockImplementation((es: LessonAttendanceEntity[]) =>
+            Promise.resolve(es),
+          ),
         findByLessonId: jest.fn(),
       };
 
@@ -933,7 +982,7 @@ describe('LessonAttendanceService', () => {
                 .mockResolvedValue(null),
               save: jest
                 .fn()
-                .mockImplementation((e: any) => Promise.resolve(e)),
+                .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
             },
           },
           {
@@ -979,14 +1028,14 @@ describe('LessonAttendanceService', () => {
       service = module.get<LessonAttendanceService>(LessonAttendanceService);
     });
 
-    it('should allow CONFIRMED �?CHECKED_IN transition per state machine', async () => {
-      // The state machine allows CONFIRMED �?CHECKED_IN (admin override)
+    it('should allow CONFIRMED → CHECKED_IN transition per state machine', () => {
+      // The state machine allows CONFIRMED → CHECKED_IN (admin override)
       expect(
         VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED],
       ).toContain(AttendanceWorkflowState.CHECKED_IN);
     });
 
-    it('should allow CHECKED_IN �?PENDING transition per state machine', async () => {
+    it('should allow CHECKED_IN → PENDING transition per state machine', () => {
       expect(
         VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN],
       ).toContain(AttendanceWorkflowState.PENDING);
@@ -996,7 +1045,7 @@ describe('LessonAttendanceService', () => {
   // ══════════════════════════════════════════════════════════════�?  // Read Method Tests
   // ══════════════════════════════════════════════════════════════�?
   describe('findOne()', () => {
-    let mockRepo: any;
+    let mockRepo: MockRepo;
 
     beforeEach(async () => {
       mockRepo = {
@@ -1021,7 +1070,7 @@ describe('LessonAttendanceService', () => {
                 .mockResolvedValue(null),
               save: jest
                 .fn()
-                .mockImplementation((e: any) => Promise.resolve(e)),
+                .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
             },
           },
           {
@@ -1089,7 +1138,7 @@ describe('LessonAttendanceService', () => {
   });
 
   describe('findByLessonId()', () => {
-    let mockRepo: any;
+    let mockRepo: MockRepo;
 
     beforeEach(async () => {
       mockRepo = {
@@ -1114,7 +1163,7 @@ describe('LessonAttendanceService', () => {
                 .mockResolvedValue(null),
               save: jest
                 .fn()
-                .mockImplementation((e: any) => Promise.resolve(e)),
+                .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
             },
           },
           {
@@ -1185,7 +1234,7 @@ describe('LessonAttendanceService', () => {
   });
 
   describe('findByStudentCode()', () => {
-    let mockRepo: any;
+    let mockRepo: MockRepo;
 
     beforeEach(async () => {
       mockRepo = {
@@ -1210,7 +1259,7 @@ describe('LessonAttendanceService', () => {
                 .mockResolvedValue(null),
               save: jest
                 .fn()
-                .mockImplementation((e: any) => Promise.resolve(e)),
+                .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
             },
           },
           {
@@ -1283,7 +1332,7 @@ describe('LessonAttendanceService', () => {
   });
 
   describe('countPendingByLessonId()', () => {
-    let mockRepo: any;
+    let mockRepo: MockRepo;
 
     beforeEach(async () => {
       mockRepo = {
@@ -1308,7 +1357,7 @@ describe('LessonAttendanceService', () => {
                 .mockResolvedValue(null),
               save: jest
                 .fn()
-                .mockImplementation((e: any) => Promise.resolve(e)),
+                .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
             },
           },
           {
@@ -1388,12 +1437,13 @@ describe('LessonAttendanceService', () => {
       mockContractRepo.findActiveByStudentCodeAndSubject.mockResolvedValue(
         contract,
       );
-      mockContractRepo.save.mockImplementation((e: any) => Promise.resolve(e));
-
-      const result = await (service as any).deductLessonFromContract(
-        'STU001',
-        Subject.MATH,
+      mockContractRepo.save.mockImplementation((e: ContractEntity) =>
+        Promise.resolve(e),
       );
+
+      const result = await (
+        service as unknown as TestableLessonAttendanceService
+      ).deductLessonFromContract('STU001', Subject.MATH);
 
       expect(
         mockContractRepo.findActiveByStudentCodeAndSubject,
@@ -1408,10 +1458,9 @@ describe('LessonAttendanceService', () => {
         null,
       );
 
-      const result = await (service as any).deductLessonFromContract(
-        'STU001',
-        Subject.MATH,
-      );
+      const result = await (
+        service as unknown as TestableLessonAttendanceService
+      ).deductLessonFromContract('STU001', Subject.MATH);
 
       expect(mockContractRepo.save).not.toHaveBeenCalled();
       expect(result).toBeNull();
@@ -1438,10 +1487,9 @@ describe('LessonAttendanceService', () => {
         contract,
       );
 
-      const result = await (service as any).rollbackLessonDeduction(
-        record(),
-        Subject.MATH,
-      );
+      const result = await (
+        service as unknown as TestableLessonAttendanceService
+      ).rollbackLessonDeduction(record(), Subject.MATH);
 
       expect(
         mockContractRepo.findActiveByStudentCodeAndSubject,
@@ -1470,7 +1518,9 @@ describe('LessonAttendanceService', () => {
       };
       mockContractRepo.findOneById.mockResolvedValue(contract);
 
-      const result = await (service as any).rollbackLessonDeduction(
+      const result = await (
+        service as unknown as TestableLessonAttendanceService
+      ).rollbackLessonDeduction(
         record({ deductedContractId: 42 }),
         Subject.MATH,
       );
@@ -1494,7 +1544,9 @@ describe('LessonAttendanceService', () => {
       };
       mockContractRepo.findOneById.mockResolvedValue(contract);
 
-      const result = await (service as any).rollbackLessonDeduction(
+      const result = await (
+        service as unknown as TestableLessonAttendanceService
+      ).rollbackLessonDeduction(
         record({ deductedContractId: 42 }),
         Subject.MATH,
       );
@@ -1518,7 +1570,9 @@ describe('LessonAttendanceService', () => {
         contract,
       );
 
-      const result = await (service as any).rollbackLessonDeduction(
+      const result = await (
+        service as unknown as TestableLessonAttendanceService
+      ).rollbackLessonDeduction(
         record({ deductedContractId: 999 }),
         Subject.MATH,
       );
@@ -1550,7 +1604,9 @@ describe('LessonAttendanceService', () => {
         contract,
       );
 
-      const result = await (service as any).rollbackLessonDeduction(
+      const result = await (
+        service as unknown as TestableLessonAttendanceService
+      ).rollbackLessonDeduction(
         record({ deductedContractId: 42 }),
         Subject.MATH,
       );
@@ -1582,7 +1638,9 @@ describe('LessonAttendanceService', () => {
         contract,
       );
 
-      const result = await (service as any).rollbackLessonDeduction(
+      const result = await (
+        service as unknown as TestableLessonAttendanceService
+      ).rollbackLessonDeduction(
         record({ deductedContractId: 42 }),
         Subject.MATH,
       );
@@ -1607,10 +1665,9 @@ describe('LessonAttendanceService', () => {
       );
       mockContractRepo.findByStudentCode.mockResolvedValue([contract]);
 
-      const result = await (service as any).rollbackLessonDeduction(
-        record(),
-        Subject.MATH,
-      );
+      const result = await (
+        service as unknown as TestableLessonAttendanceService
+      ).rollbackLessonDeduction(record(), Subject.MATH);
 
       expect(mockContractRepo.findByStudentCode).toHaveBeenCalledWith('STU001');
       expect(contract.remainingLessons).toBe(1);
@@ -1642,10 +1699,9 @@ describe('LessonAttendanceService', () => {
       );
       mockContractRepo.findByStudentCode.mockResolvedValue([english, math]);
 
-      const result = await (service as any).rollbackLessonDeduction(
-        record(),
-        Subject.MATH,
-      );
+      const result = await (
+        service as unknown as TestableLessonAttendanceService
+      ).rollbackLessonDeduction(record(), Subject.MATH);
 
       expect(result!.contractCode).toBe('CT-MATH-001');
     });
@@ -1674,10 +1730,9 @@ describe('LessonAttendanceService', () => {
       );
       mockContractRepo.findByStudentCode.mockResolvedValue([older, newer]);
 
-      const result = await (service as any).rollbackLessonDeduction(
-        record(),
-        Subject.MATH,
-      );
+      const result = await (
+        service as unknown as TestableLessonAttendanceService
+      ).rollbackLessonDeduction(record(), Subject.MATH);
 
       expect(result!.contractCode).toBe('CT-MATH-002');
     });
@@ -1688,10 +1743,9 @@ describe('LessonAttendanceService', () => {
       );
       mockContractRepo.findByStudentCode.mockResolvedValue([]);
 
-      const result = await (service as any).rollbackLessonDeduction(
-        record(),
-        Subject.MATH,
-      );
+      const result = await (
+        service as unknown as TestableLessonAttendanceService
+      ).rollbackLessonDeduction(record(), Subject.MATH);
 
       expect(result).toBeNull();
       expect(mockContractRepo.save).not.toHaveBeenCalled();
@@ -1699,25 +1753,33 @@ describe('LessonAttendanceService', () => {
   });
 
   describe('cancelByLessonId()', () => {
-    let mockRepo: any;
-    let contractRepo: any;
-    let classRepo: any;
-    let courseRepo: any;
+    let mockRepo: MockRepo;
+    let contractRepo: MockRepo;
+    let classRepo: MockRepo;
+    let courseRepo: MockRepo;
 
     beforeEach(async () => {
       mockRepo = {
         findByLessonId: jest.fn(),
         deleteByLessonId: jest.fn().mockResolvedValue({ affected: 1 }),
-        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        save: jest
+          .fn()
+          .mockImplementation((e: LessonAttendanceEntity) =>
+            Promise.resolve(e),
+          ),
         saveAll: jest
           .fn()
-          .mockImplementation((es: any[]) => Promise.resolve(es)),
+          .mockImplementation((es: LessonAttendanceEntity[]) =>
+            Promise.resolve(es),
+          ),
       };
       contractRepo = {
         findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null),
         findOneById: jest.fn().mockResolvedValue(null),
         findByStudentCode: jest.fn().mockResolvedValue([]),
-        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        save: jest
+          .fn()
+          .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
       };
       // classRepo.findOne → null makes resolveLessonSubject return null (subject unresolvable)
       classRepo = { findOne: jest.fn().mockResolvedValue(null) };
@@ -1813,15 +1875,21 @@ describe('LessonAttendanceService', () => {
   });
 
   describe('deduction ledger (check-in write)', () => {
-    let mockRepo: any;
-    let contractRepo: any;
+    let mockRepo: MockRepo;
+    let contractRepo: MockRepo;
 
     beforeEach(async () => {
       mockRepo = {
-        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        save: jest
+          .fn()
+          .mockImplementation((e: LessonAttendanceEntity) =>
+            Promise.resolve(e),
+          ),
         saveAll: jest
           .fn()
-          .mockImplementation((es: any[]) => Promise.resolve(es)),
+          .mockImplementation((es: LessonAttendanceEntity[]) =>
+            Promise.resolve(es),
+          ),
         findByLessonAndStudent: jest.fn(),
         findByLessonIdAndStudentCodes: jest.fn(),
       };
@@ -1836,7 +1904,9 @@ describe('LessonAttendanceService', () => {
         }),
         findOneById: jest.fn().mockResolvedValue(null),
         findByStudentCode: jest.fn().mockResolvedValue([]),
-        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        save: jest
+          .fn()
+          .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
       };
 
       const module: TestingModule = await Test.createTestingModule({
@@ -1981,17 +2051,23 @@ describe('LessonAttendanceService', () => {
   });
 
   describe('deduction skip flag (no active contract / no subject)', () => {
-    let mockRepo: any;
-    let contractRepo: any;
-    let classRepo: any;
-    let courseRepo: any;
+    let mockRepo: MockRepo;
+    let contractRepo: MockRepo;
+    let classRepo: MockRepo;
+    let courseRepo: MockRepo;
 
     beforeEach(async () => {
       mockRepo = {
-        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        save: jest
+          .fn()
+          .mockImplementation((e: LessonAttendanceEntity) =>
+            Promise.resolve(e),
+          ),
         saveAll: jest
           .fn()
-          .mockImplementation((es: any[]) => Promise.resolve(es)),
+          .mockImplementation((es: LessonAttendanceEntity[]) =>
+            Promise.resolve(es),
+          ),
         findByLessonAndStudent: jest.fn(),
         findByLessonIdAndStudentCodes: jest.fn(),
       };
@@ -1999,7 +2075,9 @@ describe('LessonAttendanceService', () => {
         findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null),
         findOneById: jest.fn().mockResolvedValue(null),
         findByStudentCode: jest.fn().mockResolvedValue([]),
-        save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
+        save: jest
+          .fn()
+          .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
       };
       classRepo = {
         findOne: jest.fn().mockResolvedValue({ courseCode: 'MATH001' }),
@@ -2335,22 +2413,24 @@ describe('LessonAttendanceService', () => {
   // importAttendance() — P2-3 上课/考勤记录导入
   // ══════════════════════════════════════════════════════════════
   describe('importAttendance()', () => {
-    let mockRepo: any;
-    let lessonRepoMock: any;
-    let studentRepoMock: any;
-    let importServiceMock: any;
+    let mockRepo: MockRepo;
+    let lessonRepoMock: MockRepo;
+    let studentRepoMock: MockRepo;
+    let importServiceMock: MockRepo;
 
     beforeEach(async () => {
       // Simulate the DB round-trip: after saving a record it becomes queryable
-      let created: any = null;
+      let created: LessonAttendanceEntity | null = null;
       mockRepo = {
-        save: jest.fn().mockImplementation((e: any) => {
+        save: jest.fn().mockImplementation((e: LessonAttendanceEntity) => {
           created = e;
           return Promise.resolve(e);
         }),
         saveAll: jest
           .fn()
-          .mockImplementation((es: any[]) => Promise.resolve(es)),
+          .mockImplementation((es: LessonAttendanceEntity[]) =>
+            Promise.resolve(es),
+          ),
         findByLessonAndStudent: jest
           .fn()
           .mockImplementation(() => Promise.resolve(created)),
@@ -2384,7 +2464,7 @@ describe('LessonAttendanceService', () => {
                 .mockResolvedValue(null),
               save: jest
                 .fn()
-                .mockImplementation((e: any) => Promise.resolve(e)),
+                .mockImplementation((e: ContractEntity) => Promise.resolve(e)),
             },
           },
           {
@@ -2461,10 +2541,9 @@ describe('LessonAttendanceService', () => {
       expect(report.success).toBe(1);
       expect(report.failure).toBe(0);
       expect(mockRepo.save).toHaveBeenCalled(); // created PENDING record + checked-in save
-      const saved = mockRepo.save.mock.calls.flat();
-      const checked = saved.find(
-        (e: any) => e.status === AttendanceStatus.PRESENT,
-      );
+      const saved =
+        mockRepo.save.mock.calls.flat() as unknown as LessonAttendanceEntity[];
+      const checked = saved.find((e) => e.status === AttendanceStatus.PRESENT);
       expect(checked).toBeDefined();
       expect(checked.source).toBe(AttendanceSource.IMPORT);
       expect(checked.workflowState).toBe(AttendanceWorkflowState.CHECKED_IN);

@@ -30,25 +30,50 @@ import { ReminderService } from '@modules/reminder/reminder.service';
 import { ContractRepository } from '../contract/contract.repository';
 import { Subject } from '@common/enums/subject.enum';
 import { Student } from '@modules/student/entities/student.entity';
+import * as fs from 'fs';
+import * as path from 'path';
+import { Repository } from 'typeorm';
+import { LessonAttendanceRepository } from '../lesson-attendance/lesson-attendance.repository';
+import { ClassEntity } from '../class/class.entity';
+import { CourseEntity } from '../course/course.entity';
+import { PointsService } from '@modules/points/points.service';
+
+type ClassFindOneWhere = { where: { classCode?: string } };
+type CourseFindOneWhere = { where: { courseCode?: string } };
+
+interface LessonCompletedPayload {
+  lessonId: number;
+  classCode: string;
+  courseCode: string;
+  teacherId: number;
+  scheduledDate: string;
+  actualStartTime?: Date | null;
+  actualEndTime?: Date | null;
+  completedAt: Date;
+  durationMinutes?: number;
+}
 
 // ══════════════════════════════════════════════════════════════
 //  Mock Factories
 // ══════════════════════════════════════════════════════════════
 
 function createMockEventBus() {
-  const published: Array<{ name: string; payload: any }> = [];
-  const handlers = new Map<string, (payload: any) => void>();
+  const published: Array<{ name: string; payload: LessonCompletedPayload }> =
+    [];
+  const handlers = new Map<string, (payload: any) => void | Promise<void>>();
 
   return {
     _published: published,
     _handlers: handlers,
     publish: jest
       .fn()
-      .mockImplementation(async (eventName: string, payload: any) => {
-        published.push({ name: eventName, payload });
-        const handler = handlers.get(eventName);
-        if (handler) await handler(payload);
-      }),
+      .mockImplementation(
+        async (eventName: string, payload: LessonCompletedPayload) => {
+          published.push({ name: eventName, payload });
+          const handler = handlers.get(eventName);
+          if (handler) await handler(payload);
+        },
+      ),
     subscribe: jest.fn((eventName: string, handler: (payload: any) => void) => {
       handlers.set(eventName, handler);
     }),
@@ -223,28 +248,30 @@ describe('Lesson Completed Event Source', () => {
 
     // Build LessonAttendanceService (without eventEmitter)
     const mockLessonClassRepo = {
-      findOne: jest.fn().mockImplementation(({ where }: any) =>
+      findOne: jest.fn().mockImplementation(({ where }: ClassFindOneWhere) =>
         Promise.resolve({
           classCode: where.classCode,
           courseCode: 'MATH001',
         }),
       ),
-    } as any;
+    } as unknown as Repository<ClassEntity>;
     const mockLessonCourseRepo = {
-      findOne: jest.fn().mockImplementation(({ where }: any) =>
+      findOne: jest.fn().mockImplementation(({ where }: CourseFindOneWhere) =>
         Promise.resolve({
           courseCode: where.courseCode,
           subject: Subject.MATH,
         }),
       ),
-    } as any;
+    } as unknown as Repository<CourseEntity>;
     attendanceService = new LessonAttendanceService(
-      mockAttendanceRepo as any,
-      mockReminderService as any,
-      mockContractRepo as any,
+      mockAttendanceRepo as unknown as LessonAttendanceRepository,
+      mockReminderService as unknown as ReminderService,
+      mockContractRepo as unknown as ContractRepository,
       mockLessonClassRepo,
       mockLessonCourseRepo,
-      { credit: jest.fn().mockResolvedValue({ balance: 10 }) } as any,
+      {
+        credit: jest.fn().mockResolvedValue({ balance: 10 }),
+      } as unknown as PointsService,
     );
   });
 
@@ -271,7 +298,7 @@ describe('Lesson Completed Event Source', () => {
 
       // 验证事件只发射一次
       const completedEvents = mockEventBus._published.filter(
-        (e: any) => e.name === 'lesson.completed',
+        (e) => e.name === 'lesson.completed',
       );
       expect(completedEvents).toHaveLength(1);
       expect(completedEvents[0].payload.lessonId).toBe(lessonId);
@@ -288,7 +315,7 @@ describe('Lesson Completed Event Source', () => {
       await lessonService.updateStatus(lessonId, LessonStatus.FINISHED, 1);
 
       const completedEvents = mockEventBus._published.filter(
-        (e: any) => e.name === 'lesson.completed',
+        (e) => e.name === 'lesson.completed',
       );
       expect(completedEvents).toHaveLength(1);
       expect(completedEvents[0].payload.completedAt).toBeInstanceOf(Date);
@@ -323,9 +350,7 @@ describe('Lesson Completed Event Source', () => {
       // (lesson.completed 应该只由 LessonService.updateStatus 发射)
       // 这里我们验证 attendance 没有发布事件的能力 — eventEmitter 已被移除
       expect(
-        mockEventBus._published.filter(
-          (e: any) => e.name === 'lesson.completed',
-        ),
+        mockEventBus._published.filter((e) => e.name === 'lesson.completed'),
       ).toHaveLength(0);
     });
   });
@@ -355,7 +380,7 @@ describe('Lesson Completed Event Source', () => {
 
       // 验证 lesson.completed 事件只发射一次（同步验证）
       const completedEvents = mockEventBus._published.filter(
-        (e: any) => e.name === 'lesson.completed',
+        (e) => e.name === 'lesson.completed',
       );
       expect(completedEvents).toHaveLength(1);
       expect(completedEvents[0].payload.lessonId).toBe(lessonId);
@@ -366,8 +391,6 @@ describe('Lesson Completed Event Source', () => {
     });
 
     it('工资不再由 lesson.completed 即时生成 — 由月度结算读取 FINISHED 课时（源码分析）', () => {
-      const fs = require('fs');
-      const path = require('path');
       const salaryModuleSource = fs.readFileSync(
         path.join(__dirname, '../../../modules/salary/salary.module.ts'),
         'utf-8',
@@ -421,13 +444,11 @@ describe('Lesson Completed Event Source', () => {
 
       // lesson.completed 只发射一次（状态机拦截重复完成）
       const completedEvents = mockEventBus._published.filter(
-        (e: any) => e.name === 'lesson.completed',
+        (e) => e.name === 'lesson.completed',
       );
       expect(completedEvents).toHaveLength(1);
 
       // 工资记录幂等由结算引擎保证：唯一索引 + recordKey 去重
-      const fs = require('fs');
-      const path = require('path');
       const settlementSource = fs.readFileSync(
         path.join(
           __dirname,
@@ -454,8 +475,6 @@ describe('Lesson Completed Event Source', () => {
   describe('Exception 流程', () => {
     it('不产生 SalaryRecord 的异常流不应发布 lesson.completed', () => {
       // 源码验证：检查 attendance.service.ts 不再导入 EventEmitter2
-      const fs = require('fs');
-      const path = require('path');
       const source = fs.readFileSync(
         path.join(
           __dirname,
@@ -476,8 +495,6 @@ describe('Lesson Completed Event Source', () => {
   describe('补课流程', () => {
     it('补课完成仍可发布 lesson.completed（独立业务场景）', () => {
       // 源码验证：lesson-exception.service.ts 仍然保留 eventBus.publish('lesson.completed')
-      const fs = require('fs');
-      const path = require('path');
       const source = fs.readFileSync(
         path.join(
           __dirname,

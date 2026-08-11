@@ -17,10 +17,12 @@ describe('CourseCodeGeneratorService', () => {
 
   beforeEach(() => {
     OriginalDate = global.Date;
-    jest.spyOn(global, 'Date').mockImplementation(((...args: any[]) => {
-      if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
-      return new (OriginalDate.bind(null, ...args))();
-    }) as any);
+    jest
+      .spyOn(global, 'Date')
+      .mockImplementation((...args: (string | number | Date)[]): Date => {
+        if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
+        return Reflect.construct(OriginalDate, args) as Date;
+      });
   });
 
   afterEach(() => {
@@ -47,7 +49,7 @@ describe('CourseCodeGeneratorService', () => {
 
   /** Wire up the createQueryBuilder mock chain to return `entity` */
   const setupQueryMock = (entity: CourseEntity | null) => {
-    const qb: any = {
+    const qb = {
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),

@@ -1,5 +1,4 @@
 import { CompositeSpecification } from '../../../shared/specification/composite-specification';
-import { ISpecification } from '../../../shared/specification/specification';
 import { SpecificationRuntime } from '../specification-runtime';
 
 class IsPositive extends CompositeSpecification<number> {

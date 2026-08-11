@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Put,
   Patch,
   Param,
   Body,
@@ -15,10 +14,7 @@ import { LessonService } from './lesson.service';
 import { LessonRepository } from './lesson.repository';
 import { CancelLessonDto } from './dto/cancel-lesson.dto';
 import { CreateMakeupDto } from './dto/create-makeup.dto';
-import {
-  CreateLessonWithAttendanceDto,
-  AttendanceRecordDto,
-} from './dto/create-lesson-with-attendance.dto';
+import { CreateLessonWithAttendanceDto } from './dto/create-lesson-with-attendance.dto';
 import { GenerateLessonsDto } from './dto/generate-lessons.dto';
 import { LessonStatus } from './enums/lesson-status.enum';
 import { ClassService } from '../class/class.service';

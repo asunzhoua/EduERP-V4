@@ -7,11 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SalaryRuleEntity } from './entities/salary-rule.entity';
 import { SalaryRecordEntity } from './entities/salary-record.entity';
-import {
-  SalaryRecordStatus,
-  SalaryRecordSource,
-  SalaryRuleType,
-} from './enums/salary.enums';
+import { SalaryRecordStatus, SalaryRuleType } from './enums/salary.enums';
 import { validateRuleConfig } from './dto/rule-config.util';
 import { SalaryRuleConfigDto } from './dto/salary-rule-config.dto';
 import {

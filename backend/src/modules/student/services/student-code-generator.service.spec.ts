@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { StudentCodeGeneratorService } from './student-code-generator.service';
 import { Student } from '../entities/student.entity';
 
@@ -9,7 +8,7 @@ let OriginalDate: typeof Date;
 
 describe('StudentCodeGeneratorService', () => {
   let service: StudentCodeGeneratorService;
-  let repository: jest.Mocked<Repository<Student>>;
+  let repository: { createQueryBuilder: jest.Mock };
 
   const mockQueryBuilder = {
     where: jest.fn().mockReturnThis(),
@@ -19,10 +18,12 @@ describe('StudentCodeGeneratorService', () => {
 
   beforeEach(() => {
     OriginalDate = global.Date;
-    jest.spyOn(global, 'Date').mockImplementation(((...args: any[]) => {
-      if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
-      return new (OriginalDate.bind(null, ...args))();
-    }) as any);
+    jest
+      .spyOn(global, 'Date')
+      .mockImplementation((...args: (string | number | Date)[]): Date => {
+        if (args.length === 0) return new OriginalDate(FIXED_DATE.getTime());
+        return Reflect.construct(OriginalDate, args) as Date;
+      });
   });
 
   afterEach(() => {

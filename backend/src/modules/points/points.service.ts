@@ -204,7 +204,7 @@ export class PointsService {
         relatedEntityId: record.id,
         relatedEntityType: 'POINTS_EXCHANGE',
       })
-      .catch((err) => undefined); // 推送失败不影响兑换主流程
+      .catch(() => undefined); // 推送失败不影响兑换主流程
 
     return record;
   }

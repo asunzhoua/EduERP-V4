@@ -1,10 +1,8 @@
 import {
   generate,
   getAvailableGenerators,
+  GeneratorType,
   generateAggregate,
-  generateValueObject,
-  generateEntity,
-  generateRepository,
   generateUseCase,
   generateEvent,
 } from '../eos';
@@ -92,7 +90,10 @@ describe('Developer SDK (eos-cli)', () => {
 
     it('should throw for unknown generator type', () => {
       expect(() =>
-        generate('unknown' as any, { name: 'Test', module: 'test' }),
+        generate('unknown' as unknown as GeneratorType, {
+          name: 'Test',
+          module: 'test',
+        }),
       ).toThrow('Unknown generator type: unknown');
     });
   });

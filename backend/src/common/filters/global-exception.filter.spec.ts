@@ -11,7 +11,9 @@ jest.mock('@utils/logger', () => ({
 function createMockHost(method = 'GET', url = '/test') {
   const res = {
     status: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis(),
+    json: jest
+      .fn<unknown, [{ code: number; message: string; data: null }]>()
+      .mockReturnThis(),
   };
   const req = { method, url };
   return {

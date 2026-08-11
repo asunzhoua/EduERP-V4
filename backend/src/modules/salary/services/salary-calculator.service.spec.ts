@@ -7,7 +7,10 @@ import {
 import { SalaryRuleType } from '../enums/salary.enums';
 
 describe('SalaryCalculator 纯函数', () => {
-  const baseRule = { baseAmount: 100, multiplier: 1 } as any;
+  const baseRule: { baseAmount: number; multiplier: number } = {
+    baseAmount: 100,
+    multiplier: 1,
+  };
 
   describe('computeLessonFee', () => {
     it('PER_LESSON 用 config.lessonPrice', () => {
@@ -186,10 +189,22 @@ describe('SalaryCalculator 纯函数', () => {
   });
 
   describe('scoreRule 四级匹配', () => {
-    const courseOnly = { courseType: '1v1', teacherLevel: null } as any;
-    const levelOnly = { courseType: null, teacherLevel: 'S' } as any;
-    const both = { courseType: '1v1', teacherLevel: 'S' } as any;
-    const general = { courseType: null, teacherLevel: null } as any;
+    const courseOnly: {
+      courseType: string | null;
+      teacherLevel: string | null;
+    } = { courseType: '1v1', teacherLevel: null };
+    const levelOnly: {
+      courseType: string | null;
+      teacherLevel: string | null;
+    } = { courseType: null, teacherLevel: 'S' };
+    const both: {
+      courseType: string | null;
+      teacherLevel: string | null;
+    } = { courseType: '1v1', teacherLevel: 'S' };
+    const general: {
+      courseType: string | null;
+      teacherLevel: string | null;
+    } = { courseType: null, teacherLevel: null };
 
     it('courseType+teacherLevel 都匹配 = 4', () => {
       expect(scoreRule(both, '1v1', 'S')).toBe(4);

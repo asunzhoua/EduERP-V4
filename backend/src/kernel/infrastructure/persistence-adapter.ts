@@ -5,7 +5,7 @@
  * Abstracts data access operations for repositories.
  */
 
-export interface IPersistenceAdapter<TDomain, TPersistence, TId> {
+export interface IPersistenceAdapter<_TDomain, TPersistence, TId> {
   /**
    * Find an entity by ID.
    */

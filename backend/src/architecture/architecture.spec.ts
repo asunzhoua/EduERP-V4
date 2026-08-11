@@ -39,7 +39,7 @@ function getImports(filePath: string): string[] {
   const content = fs.readFileSync(filePath, 'utf-8');
   const importRegex = /from\s+['"]([^'"]+)['"]/g;
   const imports: string[] = [];
-  let match;
+  let match: RegExpExecArray | null;
 
   while ((match = importRegex.exec(content)) !== null) {
     imports.push(match[1]);
@@ -65,15 +65,6 @@ describe('Architecture Enforcement', () => {
   );
   const kernelDomainEventFiles = getSourceFiles(
     path.join(SRC_DIR, 'kernel', 'domain-event'),
-  );
-  const kernelSpecFiles = getSourceFiles(
-    path.join(SRC_DIR, 'kernel', 'specification'),
-  );
-  const kernelPolicyFiles = getSourceFiles(
-    path.join(SRC_DIR, 'kernel', 'policy'),
-  );
-  const kernelFactoryFiles = getSourceFiles(
-    path.join(SRC_DIR, 'kernel', 'factory'),
   );
 
   describe('Rule 1: shared/ cannot import from kernel/, modules/, @nestjs/*', () => {

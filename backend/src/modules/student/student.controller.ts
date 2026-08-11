@@ -15,7 +15,6 @@ import {
   UploadedFile,
   UseInterceptors,
   ParseIntPipe,
-  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { StudentService } from './services/student.service';
@@ -481,7 +480,10 @@ export class StudentController {
 
   @Delete(':id')
   @Roles('SuperAdmin')
-  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthedRequest,
+  ) {
     const operatorId = req.user.sub;
     await this.studentService.softDelete(id, operatorId);
     return ApiResponse.success(null, '学生已删除');
@@ -536,7 +538,10 @@ export class StudentController {
   @Roles('SuperAdmin', 'Admin')
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
-  async import(@UploadedFile() file: Express.Multer.File, @Req() req: AuthedRequest) {
+  async import(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: AuthedRequest,
+  ) {
     if (!file) {
       return ApiResponse.error(400, '请上传文件');
     }

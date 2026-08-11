@@ -21,10 +21,8 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
 import { LessonAttendanceService } from './lesson-attendance.service';
-import { LessonAttendanceEntity } from './lesson-attendance.entity';
 import { AttendanceStatus } from './enums/attendance-status.enum';
 import { BatchRollCallDto } from './dto/batch-roll-call.dto';
-import { RecordAttendanceDto } from './dto/record-attendance.dto';
 import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
@@ -193,7 +191,10 @@ export class LessonAttendanceController {
     summary:
       '导入上课/考勤记录，Excel 列：学员编码/出勤状态(+课时ID 或 班级编码+上课日期)',
   })
-  async importAttendance(@UploadedFile() file: Express.Multer.File, @Req() req: AuthedRequest) {
+  async importAttendance(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: AuthedRequest,
+  ) {
     if (!file) {
       throw new BadRequestException('请上传文件');
     }

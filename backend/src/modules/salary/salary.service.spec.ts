@@ -6,7 +6,11 @@ import { SalaryRecordEntity } from './entities/salary-record.entity';
 
 describe('SalaryService.getStatistics', () => {
   let service: SalaryService;
-  let qb: any;
+  let qb: {
+    where: jest.Mock;
+    andWhere: jest.Mock;
+    clone: jest.Mock;
+  };
 
   const ruleRepo = { find: jest.fn(), findOne: jest.fn(), save: jest.fn() };
 

@@ -14,7 +14,6 @@ import { StudentCodeGeneratorService } from './student-code-generator.service';
 import { ImportService } from '@utils/services/import.service';
 import { StudentStatus } from '../enums/student-status.enum';
 import { CreatedSource } from '@common/enums/created-source.enum';
-import { AuditAction } from '@common/enums/audit-action.enum';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { ClassStatus } from '@modules/teaching/class/enums/class-status.enum';
 import { ContractRepository } from '@modules/teaching/contract/contract.repository';
@@ -29,18 +28,30 @@ import { FeedbackService } from '@modules/feedback/feedback.service';
 
 describe('StudentService', () => {
   let service: StudentService;
-  let studentRepo: jest.Mocked<StudentRepository>;
-  let studentParentRepo: jest.Mocked<any>;
-  let studentAuditLogRepo: jest.Mocked<any>;
-  let codeGenerator: jest.Mocked<StudentCodeGeneratorService>;
-  let importService: jest.Mocked<ImportService>;
-  let lessonAttendanceRepo: jest.Mocked<any>;
-  let enrollmentRepo: jest.Mocked<any>;
-  let lessonRepo: jest.Mocked<any>;
-  let classRepo: jest.Mocked<any>;
-  let courseRepo: jest.Mocked<any>;
-  let pointsService: jest.Mocked<any>;
-  let feedbackService: jest.Mocked<any>;
+  let studentRepo: {
+    save: jest.Mock<Student, [Student]>;
+    findById: jest.Mock;
+    findAndCount: jest.Mock;
+    update: jest.Mock;
+  };
+  let studentParentRepo: {
+    save: jest.Mock;
+    find: jest.Mock;
+    findOne: jest.Mock;
+    remove: jest.Mock;
+  };
+  let codeGenerator: { generateStudentCode: jest.Mock };
+  let lessonAttendanceRepo: { findByStudentCode: jest.Mock };
+  let enrollmentRepo: {
+    save: jest.Mock<EnrollmentEntity, [EnrollmentEntity]>;
+    find: jest.Mock;
+    findOne: jest.Mock;
+  };
+  let lessonRepo: { find: jest.Mock };
+  let classRepo: { find: jest.Mock; findOne: jest.Mock };
+  let courseRepo: { find: jest.Mock };
+  let pointsService: { getSummary: jest.Mock };
+  let feedbackService: { findByStudentCode: jest.Mock };
 
   const mockStudent: Student = {
     id: 1,
@@ -172,17 +183,15 @@ describe('StudentService', () => {
 
     service = module.get<StudentService>(StudentService);
     studentRepo = module.get(StudentRepository);
-    studentParentRepo = module.get(getRepositoryToken(StudentParent));
-    studentAuditLogRepo = module.get(getRepositoryToken(StudentAuditLog));
+    studentParentRepo = mockParentRepo;
     codeGenerator = module.get(StudentCodeGeneratorService);
-    importService = module.get(ImportService);
-    lessonAttendanceRepo = module.get(LessonAttendanceRepository);
-    enrollmentRepo = module.get(getRepositoryToken(EnrollmentEntity));
-    lessonRepo = module.get(getRepositoryToken(LessonEntity));
-    classRepo = module.get(getRepositoryToken(ClassEntity));
-    courseRepo = module.get(getRepositoryToken(CourseEntity));
-    pointsService = module.get(PointsService);
-    feedbackService = module.get(FeedbackService);
+    lessonAttendanceRepo = mockAttendanceRepo;
+    enrollmentRepo = mockEnrollmentRepo;
+    lessonRepo = mockLessonRepo;
+    classRepo = mockClassRepo;
+    courseRepo = mockCourseRepo;
+    pointsService = mockPointsService;
+    feedbackService = mockFeedbackService;
   });
 
   afterEach(() => {
@@ -196,7 +205,7 @@ describe('StudentService', () => {
       studentRepo.save.mockResolvedValue(mockStudent);
 
       const result = await service.create(
-        { name: '张三', gender: 'MALE' as any, birthDate: '2015-01-01' },
+        { name: '张三', gender: 'MALE', birthDate: '2015-01-01' },
         1,
       );
 
@@ -215,7 +224,7 @@ describe('StudentService', () => {
       await service.create(
         {
           name: '张三',
-          gender: 'MALE' as any,
+          gender: 'MALE',
           birthDate: '2015-01-01',
           classCode: 'CL2026070001',
         },
@@ -238,7 +247,7 @@ describe('StudentService', () => {
       studentRepo.save.mockResolvedValue(mockStudent);
 
       await service.create(
-        { name: '张三', gender: 'MALE' as any, birthDate: '2015-01-01' },
+        { name: '张三', gender: 'MALE', birthDate: '2015-01-01' },
         1,
       );
 
@@ -253,7 +262,7 @@ describe('StudentService', () => {
         service.create(
           {
             name: '张三',
-            gender: 'MALE' as any,
+            gender: 'MALE',
             birthDate: '2015-01-01',
             classCode: 'NOPE',
           },
@@ -273,7 +282,7 @@ describe('StudentService', () => {
         service.create(
           {
             name: '张三',
-            gender: 'MALE' as any,
+            gender: 'MALE',
             birthDate: '2015-01-01',
             classCode: 'CL2026070001',
           },
@@ -359,10 +368,10 @@ describe('StudentService', () => {
       });
 
       await expect(
-        service.updateStatus(1, { status: StudentStatus.ACTIVE } as any, 1),
+        service.updateStatus(1, { status: StudentStatus.ACTIVE }, 1),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.updateStatus(1, { status: StudentStatus.ACTIVE } as any, 1),
+        service.updateStatus(1, { status: StudentStatus.ACTIVE }, 1),
       ).rejects.toThrow('已毕业');
     });
   });

@@ -28,11 +28,11 @@ import { TeachingModule } from '../src/modules/teaching/teaching.module';
 import { DatabaseModule } from '../src/database/database.module';
 import { AnalyticsModule } from '../src/modules/analytics/analytics.module';
 import { ReminderModule } from '../src/modules/reminder/reminder.module';
-import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { GlobalExceptionFilter } from '../src/common/filters/global-exception.filter';
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
-import { JwtAuthGuard } from '../src/modules/identity/auth/jwt-auth.guard';
 import { appConfig } from '../src/config/configuration';
+import { App } from 'supertest/types';
 
 // Import ALL entity classes directly from source
 import { User } from '../src/modules/identity/entities/user.entity';
@@ -65,7 +65,7 @@ const TEST_STUDENT_NAME = '测试学生-业务场景';
 const TEST_COURSE_NAME = '测试课程-业务场景';
 const TEST_CLASS_NAME = '测试班级-业务场景';
 
-let app: INestApplication;
+let app: INestApplication<App>;
 let dataSource: DataSource;
 let adminToken: string;
 let teacherToken: string;
@@ -96,6 +96,79 @@ const createdIds: {
   enrollmentIds: [],
   attendanceIds: [],
 };
+
+// ─── Typed response helpers ───
+interface ApiResponse<T> {
+  code: number;
+  message: string;
+  data: T;
+}
+
+function body<T>(res: { body: unknown }): T {
+  return (res.body as ApiResponse<T>).data;
+}
+
+interface IdResource {
+  id: number;
+}
+interface StudentResource {
+  studentCode: string;
+  id: number;
+}
+interface CourseResource {
+  courseCode: string;
+  id: number;
+}
+interface ClassResource {
+  classCode: string;
+  id: number;
+}
+interface ContractResource {
+  contractCode: string;
+  id: number;
+}
+interface LessonCreateData {
+  lesson: { id: number };
+}
+interface ContractInfo {
+  contractCode: string;
+  status: string;
+  remainingLessons: number;
+  totalLessons: number;
+}
+interface ParentContract {
+  contractCode: string;
+  status: string;
+  remainingLessons: number;
+}
+interface AttendanceRecord {
+  status: string;
+  deductionSkippedReason?: string;
+}
+interface AnalyticsMetric {
+  name: string;
+  value: number;
+}
+interface StudentAnalyticsData {
+  metrics: AnalyticsMetric[];
+}
+interface InstitutionMetricsData {
+  metrics: AnalyticsMetric[];
+}
+interface TeacherDashboard {
+  totalStudents: number;
+  todayLessons: number;
+  pendingAttendance: number;
+  completedLessons: number;
+}
+interface ParentSelfData {
+  studentCode: string;
+  name: string;
+}
+interface StudentTrendData {
+  learningTrend: unknown[];
+  attendanceTrend: unknown[];
+}
 
 // ─── Helper: Get today's date in YYYY-MM-DD format ───
 function getTodayDate(): string {
@@ -190,7 +263,7 @@ async function cleanupTestData() {
 async function createTestUsers() {
   // Create Teacher user
   const teacherPasswordHash = await bcrypt.hash(TEST_PASSWORD, 10);
-  const teacherResult = await dataSource.query(
+  const teacherResult = await dataSource.query<{ insertId: number }>(
     `INSERT INTO user (username, password, name, mobile, role, status, createTime, updateTime)
      VALUES (?, ?, '测试教师', '13800000001', 'Teacher', 1, NOW(), NOW())`,
     [TEST_TEACHER_USERNAME, teacherPasswordHash],
@@ -200,7 +273,7 @@ async function createTestUsers() {
 
   // Create Admin user
   const adminPasswordHash = await bcrypt.hash(TEST_PASSWORD, 10);
-  const adminResult = await dataSource.query(
+  const adminResult = await dataSource.query<{ insertId: number }>(
     `INSERT INTO user (username, password, name, mobile, role, status, createTime, updateTime)
      VALUES (?, ?, '测试管理员', '13800000002', 'Admin', 1, NOW(), NOW())`,
     [TEST_ADMIN_USERNAME, adminPasswordHash],
@@ -210,7 +283,7 @@ async function createTestUsers() {
 
   // Create Parent user
   const parentPasswordHash = await bcrypt.hash(TEST_PASSWORD, 10);
-  const parentResult = await dataSource.query(
+  const parentResult = await dataSource.query<{ insertId: number }>(
     `INSERT INTO user (username, password, name, mobile, role, status, createTime, updateTime)
      VALUES (?, ?, '测试家长', '13800000003', 'Parent', 1, NOW(), NOW())`,
     [TEST_PARENT_USERNAME, parentPasswordHash],
@@ -225,7 +298,7 @@ async function login(username: string, password: string): Promise<string> {
     .post('/auth/login')
     .send({ username, password })
     .expect(200);
-  return res.body.data.accessToken;
+  return body<{ accessToken: string }>(res).accessToken;
 }
 
 // ─── Helper: Setup base data (student, course, class, contract, enrollment) ───
@@ -243,14 +316,14 @@ async function setupBaseData(totalLessons: number = 10) {
       school: '测试小学',
     })
     .expect(201);
-  studentCode = studentRes.body.data.studentCode;
-  createdIds.studentIds.push(studentRes.body.data.id);
+  studentCode = body<StudentResource>(studentRes).studentCode;
+  createdIds.studentIds.push(body<StudentResource>(studentRes).id);
 
   // Link parent to student (student_parent uses parentId/relation/isPrimary columns)
   await dataSource.query(
     `INSERT INTO student_parent (studentId, parentId, relation, isPrimary, createTime)
      VALUES (?, ?, 'mother', 1, NOW())`,
-    [studentRes.body.data.id, parentId],
+    [body<StudentResource>(studentRes).id, parentId],
   );
 
   // Link the student's userId to the parent user so /students/self* endpoints resolve
@@ -273,8 +346,8 @@ async function setupBaseData(totalLessons: number = 10) {
       description: '业务场景测试课程',
     })
     .expect(201);
-  courseCode = courseRes.body.data.courseCode;
-  createdIds.courseIds.push(courseRes.body.data.id);
+  courseCode = body<CourseResource>(courseRes).courseCode;
+  createdIds.courseIds.push(body<CourseResource>(courseRes).id);
 
   // Create Class
   const classRes = await request(app.getHttpServer())
@@ -293,8 +366,8 @@ async function setupBaseData(totalLessons: number = 10) {
       note: '业务场景测试班级',
     })
     .expect(201);
-  classCode = classRes.body.data.classCode;
-  createdIds.classIds.push(classRes.body.data.id);
+  classCode = body<ClassResource>(classRes).classCode;
+  createdIds.classIds.push(body<ClassResource>(classRes).id);
 
   // Assign Teacher to Class
   await request(app.getHttpServer())
@@ -328,8 +401,8 @@ async function setupBaseData(totalLessons: number = 10) {
       note: '业务场景测试合同',
     })
     .expect(201);
-  contractCode = contractRes.body.data.contractCode;
-  createdIds.contractIds.push(contractRes.body.data.id);
+  contractCode = body<ContractResource>(contractRes).contractCode;
+  createdIds.contractIds.push(body<ContractResource>(contractRes).id);
 
   // Enroll Student
   const enrollmentRes = await request(app.getHttpServer())
@@ -341,14 +414,14 @@ async function setupBaseData(totalLessons: number = 10) {
       contractCode: contractCode,
     })
     .expect(201);
-  createdIds.enrollmentIds.push(enrollmentRes.body.data.id);
+  createdIds.enrollmentIds.push(body<IdResource>(enrollmentRes).id);
 }
 
 // ─── Helper: Create a lesson (with attendance / roll call) ───
 async function createLessonAndRollCall(
   attendanceStatus: string,
   reason?: string,
-): Promise<{ lessonId: number; attendanceRecord: any }> {
+): Promise<{ lessonId: number; attendanceRecord: LessonCreateData }> {
   const today = getTodayDate();
 
   // POST /lessons = create-with-attendance: creates the lesson (SCHEDULED),
@@ -370,71 +443,72 @@ async function createLessonAndRollCall(
       ],
     })
     .expect(201);
-  const lessonId = lessonRes.body.data.lesson.id;
+  const lessonData = body<LessonCreateData>(lessonRes);
+  const lessonId = lessonData.lesson.id;
   createdIds.lessonIds.push(lessonId);
 
-  return { lessonId, attendanceRecord: lessonRes.body.data };
+  return { lessonId, attendanceRecord: lessonData };
 }
 
 // ─── Helper: Get contract info ───
-async function getContractInfo(): Promise<any> {
+async function getContractInfo(): Promise<ContractInfo> {
   const res = await request(app.getHttpServer())
     .get(`/contracts/${contractCode}`)
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  return res.body.data;
+  return body<ContractInfo>(res);
 }
 
 // ─── Helper: Get student analytics ───
-async function getStudentAnalytics(): Promise<any> {
+async function getStudentAnalytics(): Promise<StudentAnalyticsData> {
   const res = await request(app.getHttpServer())
     .get(`/analytics/student/${studentCode}`)
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  return res.body.data;
+  return body<StudentAnalyticsData>(res);
 }
 
 // ─── Helper: Get teacher dashboard ───
-async function getTeacherDashboard(): Promise<any> {
+async function getTeacherDashboard(): Promise<TeacherDashboard> {
   const res = await request(app.getHttpServer())
     .get(`/teacher/dashboard`)
     .set('Authorization', `Bearer ${teacherToken}`)
     .expect(200);
-  return res.body.data;
+  return body<TeacherDashboard>(res);
 }
 
 // ─── Helper: Get institution metrics ───
-async function getInstitutionMetrics(): Promise<any> {
+async function getInstitutionMetrics(): Promise<InstitutionMetricsData> {
   const res = await request(app.getHttpServer())
     .get('/analytics/institution')
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  return res.body.data;
+  return body<InstitutionMetricsData>(res);
 }
 
 // ─── Helper: Get parent self data ───
-async function getParentSelfData(): Promise<any> {
+async function getParentSelfData(): Promise<ParentSelfData> {
   const res = await request(app.getHttpServer())
     .get('/students/self')
     .set('Authorization', `Bearer ${parentToken}`)
     .expect(200);
-  return res.body.data;
+  return body<ParentSelfData>(res);
 }
 
-async function getParentContracts(): Promise<any> {
+async function getParentContracts(): Promise<ParentContract[]> {
   const res = await request(app.getHttpServer())
     .get('/students/self/contracts')
     .set('Authorization', `Bearer ${parentToken}`)
     .expect(200);
-  return res.body.data;
+  return body<ParentContract[]>(res);
 }
 
-async function getParentAttendance(): Promise<any> {
+async function getParentAttendance(): Promise<AttendanceRecord[]> {
   const res = await request(app.getHttpServer())
     .get('/students/self/attendance')
     .set('Authorization', `Bearer ${parentToken}`)
     .expect(200);
-  return res.body.data;
+  return body<AttendanceRecord[]>(res);
 }
 
 // ═══════════════════════════════════════════
@@ -571,7 +645,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
         .get(`/classes/${classCode}/lessons`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      expect(lessonsRes.body.data.length).toBe(3);
+      expect(body<unknown[]>(lessonsRes).length).toBe(3);
     });
   });
 
@@ -600,8 +674,8 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
           description: '耗尽场景测试课程',
         })
         .expect(201);
-      smallCourseCode = courseRes.body.data.courseCode;
-      createdIds.courseIds.push(courseRes.body.data.id);
+      smallCourseCode = body<CourseResource>(courseRes).courseCode;
+      createdIds.courseIds.push(body<CourseResource>(courseRes).id);
 
       // Create Class
       const classRes = await request(app.getHttpServer())
@@ -620,8 +694,8 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
           note: '耗尽场景测试班级',
         })
         .expect(201);
-      smallClassCode = classRes.body.data.classCode;
-      createdIds.classIds.push(classRes.body.data.id);
+      smallClassCode = body<ClassResource>(classRes).classCode;
+      createdIds.classIds.push(body<ClassResource>(classRes).id);
 
       // Assign Teacher
       await request(app.getHttpServer())
@@ -655,8 +729,8 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
           note: '耗尽场景测试合同',
         })
         .expect(201);
-      smallContractCode = contractRes.body.data.contractCode;
-      createdIds.contractIds.push(contractRes.body.data.id);
+      smallContractCode = body<ContractResource>(contractRes).contractCode;
+      createdIds.contractIds.push(body<ContractResource>(contractRes).id);
 
       // Enroll
       const enrollmentRes = await request(app.getHttpServer())
@@ -668,7 +742,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
           contractCode: smallContractCode,
         })
         .expect(201);
-      createdIds.enrollmentIds.push(enrollmentRes.body.data.id);
+      createdIds.enrollmentIds.push(body<IdResource>(enrollmentRes).id);
     });
 
     it('2.1 新合同状态 = ACTIVE，剩余 = 2', async () => {
@@ -676,8 +750,9 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
         .get(`/contracts/${smallContractCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      expect(res.body.data.status).toBe('ACTIVE');
-      expect(res.body.data.remainingLessons).toBe(2);
+      const data = body<ContractInfo>(res);
+      expect(data.status).toBe('ACTIVE');
+      expect(data.remainingLessons).toBe(2);
     });
 
     it('2.2 第一次签到后：剩余 = 1，状态仍 = ACTIVE', async () => {
@@ -693,7 +768,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
           attendanceRecords: [{ studentCode: studentCode, status: 'PRESENT' }],
         })
         .expect(201);
-      const lessonId = lessonRes.body.data.lesson.id;
+      const lessonId = body<LessonCreateData>(lessonRes).lesson.id;
       createdIds.lessonIds.push(lessonId);
 
       // Verify
@@ -701,8 +776,9 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
         .get(`/contracts/${smallContractCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      expect(res.body.data.remainingLessons).toBe(1);
-      expect(res.body.data.status).toBe('ACTIVE');
+      const data = body<ContractInfo>(res);
+      expect(data.remainingLessons).toBe(1);
+      expect(data.status).toBe('ACTIVE');
     });
 
     it('2.3 第二次签到后：剩余 = 0，状态 = EXHAUSTED', async () => {
@@ -718,7 +794,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
           attendanceRecords: [{ studentCode: studentCode, status: 'PRESENT' }],
         })
         .expect(201);
-      const lessonId = lessonRes.body.data.lesson.id;
+      const lessonId = body<LessonCreateData>(lessonRes).lesson.id;
       createdIds.lessonIds.push(lessonId);
 
       // Verify: contract should be EXHAUSTED
@@ -726,8 +802,9 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
         .get(`/contracts/${smallContractCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      expect(res.body.data.remainingLessons).toBe(0);
-      expect(res.body.data.status).toBe('EXHAUSTED');
+      const data = body<ContractInfo>(res);
+      expect(data.remainingLessons).toBe(0);
+      expect(data.status).toBe('EXHAUSTED');
     });
 
     it('2.4 合同耗尽后，再次签到不报错（打标跳过扣课）', async () => {
@@ -746,7 +823,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
           attendanceRecords: [{ studentCode: studentCode, status: 'PRESENT' }],
         })
         .expect(201);
-      const lessonId = lessonRes.body.data.lesson.id;
+      const lessonId = body<LessonCreateData>(lessonRes).lesson.id;
       createdIds.lessonIds.push(lessonId);
 
       // Attendance row is flagged as skipped (no ACTIVE contract for ENGLISH)
@@ -754,19 +831,19 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
         .get(`/lessons/${lessonId}/attendance`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      expect(attRes.body.data).toHaveLength(1);
-      expect(attRes.body.data[0].status).toBe('PRESENT');
-      expect(attRes.body.data[0].deductionSkippedReason).toBe(
-        'NO_ACTIVE_CONTRACT',
-      );
+      const attendance = body<AttendanceRecord[]>(attRes);
+      expect(attendance).toHaveLength(1);
+      expect(attendance[0].status).toBe('PRESENT');
+      expect(attendance[0].deductionSkippedReason).toBe('NO_ACTIVE_CONTRACT');
 
       // Contract should still be EXHAUSTED with 0 remaining
       const contractRes = await request(app.getHttpServer())
         .get(`/contracts/${smallContractCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      expect(contractRes.body.data.status).toBe('EXHAUSTED');
-      expect(contractRes.body.data.remainingLessons).toBe(0);
+      const data = body<ContractInfo>(contractRes);
+      expect(data.status).toBe('EXHAUSTED');
+      expect(data.remainingLessons).toBe(0);
     });
 
     it('2.5 原合同不受影响（仍有剩余课时）', async () => {
@@ -793,7 +870,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
 
       // Find the original contract
       const originalContract = data.find(
-        (c: any) => c.contractCode === contractCode,
+        (c: ParentContract) => c.contractCode === contractCode,
       );
       expect(originalContract).toBeDefined();
       expect(originalContract.remainingLessons).toBe(8);
@@ -807,7 +884,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
       expect(data.length).toBeGreaterThanOrEqual(3);
 
       // Check that records contain expected statuses
-      const statuses = data.map((r: any) => r.status);
+      const statuses = data.map((r: AttendanceRecord) => r.status);
       expect(statuses).toContain('PRESENT');
       expect(statuses).toContain('ABSENT');
       expect(statuses).toContain('LATE');
@@ -815,7 +892,9 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
 
     it('3.4 家长能看到课时耗尽的合同状态', async () => {
       const data = await getParentContracts();
-      const exhaustedContract = data.find((c: any) => c.status === 'EXHAUSTED');
+      const exhaustedContract = data.find(
+        (c: ParentContract) => c.status === 'EXHAUSTED',
+      );
       expect(exhaustedContract).toBeDefined();
       expect(exhaustedContract.remainingLessons).toBe(0);
     });
@@ -864,7 +943,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
     it('5.1 机构统计：学生总数包含测试学生', async () => {
       const metrics = await getInstitutionMetrics();
       const totalStudents = metrics.metrics.find(
-        (m: any) => m.name === 'totalStudents',
+        (m: AnalyticsMetric) => m.name === 'totalStudents',
       );
       expect(totalStudents).toBeDefined();
       expect(totalStudents.value).toBeGreaterThanOrEqual(1);
@@ -873,7 +952,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
     it('5.2 机构统计：活跃学生数包含测试学生', async () => {
       const metrics = await getInstitutionMetrics();
       const activeStudents = metrics.metrics.find(
-        (m: any) => m.name === 'activeStudents',
+        (m: AnalyticsMetric) => m.name === 'activeStudents',
       );
       expect(activeStudents).toBeDefined();
       expect(activeStudents.value).toBeGreaterThanOrEqual(1);
@@ -882,7 +961,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
     it('5.3 机构统计：课程总数包含测试课程', async () => {
       const metrics = await getInstitutionMetrics();
       const totalCourses = metrics.metrics.find(
-        (m: any) => m.name === 'totalCourses',
+        (m: AnalyticsMetric) => m.name === 'totalCourses',
       );
       expect(totalCourses).toBeDefined();
       expect(totalCourses.value).toBeGreaterThanOrEqual(2); // 2 test courses
@@ -891,7 +970,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
     it('5.4 机构统计：班级总数包含测试班级', async () => {
       const metrics = await getInstitutionMetrics();
       const totalClasses = metrics.metrics.find(
-        (m: any) => m.name === 'totalClasses',
+        (m: AnalyticsMetric) => m.name === 'totalClasses',
       );
       expect(totalClasses).toBeDefined();
       expect(totalClasses.value).toBeGreaterThanOrEqual(2); // 2 test classes
@@ -903,14 +982,14 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
 
       // totalAttendance should reflect PRESENT + LATE (both count as present)
       const totalAttendance = metrics.find(
-        (m: any) => m.name === 'totalAttendance',
+        (m: AnalyticsMetric) => m.name === 'totalAttendance',
       );
       expect(totalAttendance).toBeDefined();
       expect(totalAttendance.value).toBeGreaterThanOrEqual(2); // At least 2 PRESENT + 1 LATE
 
       // attendanceRate should be > 0
       const attendanceRate = metrics.find(
-        (m: any) => m.name === 'attendanceRate',
+        (m: AnalyticsMetric) => m.name === 'attendanceRate',
       );
       expect(attendanceRate).toBeDefined();
       expect(attendanceRate.value).toBeGreaterThan(0);
@@ -922,7 +1001,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
 
       // consumedLessons should reflect deducted lessons
       const consumedLessons = metrics.find(
-        (m: any) => m.name === 'consumedLessons',
+        (m: AnalyticsMetric) => m.name === 'consumedLessons',
       );
       expect(consumedLessons).toBeDefined();
       expect(consumedLessons.value).toBeGreaterThanOrEqual(2); // At least 2 deducted from original contract
@@ -933,7 +1012,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
       const metrics = analytics.metrics;
 
       const remainingLessons = metrics.find(
-        (m: any) => m.name === 'remainingLessons',
+        (m: AnalyticsMetric) => m.name === 'remainingLessons',
       );
       expect(remainingLessons).toBeDefined();
       expect(remainingLessons.value).toBeGreaterThanOrEqual(0);
@@ -944,7 +1023,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
         .get(`/analytics/student/${studentCode}/trend?days=7`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      const data = res.body.data;
+      const data = body<StudentTrendData>(res);
       expect(data).toHaveProperty('learningTrend');
       expect(data).toHaveProperty('attendanceTrend');
       expect(Array.isArray(data.learningTrend)).toBe(true);
@@ -956,7 +1035,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
         .get('/analytics/attendance-statistics')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      expect(res.body.data).toBeDefined();
+      expect(body<unknown>(res)).toBeDefined();
     });
   });
 
@@ -981,7 +1060,7 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
       // Parent view
       const parentContracts = await getParentContracts();
       const parentContract = parentContracts.find(
-        (c: any) => c.contractCode === contractCode,
+        (c: ParentContract) => c.contractCode === contractCode,
       );
 
       expect(parentContract).toBeDefined();
@@ -1004,7 +1083,9 @@ describe('Business Scenario E2E — Phase 5 Batch 5.1', () => {
 
       // Exhausted contract: 2 total, 0 remaining (2 deducted, EXHAUSTED)
       const allContracts = await getParentContracts();
-      const exhausted = allContracts.find((c: any) => c.status === 'EXHAUSTED');
+      const exhausted = allContracts.find(
+        (c: ParentContract) => c.status === 'EXHAUSTED',
+      );
       expect(exhausted).toBeDefined();
       expect(exhausted.remainingLessons).toBe(0);
 

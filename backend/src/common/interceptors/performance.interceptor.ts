@@ -84,7 +84,6 @@ export class PerformanceInterceptor implements NestInterceptor {
   private logToPerformanceFile(metadata: ResponseMetadata): void {
     // 这里可以写入专门的性能日志文件
     // 例如：logs/performance.log
-    const logLine = JSON.stringify(metadata) + '\n';
 
     // 使用 AppLogger 的 logApi 方法
     this.logger.logApi(

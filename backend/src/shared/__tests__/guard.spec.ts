@@ -36,9 +36,9 @@ describe('Guard', () => {
     });
 
     it('should throw for null', () => {
-      expect(() => Guard.againstEmpty(null as any, 'name')).toThrow(
-        DomainException,
-      );
+      expect(() =>
+        Guard.againstEmpty(null as unknown as string, 'name'),
+      ).toThrow(DomainException);
     });
 
     it('should not throw for valid string', () => {
@@ -101,9 +101,9 @@ describe('Guard', () => {
     });
 
     it('should throw for non-array', () => {
-      expect(() => Guard.againstEmptyArray(null as any, 'items')).toThrow(
-        DomainException,
-      );
+      expect(() =>
+        Guard.againstEmptyArray(null as unknown as unknown[], 'items'),
+      ).toThrow(DomainException);
     });
 
     it('should not throw for non-empty array', () => {

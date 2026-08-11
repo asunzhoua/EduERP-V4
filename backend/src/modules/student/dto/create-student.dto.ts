@@ -9,7 +9,6 @@ import {
   MaxLength,
 } from 'class-validator';
 import { Gender } from '../enums/gender.enum';
-import { StudentStatus } from '../enums/student-status.enum';
 
 export class CreateStudentDto {
   @IsString()

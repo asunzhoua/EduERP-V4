@@ -1,7 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import {
+  DataSource,
+  DeepPartial,
+  EntityManager,
+  EntityTarget,
+  FindManyOptions,
+  FindOptionsWhere,
+} from 'typeorm';
 import { ContractService, CreateContractInput } from './contract.service';
 import { ContractRepository } from './contract.repository';
 import { ContractCodeGeneratorService } from './contract-code-generator.service';
@@ -20,18 +27,58 @@ import { Student } from '@modules/student/entities/student.entity';
 import { ImportService } from '@utils/services/import.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
+/** Type-safe mock shapes for the injected repositories/services. */
+type AttendanceRepoMock = {
+  find: jest.Mock<
+    Promise<LessonAttendanceEntity[]>,
+    [FindManyOptions<LessonAttendanceEntity>]
+  >;
+  count: jest.Mock<Promise<number>, [FindManyOptions<LessonAttendanceEntity>]>;
+};
+type LessonRepoMock = {
+  find: jest.Mock<Promise<LessonEntity[]>, [FindManyOptions<LessonEntity>]>;
+};
+type CourseRepoMock = {
+  find: jest.Mock<Promise<CourseEntity[]>, [FindManyOptions<CourseEntity>]>;
+};
+type StudentRepoMock = {
+  find: jest.Mock<Promise<Student[]>, [FindManyOptions<Student>]>;
+};
+type AuditRepoMock = {
+  save: jest.Mock<Promise<unknown>, [DeepPartial<LessonAdjustmentAudit>]>;
+  find: jest.Mock<
+    Promise<LessonAdjustmentAudit[]>,
+    [{ where: FindOptionsWhere<LessonAdjustmentAudit> }]
+  >;
+  count: jest.Mock<Promise<number>, []>;
+};
+type ImportServiceMock = {
+  parseBuffer: jest.Mock<unknown, [Buffer, string]>;
+  validateRows: jest.Mock<unknown, [unknown]>;
+};
+type DataSourceMock = {
+  transaction: jest.Mock;
+};
+
 describe('ContractService', () => {
   let service: ContractService;
-  let contractRepo: jest.Mocked<ContractRepository>;
+  let contractRepo: {
+    save: jest.Mock;
+    findOneById: jest.Mock;
+    findOneByCode: jest.Mock;
+    findByStudentCode: jest.Mock;
+    findMany: jest.Mock;
+    findActiveAtRisk: jest.Mock;
+  };
   let codeGenerator: jest.Mocked<ContractCodeGeneratorService>;
-  let attendanceRepo: jest.Mocked<any>;
-  let lessonRepo: jest.Mocked<any>;
-  let courseRepo: jest.Mocked<any>;
-  let studentRepo: jest.Mocked<any>;
-  let auditRepo: jest.Mocked<any>;
-  let importService: jest.Mocked<any>;
-  let dataSource: jest.Mocked<any>;
-  let config: jest.Mocked<ConfigService>;
+  let attendanceRepo: AttendanceRepoMock;
+  let lessonRepo: LessonRepoMock;
+  let courseRepo: CourseRepoMock;
+  let studentRepo: StudentRepoMock;
+  let auditRepo: AuditRepoMock;
+  let importService: ImportServiceMock;
+  let dataSource: DataSourceMock;
+  let config: { get: jest.Mock };
 
   const mockContractInput: CreateContractInput = {
     studentCode: 'ST2026010001',
@@ -77,33 +124,33 @@ describe('ContractService', () => {
     };
 
     attendanceRepo = {
-      find: jest.fn(),
-      count: jest.fn(),
+      find: jest.fn() as AttendanceRepoMock['find'],
+      count: jest.fn() as AttendanceRepoMock['count'],
     };
     lessonRepo = {
-      find: jest.fn(),
+      find: jest.fn() as LessonRepoMock['find'],
     };
     courseRepo = {
-      find: jest.fn(),
+      find: jest.fn() as CourseRepoMock['find'],
     };
     studentRepo = {
-      find: jest.fn(),
+      find: jest.fn() as StudentRepoMock['find'],
     };
     auditRepo = {
-      save: jest.fn(),
-      find: jest.fn(),
-      count: jest.fn(),
+      save: jest.fn() as AuditRepoMock['save'],
+      find: jest.fn() as AuditRepoMock['find'],
+      count: jest.fn() as AuditRepoMock['count'],
     };
     importService = {
-      parseBuffer: jest.fn(),
-      validateRows: jest.fn(),
+      parseBuffer: jest.fn() as ImportServiceMock['parseBuffer'],
+      validateRows: jest.fn() as ImportServiceMock['validateRows'],
     };
     dataSource = {
       transaction: jest.fn(),
     };
     config = {
       get: jest.fn(),
-    } as any;
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -485,7 +532,7 @@ describe('ContractService', () => {
   // ─── Consume Records (E: 课时消耗流水) ───
 
   describe('getConsumeRecords', () => {
-    const attendance: any = {
+    const attendance: LessonAttendanceEntity = {
       id: 1,
       lessonId: 11,
       studentCode: 'ST2026010001',
@@ -863,7 +910,10 @@ describe('ContractService', () => {
     const buffer = Buffer.from('');
     const mockManager = {
       findOne: jest.fn(),
-      save: jest.fn(),
+      save: jest.fn() as jest.Mock<
+        Promise<unknown>,
+        [EntityTarget<unknown>, unknown]
+      >,
     };
 
     const existingContract: ContractEntity = {
@@ -879,8 +929,8 @@ describe('ContractService', () => {
     beforeEach(() => {
       mockManager.findOne.mockReset();
       mockManager.save.mockReset();
-      dataSource.transaction.mockImplementation(async (cb: any) =>
-        cb(mockManager),
+      dataSource.transaction.mockImplementation(
+        async (cb: (em: EntityManager) => Promise<unknown>) => cb(mockManager),
       );
     });
 
@@ -917,20 +967,24 @@ describe('ContractService', () => {
           fileName: 'lessons.xlsx',
         },
       });
-      mockManager.findOne.mockImplementation((entity: any) => {
-        if (entity === Student) {
-          return Promise.resolve({
-            studentCode: 'ST001',
-            name: '张三',
-            deleted: false,
-          });
-        }
-        if (entity === ContractEntity) {
-          return Promise.resolve({ ...existingContract });
-        }
-        return Promise.resolve(null);
-      });
-      mockManager.save.mockImplementation(async (_e: any, obj: any) => obj);
+      mockManager.findOne.mockImplementation(
+        (entity: EntityTarget<unknown>) => {
+          if (entity === Student) {
+            return Promise.resolve({
+              studentCode: 'ST001',
+              name: '张三',
+              deleted: false,
+            });
+          }
+          if (entity === ContractEntity) {
+            return Promise.resolve({ ...existingContract });
+          }
+          return Promise.resolve(null);
+        },
+      );
+      mockManager.save.mockImplementation((_e: unknown, obj: unknown) =>
+        Promise.resolve(obj),
+      );
 
       const report = await service.importLessons(
         buffer,
@@ -989,17 +1043,21 @@ describe('ContractService', () => {
           fileName: 'lessons.xlsx',
         },
       });
-      mockManager.findOne.mockImplementation((entity: any) => {
-        if (entity === Student) {
-          return Promise.resolve({
-            studentCode: 'ST002',
-            name: '李四',
-            deleted: false,
-          });
-        }
-        return Promise.resolve(null);
-      });
-      mockManager.save.mockImplementation(async (_e: any, obj: any) => obj);
+      mockManager.findOne.mockImplementation(
+        (entity: EntityTarget<unknown>) => {
+          if (entity === Student) {
+            return Promise.resolve({
+              studentCode: 'ST002',
+              name: '李四',
+              deleted: false,
+            });
+          }
+          return Promise.resolve(null);
+        },
+      );
+      mockManager.save.mockImplementation((_e: unknown, obj: unknown) =>
+        Promise.resolve(obj),
+      );
       codeGenerator.generateContractCode.mockResolvedValue('CT2026080001');
 
       const report = await service.importLessons(

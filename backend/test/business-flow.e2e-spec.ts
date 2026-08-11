@@ -18,6 +18,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import type { Server } from 'net';
 
 // Import modules from source (ts-jest handles compilation)
 import { EventBusModule } from '../src/events/event-bus.module';
@@ -79,9 +80,77 @@ const ALL_ENTITIES = [
   ImportHistory,
 ];
 
+// ── Typed response helpers (supertest Response.body is `any`) ──
+interface ApiEnvelope<T> {
+  code: number;
+  message: string;
+  data: T;
+}
+
+interface InsertResult {
+  insertId: number;
+}
+
+interface AuthDataShape {
+  accessToken: string;
+}
+
+interface StudentShape {
+  studentCode: string;
+  name: string;
+  gender: string;
+  status: string;
+}
+
+interface CourseShape {
+  courseCode: string;
+}
+
+interface ContractShape {
+  contractCode: string;
+  totalLessons: number;
+  remainingLessons: number;
+}
+
+interface ClassShape {
+  classCode: string;
+}
+
+interface EnrollmentShape {
+  id: number;
+  studentCode: string;
+  classCode: string;
+  status: string;
+}
+
+interface LessonShape {
+  lesson: unknown;
+  lessonNumber: number;
+  attendanceCount: number;
+  status: string;
+  topic: string;
+}
+
+interface StudentListShape {
+  items: StudentShape[];
+}
+
+function httpServer(app: { getHttpServer(): unknown }): Server {
+  return app.getHttpServer() as Server;
+}
+
+function code(res: { body: unknown }): number {
+  return (res.body as { code: number }).code;
+}
+
+function body<T>(res: { body: unknown }): T {
+  return (res.body as ApiEnvelope<T>).data;
+}
+
 describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
+  let server: Server;
   let adminToken: string;
   let teacherToken: string;
 
@@ -163,6 +232,8 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
+    server = httpServer(app);
+
     dataSource = moduleFixture.get<DataSource>(DataSource);
 
     // ── Step 1: Create test users via raw SQL ──
@@ -182,7 +253,7 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     const parentMobile = `136${String(TEST_TS).slice(-8)}`;
 
     // Insert admin user
-    const adminResult: any = await dataSource.query(
+    const adminResult = (await dataSource.query(
       `INSERT INTO user (username, password, name, mobile, role, status, campusId, deleted)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -195,11 +266,11 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
         1,
         0,
       ],
-    );
+    )) as unknown as InsertResult;
     testIds.adminUserId = Number(adminResult.insertId);
 
     // Insert teacher user
-    const teacherResult: any = await dataSource.query(
+    const teacherResult = (await dataSource.query(
       `INSERT INTO user (username, password, name, mobile, role, status, campusId, deleted)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -212,11 +283,11 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
         1,
         0,
       ],
-    );
+    )) as unknown as InsertResult;
     testIds.teacherUserId = Number(teacherResult.insertId);
 
     // Insert student user
-    const studentResult: any = await dataSource.query(
+    const studentResult = (await dataSource.query(
       `INSERT INTO user (username, password, name, mobile, role, status, campusId, deleted)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -229,11 +300,11 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
         1,
         0,
       ],
-    );
+    )) as unknown as InsertResult;
     testIds.studentUserId = Number(studentResult.insertId);
 
     // Insert parent user
-    const parentResult: any = await dataSource.query(
+    const parentResult = (await dataSource.query(
       `INSERT INTO user (username, password, name, mobile, role, status, campusId, deleted)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -246,11 +317,11 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
         1,
         0,
       ],
-    );
+    )) as unknown as InsertResult;
     testIds.parentUserId = Number(parentResult.insertId);
 
     // ── Step 2: Login as Admin ──
-    const adminLoginRes = await request(app.getHttpServer())
+    const adminLoginRes = await request(server)
       .post('/auth/login')
       .send({
         username: adminUsername,
@@ -258,12 +329,12 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
       })
       .expect(200);
 
-    expect(adminLoginRes.body.code).toBe(0);
-    expect(adminLoginRes.body.data.accessToken).toBeDefined();
-    adminToken = adminLoginRes.body.data.accessToken;
+    expect(code(adminLoginRes)).toBe(0);
+    expect(body<AuthDataShape>(adminLoginRes).accessToken).toBeDefined();
+    adminToken = body<AuthDataShape>(adminLoginRes).accessToken;
 
     // ── Step 3: Login as Teacher ──
-    const teacherLoginRes = await request(app.getHttpServer())
+    const teacherLoginRes = await request(server)
       .post('/auth/login')
       .send({
         username: teacherUsername,
@@ -271,9 +342,9 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
       })
       .expect(200);
 
-    expect(teacherLoginRes.body.code).toBe(0);
-    expect(teacherLoginRes.body.data.accessToken).toBeDefined();
-    teacherToken = teacherLoginRes.body.data.accessToken;
+    expect(code(teacherLoginRes)).toBe(0);
+    expect(body<AuthDataShape>(teacherLoginRes).accessToken).toBeDefined();
+    teacherToken = body<AuthDataShape>(teacherLoginRes).accessToken;
   }, 30000);
 
   afterAll(async () => {
@@ -346,19 +417,19 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   // both invalid in MySQL → QueryFailedError for any Teacher user.
   // ═══════════════════════════════════════════════════════════
   it('Teacher can list own courses and classes (no 500)', async () => {
-    const coursesRes = await request(app.getHttpServer())
+    const coursesRes = await request(server)
       .get('/courses')
       .query({ pageSize: 10 })
       .set('Authorization', `Bearer ${teacherToken}`)
       .expect(200);
-    expect(coursesRes.body.code).toBe(0);
+    expect(code(coursesRes)).toBe(0);
 
-    const classesRes = await request(app.getHttpServer())
+    const classesRes = await request(server)
       .get('/classes')
       .query({ pageSize: 10 })
       .set('Authorization', `Bearer ${teacherToken}`)
       .expect(200);
-    expect(classesRes.body.code).toBe(0);
+    expect(code(classesRes)).toBe(0);
   }, 15000);
 
   // ═══════════════════════════════════════════════════════════
@@ -366,7 +437,7 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   // ═══════════════════════════════════════════════════════════
   describe('Step 1: Create Student', () => {
     it('should create a new student via Admin', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .post('/students')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -381,13 +452,14 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
         })
         .expect(201);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.studentCode).toBeDefined();
-      expect(res.body.data.name).toBe('E2E测试学生-李小明的弟弟');
-      expect(res.body.data.gender).toBe('MALE');
+      expect(code(res)).toBe(0);
+      const data = body<StudentShape>(res);
+      expect(data).toBeDefined();
+      expect(data.studentCode).toBeDefined();
+      expect(data.name).toBe('E2E测试学生-李小明的弟弟');
+      expect(data.gender).toBe('MALE');
 
-      testIds.studentCode = res.body.data.studentCode;
+      testIds.studentCode = data.studentCode;
     });
   });
 
@@ -396,7 +468,7 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   // ═══════════════════════════════════════════════════════════
   describe('Step 2: Create Course', () => {
     it('should create a new course via Admin', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .post('/courses')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -411,11 +483,12 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
         })
         .expect(201);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.courseCode).toBeDefined();
+      expect(code(res)).toBe(0);
+      const data = body<CourseShape>(res);
+      expect(data).toBeDefined();
+      expect(data.courseCode).toBeDefined();
 
-      testIds.courseCode = res.body.data.courseCode;
+      testIds.courseCode = data.courseCode;
     });
   });
 
@@ -424,7 +497,7 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   // ═══════════════════════════════════════════════════════════
   describe('Step 3: Purchase Lessons (Create Contract)', () => {
     it('should create a contract for the student', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .post('/contracts')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -439,13 +512,14 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
         })
         .expect(201);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.contractCode).toBeDefined();
-      expect(res.body.data.totalLessons).toBe(10);
-      expect(res.body.data.remainingLessons).toBe(10);
+      expect(code(res)).toBe(0);
+      const data = body<ContractShape>(res);
+      expect(data).toBeDefined();
+      expect(data.contractCode).toBeDefined();
+      expect(data.totalLessons).toBe(10);
+      expect(data.remainingLessons).toBe(10);
 
-      testIds.contractCode = res.body.data.contractCode;
+      testIds.contractCode = data.contractCode;
     });
   });
 
@@ -454,7 +528,7 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   // ═══════════════════════════════════════════════════════════
   describe('Step 4: Create Class', () => {
     it('should create a new class via Admin', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .post('/classes')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -472,11 +546,12 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
         })
         .expect(201);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.classCode).toBeDefined();
+      expect(code(res)).toBe(0);
+      const data = body<ClassShape>(res);
+      expect(data).toBeDefined();
+      expect(data.classCode).toBeDefined();
 
-      testIds.classCode = res.body.data.classCode;
+      testIds.classCode = data.classCode;
     });
   });
 
@@ -485,7 +560,7 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   // ═══════════════════════════════════════════════════════════
   describe('Step 5: Assign Teacher to Class', () => {
     it('should assign the test teacher as PRIMARY', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .post(`/classes/${testIds.classCode}/teachers`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -494,8 +569,8 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
         })
         .expect(201);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
+      expect(code(res)).toBe(0);
+      expect(body<unknown>(res)).toBeDefined();
     });
   });
 
@@ -504,12 +579,12 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   // ═══════════════════════════════════════════════════════════
   describe('Step 5.5: Activate Class', () => {
     it('should activate the class via Admin', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .patch(`/classes/${testIds.classCode}/status`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ status: 'ACTIVE' })
         .expect(200);
-      expect(res.body.code).toBe(0);
+      expect(code(res)).toBe(0);
     });
   });
 
@@ -518,7 +593,7 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   // ═══════════════════════════════════════════════════════════
   describe('Step 6: Enroll Student in Class', () => {
     it('should enroll the student with the contract', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .post('/enrollments')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -528,11 +603,12 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
         })
         .expect(201);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.id).toBeDefined();
+      expect(code(res)).toBe(0);
+      const data = body<EnrollmentShape>(res);
+      expect(data).toBeDefined();
+      expect(data.id).toBeDefined();
 
-      testIds.enrollmentId = res.body.data.id;
+      testIds.enrollmentId = data.id;
     });
   });
 
@@ -541,7 +617,7 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   // ═══════════════════════════════════════════════════════════
   describe('Step 7: Teacher Check-in (Create Lesson with Attendance)', () => {
     it('should create a lesson with attendance records via Teacher', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .post('/lessons')
         .set('Authorization', `Bearer ${teacherToken}`)
         .send({
@@ -559,11 +635,12 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
         })
         .expect(201);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.lesson).toBeDefined();
-      expect(res.body.data.lessonNumber).toBe(1);
-      expect(res.body.data.attendanceCount).toBe(1);
+      expect(code(res)).toBe(0);
+      const data = body<LessonShape>(res);
+      expect(data).toBeDefined();
+      expect(data.lesson).toBeDefined();
+      expect(data.lessonNumber).toBe(1);
+      expect(data.attendanceCount).toBe(1);
     });
   });
 
@@ -574,19 +651,19 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     it('should mark lesson as FINISHED via Teacher', async () => {
       // Check-in path creates SCHEDULED; follow the state machine
       // SCHEDULED → TEACHING (start) → FINISHED (complete)
-      const startRes = await request(app.getHttpServer())
+      const startRes = await request(server)
         .patch(`/classes/${testIds.classCode}/lessons/1/start`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .expect(200);
-      expect(startRes.body.code).toBe(0);
+      expect(code(startRes)).toBe(0);
 
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .patch(`/classes/${testIds.classCode}/lessons/1/complete`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .expect(200);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
+      expect(code(res)).toBe(0);
+      expect(body<unknown>(res)).toBeDefined();
     });
   });
 
@@ -597,100 +674,105 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
     it('9.1 Admin perspective: GET /students?studentCode should show student', async () => {
       // Note: GET /students/:code does not exist — the :id route uses ParseIntPipe.
       // Use the list endpoint with a studentCode filter instead.
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .get(`/students?studentCode=${testIds.studentCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
-      const student = res.body.data.items.find(
-        (s: any) => s.studentCode === testIds.studentCode,
-      );
+      expect(code(res)).toBe(0);
+      expect(body<StudentListShape>(res)).toBeDefined();
+      const student = body<StudentListShape>(res).items.find(
+        (s) => s.studentCode === testIds.studentCode,
+      )!;
       expect(student).toBeDefined();
       expect(student.studentCode).toBe(testIds.studentCode);
       expect(student.name).toBe('E2E测试学生-李小明的弟弟');
     });
 
     it('9.2 Admin perspective: GET /contracts/:code should show remaining lessons deducted', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .get(`/contracts/${testIds.contractCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.contractCode).toBe(testIds.contractCode);
+      expect(code(res)).toBe(0);
+      const data = body<ContractShape>(res);
+      expect(data).toBeDefined();
+      expect(data.contractCode).toBe(testIds.contractCode);
       // After 1 PRESENT attendance + lesson completed, remaining should be 9
-      expect(res.body.data.remainingLessons).toBe(9);
+      expect(data.remainingLessons).toBe(9);
     });
 
     it('9.3 Admin perspective: GET /enrollments/:id should show active enrollment', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .get(`/enrollments/${testIds.enrollmentId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.studentCode).toBe(testIds.studentCode);
-      expect(res.body.data.classCode).toBe(testIds.classCode);
+      expect(code(res)).toBe(0);
+      const data = body<EnrollmentShape>(res);
+      expect(data).toBeDefined();
+      expect(data.studentCode).toBe(testIds.studentCode);
+      expect(data.classCode).toBe(testIds.classCode);
     });
 
     it('9.4 Teacher perspective: GET /classes/:code/lessons/1 should show completed lesson', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .get(`/classes/${testIds.classCode}/lessons/1`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .expect(200);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.lessonNumber).toBe(1);
-      expect(res.body.data.status).toBe('FINISHED');
+      expect(code(res)).toBe(0);
+      const data = body<LessonShape>(res);
+      expect(data).toBeDefined();
+      expect(data.lessonNumber).toBe(1);
+      expect(data.status).toBe('FINISHED');
     });
 
     it('9.5 Student perspective: GET /contracts/students/:code/contracts should show contract', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .get(`/contracts/students/${testIds.studentCode}/contracts`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
-      expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data.length).toBeGreaterThan(0);
+      expect(code(res)).toBe(0);
+      const data = body<ContractShape[]>(res);
+      expect(data).toBeDefined();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data.length).toBeGreaterThan(0);
 
-      const contract = res.body.data.find(
-        (c: any) => c.contractCode === testIds.contractCode,
-      );
+      const contract = data.find(
+        (c) => c.contractCode === testIds.contractCode,
+      )!;
       expect(contract).toBeDefined();
       expect(contract.remainingLessons).toBe(9);
     });
 
     it('9.6 Student perspective: GET /enrollments/students/:code/enrollments should show enrollment', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .get(`/enrollments/students/${testIds.studentCode}/enrollments`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toBeDefined();
-      expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data.length).toBeGreaterThan(0);
+      expect(code(res)).toBe(0);
+      const data = body<EnrollmentShape[]>(res);
+      expect(data).toBeDefined();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data.length).toBeGreaterThan(0);
 
       // Note: the enriched response has no studentCode field; use the first record.
-      const enrollment = res.body.data[0];
+      const enrollment = data[0];
       expect(enrollment).toBeDefined();
       expect(enrollment.classCode).toBe(testIds.classCode);
     });
 
     it('9.7 Cross-validation: Contract remainingLessons = totalLessons - consumed', async () => {
-      const contractRes = await request(app.getHttpServer())
+      const contractRes = await request(server)
         .get(`/contracts/${testIds.contractCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      const contract = contractRes.body.data;
+      const contract = body<ContractShape>(contractRes);
       const totalLessons = contract.totalLessons;
       const remainingLessons = contract.remainingLessons;
       const consumed = totalLessons - remainingLessons;
@@ -706,7 +788,7 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   // ═══════════════════════════════════════════════════════════
   describe('Step 10: Second Lesson - ABSENT Student (No Deduction)', () => {
     it('should create a second lesson with ABSENT attendance', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .post('/lessons')
         .set('Authorization', `Bearer ${teacherToken}`)
         .send({
@@ -725,32 +807,32 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
         })
         .expect(201);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data.lessonNumber).toBe(2);
+      expect(code(res)).toBe(0);
+      expect(body<LessonShape>(res).lessonNumber).toBe(2);
     });
 
     it('should complete the second lesson', async () => {
-      const startRes = await request(app.getHttpServer())
+      const startRes = await request(server)
         .patch(`/classes/${testIds.classCode}/lessons/2/start`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .expect(200);
-      expect(startRes.body.code).toBe(0);
+      expect(code(startRes)).toBe(0);
 
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .patch(`/classes/${testIds.classCode}/lessons/2/complete`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .expect(200);
 
-      expect(res.body.code).toBe(0);
+      expect(code(res)).toBe(0);
     });
 
     it('should NOT deduct lesson for ABSENT student', async () => {
-      const contractRes = await request(app.getHttpServer())
+      const contractRes = await request(server)
         .get(`/contracts/${testIds.contractCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      const contract = contractRes.body.data;
+      const contract = body<ContractShape>(contractRes);
       // Still 9 remaining (ABSENT doesn't deduct)
       expect(contract.remainingLessons).toBe(9);
     });
@@ -761,7 +843,7 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   // ═══════════════════════════════════════════════════════════
   describe('Step 11: Third Lesson - LATE Student (Deduction Applies)', () => {
     it('should create a third lesson with LATE attendance', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .post('/lessons')
         .set('Authorization', `Bearer ${teacherToken}`)
         .send({
@@ -780,32 +862,32 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
         })
         .expect(201);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data.lessonNumber).toBe(3);
+      expect(code(res)).toBe(0);
+      expect(body<LessonShape>(res).lessonNumber).toBe(3);
     });
 
     it('should complete the third lesson', async () => {
-      const startRes = await request(app.getHttpServer())
+      const startRes = await request(server)
         .patch(`/classes/${testIds.classCode}/lessons/3/start`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .expect(200);
-      expect(startRes.body.code).toBe(0);
+      expect(code(startRes)).toBe(0);
 
-      const res = await request(app.getHttpServer())
+      const res = await request(server)
         .patch(`/classes/${testIds.classCode}/lessons/3/complete`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .expect(200);
 
-      expect(res.body.code).toBe(0);
+      expect(code(res)).toBe(0);
     });
 
     it('should deduct lesson for LATE student (remaining = 8)', async () => {
-      const contractRes = await request(app.getHttpServer())
+      const contractRes = await request(server)
         .get(`/contracts/${testIds.contractCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      const contract = contractRes.body.data;
+      const contract = body<ContractShape>(contractRes);
       // LATE deducts: 9 - 1 = 8
       expect(contract.remainingLessons).toBe(8);
     });
@@ -817,70 +899,70 @@ describe('Business Flow E2E (Phase 6 Batch 6.1)', () => {
   describe('Step 12: Final Consistency Check', () => {
     it('should have consistent data across all endpoints', async () => {
       // 1. Contract shows 8 remaining (10 - 1 PRESENT - 0 ABSENT - 1 LATE = 8)
-      const contractRes = await request(app.getHttpServer())
+      const contractRes = await request(server)
         .get(`/contracts/${testIds.contractCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(contractRes.body.data.remainingLessons).toBe(8);
-      expect(contractRes.body.data.totalLessons).toBe(10);
+      expect(body<ContractShape>(contractRes).remainingLessons).toBe(8);
+      expect(body<ContractShape>(contractRes).totalLessons).toBe(10);
 
       // 2. Class has 3 lessons (GET /classes/:code/lessons returns a plain array)
-      const lessonsRes = await request(app.getHttpServer())
+      const lessonsRes = await request(server)
         .get(`/classes/${testIds.classCode}/lessons`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .expect(200);
 
-      expect(lessonsRes.body.data.length).toBe(3);
+      expect(body<unknown[]>(lessonsRes).length).toBe(3);
 
       // 3. Enrollment is still active
-      const enrollmentRes = await request(app.getHttpServer())
+      const enrollmentRes = await request(server)
         .get(`/enrollments/${testIds.enrollmentId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(enrollmentRes.body.data.status).toBe('ACTIVE');
+      expect(body<EnrollmentShape>(enrollmentRes).status).toBe('ACTIVE');
 
       // 4. Student exists and is active (list endpoint with studentCode filter)
-      const studentRes = await request(app.getHttpServer())
+      const studentRes = await request(server)
         .get(`/students?studentCode=${testIds.studentCode}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      const student = studentRes.body.data.items.find(
-        (s: any) => s.studentCode === testIds.studentCode,
-      );
+      const student = body<StudentListShape>(studentRes).items.find(
+        (s) => s.studentCode === testIds.studentCode,
+      )!;
       expect(student).toBeDefined();
       expect(student.status).toBe('ACTIVE');
     });
 
     it('should verify lesson details are correct', async () => {
       // Lesson 1: PRESENT
-      const lesson1Res = await request(app.getHttpServer())
+      const lesson1Res = await request(server)
         .get(`/classes/${testIds.classCode}/lessons/1`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .expect(200);
 
-      expect(lesson1Res.body.data.status).toBe('FINISHED');
-      expect(lesson1Res.body.data.topic).toBe('E2E测试-分数入门');
+      expect(body<LessonShape>(lesson1Res).status).toBe('FINISHED');
+      expect(body<LessonShape>(lesson1Res).topic).toBe('E2E测试-分数入门');
 
       // Lesson 2: ABSENT
-      const lesson2Res = await request(app.getHttpServer())
+      const lesson2Res = await request(server)
         .get(`/classes/${testIds.classCode}/lessons/2`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .expect(200);
 
-      expect(lesson2Res.body.data.status).toBe('FINISHED');
-      expect(lesson2Res.body.data.topic).toBe('E2E测试-分数进阶');
+      expect(body<LessonShape>(lesson2Res).status).toBe('FINISHED');
+      expect(body<LessonShape>(lesson2Res).topic).toBe('E2E测试-分数进阶');
 
       // Lesson 3: LATE
-      const lesson3Res = await request(app.getHttpServer())
+      const lesson3Res = await request(server)
         .get(`/classes/${testIds.classCode}/lessons/3`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .expect(200);
 
-      expect(lesson3Res.body.data.status).toBe('FINISHED');
-      expect(lesson3Res.body.data.topic).toBe('E2E测试-分数运算');
+      expect(body<LessonShape>(lesson3Res).status).toBe('FINISHED');
+      expect(body<LessonShape>(lesson3Res).topic).toBe('E2E测试-分数运算');
     });
   });
 });

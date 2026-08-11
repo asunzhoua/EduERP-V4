@@ -32,7 +32,10 @@ export class LeaveRequestController {
   @Post('students/self/leave-requests')
   @Roles('SuperAdmin', 'Admin', 'Student', 'Parent')
   @ApiOperation({ summary: 'Submit a leave request (parent/student)' })
-  async createRequest(@Body() body: CreateLeaveRequestDto, @Req() req: AuthedRequest) {
+  async createRequest(
+    @Body() body: CreateLeaveRequestDto,
+    @Req() req: AuthedRequest,
+  ) {
     const result = await this.service.createRequest({
       studentCode: body.studentCode,
       classCode: body.classCode,
@@ -72,7 +75,10 @@ export class LeaveRequestController {
   @Post('admin/leave-requests/:id/approve')
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Approve a leave request (admin)' })
-  async approve(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
+  async approve(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthedRequest,
+  ) {
     const result = await this.service.approve(id, req.user.sub);
     return ApiResponse.success(result, 'Leave request approved');
   }

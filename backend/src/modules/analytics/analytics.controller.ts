@@ -44,7 +44,7 @@ export class AnalyticsController {
     @Param('teacherId', ParseIntPipe) teacherId: number,
     @Req() req: AuthedRequest,
   ) {
-    await this.verifyTeacherAccess(req, teacherId);
+    this.verifyTeacherAccess(req, teacherId);
     const result = await this.analyticsService.getTeacherMetrics(teacherId);
     return ApiResponse.success(result);
   }
@@ -86,7 +86,7 @@ export class AnalyticsController {
     @Query('days') days?: string,
     @Req() req?: AuthedRequest,
   ) {
-    await this.verifyTeacherAccess(req!, teacherId);
+    this.verifyTeacherAccess(req!, teacherId);
     const parsedDays = this.parseDays(days);
     const result = await this.analyticsService.getTeacherTrend(
       teacherId,
@@ -156,10 +156,7 @@ export class AnalyticsController {
    * Verify that Teacher role can only access their own metrics.
    * SuperAdmin/Admin can access any teacher's data.
    */
-  private async verifyTeacherAccess(
-    req: AuthedRequest,
-    teacherId: number,
-  ): Promise<void> {
+  private verifyTeacherAccess(req: AuthedRequest, teacherId: number): void {
     const user = req.user;
     if (user.role === 'SuperAdmin' || user.role === 'Admin') {
       return;

@@ -3,15 +3,22 @@ import { LessonAttendanceController } from './lesson-attendance.controller';
 import { LessonAttendanceService } from './lesson-attendance.service';
 import { AttendanceStatus } from './enums/attendance-status.enum';
 import { BatchRollCallDto } from './dto/batch-roll-call.dto';
-import { RecordAttendanceDto } from './dto/record-attendance.dto';
 import { ApiResponse } from '@common/dto/api-response';
 import { LessonRepository } from '../lesson/lesson.repository';
 import { EnrollmentRepository } from '../enrollment/enrollment.repository';
 import { EntityManager } from 'typeorm';
 
+type MockLessonAttendanceService = {
+  batchRollCall: jest.Mock;
+  recordAttendance: jest.Mock;
+  confirmAll: jest.Mock;
+  findByLessonId: jest.Mock;
+  findByStudentCode: jest.Mock;
+};
+
 describe('LessonAttendanceController', () => {
   let controller: LessonAttendanceController;
-  let service: LessonAttendanceService;
+  let service: MockLessonAttendanceService;
 
   const mockAttendanceRecord = {
     id: 1,

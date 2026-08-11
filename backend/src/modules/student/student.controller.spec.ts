@@ -10,9 +10,11 @@ import { ClassEntity } from '../teaching/class/class.entity';
 import { CourseEntity } from '../teaching/course/course.entity';
 import { User } from '../identity/entities/user.entity';
 import { PointsService } from '../points/points.service';
-import { ApiResponse } from '@common/dto/api-response';
+import { CreateStudentDto } from './dto/create-student.dto';
+import { ParentCreateStudentDto } from './dto/parent-create-student.dto';
+import { UpdateStudentStatusDto } from './dto/update-student-status.dto';
+import { AuthedRequest } from '@common/types/authed-request';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 
 describe('StudentController', () => {
   let controller: StudentController;
@@ -123,7 +125,10 @@ describe('StudentController', () => {
 
   it('POST /students - create', async () => {
     const dto = { name: '张三', gender: 'M', birthDate: '2015-01-01' };
-    const result = await controller.create(dto as any, mockReq);
+    const result = await controller.create(
+      dto as unknown as CreateStudentDto,
+      mockReq,
+    );
     expect(result.code).toBe(0);
     expect(result.data!).toEqual(mockStudent);
     expect(service.create).toHaveBeenCalledWith(dto, 1);
@@ -137,7 +142,10 @@ describe('StudentController', () => {
       grade: '一年级',
     };
     service.create.mockResolvedValue(mockStudent);
-    const result = await controller.createMyChild(dto as any, mockReq);
+    const result = await controller.createMyChild(
+      dto as unknown as ParentCreateStudentDto,
+      mockReq,
+    );
     expect(result.code).toBe(0);
     expect(result.data!).toEqual(mockStudent);
     expect(service.create).toHaveBeenCalledWith(
@@ -175,7 +183,11 @@ describe('StudentController', () => {
 
   it('PATCH /students/:id/status - updateStatus', async () => {
     const dto = { status: 'INACTIVE' };
-    const result = await controller.updateStatus(1, dto as any, mockReq);
+    const result = await controller.updateStatus(
+      1,
+      dto as unknown as UpdateStudentStatusDto,
+      mockReq,
+    );
     expect(result.code).toBe(0);
     expect(service.updateStatus).toHaveBeenCalledWith(1, dto, 1);
   });
@@ -216,7 +228,10 @@ describe('StudentController', () => {
 
   it('POST /students/import - import', async () => {
     const file = { buffer: Buffer.from('data'), originalname: 'students.xlsx' };
-    const result = await controller.import(file as any, mockReq);
+    const result = await controller.import(
+      file as unknown as Express.Multer.File,
+      mockReq,
+    );
     expect(result.code).toBe(0);
     expect(result.data).toEqual({ success: 1, failed: 0 });
     expect(service.importStudents).toHaveBeenCalledWith(
@@ -313,7 +328,7 @@ describe('StudentController', () => {
 
     const result = await controller.getChildLessons(
       5,
-      { sub: 2 } as any,
+      { sub: 2 } as unknown as AuthedRequest['user'],
       '2026-08-01',
       '2026-08-31',
     );
@@ -329,7 +344,9 @@ describe('StudentController', () => {
   it('GET /students/:childId/points - delegates to service', async () => {
     service.getChildPoints.mockResolvedValue({ balance: 50 });
 
-    const result = await controller.getChildPoints(5, { sub: 2 } as any);
+    const result = await controller.getChildPoints(5, {
+      sub: 2,
+    } as unknown as AuthedRequest['user']);
     expect(result.code).toBe(0);
     expect(service.getChildPoints).toHaveBeenCalledWith(2, 5);
   });
@@ -337,7 +354,9 @@ describe('StudentController', () => {
   it('GET /students/:childId/feedback - delegates to service', async () => {
     service.getChildFeedback.mockResolvedValue([{ id: 1 }]);
 
-    const result = await controller.getChildFeedback(5, { sub: 2 } as any);
+    const result = await controller.getChildFeedback(5, {
+      sub: 2,
+    } as unknown as AuthedRequest['user']);
     expect(result.code).toBe(0);
     expect(service.getChildFeedback).toHaveBeenCalledWith(2, 5);
   });

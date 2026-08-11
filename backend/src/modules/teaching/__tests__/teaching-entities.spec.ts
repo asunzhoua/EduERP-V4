@@ -11,13 +11,19 @@ import { ChangeRequestStatus } from '../lesson-change-request/enums/change-reque
 import { ChangeRequestType } from '@common/enums/change-request-type.enum';
 import { TeacherRole } from '@common/enums/teacher-role.enum';
 import { Subject } from '@common/enums/subject.enum';
+import { ClassEntity } from '../class/class.entity';
+import { CourseEntity } from '../course/course.entity';
+import { ContractEntity } from '../contract/contract.entity';
+import { EnrollmentEntity } from '../enrollment/enrollment.entity';
+import { LessonEntity } from '../lesson/lesson.entity';
+import { LessonAttendanceEntity } from '../lesson-attendance/lesson-attendance.entity';
+import { LessonChangeRequestEntity } from '../lesson-change-request/lesson-change-request.entity';
+import { TeacherAssignmentEntity } from '../teacher-assignment/teacher-assignment.entity';
 
 // ─── ClassEntity ───
 
 describe('ClassEntity', () => {
   it('should instantiate with undefined fields', () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { ClassEntity } = require('../class/class.entity');
     const entity = new ClassEntity();
     expect(entity).toBeDefined();
     expect(entity.id).toBeUndefined();
@@ -32,7 +38,6 @@ describe('ClassEntity', () => {
   });
 
   it('should assign all required properties', () => {
-    const { ClassEntity } = require('../class/class.entity');
     const entity = new ClassEntity();
     entity.classCode = 'CLS-001';
     entity.courseCode = 'CRS-001';
@@ -54,7 +59,6 @@ describe('ClassEntity', () => {
   });
 
   it('should support nullable optional fields', () => {
-    const { ClassEntity } = require('../class/class.entity');
     const entity = new ClassEntity();
     entity.room = null;
     entity.tags = null;
@@ -69,7 +73,6 @@ describe('ClassEntity', () => {
 
   it('should have TypeORM default declarations for status, defaultDuration, maxStudents, deleted', () => {
     // Verify the decorator metadata carries the expected defaults
-    const { ClassEntity } = require('../class/class.entity');
     const entity = new ClassEntity();
     // Without TypeORM runtime, decorated defaults are not applied on `new`,
     // but we verify the class shape is intact
@@ -83,7 +86,6 @@ describe('ClassEntity', () => {
 
 describe('CourseEntity', () => {
   it('should instantiate with undefined fields', () => {
-    const { CourseEntity } = require('../course/course.entity');
     const entity = new CourseEntity();
     expect(entity).toBeDefined();
     expect(entity.id).toBeUndefined();
@@ -104,7 +106,6 @@ describe('CourseEntity', () => {
   });
 
   it('should assign all required properties', () => {
-    const { CourseEntity } = require('../course/course.entity');
     const entity = new CourseEntity();
     entity.courseCode = 'CRS-100';
     entity.name = '高等数学';
@@ -127,7 +128,6 @@ describe('CourseEntity', () => {
   });
 
   it('should support nullable optional fields', () => {
-    const { CourseEntity } = require('../course/course.entity');
     const entity = new CourseEntity();
     entity.description = null;
     entity.tags = null;
@@ -145,7 +145,6 @@ describe('CourseEntity', () => {
 
 describe('ContractEntity', () => {
   it('should instantiate with undefined fields', () => {
-    const { ContractEntity } = require('../contract/contract.entity');
     const entity = new ContractEntity();
     expect(entity).toBeDefined();
     expect(entity.id).toBeUndefined();
@@ -161,7 +160,6 @@ describe('ContractEntity', () => {
   });
 
   it('should assign all required properties', () => {
-    const { ContractEntity } = require('../contract/contract.entity');
     const entity = new ContractEntity();
     entity.contractCode = 'CTR-200';
     entity.studentCode = 'STU-001';
@@ -181,7 +179,6 @@ describe('ContractEntity', () => {
   });
 
   it('should support nullable pricing and note fields', () => {
-    const { ContractEntity } = require('../contract/contract.entity');
     const entity = new ContractEntity();
     entity.validTo = null;
     entity.unitPrice = null;
@@ -201,7 +198,6 @@ describe('ContractEntity', () => {
 
 describe('EnrollmentEntity', () => {
   it('should instantiate with undefined fields', () => {
-    const { EnrollmentEntity } = require('../enrollment/enrollment.entity');
     const entity = new EnrollmentEntity();
     expect(entity).toBeDefined();
     expect(entity.id).toBeUndefined();
@@ -215,7 +211,6 @@ describe('EnrollmentEntity', () => {
   });
 
   it('should assign all required properties', () => {
-    const { EnrollmentEntity } = require('../enrollment/enrollment.entity');
     const entity = new EnrollmentEntity();
     entity.classCode = 'CLS-001';
     entity.studentCode = 'STU-001';
@@ -231,7 +226,6 @@ describe('EnrollmentEntity', () => {
   });
 
   it('should support nullable withdrawReason', () => {
-    const { EnrollmentEntity } = require('../enrollment/enrollment.entity');
     const entity = new EnrollmentEntity();
     entity.withdrawReason = null;
     expect(entity.withdrawReason).toBeNull();
@@ -242,7 +236,6 @@ describe('EnrollmentEntity', () => {
 
 describe('LessonEntity', () => {
   it('should instantiate with undefined fields', () => {
-    const { LessonEntity } = require('../lesson/lesson.entity');
     const entity = new LessonEntity();
     expect(entity).toBeDefined();
     expect(entity.id).toBeUndefined();
@@ -259,7 +252,6 @@ describe('LessonEntity', () => {
   });
 
   it('should assign all required properties', () => {
-    const { LessonEntity } = require('../lesson/lesson.entity');
     const entity = new LessonEntity();
     entity.classCode = 'CLS-001';
     entity.courseCode = 'CRS-100';
@@ -280,7 +272,6 @@ describe('LessonEntity', () => {
   });
 
   it('should support nullable fields for actual times, makeup, and confirmation', () => {
-    const { LessonEntity } = require('../lesson/lesson.entity');
     const entity = new LessonEntity();
     entity.actualStartTime = null;
     entity.actualEndTime = null;
@@ -300,7 +291,6 @@ describe('LessonEntity', () => {
   });
 
   it('should support makeup lesson assignment', () => {
-    const { LessonEntity } = require('../lesson/lesson.entity');
     const entity = new LessonEntity();
     entity.isMakeup = true;
     entity.originLessonId = 100;
@@ -314,9 +304,6 @@ describe('LessonEntity', () => {
 
 describe('LessonAttendanceEntity', () => {
   it('should instantiate with undefined fields', () => {
-    const {
-      LessonAttendanceEntity,
-    } = require('../lesson-attendance/lesson-attendance.entity');
     const entity = new LessonAttendanceEntity();
     expect(entity).toBeDefined();
     expect(entity.id).toBeUndefined();
@@ -348,9 +335,6 @@ describe('LessonAttendanceEntity', () => {
   });
 
   it('should assign all required properties', () => {
-    const {
-      LessonAttendanceEntity,
-    } = require('../lesson-attendance/lesson-attendance.entity');
     const entity = new LessonAttendanceEntity();
     entity.lessonId = 10;
     entity.studentCode = 'STU-001';
@@ -372,9 +356,6 @@ describe('LessonAttendanceEntity', () => {
   });
 
   it('should support nullable checkInTime, reason, note, and status', () => {
-    const {
-      LessonAttendanceEntity,
-    } = require('../lesson-attendance/lesson-attendance.entity');
     const entity = new LessonAttendanceEntity();
     entity.checkInTime = null;
     entity.reason = null;
@@ -392,9 +373,6 @@ describe('LessonAttendanceEntity', () => {
 
 describe('LessonChangeRequestEntity', () => {
   it('should instantiate with undefined fields', () => {
-    const {
-      LessonChangeRequestEntity,
-    } = require('../lesson-change-request/lesson-change-request.entity');
     const entity = new LessonChangeRequestEntity();
     expect(entity).toBeDefined();
     expect(entity.id).toBeUndefined();
@@ -416,9 +394,6 @@ describe('LessonChangeRequestEntity', () => {
   });
 
   it('should assign all required properties', () => {
-    const {
-      LessonChangeRequestEntity,
-    } = require('../lesson-change-request/lesson-change-request.entity');
     const entity = new LessonChangeRequestEntity();
     entity.lessonId = 10;
     entity.requestType = ChangeRequestType.RESCHEDULE;
@@ -434,9 +409,6 @@ describe('LessonChangeRequestEntity', () => {
   });
 
   it('should support reschedule fields (previous/new date and time)', () => {
-    const {
-      LessonChangeRequestEntity,
-    } = require('../lesson-change-request/lesson-change-request.entity');
     const entity = new LessonChangeRequestEntity();
     entity.previousDate = '2026-09-08';
     entity.newDate = '2026-09-10';
@@ -452,9 +424,6 @@ describe('LessonChangeRequestEntity', () => {
   });
 
   it('should support teacher change fields', () => {
-    const {
-      LessonChangeRequestEntity,
-    } = require('../lesson-change-request/lesson-change-request.entity');
     const entity = new LessonChangeRequestEntity();
     entity.previousTeacherId = 42;
     entity.newTeacherId = 55;
@@ -464,9 +433,6 @@ describe('LessonChangeRequestEntity', () => {
   });
 
   it('should support nullable approval and execution fields', () => {
-    const {
-      LessonChangeRequestEntity,
-    } = require('../lesson-change-request/lesson-change-request.entity');
     const entity = new LessonChangeRequestEntity();
     entity.approvedBy = null;
     entity.approvedAt = null;
@@ -486,9 +452,6 @@ describe('LessonChangeRequestEntity', () => {
 
 describe('TeacherAssignmentEntity', () => {
   it('should instantiate with undefined fields', () => {
-    const {
-      TeacherAssignmentEntity,
-    } = require('../teacher-assignment/teacher-assignment.entity');
     const entity = new TeacherAssignmentEntity();
     expect(entity).toBeDefined();
     expect(entity.id).toBeUndefined();
@@ -502,9 +465,6 @@ describe('TeacherAssignmentEntity', () => {
   });
 
   it('should assign all required properties', () => {
-    const {
-      TeacherAssignmentEntity,
-    } = require('../teacher-assignment/teacher-assignment.entity');
     const entity = new TeacherAssignmentEntity();
     entity.classCode = 'CLS-001';
     entity.teacherId = 42;
@@ -520,9 +480,6 @@ describe('TeacherAssignmentEntity', () => {
   });
 
   it('should support nullable effectiveTo and reason', () => {
-    const {
-      TeacherAssignmentEntity,
-    } = require('../teacher-assignment/teacher-assignment.entity');
     const entity = new TeacherAssignmentEntity();
     entity.effectiveTo = null;
     entity.reason = null;
@@ -532,9 +489,6 @@ describe('TeacherAssignmentEntity', () => {
   });
 
   it('should allow substitute role assignment', () => {
-    const {
-      TeacherAssignmentEntity,
-    } = require('../teacher-assignment/teacher-assignment.entity');
     const entity = new TeacherAssignmentEntity();
     entity.role = TeacherRole.SUBSTITUTE;
     entity.effectiveFrom = '2026-10-01';

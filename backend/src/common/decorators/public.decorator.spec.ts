@@ -5,14 +5,20 @@ describe('@Public() decorator', () => {
     @Public()
     class TestController {}
 
-    const isPublic = Reflect.getMetadata('isPublic', TestController);
+    const isPublic = Reflect.getMetadata(
+      'isPublic',
+      TestController,
+    ) as unknown as boolean | undefined;
     expect(isPublic).toBe(true);
   });
 
   it('should not set isPublic on untagged class', () => {
     class UnmarkedController {}
 
-    const isPublic = Reflect.getMetadata('isPublic', UnmarkedController);
+    const isPublic = Reflect.getMetadata(
+      'isPublic',
+      UnmarkedController,
+    ) as unknown as boolean | undefined;
     expect(isPublic).toBeUndefined();
   });
 });

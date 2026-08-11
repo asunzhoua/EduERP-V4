@@ -32,7 +32,10 @@ export class SuspendRequestController {
   @Post('students/self/suspend-requests')
   @Roles('SuperAdmin', 'Admin', 'Student', 'Parent')
   @ApiOperation({ summary: 'Submit a suspend request (parent/student)' })
-  async createRequest(@Body() body: CreateSuspendRequestDto, @Req() req: AuthedRequest) {
+  async createRequest(
+    @Body() body: CreateSuspendRequestDto,
+    @Req() req: AuthedRequest,
+  ) {
     const result = await this.service.createRequest({
       studentCode: body.studentCode,
       classCode: body.classCode,
@@ -74,7 +77,10 @@ export class SuspendRequestController {
   @Post('admin/suspend-requests/:id/approve')
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Approve a suspend request (admin)' })
-  async approve(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
+  async approve(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthedRequest,
+  ) {
     const result = await this.service.approve(id, req.user.sub);
     return ApiResponse.success(result, 'Suspend request approved');
   }

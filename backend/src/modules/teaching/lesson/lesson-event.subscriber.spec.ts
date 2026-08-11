@@ -8,7 +8,7 @@ jest.mock('uuid', () => ({
 }));
 
 describe('LessonEventSubscriber', () => {
-  let subscriber: LessonEventSubscriber;
+  let _subscriber: LessonEventSubscriber;
   let eventBus: jest.Mocked<EventBusService>;
   let logSpy: jest.SpyInstance;
 
@@ -33,7 +33,7 @@ describe('LessonEventSubscriber', () => {
       ],
     }).compile();
 
-    subscriber = module.get<LessonEventSubscriber>(LessonEventSubscriber);
+    _subscriber = module.get<LessonEventSubscriber>(LessonEventSubscriber);
     eventBus = module.get(EventBusService);
     logSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
   });
@@ -43,14 +43,14 @@ describe('LessonEventSubscriber', () => {
   });
 
   it('should subscribe to lesson.completed', () => {
-    expect(eventBus.subscribe).toHaveBeenCalledWith(
+    expect(eventBus['subscribe']).toHaveBeenCalledWith(
       'lesson.completed',
       expect.any(Function),
     );
   });
 
   it('should subscribe to lesson.finished', () => {
-    expect(eventBus.subscribe).toHaveBeenCalledWith(
+    expect(eventBus['subscribe']).toHaveBeenCalledWith(
       'lesson.finished',
       expect.any(Function),
     );

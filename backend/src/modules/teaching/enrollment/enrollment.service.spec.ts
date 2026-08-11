@@ -18,15 +18,25 @@ import { ClassEntity } from '../class/class.entity';
 import { ClassStatus } from '../class/enums/class-status.enum';
 import { CourseEntity } from '../course/course.entity';
 import { LessonEntity } from '../lesson/lesson.entity';
+import { EntityManager } from 'typeorm';
 
 describe('EnrollmentService', () => {
   let service: EnrollmentService;
-  let enrollmentRepo: jest.Mocked<EnrollmentRepository>;
+  let enrollmentRepo: {
+    save: jest.Mock;
+    findOneById: jest.Mock;
+    findByClassCode: jest.Mock;
+    findByStudentCode: jest.Mock;
+    findByClassAndStudent: jest.Mock;
+    findMany: jest.Mock;
+  };
   let contractRepo: jest.Mocked<ContractRepository>;
-  let studentRepo: jest.Mocked<StudentRepository>;
-  let classRepo: jest.Mocked<any>;
-  let courseRepo: jest.Mocked<any>;
-  let lessonRepo: jest.Mocked<any>;
+  type MockClassRepo = { find: jest.Mock; findOne: jest.Mock };
+  type MockCourseRepo = { find: jest.Mock };
+  type MockLessonRepo = { createQueryBuilder: jest.Mock };
+  let classRepo: MockClassRepo;
+  let courseRepo: MockCourseRepo;
+  let lessonRepo: MockLessonRepo;
   let emRepoMock: { count: jest.Mock; save: jest.Mock };
 
   const mockEnrollInput: EnrollInput = {
@@ -90,8 +100,8 @@ describe('EnrollmentService', () => {
       findByClassAndStudent: jest.fn(),
       countActiveByClassCode: jest.fn(),
       findMany: jest.fn(),
-      inTransaction: jest.fn((fn: any) =>
-        fn({ getRepository: () => emRepoMock }),
+      inTransaction: jest.fn((fn: (em: EntityManager) => Promise<unknown>) =>
+        fn({ getRepository: () => emRepoMock } as unknown as EntityManager),
       ),
     };
 
@@ -143,10 +153,9 @@ describe('EnrollmentService', () => {
     service = module.get<EnrollmentService>(EnrollmentService);
     enrollmentRepo = module.get(EnrollmentRepository);
     contractRepo = module.get(ContractRepository);
-    studentRepo = module.get(StudentRepository);
-    classRepo = module.get(getRepositoryToken(ClassEntity));
-    courseRepo = module.get(getRepositoryToken(CourseEntity));
-    lessonRepo = module.get(getRepositoryToken(LessonEntity));
+    classRepo = module.get<MockClassRepo>(getRepositoryToken(ClassEntity));
+    courseRepo = module.get<MockCourseRepo>(getRepositoryToken(CourseEntity));
+    lessonRepo = module.get<MockLessonRepo>(getRepositoryToken(LessonEntity));
   });
 
   // ─── Enroll ───
@@ -279,7 +288,14 @@ describe('EnrollmentService', () => {
       };
       lessonRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
-      const result = await service.findByStudentCode('ST2026010001');
+      const result = (await service.findByStudentCode(
+        'ST2026010001',
+      )) as unknown as Array<{
+        className: string;
+        courseName: string;
+        completedLessons: number;
+        totalLessons: number;
+      }>;
       expect(result).toHaveLength(1);
       expect(result[0].className).toBe('数学思维训练班');
       expect(result[0].courseName).toBe('数学思维训练');

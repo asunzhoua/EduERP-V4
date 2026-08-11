@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import * as https from 'https';
 import { WechatService } from './wechat.service';
 import { WechatTokenStore } from './wechat-token.store';
@@ -11,7 +10,11 @@ import { User } from '../identity/entities/user.entity';
 jest.mock('https');
 const mockedHttps = https as jest.Mocked<typeof https>;
 
-function mockResponse(body: string) {
+type MockResponse = {
+  on: jest.Mock;
+};
+
+function mockResponse(body: string): MockResponse {
   return {
     on: jest.fn((event: string, cb: (chunk?: string) => void) => {
       if (event === 'data') {
@@ -21,7 +24,7 @@ function mockResponse(body: string) {
       }
       return mockResponseBody;
     }),
-  } as any;
+  };
 }
 const mockResponseBody = {
   on: jest.fn(),
@@ -39,9 +42,9 @@ function mockQueryBuilder(affected = 1) {
 
 describe('WechatService', () => {
   let service: WechatService;
-  let subscribeRepo: jest.Mocked<Partial<Repository<WechatSubscribe>>>;
-  let messageLogRepo: jest.Mocked<Partial<Repository<WechatMessageLog>>>;
-  let userRepo: jest.Mocked<Partial<Repository<User>>>;
+  let subscribeRepo: { findOne: jest.Mock; createQueryBuilder: jest.Mock };
+  let messageLogRepo: { create: jest.Mock; save: jest.Mock };
+  let userRepo: { findOne: jest.Mock };
   let tokenStore: WechatTokenStore;
 
   const openidUser = { id: 1, openid: 'oX-abc', deleted: false } as User;
@@ -112,7 +115,7 @@ describe('WechatService', () => {
         JSON.stringify({ access_token: 'fresh-token', expires_in: 7200 }),
       );
       (mockedHttps.get as jest.Mock).mockImplementation(
-        (_url: string, cb: any) => {
+        (_url: string, cb: (res: MockResponse) => void) => {
           cb(res);
           return { on: jest.fn() };
         },
@@ -221,7 +224,7 @@ describe('WechatService', () => {
         JSON.stringify({ errcode: 0, errmsg: 'ok' }),
       );
       (mockedHttps.request as jest.Mock).mockImplementation(
-        (_url: any, _opts: any, cb: any) => {
+        (_url: unknown, _opts: unknown, cb: (res: MockResponse) => void) => {
           cb(sendRes);
           return { on: jest.fn(), write: jest.fn(), end: jest.fn() };
         },
@@ -240,7 +243,9 @@ describe('WechatService', () => {
         }),
       );
       expect(messageLogRepo.save).toHaveBeenCalled();
-      expect(qb.set).toHaveBeenCalledWith({ quota: expect.any(Function) });
+      expect(qb.set).toHaveBeenCalledWith({
+        quota: expect.any(Function) as number,
+      });
       expect(qb.where).toHaveBeenCalledWith(
         expect.stringContaining('quota > 0'),
         expect.objectContaining({
@@ -262,7 +267,7 @@ describe('WechatService', () => {
         }),
       );
       (mockedHttps.request as jest.Mock).mockImplementation(
-        (_url: any, _opts: any, cb: any) => {
+        (_url: unknown, _opts: unknown, cb: (res: MockResponse) => void) => {
           cb(sendRes);
           return { on: jest.fn(), write: jest.fn(), end: jest.fn() };
         },

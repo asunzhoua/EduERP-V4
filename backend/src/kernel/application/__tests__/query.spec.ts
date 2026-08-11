@@ -14,11 +14,11 @@ class GetStudentQuery extends QueryBase<StudentDto> {
 }
 
 class GetStudentHandler implements IQueryHandler<GetStudentQuery, StudentDto> {
-  async execute(query: GetStudentQuery): Promise<Result<StudentDto>> {
+  execute(query: GetStudentQuery): Promise<Result<StudentDto>> {
     if (query.studentId <= 0) {
-      return Result.fail(new Error('Invalid student ID'));
+      return Promise.resolve(Result.fail(new Error('Invalid student ID')));
     }
-    return Result.ok({ id: query.studentId, name: 'Alice' });
+    return Promise.resolve(Result.ok({ id: query.studentId, name: 'Alice' }));
   }
 }
 

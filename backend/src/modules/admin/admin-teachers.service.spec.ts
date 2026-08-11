@@ -1,18 +1,26 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
 import { AdminTeachersService } from './admin-teachers.service';
-import { UserRole, UserStatus } from '@modules/identity/entities/user.entity';
+import { User, UserRole } from '@modules/identity/entities/user.entity';
+import { Repository } from 'typeorm';
+import { LessonEntity } from '../teaching/lesson/lesson.entity';
+import { SalaryRecordEntity } from '../salary/entities/salary-record.entity';
 
 describe('AdminTeachersService.teacherLevel', () => {
-  function buildService(opts: { existingUser?: any } = {}) {
+  function buildService(opts: { existingUser?: Partial<User> } = {}) {
     const userRepo = {
-      create: jest.fn((obj: any) => ({ ...obj })),
-      save: jest.fn(async (u: any) => ({ id: 1, ...u })),
-      findOne: jest.fn(async ({ where }: any) => {
-        if (where.username) return null;
-        if (where.mobile) return null;
-        if (where.id) return opts.existingUser ?? null;
-        return null;
-      }),
+      create: jest.fn((obj: Partial<User>) => ({ ...obj })),
+      save: jest.fn((u: User) => ({ id: 1, ...u })),
+      findOne: jest.fn(
+        ({
+          where,
+        }: {
+          where: Record<string, unknown>;
+        }): Partial<User> | null => {
+          if (where.username) return null;
+          if (where.mobile) return null;
+          if (where.id) return opts.existingUser ?? null;
+          return null;
+        },
+      ),
     };
     const lessonRepo = {
       createQueryBuilder: jest.fn(),
@@ -21,9 +29,9 @@ describe('AdminTeachersService.teacherLevel', () => {
       createQueryBuilder: jest.fn(),
     };
     const service = new AdminTeachersService(
-      userRepo as any,
-      lessonRepo as any,
-      salaryRepo as any,
+      userRepo as unknown as Repository<User>,
+      lessonRepo as unknown as Repository<LessonEntity>,
+      salaryRepo as unknown as Repository<SalaryRecordEntity>,
     );
     return { service, userRepo };
   }
@@ -43,7 +51,7 @@ describe('AdminTeachersService.teacherLevel', () => {
     expect(userRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({ teacherLevel: '中级', role: UserRole.TEACHER }),
     );
-    const saved = await userRepo.create.mock.calls[0][0];
+    const saved = userRepo.create.mock.calls[0][0];
     expect(saved.teacherLevel).toBe('中级');
   });
 

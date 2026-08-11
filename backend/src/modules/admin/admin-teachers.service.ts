@@ -83,7 +83,7 @@ export class AdminTeachersService {
     return { items, total, page, pageSize };
   }
 
-  async create(dto: CreateTeacherDto, operatorId: number): Promise<User> {
+  async create(dto: CreateTeacherDto, _operatorId: number): Promise<User> {
     const username = dto.username.trim();
     if (!username) {
       throw new BadRequestException('用户名不能为空');

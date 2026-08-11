@@ -10,28 +10,30 @@ import { AggregateRoot } from '../shared/entity/aggregate-root';
 export class FakeRepository<TAggregate extends AggregateRoot> {
   private _store = new Map<number, TAggregate>();
 
-  async findById(id: number): Promise<TAggregate | null> {
-    return this._store.get(id) ?? null;
+  findById(id: number): Promise<TAggregate | null> {
+    return Promise.resolve(this._store.get(id) ?? null);
   }
 
-  async findAll(): Promise<TAggregate[]> {
-    return Array.from(this._store.values());
+  findAll(): Promise<TAggregate[]> {
+    return Promise.resolve(Array.from(this._store.values()));
   }
 
-  async save(aggregate: TAggregate): Promise<void> {
+  save(aggregate: TAggregate): Promise<void> {
     this._store.set(aggregate.id, aggregate);
+    return Promise.resolve();
   }
 
-  async delete(id: number): Promise<void> {
+  delete(id: number): Promise<void> {
     this._store.delete(id);
+    return Promise.resolve();
   }
 
-  async exists(id: number): Promise<boolean> {
-    return this._store.has(id);
+  exists(id: number): Promise<boolean> {
+    return Promise.resolve(this._store.has(id));
   }
 
-  async count(): Promise<number> {
-    return this._store.size;
+  count(): Promise<number> {
+    return Promise.resolve(this._store.size);
   }
 
   /**

@@ -9,13 +9,6 @@ class AgeCheckPolicy implements IPolicy<{ age: number }> {
   }
 }
 
-class EmailCheckPolicy implements IPolicy<{ email: string }> {
-  readonly name = 'emailCheck';
-  evaluate(context: { email: string }): boolean {
-    return context.email.includes('@');
-  }
-}
-
 describe('PolicyRuntime', () => {
   describe('IPolicy', () => {
     it('should evaluate a policy', () => {
@@ -148,14 +141,18 @@ describe('PolicyRuntime', () => {
       const ctx = new PolicyContext({ age: 25 });
 
       expect(ctx.has('age')).toBe(true);
-      expect(ctx.has('name' as any)).toBe(false);
+      expect(
+        (ctx as unknown as PolicyContext<{ age: number; name: string }>).has(
+          'name',
+        ),
+      ).toBe(false);
     });
 
     it('should freeze data to prevent mutation', () => {
       const ctx = new PolicyContext({ age: 25 });
 
       expect(() => {
-        (ctx.data as any).age = 30;
+        ctx.data.age = 30;
       }).toThrow();
     });
   });

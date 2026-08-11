@@ -696,7 +696,7 @@ export class AuthService {
                 session_key: result.session_key,
                 unionid: result.unionid,
               });
-            } catch (e) {
+            } catch {
               reject(new InternalServerErrorException('微信登录响应解析失败'));
             }
           });

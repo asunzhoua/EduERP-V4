@@ -8,12 +8,23 @@
  * Blueprint依据：所有业务规则来自冻结Blueprint。
  */
 
-import { LessonAttendanceService } from '../lesson-attendance/lesson-attendance.service';
-import { EnrollmentService } from '../enrollment/enrollment.service';
+import {
+  LessonAttendanceService,
+  VALID_WORKFLOW_TRANSITIONS,
+} from '../lesson-attendance/lesson-attendance.service';
 import { AttendanceWorkflowState } from '../lesson-attendance/enums/attendance-workflow-state.enum';
 import { AttendanceStatus } from '../lesson-attendance/enums/attendance-status.enum';
-import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { Subject } from '@common/enums/subject.enum';
+import { Repository } from 'typeorm';
+import { LessonAttendanceRepository } from '../lesson-attendance/lesson-attendance.repository';
+import { ClassEntity } from '../class/class.entity';
+import { CourseEntity } from '../course/course.entity';
+import { ContractRepository } from '../contract/contract.repository';
+import { ReminderService } from '@modules/reminder/reminder.service';
+import { PointsService } from '@modules/points/points.service';
+
+type ClassFindOneWhere = { where: { classCode?: string } };
+type CourseFindOneWhere = { where: { courseCode?: string } };
 
 // ═══════════════════════════════════════════════════════════════
 // Scenario 1: Happy Path — Complete Teaching Flow
@@ -32,29 +43,33 @@ describe('Teaching E2E: Happy Path', () => {
     };
 
     const attendanceService = new LessonAttendanceService(
-      mockAttendanceRepo as any,
-      { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } as any,
+      mockAttendanceRepo as unknown as LessonAttendanceRepository,
+      {
+        createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+      } as unknown as ReminderService,
       {
         findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null),
         save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
-      } as any,
+      } as unknown as ContractRepository,
       {
-        findOne: jest.fn().mockImplementation(({ where }: any) =>
+        findOne: jest.fn().mockImplementation(({ where }: ClassFindOneWhere) =>
           Promise.resolve({
             classCode: where.classCode,
             courseCode: 'MATH001',
           }),
         ),
-      } as any,
+      } as unknown as Repository<ClassEntity>,
       {
-        findOne: jest.fn().mockImplementation(({ where }: any) =>
+        findOne: jest.fn().mockImplementation(({ where }: CourseFindOneWhere) =>
           Promise.resolve({
             courseCode: where.courseCode,
             subject: Subject.MATH,
           }),
         ),
-      } as any,
-      { credit: jest.fn().mockResolvedValue({ balance: 10 }) } as any,
+      } as unknown as Repository<CourseEntity>,
+      {
+        credit: jest.fn().mockResolvedValue({ balance: 10 }),
+      } as unknown as PointsService,
     );
 
     // ── Step 1: Course created (DRAFT) ──
@@ -190,7 +205,7 @@ describe('Teaching E2E: Happy Path', () => {
 // ═══════════════════════════════════════════════════════════════
 
 describe('Teaching E2E: CLASS-001 Violation', () => {
-  it('should block class activation without PRIMARY teacher', async () => {
+  it('should block class activation without PRIMARY teacher', () => {
     // This is verified by ClassService.guardActivation() tests
     // CLASS-001: ACTIVE requires exactly one PRIMARY TeacherAssignment
     // Tested in class.service.spec.ts (9 tests for updateStatus)
@@ -203,7 +218,7 @@ describe('Teaching E2E: CLASS-001 Violation', () => {
 // ═══════════════════════════════════════════════════════════════
 
 describe('Teaching E2E: ENROLL-002 Violation', () => {
-  it('should block enrollment with non-ACTIVE contract', async () => {
+  it('should block enrollment with non-ACTIVE contract', () => {
     // Verified by EnrollmentService.enroll() tests
     // ENROLL-002: ACTIVE enrollment requires ACTIVE contract
     // Tested in enrollment.service.spec.ts
@@ -216,7 +231,7 @@ describe('Teaching E2E: ENROLL-002 Violation', () => {
 // ═══════════════════════════════════════════════════════════════
 
 describe('Teaching E2E: ENROLL-001 Violation', () => {
-  it('should block duplicate enrollment for same class and student', async () => {
+  it('should block duplicate enrollment for same class and student', () => {
     // Verified by EnrollmentService.enroll() tests
     // ENROLL-001: UNIQUE(classCode, studentCode) — one enrollment per pair
     // Tested in enrollment.service.spec.ts
@@ -231,7 +246,9 @@ describe('Teaching E2E: ENROLL-001 Violation', () => {
 describe('Teaching E2E: Incomplete Attendance', () => {
   it('should count unconfirmed attendance records', async () => {
     const mockRepo = {
-      countUnconfirmedByLessonId: jest.fn().mockResolvedValue(2),
+      countUnconfirmedByLessonId: jest
+        .fn<Promise<number>, [lessonId: number]>()
+        .mockResolvedValue(2),
     };
     // countUnconfirmedByLessonId is on the repository, not the service
     const count = await mockRepo.countUnconfirmedByLessonId(1);
@@ -252,15 +269,23 @@ describe('Teaching E2E: ATTEND-002 Violation', () => {
       }),
     };
     const service = new LessonAttendanceService(
-      mockRepo as any,
-      { createReminder: jest.fn().mockResolvedValue({ id: 1 }) } as any,
+      mockRepo as unknown as LessonAttendanceRepository,
+      {
+        createReminder: jest.fn().mockResolvedValue({ id: 1 }),
+      } as unknown as ReminderService,
       {
         findActiveByStudentCodeAndSubject: jest.fn().mockResolvedValue(null),
         save: jest.fn().mockImplementation((e: any) => Promise.resolve(e)),
-      } as any,
-      { findOne: jest.fn().mockResolvedValue(null) } as any,
-      { findOne: jest.fn().mockResolvedValue(null) } as any,
-      { credit: jest.fn().mockResolvedValue({ balance: 10 }) } as any,
+      } as unknown as ContractRepository,
+      {
+        findOne: jest.fn().mockResolvedValue(null),
+      } as unknown as Repository<ClassEntity>,
+      {
+        findOne: jest.fn().mockResolvedValue(null),
+      } as unknown as Repository<CourseEntity>,
+      {
+        credit: jest.fn().mockResolvedValue({ balance: 10 }),
+      } as unknown as PointsService,
     );
 
     await expect(
@@ -279,7 +304,7 @@ describe('Teaching E2E: ATTEND-002 Violation', () => {
 // ═══════════════════════════════════════════════════════════════
 
 describe('Teaching E2E: Contract Ownership', () => {
-  it('should block enrollment with contract belonging to different student', async () => {
+  it('should block enrollment with contract belonging to different student', () => {
     // Verified by EnrollmentService.enroll() tests (new validation)
     // Tested in enrollment.service.spec.ts
     expect(true).toBe(true);
@@ -291,21 +316,15 @@ describe('Teaching E2E: Contract Ownership', () => {
 // ═══════════════════════════════════════════════════════════════
 
 describe('Teaching E2E: Attendance Reverse', () => {
-  it('should allow CONFIRMED → CHECKED_IN transition per state machine', async () => {
+  it('should allow CONFIRMED → CHECKED_IN transition per state machine', () => {
     // The state machine allows CONFIRMED → CHECKED_IN (admin override)
     // This is validated by VALID_WORKFLOW_TRANSITIONS in the service
-    const {
-      VALID_WORKFLOW_TRANSITIONS,
-    } = require('../lesson-attendance/lesson-attendance.service');
     const allowed =
       VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CONFIRMED];
     expect(allowed).toContain(AttendanceWorkflowState.CHECKED_IN);
   });
 
-  it('should allow CHECKED_IN → PENDING transition per state machine', async () => {
-    const {
-      VALID_WORKFLOW_TRANSITIONS,
-    } = require('../lesson-attendance/lesson-attendance.service');
+  it('should allow CHECKED_IN → PENDING transition per state machine', () => {
     const allowed =
       VALID_WORKFLOW_TRANSITIONS[AttendanceWorkflowState.CHECKED_IN];
     expect(allowed).toContain(AttendanceWorkflowState.PENDING);

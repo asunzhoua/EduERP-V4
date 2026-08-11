@@ -7,7 +7,18 @@ import { TeacherRole } from '@common/enums/teacher-role.enum';
 
 describe('TeacherAssignmentService', () => {
   let service: TeacherAssignmentService;
-  let repo: jest.Mocked<TeacherAssignmentRepository>;
+  let repo: {
+    save: jest.Mock;
+    findByClass: jest.Mock;
+    findActiveByClass: jest.Mock;
+    findActivePrimary: jest.Mock;
+    findActiveByClassAndTeacher: jest.Mock;
+    countActivePrimary: jest.Mock;
+    endAssignment: jest.Mock;
+    create: jest.Mock;
+    findAll: jest.Mock;
+    findActivePrimaryByClassCodes: jest.Mock;
+  };
 
   const mockAssignment: TeacherAssignmentEntity = {
     id: 1,
@@ -57,7 +68,7 @@ describe('TeacherAssignmentService', () => {
     it('should assign a teacher to a class', async () => {
       repo.findActiveByClassAndTeacher.mockResolvedValue(null);
       repo.findActivePrimary.mockResolvedValue(null);
-      (repo.create as jest.Mock).mockReturnValue(mockAssignment);
+      repo.create.mockReturnValue(mockAssignment);
       repo.save.mockResolvedValue(mockAssignment);
 
       const result = await service.assign({
@@ -127,7 +138,7 @@ describe('TeacherAssignmentService', () => {
         ...mockAssignment,
         teacherId: 200,
       });
-      (repo.create as jest.Mock).mockReturnValue({
+      repo.create.mockReturnValue({
         ...mockAssignment,
         role: TeacherRole.SUBSTITUTE,
       });

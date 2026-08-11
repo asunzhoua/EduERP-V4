@@ -10,11 +10,15 @@ import { ContractEntity } from '../teaching/contract/contract.entity';
 import { SalaryRecordEntity } from '../salary/entities/salary-record.entity';
 import { EnrollmentEntity } from '../teaching/enrollment/enrollment.entity';
 import { User } from '../identity/entities/user.entity';
+import * as XLSX from 'xlsx';
 
 describe('ExportService', () => {
   let service: ExportService;
 
-  const mockFind = jest.fn();
+  const mockFind = jest.fn<
+    unknown,
+    Array<{ where?: Record<string, unknown> }>
+  >();
   const mockFindOne = jest.fn();
   const mockCreateQueryBuilder = jest.fn();
 
@@ -139,11 +143,11 @@ describe('ExportService', () => {
         ['name', 'age'],
         ['姓名', '年龄'],
       );
-      const XLSX = require('xlsx');
       const wb = XLSX.read(buffer, { type: 'buffer' });
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {
-        header: 1,
-      });
+      const rows = XLSX.utils.sheet_to_json<unknown[]>(
+        wb.Sheets[wb.SheetNames[0]],
+        { header: 1 },
+      );
       expect(rows[0]).toEqual(['姓名', '年龄']);
       expect(rows[1]).toEqual(['张三', 10]);
     });

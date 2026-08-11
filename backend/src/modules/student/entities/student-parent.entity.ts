@@ -9,7 +9,6 @@ import {
 } from 'typeorm';
 import { Student } from './student.entity';
 import { User } from '../../identity/entities/user.entity';
-import { ParentRelation } from '../enums/parent-relation.enum';
 
 @Entity('student_parent')
 export class StudentParent {

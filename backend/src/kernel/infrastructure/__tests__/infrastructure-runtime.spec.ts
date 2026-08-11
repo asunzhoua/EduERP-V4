@@ -30,32 +30,33 @@ class FakeUserAdapter implements IPersistenceAdapter<
   private store = new Map<number, PersistenceUser>();
   private nextId = 1;
 
-  async findById(id: number): Promise<PersistenceUser | null> {
-    return this.store.get(id) ?? null;
+  findById(id: number): Promise<PersistenceUser | null> {
+    return Promise.resolve(this.store.get(id) ?? null);
   }
 
-  async findAll(): Promise<PersistenceUser[]> {
-    return Array.from(this.store.values());
+  findAll(): Promise<PersistenceUser[]> {
+    return Promise.resolve(Array.from(this.store.values()));
   }
 
-  async save(entity: PersistenceUser): Promise<PersistenceUser> {
+  save(entity: PersistenceUser): Promise<PersistenceUser> {
     if (!entity.id) {
       entity = { ...entity, id: this.nextId++ };
     }
     this.store.set(entity.id, entity);
-    return entity;
+    return Promise.resolve(entity);
   }
 
-  async delete(id: number): Promise<void> {
+  delete(id: number): Promise<void> {
     this.store.delete(id);
+    return Promise.resolve();
   }
 
-  async exists(id: number): Promise<boolean> {
-    return this.store.has(id);
+  exists(id: number): Promise<boolean> {
+    return Promise.resolve(this.store.has(id));
   }
 
-  async count(): Promise<number> {
-    return this.store.size;
+  count(): Promise<number> {
+    return Promise.resolve(this.store.size);
   }
 }
 

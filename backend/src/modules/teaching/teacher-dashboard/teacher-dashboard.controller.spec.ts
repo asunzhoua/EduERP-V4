@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { TeacherDashboardController } from './teacher-dashboard.controller';
 import { TeacherAssignmentEntity } from '../teacher-assignment/teacher-assignment.entity';
 import { ClassEntity } from '../class/class.entity';
@@ -89,8 +88,6 @@ describe('TeacherDashboardController', () => {
     });
 
     it('should return dashboard stats when teacher has assignments', async () => {
-      const today = new Date().toISOString().split('T')[0];
-
       mockTeacherAssignmentRepo.find.mockResolvedValue([
         { classCode: 'CLS-001', teacherId: 100 },
         { classCode: 'CLS-002', teacherId: 100 },

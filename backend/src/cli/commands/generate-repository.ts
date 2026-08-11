@@ -4,7 +4,6 @@
 
 export function generateRepository(name: string, module: string): string {
   const className = `${name}Repository`;
-  const aggregateName = `${name}Aggregate`;
   const pascalModule = module.charAt(0).toUpperCase() + module.slice(1);
 
   return `/**

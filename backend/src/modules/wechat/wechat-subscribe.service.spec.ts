@@ -1,15 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException } from '@nestjs/common';
-import { Repository } from 'typeorm';
 import { WechatSubscribeService } from './wechat-subscribe.service';
 import { WechatSubscribe } from './entities/wechat-subscribe.entity';
 import { User } from '../identity/entities/user.entity';
 
 describe('WechatSubscribeService', () => {
   let service: WechatSubscribeService;
-  let userRepo: jest.Mocked<Partial<Repository<User>>>;
-  let subscribeRepo: jest.Mocked<Partial<Repository<WechatSubscribe>>>;
+  let userRepo: { findOne: jest.Mock };
+  let subscribeRepo: {
+    findOne: jest.Mock;
+    create: jest.Mock;
+    save: jest.Mock;
+    find?: jest.Mock;
+  };
 
   beforeEach(async () => {
     userRepo = {
@@ -95,7 +99,7 @@ describe('WechatSubscribeService', () => {
     it('should insert new subscription with quota 1 for accept', async () => {
       userRepo.findOne.mockResolvedValue({ id: 1, openid: 'oX-abc' });
       subscribeRepo.findOne.mockResolvedValue(null);
-      subscribeRepo.create.mockImplementation((e: any) => e);
+      subscribeRepo.create.mockImplementation((e: WechatSubscribe) => e);
 
       const result = await service.recordSubscription(1, [acceptSub]);
 
@@ -165,9 +169,9 @@ describe('WechatSubscribeService', () => {
       ] as WechatSubscribe[];
 
       // find returns array
-      const find = subscribeRepo.find as jest.Mock;
+      const find = subscribeRepo.find;
       if (!find) {
-        (subscribeRepo as any).find = jest.fn().mockResolvedValue(rows);
+        subscribeRepo.find = jest.fn().mockResolvedValue(rows);
       } else {
         find.mockResolvedValue(rows);
       }
@@ -191,9 +195,9 @@ describe('WechatSubscribeService', () => {
     });
 
     it('should return empty array when no subscriptions', async () => {
-      const find = subscribeRepo.find as jest.Mock;
+      const find = subscribeRepo.find;
       if (!find) {
-        (subscribeRepo as any).find = jest.fn().mockResolvedValue([]);
+        subscribeRepo.find = jest.fn().mockResolvedValue([]);
       } else {
         find.mockResolvedValue([]);
       }

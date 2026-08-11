@@ -79,7 +79,10 @@ export class ContractController {
   @ApiOperation({
     summary: '批量分配课时（累加），Excel 列：学员编码/科目/课时数',
   })
-  async importLessons(@UploadedFile() file: Express.Multer.File, @Req() req: AuthedRequest) {
+  async importLessons(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: AuthedRequest,
+  ) {
     if (!file) {
       throw new BadRequestException('请上传文件');
     }

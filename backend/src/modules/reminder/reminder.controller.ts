@@ -33,7 +33,10 @@ export class ReminderController {
 
   @Get()
   @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
-  async findMyReminders(@Req() req: AuthedRequest, @Query() query: QueryReminderDto) {
+  async findMyReminders(
+    @Req() req: AuthedRequest,
+    @Query() query: QueryReminderDto,
+  ) {
     const userId = req.user.sub;
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
@@ -48,7 +51,10 @@ export class ReminderController {
 
   @Patch(':id/read')
   @Roles('SuperAdmin', 'Admin', 'Teacher', 'Student', 'Parent')
-  async markAsRead(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
+  async markAsRead(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthedRequest,
+  ) {
     const userId = req.user.sub;
     const reminder = await this.reminderService.markAsRead(id, userId);
     return ApiResponse.success(reminder);

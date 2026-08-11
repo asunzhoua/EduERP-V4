@@ -8,7 +8,6 @@ import { EnrollmentService } from '../enrollment/enrollment.service';
 
 describe('ClassController', () => {
   let controller: ClassController;
-  let service: ClassService;
 
   const mockClassService = {
     create: jest.fn(),
@@ -45,7 +44,6 @@ describe('ClassController', () => {
     }).compile();
 
     controller = module.get(ClassController);
-    service = module.get(ClassService);
   });
 
   afterEach(() => {

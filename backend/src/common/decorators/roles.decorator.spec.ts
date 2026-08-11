@@ -5,7 +5,10 @@ describe('@Roles() decorator', () => {
     @Roles('admin', 'teacher')
     class TestController {}
 
-    const roles = Reflect.getMetadata(ROLES_KEY, TestController);
+    const roles = Reflect.getMetadata(
+      ROLES_KEY,
+      TestController,
+    ) as unknown as string[];
     expect(roles).toEqual(['admin', 'teacher']);
   });
 
@@ -13,7 +16,10 @@ describe('@Roles() decorator', () => {
     @Roles()
     class EmptyController {}
 
-    const roles = Reflect.getMetadata(ROLES_KEY, EmptyController);
+    const roles = Reflect.getMetadata(
+      ROLES_KEY,
+      EmptyController,
+    ) as unknown as string[];
     expect(roles).toEqual([]);
   });
 });

@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import * as XLSX from 'xlsx';
 
 export interface ImportColumn {
@@ -28,7 +27,7 @@ export class ImportService {
   /**
    * Parse a buffer (xlsx or csv) into an array of row objects.
    */
-  parseBuffer(buffer: Buffer, fileName: string): Record<string, string>[] {
+  parseBuffer(buffer: Buffer, _fileName: string): Record<string, string>[] {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     if (!sheetName) {

@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { TeacherAssignmentController } from './teacher-assignment.controller';
 import { TeacherAssignmentService } from './teacher-assignment.service';
 import { TeacherAssignmentEntity } from './teacher-assignment.entity';
@@ -11,8 +10,16 @@ import { ApiResponse } from '@common/dto/api-response';
 
 describe('TeacherAssignmentController', () => {
   let controller: TeacherAssignmentController;
-  let service: jest.Mocked<TeacherAssignmentService>;
-  let repo: jest.Mocked<Repository<TeacherAssignmentEntity>>;
+  let service: {
+    assign: jest.Mock;
+    unassign: jest.Mock;
+    findAll: jest.Mock;
+    findActiveByClass: jest.Mock;
+    findActivePrimary: jest.Mock;
+    findAllByClass: jest.Mock;
+    countActivePrimary: jest.Mock;
+  };
+  let repo: { findOneBy: jest.Mock };
 
   const mockAssignment: TeacherAssignmentEntity = {
     id: 1,

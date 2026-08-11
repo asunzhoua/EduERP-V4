@@ -1,6 +1,8 @@
 import { ContractRepository } from './contract.repository';
 import { ContractStatus } from './enums/contract-status.enum';
 import { Subject } from '@common/enums/subject.enum';
+import { Repository } from 'typeorm';
+import { ContractEntity } from './contract.entity';
 
 describe('ContractRepository', () => {
   let repo: ContractRepository;
@@ -9,7 +11,9 @@ describe('ContractRepository', () => {
   beforeEach(() => {
     mockRepo.findOne.mockReset();
     mockRepo.find.mockReset();
-    repo = new ContractRepository(mockRepo as any);
+    repo = new ContractRepository(
+      mockRepo as unknown as Repository<ContractEntity>,
+    );
   });
 
   it('findActiveByStudentCodeAndSubject filters by student+subject+ACTIVE and orders validFrom ASC', async () => {

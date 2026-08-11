@@ -5,7 +5,12 @@ import { AppModule } from './app.module';
 
 describe('AppModule', () => {
   it('should register ScheduleModule so @Cron jobs are scheduled', () => {
-    const imports: any[] = Reflect.getMetadata('imports', AppModule) ?? [];
+    interface ModuleMetadata {
+      module?: { name?: string };
+      name?: string;
+    }
+    const imports = (Reflect.getMetadata('imports', AppModule) ??
+      []) as unknown as ModuleMetadata[];
     const hasScheduleModule = imports.some((mod) => {
       const name = mod?.module?.name ?? mod?.name;
       return name === 'ScheduleModule';

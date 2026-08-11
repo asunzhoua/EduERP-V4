@@ -54,7 +54,10 @@ export class AuthController {
   @Public()
   @Post('wechat-login')
   @HttpCode(HttpStatus.OK)
-  async wechatLogin(@Body() wechatLoginDto: WechatLoginDto, @Req() req: AuthedRequest) {
+  async wechatLogin(
+    @Body() wechatLoginDto: WechatLoginDto,
+    @Req() req: AuthedRequest,
+  ) {
     const ip = req.ip;
     const device = req.headers['user-agent'];
     const result = await this.authService.wechatLogin(
@@ -145,7 +148,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SuperAdmin', 'Admin')
   @HttpCode(HttpStatus.OK)
-  async revokeSession(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
+  async revokeSession(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthedRequest,
+  ) {
     await this.authService.revokeUserSessions(req.user.sub, id);
     return ApiResponse.success(null, '已撤销该用户的会话');
   }
@@ -172,7 +178,10 @@ export class AuthController {
   @Post('wechat/bind')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async bindWechat(@Body() bindWechatDto: BindWechatDto, @Req() req: AuthedRequest) {
+  async bindWechat(
+    @Body() bindWechatDto: BindWechatDto,
+    @Req() req: AuthedRequest,
+  ) {
     const result = await this.authService.bindWechat(
       req.user.sub,
       bindWechatDto.code,

@@ -1,12 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
-import { OptimizedExceptionFilter } from './optimized-exception.filter';
+import {
+  OptimizedExceptionFilter,
+  ErrorResponse,
+} from './optimized-exception.filter';
 import { ConfigService } from '@nestjs/config';
 
 describe('OptimizedExceptionFilter', () => {
   let filter: OptimizedExceptionFilter;
-  let mockResponse: any;
-  let mockRequest: any;
+  let mockResponse: {
+    status: jest.Mock;
+    json: jest.Mock<unknown, [ErrorResponse]>;
+  };
+  let mockRequest: { url: string };
   let mockHost: ArgumentsHost;
 
   const createTestModule = async (nodeEnv?: string) => {
@@ -33,7 +39,7 @@ describe('OptimizedExceptionFilter', () => {
 
     mockResponse = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      json: jest.fn<unknown, [ErrorResponse]>(),
     };
 
     mockRequest = {
@@ -45,7 +51,7 @@ describe('OptimizedExceptionFilter', () => {
         getResponse: () => mockResponse,
         getRequest: () => mockRequest,
       }),
-    } as any;
+    } as unknown as ArgumentsHost;
   });
 
   it('should be defined', () => {
@@ -245,9 +251,9 @@ describe('OptimizedExceptionFilter', () => {
 
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          timestamp: expect.any(String),
+          timestamp: expect.any(String) as string,
           path: '/api/v1/test',
-          error: expect.any(String),
+          error: expect.any(String) as string,
         }),
       );
     });

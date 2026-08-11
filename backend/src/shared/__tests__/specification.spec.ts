@@ -1,4 +1,3 @@
-import { ISpecification } from '../specification/specification';
 import {
   CompositeSpecification,
   AndSpecification,
@@ -103,9 +102,11 @@ describe('Specification', () => {
     });
 
     it('should support complex chains', () => {
-      const spec = (new IsPositive().and(new IsEven()) as any).or(
-        new IsGreaterThanTen(),
-      );
+      const spec = (
+        new IsPositive().and(
+          new IsEven(),
+        ) as unknown as CompositeSpecification<number>
+      ).or(new IsGreaterThanTen());
 
       expect(spec.isSatisfiedBy(2)).toBe(true); // positive AND even
       expect(spec.isSatisfiedBy(11)).toBe(true); // > 10

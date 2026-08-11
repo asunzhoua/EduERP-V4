@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import * as path from 'path';
 
 const mockLogDir = path.resolve(__dirname, '../../logs');
@@ -9,13 +8,15 @@ const mockLogDir = path.resolve(__dirname, '../../logs');
 // file-stream-rotator size-rotation probe (which calls existsSync in a loop
 // while creating numbered rotated files) terminates instead of looping forever.
 const mockFs = {
-  existsSync: jest.fn().mockImplementation((p) => p === mockLogDir),
-  mkdirSync: jest.fn(),
-  appendFileSync: jest.fn(),
+  existsSync: jest
+    .fn<boolean, [p: string]>()
+    .mockImplementation((p) => p === mockLogDir),
+  mkdirSync: jest.fn<void, [p: string, options?: { recursive?: boolean }]>(),
+  appendFileSync: jest.fn<void, [path: string, data: string]>(),
 };
 
 jest.mock('fs', () => ({
-  ...jest.requireActual('fs'),
+  ...jest.requireActual<typeof import('fs')>('fs'),
   existsSync: mockFs.existsSync,
   mkdirSync: mockFs.mkdirSync,
   appendFileSync: mockFs.appendFileSync,

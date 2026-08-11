@@ -15,11 +15,11 @@ class CreateStudentHandler implements ICommandHandler<
   CreateStudentCommand,
   number
 > {
-  async execute(command: CreateStudentCommand): Promise<Result<number>> {
+  execute(command: CreateStudentCommand): Promise<Result<number>> {
     if (!command.name) {
-      return Result.fail(new Error('Name is required'));
+      return Promise.resolve(Result.fail(new Error('Name is required')));
     }
-    return Result.ok(42);
+    return Promise.resolve(Result.ok(42));
   }
 }
 
@@ -33,7 +33,6 @@ describe('Command', () => {
     });
 
     it('should accept custom commandId and timestamp', () => {
-      const date = new Date('2026-01-01');
       const cmd = new CreateStudentCommand('Alice', 'alice@test.com');
       Object.defineProperty(cmd, 'commandId', { value: 'custom-id' });
 

@@ -1,11 +1,5 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsEnum,
-  MaxLength,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsEnum, MaxLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import { LeaveType } from '../leave-request.entity';
 
 /**

@@ -6,7 +6,7 @@ import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { ApiResponse } from '@common/dto/api-response';
 import { AuthedRequest } from '@common/types/authed-request';
-import { SettingsService, SettingEntry } from './settings.service';
+import { SettingsService } from './settings.service';
 
 class SaveSettingsDto {
   @IsOptional()

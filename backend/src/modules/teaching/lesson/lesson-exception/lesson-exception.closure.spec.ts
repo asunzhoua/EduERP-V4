@@ -1,11 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken, getEntityManagerToken } from '@nestjs/typeorm';
-import { Repository, EntityManager } from 'typeorm';
-import {
-  BadRequestException,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 // ─── Services ───
 import { LessonExceptionService } from './lesson-exception.service';
@@ -22,15 +19,69 @@ import { LessonEntity } from '../lesson.entity';
 import { LessonStatus } from '../enums/lesson-status.enum';
 
 // ─── DTOs ───
-import { QueryExceptionDto } from './dto/query-exception.dto';
-import {
-  ApproveExceptionDto,
-  RejectExceptionDto,
-} from './dto/approve-exception.dto';
+import { ApproveExceptionDto } from './dto/approve-exception.dto';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(() => 'test-uuid'),
 }));
+
+// ─── Mock types ───
+
+// Stable QueryBuilder mock used by findAllExceptionsWithQuery tests.
+type MockQueryBuilder = {
+  leftJoinAndSelect: jest.Mock;
+  orderBy: jest.Mock;
+  andWhere: jest.Mock<MockQueryBuilder, [string, object]>;
+  getMany: jest.Mock;
+};
+
+// Private method surface, exposed for state-transition tests.
+type LessonExceptionServicePrivate = {
+  transitionLessonStatus(
+    lessonId: number,
+    newStatus: LessonStatus,
+    operatorId: number,
+    operatorType: 'USER' | 'SYSTEM',
+    remark?: string,
+  ): Promise<void>;
+};
+
+// Prototype method reflection for audit (source-level) assertions.
+type ExceptionServiceMethods = Record<string, (...args: never[]) => unknown>;
+
+// Mock repo/service shapes for the closure audit.
+type MockExceptionRepo = {
+  find: jest.Mock<Promise<LessonExceptionEntity[]>, [unknown]>;
+  findOne: jest.Mock<Promise<LessonExceptionEntity | null>, [unknown]>;
+  save: jest.Mock<Promise<LessonExceptionEntity>, [unknown]>;
+  createQueryBuilder: jest.Mock<MockQueryBuilder, [unknown]>;
+};
+
+type MockExceptionLogRepo = {
+  find: jest.Mock<Promise<LessonExceptionLogEntity[]>, [unknown]>;
+  save: jest.Mock<Promise<LessonExceptionLogEntity>, [unknown]>;
+};
+
+type MockRescheduleRepo = {
+  find: jest.Mock<Promise<LessonRescheduleEntity[]>, [unknown]>;
+  save: jest.Mock<Promise<LessonRescheduleEntity>, [unknown]>;
+};
+
+type MockLessonRepo = {
+  find: jest.Mock<Promise<LessonEntity[]>, [unknown]>;
+  findOne: jest.Mock<Promise<LessonEntity | null>, [unknown]>;
+  save: jest.Mock<Promise<LessonEntity>, [unknown]>;
+};
+
+type MockEventBus = {
+  publish: jest.Mock<void, [string, Record<string, unknown>]>;
+  subscribe: jest.Mock<void, [string, unknown]>;
+};
+
+type MockEntityManager = {
+  createQueryBuilder: jest.Mock<unknown, []>;
+  query: jest.Mock;
+};
 
 // ========================================================================
 // Lesson Exception Closure Audit
@@ -48,17 +99,15 @@ jest.mock('uuid', () => ({
 describe('Lesson Exception Closure Audit', () => {
   // ─── Module & Service References ───
   let exceptionService: LessonExceptionService;
-  let exceptionController: LessonExceptionController;
 
   // ─── Mock Repos & Services ───
-  let exceptionRepo: jest.Mocked<Repository<LessonExceptionEntity>>;
-  let exceptionLogRepo: jest.Mocked<Repository<LessonExceptionLogEntity>>;
-  let rescheduleRepo: jest.Mocked<Repository<LessonRescheduleEntity>>;
-  let attachmentRepo: jest.Mocked<Repository<LessonExceptionAttachmentEntity>>;
-  let lessonRepo: jest.Mocked<Repository<LessonEntity>>;
-  let mockEventBus: jest.Mocked<EventBusService>;
-  let mockEntityManager: jest.Mocked<EntityManager>;
-  let mockQb: any; // stable QB for findAllExceptionsWithQuery tests
+  let exceptionRepo: MockExceptionRepo;
+  let exceptionLogRepo: MockExceptionLogRepo;
+  let rescheduleRepo: MockRescheduleRepo;
+  let lessonRepo: MockLessonRepo;
+  let mockEventBus: MockEventBus;
+  let mockEntityManager: MockEntityManager;
+  let mockQb: MockQueryBuilder; // stable QB for findAllExceptionsWithQuery tests
 
   // ─── Mock Data ───
   const mockLessonSCHEDULED: LessonEntity = {
@@ -82,18 +131,6 @@ describe('Lesson Exception Closure Audit', () => {
     confirmedAt: null,
     createdBy: 1001,
     createdAt: new Date('2026-07-01'),
-  };
-
-  const mockLessonTEACHING: LessonEntity = {
-    ...mockLessonSCHEDULED,
-    status: LessonStatus.TEACHING,
-    actualStartTime: new Date('2026-07-12T10:00:00'),
-  };
-
-  const mockLessonFINISHED: LessonEntity = {
-    ...mockLessonTEACHING,
-    status: LessonStatus.FINISHED,
-    actualEndTime: new Date('2026-07-12T11:30:00'),
   };
 
   const mockMakeupLesson: LessonEntity = {
@@ -139,12 +176,6 @@ describe('Lesson Exception Closure Audit', () => {
     role: 'Admin',
     name: '管理员',
   };
-  const superAdminUser = {
-    sub: 2,
-    username: 'superadmin',
-    role: 'SuperAdmin',
-    name: '超级管理员',
-  };
   const teacherUser = {
     sub: 100,
     username: 'teacher1',
@@ -163,7 +194,7 @@ describe('Lesson Exception Closure Audit', () => {
     mockQb = {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
+      andWhere: jest.fn<MockQueryBuilder, [string, object]>().mockReturnThis(),
       getMany: jest.fn().mockResolvedValue([]),
     };
     const mockExceptionRepo = {
@@ -193,11 +224,11 @@ describe('Lesson Exception Closure Audit', () => {
       findOne: jest.fn(),
     };
     mockEventBus = {
-      publish: jest.fn(),
-      subscribe: jest.fn(),
+      publish: jest.fn<void, [string, Record<string, unknown>]>(),
+      subscribe: jest.fn<void, [string, unknown]>(),
     };
     mockEntityManager = {
-      createQueryBuilder: jest.fn(),
+      createQueryBuilder: jest.fn<unknown, []>(),
       query: jest.fn(),
     };
 
@@ -234,24 +265,9 @@ describe('Lesson Exception Closure Audit', () => {
     exceptionRepo = module.get(getRepositoryToken(LessonExceptionEntity));
     exceptionLogRepo = module.get(getRepositoryToken(LessonExceptionLogEntity));
     rescheduleRepo = module.get(getRepositoryToken(LessonRescheduleEntity));
-    attachmentRepo = module.get(
-      getRepositoryToken(LessonExceptionAttachmentEntity),
-    );
     lessonRepo = module.get(getRepositoryToken(LessonEntity));
     // Keep mockEventBus and mockEntityManager as the mock objects we created
     // (not overwriting with module.get since those are the actual implementations)
-
-    // ── Compile Controller module ──
-    const controllerModule: TestingModule = await Test.createTestingModule({
-      controllers: [LessonExceptionController],
-      providers: [
-        { provide: LessonExceptionService, useValue: exceptionService },
-      ],
-    }).compile();
-
-    exceptionController = controllerModule.get<LessonExceptionController>(
-      LessonExceptionController,
-    );
   });
 
   afterEach(() => {
@@ -267,7 +283,9 @@ describe('Lesson Exception Closure Audit', () => {
       lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
       const savedException = { ...mockExceptionSick, id: 100 };
       exceptionRepo.save.mockResolvedValue(savedException);
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const result = await exceptionService.applyLeave(
         1,
@@ -287,7 +305,9 @@ describe('Lesson Exception Closure Audit', () => {
       // 验证关联关系正确
       expect(result.lessonId).toBe(1);
       expect(result.createdBy).toBe(1001);
-      expect(lessonRepo.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
+      expect(lessonRepo.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
     });
 
     it('事假应有正确类型和关联', async () => {
@@ -300,7 +320,9 @@ describe('Lesson Exception Closure Audit', () => {
         startTime: future,
         endTime: new Date(future.getTime() + 7200000),
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const result = await exceptionService.applyLeave(
         1,
@@ -320,7 +342,9 @@ describe('Lesson Exception Closure Audit', () => {
     it('病假不再强制上传附件', async () => {
       lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
       exceptionRepo.save.mockResolvedValue({ ...mockExceptionSick, id: 102 });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const result = await exceptionService.applyLeave(
         1,
@@ -337,7 +361,9 @@ describe('Lesson Exception Closure Audit', () => {
     it('家长（有孩子在该班级）可提交请假', async () => {
       lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
       exceptionRepo.save.mockResolvedValue({ ...mockExceptionSick, id: 103 });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
       // 隔离校验子查询：该家长关联的孩子在 CL2026070001 班级
       const mockSubQb = {
         select: jest.fn().mockReturnThis(),
@@ -363,7 +389,9 @@ describe('Lesson Exception Closure Audit', () => {
         'Parent',
       );
       expect(result.exceptionType).toBe('LEAVE_SICK');
-      expect(lessonRepo.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
+      expect(lessonRepo.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
     });
 
     it('家长（无孩子在该班级）提交请假被拒绝', async () => {
@@ -396,7 +424,9 @@ describe('Lesson Exception Closure Audit', () => {
     it('教师提交请假不触发家长隔离校验', async () => {
       lessonRepo.findOne.mockResolvedValue({ ...mockLessonSCHEDULED });
       exceptionRepo.save.mockResolvedValue({ ...mockExceptionSick, id: 104 });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const result = await exceptionService.applyLeave(
         1,
@@ -453,7 +483,9 @@ describe('Lesson Exception Closure Audit', () => {
           status: LessonStatus.CANCELLED,
           cancelledReason: '异常(LEAVE_SICK)审批通过',
         });
-        exceptionLogRepo.save.mockResolvedValue({} as any);
+        exceptionLogRepo.save.mockResolvedValue(
+          {} as unknown as LessonExceptionLogEntity,
+        );
 
         const result = await exceptionService.approve(1, 2001, '同意请假');
 
@@ -476,7 +508,7 @@ describe('Lesson Exception Closure Audit', () => {
         expect(completedEvents).toHaveLength(0);
       });
 
-      it('病假不应产生 SalaryRecord', async () => {
+      it('病假不应产生 SalaryRecord', () => {
         // 工资由 SalarySettlementService 按月结算读取 FINISHED 课时生成
         // 病假课时从 SCHEDULED -> CANCELLED，不经过 FINISHED
         // 因此结算引擎永远不会看到该课时，天然不会产生 SalaryRecord
@@ -488,7 +520,7 @@ describe('Lesson Exception Closure Audit', () => {
         // 结算引擎以 FINISHED 为数据源：源文件断言（见 Phase 6）
       });
 
-      it('病假不应产生 LessonFinishedEvent', async () => {
+      it('病假不应产生 LessonFinishedEvent', () => {
         // LessonFinishedEvent (lesson.finished) 只在 FINISHED -> ARCHIVED 时发布
         // 病假 Lesson 从 SCHEDULED -> CANCELLED，不经过 FINISHED
         const finishedEvents = mockEventBus.publish.mock.calls.filter(
@@ -523,7 +555,9 @@ describe('Lesson Exception Closure Audit', () => {
           ...mockLessonSCHEDULED,
           status: LessonStatus.SUSPENDED,
         });
-        exceptionLogRepo.save.mockResolvedValue({} as any);
+        exceptionLogRepo.save.mockResolvedValue(
+          {} as unknown as LessonExceptionLogEntity,
+        );
 
         const result = await exceptionService.approve(2, 2001, '同意事假');
 
@@ -557,7 +591,9 @@ describe('Lesson Exception Closure Audit', () => {
           ...mockLessonSCHEDULED,
           status: LessonStatus.SUSPENDED,
         });
-        exceptionLogRepo.save.mockResolvedValue({} as any);
+        exceptionLogRepo.save.mockResolvedValue(
+          {} as unknown as LessonExceptionLogEntity,
+        );
 
         await exceptionService.approve(5, 2001);
 
@@ -585,7 +621,9 @@ describe('Lesson Exception Closure Audit', () => {
         ...mockLessonSCHEDULED,
         status: LessonStatus.CANCELLED,
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       // 通过 approve 间接测试 transitionLessonStatus
       const pendingException = { ...mockExceptionSick, status: 'PENDING' };
@@ -609,7 +647,9 @@ describe('Lesson Exception Closure Audit', () => {
         ...mockLessonSCHEDULED,
         status: LessonStatus.SUSPENDED,
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const pendingException = {
         ...mockExceptionPersonal,
@@ -631,7 +671,7 @@ describe('Lesson Exception Closure Audit', () => {
       expect(savedLesson.status).toBe(LessonStatus.SUSPENDED);
     });
 
-    it('异常流程不能直接进入 COMPLETED（FINISHED）', async () => {
+    it('异常流程不能直接进入 COMPLETED（FINISHED）', () => {
       // exceptionType 映射中没有能直接到 FINISHED 的
       // 验证 approve 中的 lessonStatusMap 不包含 FINISHED
       const lessonStatusMap: Record<string, LessonStatus> = {
@@ -645,7 +685,7 @@ describe('Lesson Exception Closure Audit', () => {
       // 所有 exceptionType 都不能映射到 FINISHED/COMPLETED
       Object.values(lessonStatusMap).forEach((status) => {
         expect(status).not.toBe(LessonStatus.FINISHED);
-        expect(status).not.toBe(LessonStatus.COMPLETED as any);
+        expect(status).not.toBe(LessonStatus['COMPLETED']);
       });
     });
 
@@ -658,13 +698,9 @@ describe('Lesson Exception Closure Audit', () => {
 
       // 通过私有方法测试
       await expect(
-        (exceptionService as any).transitionLessonStatus(
-          1,
-          LessonStatus.SUSPENDED,
-          1,
-          'USER',
-          'test',
-        ),
+        (
+          exceptionService as unknown as LessonExceptionServicePrivate
+        ).transitionLessonStatus(1, LessonStatus.SUSPENDED, 1, 'USER', 'test'),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -704,7 +740,9 @@ describe('Lesson Exception Closure Audit', () => {
         ...mockLessonSCHEDULED,
         status: LessonStatus.CANCELLED,
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       const pendingException = { ...mockExceptionSick, status: 'PENDING' };
       exceptionRepo.findOne.mockResolvedValue(pendingException);
@@ -723,7 +761,7 @@ describe('Lesson Exception Closure Audit', () => {
       expect(completedCalls).toHaveLength(0);
     });
 
-    it('正常完成应扣减课时（产生 Ledger 事件）', async () => {
+    it('正常完成应扣减课时（产生 Ledger 事件）', () => {
       // 正常完成通过 LessonService.updateStatus 发布 lesson.completed
       // 该事件触发 Ledger 扣减
       // 这里使用 LessonService 验证事件发布
@@ -748,13 +786,11 @@ describe('Lesson Exception Closure Audit', () => {
       expect(completedPayload.durationMinutes).toBeGreaterThan(0);
     });
 
-    it('重复操作不会重复扣课', async () => {
+    it('重复操作不会重复扣课', () => {
       // 结算幂等由两层保证：
       // 1. 唯一索引 uk_salary_record_teacher_month_source_lesson (teacherId, month, source, lessonId)
       // 2. 结算事务内 recordKey() 去重（对已存在记录跳过）
       // 同一个月内重复结算同一 FINISHED 课时，不会生成第二条记录
-      const fs = require('fs');
-      const path = require('path');
       const settlementSource = fs.readFileSync(
         path.join(
           __dirname,
@@ -777,16 +813,11 @@ describe('Lesson Exception Closure Audit', () => {
       );
     });
 
-    it('课时变化必须来源 Lesson 完成事件', async () => {
+    it('课时变化必须来源 Lesson 完成事件', () => {
       // 核心原则验证：课时扣减只能通过 lesson.completed 事件驱动
       // 异常流程不允许直接修改课时
 
       // 验证异常服务中没有任何修改课时的逻辑
-      const exceptionServiceMethods = Object.getOwnPropertyNames(
-        Object.getPrototypeOf(exceptionService),
-      );
-
-      // 检查所有公开方法签名，确保没有课时修改逻辑
       const applyLeaveCode = exceptionService.applyLeave.toString();
       const approveCode = exceptionService.approve.toString();
 
@@ -808,8 +839,6 @@ describe('Lesson Exception Closure Audit', () => {
     it('结算引擎以 FINISHED 课时为数据源（源码断言）', () => {
       // 工资不再由事件监听器在 lesson.completed 时即时生成
       // SalarySettlementService.settle({month}) 读取当月 FINISHED 课时生成记录
-      const fs = require('fs');
-      const path = require('path');
       const settlementSource = fs.readFileSync(
         path.join(
           __dirname,
@@ -826,8 +855,6 @@ describe('Lesson Exception Closure Audit', () => {
 
     it('异常服务不再发布 salary.calculation.triggered', () => {
       // 旧的冗余事件已从异常流程移除，工资只由月度结算生成
-      const fs = require('fs');
-      const path = require('path');
       const exceptionSource = fs.readFileSync(
         path.join(__dirname, 'lesson-exception.service.ts'),
         'utf-8',
@@ -841,8 +868,6 @@ describe('Lesson Exception Closure Audit', () => {
       // SUSPENDED 课时未进入 FINISHED，结算引擎不会读取它
       expect(LessonStatus.SUSPENDED).toBeDefined();
       // 结算引擎只查询 FINISHED 状态
-      const fs = require('fs');
-      const path = require('path');
       const settlementSource = fs.readFileSync(
         path.join(
           __dirname,
@@ -895,7 +920,9 @@ describe('Lesson Exception Closure Audit', () => {
         ...cancelledLesson,
         status: LessonStatus.RESCHEDULED,
       });
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       await exceptionService.applyMakeup(
         1,
@@ -908,18 +935,22 @@ describe('Lesson Exception Closure Audit', () => {
       );
 
       // 现在完成补课
-      lessonRepo.findOne.mockImplementation((options: any) => {
-        const id = options?.where?.id;
-        if (id === 20) return Promise.resolve({ ...mockMakeupLesson });
-        if (id === 1)
-          return Promise.resolve({
-            ...mockLessonSCHEDULED,
-            status: LessonStatus.RESCHEDULED,
-          });
-        return Promise.resolve(null);
-      });
-      lessonRepo.save.mockResolvedValue({} as any);
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      lessonRepo.findOne.mockImplementation(
+        (options: { where: { id: number } }) => {
+          const id = options?.where?.id;
+          if (id === 20) return Promise.resolve({ ...mockMakeupLesson });
+          if (id === 1)
+            return Promise.resolve({
+              ...mockLessonSCHEDULED,
+              status: LessonStatus.RESCHEDULED,
+            });
+          return Promise.resolve(null);
+        },
+      );
+      lessonRepo.save.mockResolvedValue({} as unknown as LessonEntity);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
       mockEventBus.publish.mockClear();
 
       await exceptionService.completeMakeupLesson(20);
@@ -945,18 +976,22 @@ describe('Lesson Exception Closure Audit', () => {
 
     it('补课不应重复生成课时结果', async () => {
       // 验证幂等：同一补课完成两次
-      lessonRepo.findOne.mockImplementation((options: any) => {
-        const id = options?.where?.id;
-        if (id === 20) return Promise.resolve({ ...mockMakeupLesson });
-        if (id === 1)
-          return Promise.resolve({
-            ...mockLessonSCHEDULED,
-            status: LessonStatus.RESCHEDULED,
-          });
-        return Promise.resolve(null);
-      });
-      lessonRepo.save.mockResolvedValue({} as any);
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      lessonRepo.findOne.mockImplementation(
+        (options: { where: { id: number } }) => {
+          const id = options?.where?.id;
+          if (id === 20) return Promise.resolve({ ...mockMakeupLesson });
+          if (id === 1)
+            return Promise.resolve({
+              ...mockLessonSCHEDULED,
+              status: LessonStatus.RESCHEDULED,
+            });
+          return Promise.resolve(null);
+        },
+      );
+      lessonRepo.save.mockResolvedValue({} as unknown as LessonEntity);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       // 第一次完成
       await exceptionService.completeMakeupLesson(20);
@@ -994,18 +1029,22 @@ describe('Lesson Exception Closure Audit', () => {
     });
 
     it('原课程在补课后状态变为 MAKEUP_COMPLETED', async () => {
-      lessonRepo.findOne.mockImplementation((options: any) => {
-        const id = options?.where?.id;
-        if (id === 20) return Promise.resolve({ ...mockMakeupLesson });
-        if (id === 1)
-          return Promise.resolve({
-            ...mockLessonSCHEDULED,
-            status: LessonStatus.RESCHEDULED,
-          });
-        return Promise.resolve(null);
-      });
-      lessonRepo.save.mockResolvedValue({} as any);
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      lessonRepo.findOne.mockImplementation(
+        (options: { where: { id: number } }) => {
+          const id = options?.where?.id;
+          if (id === 20) return Promise.resolve({ ...mockMakeupLesson });
+          if (id === 1)
+            return Promise.resolve({
+              ...mockLessonSCHEDULED,
+              status: LessonStatus.RESCHEDULED,
+            });
+          return Promise.resolve(null);
+        },
+      );
+      lessonRepo.save.mockResolvedValue({} as unknown as LessonEntity);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       await exceptionService.completeMakeupLesson(20);
 
@@ -1069,7 +1108,9 @@ describe('Lesson Exception Closure Audit', () => {
     it('统计数据应来源于业务事件', () => {
       // 核心原则验证：统计模块不能自行计算，必须依赖业务事件
       // 验证异常服务不直接修改统计
-      const exceptionServiceProto = Object.getPrototypeOf(exceptionService);
+      const exceptionServiceProto = Object.getPrototypeOf(
+        exceptionService,
+      ) as object;
       const allMethodNames = Object.getOwnPropertyNames(exceptionServiceProto);
 
       // 检查没有方法直接操作统计
@@ -1080,7 +1121,9 @@ describe('Lesson Exception Closure Audit', () => {
         'dashboard',
       ];
       for (const methodName of allMethodNames) {
-        const method = (exceptionService as any)[methodName];
+        const method = (exceptionService as unknown as ExceptionServiceMethods)[
+          methodName
+        ];
         if (typeof method === 'function') {
           const methodStr = method.toString();
           for (const keyword of statisticsKeywords) {
@@ -1092,18 +1135,22 @@ describe('Lesson Exception Closure Audit', () => {
 
     it('业务事件包含完整统计所需信息', async () => {
       // 验证 Lesson 完成事件包含统计所需的所有字段
-      lessonRepo.findOne.mockImplementation((options: any) => {
-        const id = options?.where?.id;
-        if (id === 20) return Promise.resolve({ ...mockMakeupLesson });
-        if (id === 1)
-          return Promise.resolve({
-            ...mockLessonSCHEDULED,
-            status: LessonStatus.RESCHEDULED,
-          });
-        return Promise.resolve(null);
-      });
-      lessonRepo.save.mockResolvedValue({} as any);
-      exceptionLogRepo.save.mockResolvedValue({} as any);
+      lessonRepo.findOne.mockImplementation(
+        (options: { where: { id: number } }) => {
+          const id = options?.where?.id;
+          if (id === 20) return Promise.resolve({ ...mockMakeupLesson });
+          if (id === 1)
+            return Promise.resolve({
+              ...mockLessonSCHEDULED,
+              status: LessonStatus.RESCHEDULED,
+            });
+          return Promise.resolve(null);
+        },
+      );
+      lessonRepo.save.mockResolvedValue({} as unknown as LessonEntity);
+      exceptionLogRepo.save.mockResolvedValue(
+        {} as unknown as LessonExceptionLogEntity,
+      );
 
       await exceptionService.completeMakeupLesson(20);
 
@@ -1151,11 +1198,11 @@ describe('Lesson Exception Closure Audit', () => {
 
       const andWhereCalls = mockQb.andWhere.mock.calls;
       const teacherFilter = andWhereCalls.find(
-        ([condition]: string[]) =>
+        ([condition]: [string, object]) =>
           condition === 'lesson.teacherId = :teacherId',
       );
       expect(teacherFilter).toBeDefined();
-      expect(teacherFilter[1]).toEqual({ teacherId: 100 });
+      expect(teacherFilter![1]).toEqual({ teacherId: 100 });
     });
 
     it('家长只能查看自己孩子的课程', async () => {
@@ -1199,7 +1246,7 @@ describe('Lesson Exception Closure Audit', () => {
       // 验证 QB 的 andWhere 包含 classCodes 过滤
       const andWhereCalls = mockQb.andWhere.mock.calls;
       const classFilter = andWhereCalls.find(
-        ([condition]: string[]) =>
+        ([condition]: [string, object]) =>
           condition === 'lesson.classCode IN (:...classCodes)',
       );
       expect(classFilter).toBeDefined();
@@ -1315,10 +1362,17 @@ describe('Lesson Exception Closure Audit', () => {
       // 异常服务除 completeMakeupLesson（补课场景）外不应发布 lesson.completed
       const exceptionMethods = Object.getOwnPropertyNames(
         Object.getPrototypeOf(exceptionService),
-      ).filter((name) => typeof (exceptionService as any)[name] === 'function');
+      ).filter(
+        (name) =>
+          typeof (exceptionService as unknown as ExceptionServiceMethods)[
+            name
+          ] === 'function',
+      );
 
       for (const methodName of exceptionMethods) {
-        const methodStr = (exceptionService as any)[methodName].toString();
+        const methodStr = (
+          exceptionService as unknown as ExceptionServiceMethods
+        )[methodName].toString();
         // completeMakeupLesson 是唯一发布 lesson.completed 的异常方法（补课场景）
         if (methodName === 'completeMakeupLesson') {
           expect(methodStr).toContain('lesson.completed');
@@ -1338,15 +1392,19 @@ describe('Lesson Exception Closure Audit', () => {
 
     it('Exception 不能直接修改课时', () => {
       // 验证没有直接操作课时余额的逻辑
-      const allMethodsProto = Object.getPrototypeOf(exceptionService);
+      const allMethodsProto = Object.getPrototypeOf(exceptionService) as object;
       const allMethods = Object.getOwnPropertyNames(allMethodsProto);
 
       for (const methodName of allMethods) {
         if (
-          typeof (exceptionService as any)[methodName] === 'function' &&
+          typeof (exceptionService as unknown as ExceptionServiceMethods)[
+            methodName
+          ] === 'function' &&
           methodName !== 'constructor'
         ) {
-          const methodStr = (exceptionService as any)[methodName].toString();
+          const methodStr = (
+            exceptionService as unknown as ExceptionServiceMethods
+          )[methodName].toString();
           // 不应有直接操作余额的字段/方法引用
           expect(methodStr).not.toContain('lessonBalance');
           expect(methodStr).not.toContain('.balance');
@@ -1363,12 +1421,18 @@ describe('Lesson Exception Closure Audit', () => {
 
     it('Exception 不能直接修改统计结果', () => {
       // 验证异常服务没有统计相关操作
-      const allMethodsProto = Object.getPrototypeOf(exceptionService);
+      const allMethodsProto = Object.getPrototypeOf(exceptionService) as object;
       const allMethods = Object.getOwnPropertyNames(allMethodsProto);
 
       for (const methodName of allMethods) {
-        if (typeof (exceptionService as any)[methodName] === 'function') {
-          const methodStr = (exceptionService as any)[methodName].toString();
+        if (
+          typeof (exceptionService as unknown as ExceptionServiceMethods)[
+            methodName
+          ] === 'function'
+        ) {
+          const methodStr = (
+            exceptionService as unknown as ExceptionServiceMethods
+          )[methodName].toString();
           expect(methodStr).not.toContain('statistics');
           expect(methodStr).not.toContain('Statistics');
         }

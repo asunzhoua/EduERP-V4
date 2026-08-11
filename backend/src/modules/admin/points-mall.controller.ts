@@ -143,7 +143,10 @@ export class PointsMallController {
 
   @Post('products')
   @ApiOperation({ summary: '新增商品' })
-  async createProduct(@Body() dto: CreateProductDto, @Req() req: AuthedRequest) {
+  async createProduct(
+    @Body() dto: CreateProductDto,
+    @Req() req: AuthedRequest,
+  ) {
     const product = await this.pointsMallService.createProduct(
       {
         name: dto.name,

@@ -6,7 +6,6 @@
  */
 
 import { ISpecification } from '../../shared/specification/specification';
-import { CompositeSpecification } from '../../shared/specification/composite-specification';
 
 /**
  * Result of evaluating a specification against a candidate.

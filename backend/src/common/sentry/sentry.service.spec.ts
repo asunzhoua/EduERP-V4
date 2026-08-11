@@ -4,7 +4,6 @@ import { SentryService } from './sentry.service';
 
 describe('SentryService', () => {
   let service: SentryService;
-  let configService: ConfigService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -14,7 +13,7 @@ describe('SentryService', () => {
           provide: ConfigService,
           useValue: {
             get: jest.fn((key: string) => {
-              const config = {
+              const config: Record<string, string> = {
                 SENTRY_DSN: 'https://test@sentry.io/123',
                 NODE_ENV: 'test',
                 SENTRY_TRACES_SAMPLE_RATE: '0.1',
@@ -28,7 +27,6 @@ describe('SentryService', () => {
     }).compile();
 
     service = module.get<SentryService>(SentryService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   it('should be defined', () => {
@@ -48,7 +46,7 @@ describe('SentryService', () => {
             provide: ConfigService,
             useValue: {
               get: jest.fn((key: string) => {
-                const config = {
+                const config: Record<string, string> = {
                   SENTRY_DSN: '',
                   NODE_ENV: 'test',
                   SENTRY_TRACES_SAMPLE_RATE: '0.1',
@@ -106,7 +104,7 @@ describe('SentryService', () => {
             provide: ConfigService,
             useValue: {
               get: jest.fn((key: string) => {
-                const config = {
+                const config: Record<string, string> = {
                   SENTRY_DSN: '',
                   NODE_ENV: 'test',
                   SENTRY_TRACES_SAMPLE_RATE: '0.1',

@@ -21,11 +21,13 @@ describe('CommitEvents', () => {
   beforeEach(() => {
     publishedEvents = [];
     mockPublisher = {
-      publish: async (event: DomainEvent) => {
+      publish: (event: DomainEvent) => {
         publishedEvents.push(event);
+        return Promise.resolve();
       },
-      publishAll: async (events: DomainEvent[]) => {
+      publishAll: (events: DomainEvent[]) => {
         publishedEvents.push(...events);
+        return Promise.resolve();
       },
     };
     commitEvents = new CommitEvents(mockPublisher);

@@ -1,12 +1,67 @@
 import { BadRequestException } from '@nestjs/common';
+import { Repository } from 'typeorm';
 import { SalarySettlementService } from './salary-settlement.service';
 import { LessonStatus } from '@modules/teaching/lesson/enums/lesson-status.enum';
 import { AttendanceStatus } from '@modules/teaching/lesson-attendance/enums/attendance-status.enum';
 import { SalaryRecordSource, SalaryRuleType } from '../enums/salary.enums';
+import { SalaryRecordEntity } from '../entities/salary-record.entity';
+import { SalaryRuleEntity } from '../entities/salary-rule.entity';
+import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
+import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/lesson-attendance.entity';
+import { CourseEntity } from '@modules/teaching/course/course.entity';
+import { User } from '@modules/identity/entities/user.entity';
+
+type Row = Record<string, unknown>;
+
+type Where = {
+  status?: LessonStatus;
+  teacherId?: number;
+  month?: string;
+  lessonId?: { _value: unknown[] };
+  courseCode?: { _value: unknown[] };
+  id?: { _value: unknown[] };
+};
+
+type LessonOverrides = {
+  id?: number;
+  teacherId?: number;
+  courseCode?: string;
+  status?: LessonStatus;
+  scheduledDate?: string;
+  startTime?: string;
+  endTime?: string;
+};
+
+type AttendanceOverrides = {
+  id?: number;
+  lessonId?: number;
+  teacherId?: number;
+  studentCode?: string;
+  status?: AttendanceStatus;
+};
+
+type RuleOverrides = {
+  id?: number;
+  name?: string;
+  type?: SalaryRuleType;
+  baseAmount?: number;
+  multiplier?: number;
+  courseType?: string | null;
+  teacherLevel?: string | null;
+  isActive?: boolean;
+  config?: Record<string, unknown>;
+  createTime?: Date;
+  updateTime?: Date;
+};
+
+type CourseOverrides = {
+  courseCode?: string;
+  type?: string;
+};
 
 // ─── Mock Factories ───
 
-function createLesson(overrides: any = {}) {
+function createLesson(overrides: LessonOverrides = {}) {
   return {
     id: 1,
     teacherId: 5001,
@@ -19,7 +74,7 @@ function createLesson(overrides: any = {}) {
   };
 }
 
-function createAttendance(overrides: any = {}) {
+function createAttendance(overrides: AttendanceOverrides = {}) {
   return {
     id: 1,
     lessonId: 1,
@@ -30,7 +85,7 @@ function createAttendance(overrides: any = {}) {
   };
 }
 
-function createRule(overrides: any = {}) {
+function createRule(overrides: RuleOverrides = {}) {
   return {
     id: 1,
     name: '固定课时费',
@@ -47,14 +102,14 @@ function createRule(overrides: any = {}) {
   };
 }
 
-function createCourse(overrides: any = {}) {
+function createCourse(overrides: CourseOverrides = {}) {
   return { courseCode: 'MATH001', type: '1v1', ...overrides };
 }
 
-function createMockLessonRepo(lessons: any[]) {
+function createMockLessonRepo(lessons: Row[]) {
   return {
     _lessons: lessons,
-    find: jest.fn().mockImplementation(({ where }: any) => {
+    find: jest.fn().mockImplementation(({ where }: { where?: Where }) => {
       let out = lessons;
       if (where?.status) out = out.filter((l) => l.status === where.status);
       if (where?.teacherId)
@@ -64,10 +119,10 @@ function createMockLessonRepo(lessons: any[]) {
   };
 }
 
-function createMockAttendanceRepo(rows: any[]) {
+function createMockAttendanceRepo(rows: Row[]) {
   return {
     _rows: rows,
-    find: jest.fn().mockImplementation(({ where }: any) => {
+    find: jest.fn().mockImplementation(({ where }: { where?: Where }) => {
       const ids = where?.lessonId?._value;
       if (Array.isArray(ids)) {
         return Promise.resolve(rows.filter((r) => ids.includes(r.lessonId)));
@@ -77,10 +132,10 @@ function createMockAttendanceRepo(rows: any[]) {
   };
 }
 
-function createMockCourseRepo(rows: any[]) {
+function createMockCourseRepo(rows: Row[]) {
   return {
     _rows: rows,
-    find: jest.fn().mockImplementation(({ where }: any) => {
+    find: jest.fn().mockImplementation(({ where }: { where?: Where }) => {
       const codes = where?.courseCode?._value;
       if (Array.isArray(codes)) {
         return Promise.resolve(
@@ -92,13 +147,13 @@ function createMockCourseRepo(rows: any[]) {
   };
 }
 
-function createMockRuleRepo(rules: any[]) {
+function createMockRuleRepo(rules: Row[]) {
   return { find: jest.fn().mockResolvedValue(rules) };
 }
 
-function createMockUserRepo(users: any[]) {
+function createMockUserRepo(users: Row[]) {
   return {
-    find: jest.fn().mockImplementation(({ where }: any) => {
+    find: jest.fn().mockImplementation(({ where }: { where?: Where }) => {
       const ids = where?.id?._value;
       if (Array.isArray(ids)) {
         return Promise.resolve(users.filter((u) => ids.includes(Number(u.id))));
@@ -108,24 +163,28 @@ function createMockUserRepo(users: any[]) {
   };
 }
 
-function createMockRecordRepo(existing: any[] = []) {
-  const saved: any[] = [];
+function createMockRecordRepo(existing: Row[] = []) {
+  const saved: Row[] = [];
   const manager = {
-    transaction: jest.fn().mockImplementation(async (cb: any) => {
-      const em = {
-        save: jest.fn().mockImplementation((_cls: any, entities: any[]) => {
-          saved.push(...entities);
-          return Promise.resolve(entities);
-        }),
-      };
-      return cb(em);
-    }),
+    transaction: jest
+      .fn()
+      .mockImplementation((cb: (em: unknown) => unknown) => {
+        const em = {
+          save: jest
+            .fn()
+            .mockImplementation((_cls: unknown, entities: Row[]) => {
+              saved.push(...entities);
+              return Promise.resolve(entities);
+            }),
+        };
+        return cb(em);
+      }),
   };
   return {
     _existing: existing,
     _saved: saved,
     manager,
-    find: jest.fn().mockImplementation(({ where }: any) => {
+    find: jest.fn().mockImplementation(({ where }: { where?: Where }) => {
       let out = existing;
       if (where?.month) out = out.filter((r) => r.month === where.month);
       if (where?.teacherId)
@@ -137,12 +196,12 @@ function createMockRecordRepo(existing: any[] = []) {
 
 function buildService(
   opts: {
-    lessons?: any[];
-    attendances?: any[];
-    courses?: any[];
-    rules?: any[];
-    existing?: any[];
-    users?: any[];
+    lessons?: Row[];
+    attendances?: Row[];
+    courses?: Row[];
+    rules?: Row[];
+    existing?: Row[];
+    users?: Row[];
   } = {},
 ) {
   const lessonRepo = createMockLessonRepo(opts.lessons ?? []);
@@ -152,12 +211,12 @@ function buildService(
   const recordRepo = createMockRecordRepo(opts.existing ?? []);
   const userRepo = createMockUserRepo(opts.users ?? []);
   const service = new SalarySettlementService(
-    recordRepo as any,
-    ruleRepo as any,
-    lessonRepo as any,
-    attendanceRepo as any,
-    courseRepo as any,
-    userRepo as any,
+    recordRepo as unknown as Repository<SalaryRecordEntity>,
+    ruleRepo as unknown as Repository<SalaryRuleEntity>,
+    lessonRepo as unknown as Repository<LessonEntity>,
+    attendanceRepo as unknown as Repository<LessonAttendanceEntity>,
+    courseRepo as unknown as Repository<CourseEntity>,
+    userRepo as unknown as Repository<User>,
   );
   return {
     service,
@@ -273,7 +332,7 @@ describe('SalarySettlementService.settle', () => {
     });
     const res = await service.settle('2026-07');
     expect(res.created).toBe(3);
-    const amounts = recordRepo._saved.map((r: any) => r.amount);
+    const amounts = recordRepo._saved.map((r) => r.amount);
     expect(amounts).toEqual([30, 30, 35]); // 按日期升序，第 3 节进入第二档
   });
 
@@ -293,11 +352,11 @@ describe('SalarySettlementService.settle', () => {
     });
     const res = await service.settle('2026-07');
     const base = recordRepo._saved.find(
-      (r: any) => r.source === SalaryRecordSource.BASE,
+      (r) => r.source === SalaryRecordSource.BASE,
     );
     expect(base).toBeDefined();
-    expect(base.amount).toBe(2000);
-    expect(base.lessonId).toBeNull();
+    expect(base!.amount).toBe(2000);
+    expect(base!.lessonId).toBeNull();
     expect(res.created).toBe(3); // 2 LESSON_FEE + 1 BASE
   });
 
@@ -316,14 +375,14 @@ describe('SalarySettlementService.settle', () => {
         }),
       ],
     });
-    const res = await service.settle('2026-07');
-    const sources = recordRepo._saved.map((r: any) => r.source);
+    await service.settle('2026-07');
+    const sources = recordRepo._saved.map((r) => r.source);
     expect(sources).not.toContain(SalaryRecordSource.LESSON_FEE);
     const base = recordRepo._saved.find(
-      (r: any) => r.source === SalaryRecordSource.BASE,
+      (r) => r.source === SalaryRecordSource.BASE,
     );
     expect(base).toBeDefined();
-    expect(base.amount).toBe(5000);
+    expect(base!.amount).toBe(5000);
     expect(recordRepo._saved).toHaveLength(1);
   });
 
@@ -343,14 +402,14 @@ describe('SalarySettlementService.settle', () => {
         }),
       ],
     });
-    const res = await service.settle('2026-07');
-    const sources = recordRepo._saved.map((r: any) => r.source);
+    await service.settle('2026-07');
+    const sources = recordRepo._saved.map((r) => r.source);
     expect(sources).not.toContain(SalaryRecordSource.LESSON_FEE);
     const dayRecords = recordRepo._saved.filter(
-      (r: any) => r.source === SalaryRecordSource.DAY,
+      (r) => r.source === SalaryRecordSource.DAY,
     );
     expect(dayRecords).toHaveLength(2); // 2 个不同日期
-    expect(dayRecords.map((r: any) => r.amount)).toEqual([300, 300]);
+    expect(dayRecords.map((r) => r.amount)).toEqual([300, 300]);
   });
 
   it('G5 学生考勤迟到/缺勤不再生成教师 DEDUCTION 记录', async () => {
@@ -370,9 +429,9 @@ describe('SalarySettlementService.settle', () => {
         }),
       ],
     });
-    const res = await service.settle('2026-07');
+    await service.settle('2026-07');
     const ded = recordRepo._saved.find(
-      (r: any) => r.source === SalaryRecordSource.DEDUCTION,
+      (r) => r.source === SalaryRecordSource.DEDUCTION,
     );
     expect(ded).toBeUndefined();
     expect(recordRepo._saved).toHaveLength(1); // 仅 LESSON_FEE
@@ -401,12 +460,12 @@ describe('SalarySettlementService.settle', () => {
         }),
       ],
     });
-    const res = await service.settle('2026-07');
+    await service.settle('2026-07');
     const bonus = recordRepo._saved.find(
-      (r: any) => r.source === SalaryRecordSource.BONUS,
+      (r) => r.source === SalaryRecordSource.BONUS,
     );
     expect(bonus).toBeDefined();
-    expect(bonus.amount).toBe(300); // 100 + 200
+    expect(bonus!.amount).toBe(300); // 100 + 200
   });
 
   it('指定教师结算只处理该教师课时', async () => {

@@ -61,7 +61,10 @@ export class LessonChangeRequestController {
   @Patch('change-requests/:id/approve')
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Approve a change request (admin)' })
-  async approve(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
+  async approve(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthedRequest,
+  ) {
     const result = await this.service.approve(id, req.user.sub);
     return ApiResponse.success(result, 'Change request approved');
   }
@@ -81,7 +84,10 @@ export class LessonChangeRequestController {
   @Patch('change-requests/:id/execute')
   @Roles('SuperAdmin', 'Admin')
   @ApiOperation({ summary: 'Execute an approved change request' })
-  async execute(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
+  async execute(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthedRequest,
+  ) {
     const result = await this.service.execute(id, req.user.sub);
     return ApiResponse.success(result, 'Change request executed');
   }

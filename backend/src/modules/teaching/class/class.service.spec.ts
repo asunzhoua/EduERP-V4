@@ -16,13 +16,9 @@ import { User } from '../../identity/entities/user.entity';
 
 describe('ClassService', () => {
   let service: ClassService;
-  let classRepo: jest.Mocked<ClassRepository>;
-  let codeGenerator: jest.Mocked<ClassCodeGeneratorService>;
-  let teacherService: jest.Mocked<TeacherAssignmentService>;
-  let courseRepo: jest.Mocked<CourseRepository>;
-  let enrollmentRepo: jest.Mocked<EnrollmentRepository>;
-  let lessonRepo: jest.Mocked<LessonRepository>;
-  let userRepo: jest.Mocked<any>;
+  let classRepo: { save: jest.Mock; findOneByCode: jest.Mock };
+  let codeGenerator: { generateClassCode: jest.Mock };
+  let teacherService: { countActivePrimary: jest.Mock; assign: jest.Mock };
   let mockRawCreate: jest.Mock;
 
   const mockClass: ClassEntity = {
@@ -110,10 +106,6 @@ describe('ClassService', () => {
     classRepo = module.get(ClassRepository);
     codeGenerator = module.get(ClassCodeGeneratorService);
     teacherService = module.get(TeacherAssignmentService);
-    courseRepo = module.get(CourseRepository);
-    enrollmentRepo = module.get(EnrollmentRepository);
-    lessonRepo = module.get(LessonRepository);
-    userRepo = module.get(getRepositoryToken(User));
   });
 
   // ─── Create ───

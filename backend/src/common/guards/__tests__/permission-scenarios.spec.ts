@@ -10,10 +10,8 @@
  * Tests the RolesGuard + controller-level data isolation logic.
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '@common/decorators/roles.decorator';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { AuthedRequest } from '@common/types/authed-request';
 
@@ -23,8 +21,8 @@ import { AuthedRequest } from '@common/types/authed-request';
 
 interface RoleTestCase {
   label: string;
-  userRole: string;
-  requiredRoles: string[];
+  userRole?: string;
+  requiredRoles?: string[];
   expected: boolean;
 }
 
@@ -210,12 +208,14 @@ describe('Scenario 2: Parent Data Isolation', () => {
   });
 
   describe('Controller-level: Parent data isolation in analytics', () => {
-    it('should prevent Parent from accessing non-bound student data', () => {
+    it('should prevent Parent from accessing non-bound student data', async () => {
       // Simulate the verifyStudentAccess logic from analytics controller
       const verifyStudentAccess = async (
         req: AuthedRequest,
         studentCode: string,
-        findOne: (opts: any) => Promise<any>,
+        findOne: (opts: {
+          where: { studentCode: string; deleted: boolean };
+        }) => Promise<{ userId: number } | null>,
       ) => {
         const user = req.user;
         if (
@@ -240,7 +240,7 @@ describe('Scenario 2: Parent Data Isolation', () => {
 
       // Parent accessing their own child's data — allowed
       mockFindOne.mockResolvedValue({ userId: 42 });
-      expect(
+      await expect(
         verifyStudentAccess(
           { user: { role: 'Parent', sub: 42 } },
           'STU-001',
@@ -250,7 +250,7 @@ describe('Scenario 2: Parent Data Isolation', () => {
 
       // Parent accessing another student — rejected
       mockFindOne.mockResolvedValue({ userId: 99 });
-      expect(
+      await expect(
         verifyStudentAccess(
           { user: { role: 'Parent', sub: 42 } },
           'STU-002',
@@ -260,7 +260,7 @@ describe('Scenario 2: Parent Data Isolation', () => {
 
       // Student accessing own data — allowed
       mockFindOne.mockResolvedValue({ userId: 42 });
-      expect(
+      await expect(
         verifyStudentAccess(
           { user: { role: 'Student', sub: 42 } },
           'STU-001',
@@ -269,7 +269,7 @@ describe('Scenario 2: Parent Data Isolation', () => {
       ).resolves.not.toThrow();
 
       // Teacher accessing any student — allowed, no check performed
-      expect(
+      await expect(
         verifyStudentAccess(
           { user: { role: 'Teacher', sub: 1 } },
           'ANY-STU',
@@ -514,7 +514,7 @@ describe('Scenario 4: Admin Can Manage All Data', () => {
     });
 
     it('should allow Admin to access any student data', () => {
-      const verifyStudentAccess = async (req: AuthedRequest) => {
+      const verifyStudentAccess = (req: AuthedRequest) => {
         const user = req.user;
         if (
           user.role === 'SuperAdmin' ||
@@ -525,12 +525,12 @@ describe('Scenario 4: Admin Can Manage All Data', () => {
         }
       };
 
-      expect(
+      expect(() =>
         verifyStudentAccess({ user: { role: 'Admin', sub: 5 } }),
-      ).resolves.not.toThrow();
-      expect(
+      ).not.toThrow();
+      expect(() =>
         verifyStudentAccess({ user: { role: 'SuperAdmin', sub: 1 } }),
-      ).resolves.not.toThrow();
+      ).not.toThrow();
     });
   });
 });
@@ -544,13 +544,13 @@ describe('Public endpoints (no @Roles decorator)', () => {
     {
       label: 'Any role can access public endpoints',
       userRole: 'Teacher',
-      requiredRoles: undefined as any,
+      requiredRoles: undefined,
       expected: true,
     },
     {
       label: 'No user also allowed on public endpoints',
-      userRole: undefined as any,
-      requiredRoles: undefined as any,
+      userRole: undefined,
+      requiredRoles: undefined,
       expected: true,
     },
   ]);

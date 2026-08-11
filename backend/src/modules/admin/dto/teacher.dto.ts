@@ -4,7 +4,6 @@ import {
   MaxLength,
   IsOptional,
   IsNumberString,
-  Matches,
   IsIn,
 } from 'class-validator';
 import { TEACHER_LEVELS } from '@modules/identity/entities/user.entity';

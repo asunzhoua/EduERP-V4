@@ -2,6 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { PoolMonitorService } from './pool-monitor.service';
 
+type MockPool = {
+  size: number;
+  active: number;
+  idle: number;
+  waiting: number;
+};
+
 describe('PoolMonitorService', () => {
   let service: PoolMonitorService;
   let dataSource: DataSource;
@@ -48,7 +55,7 @@ describe('PoolMonitorService', () => {
     });
 
     it('should handle missing pool', async () => {
-      (dataSource as any).driver = {};
+      (dataSource as unknown as { driver: { pool?: MockPool } }).driver = {};
 
       const stats = await service.getPoolStats();
 
@@ -60,7 +67,7 @@ describe('PoolMonitorService', () => {
     });
 
     it('should calculate usage correctly', async () => {
-      (dataSource as any).driver.pool = {
+      (dataSource as unknown as { driver: { pool?: MockPool } }).driver.pool = {
         size: 10,
         active: 8,
         idle: 2,
@@ -83,7 +90,7 @@ describe('PoolMonitorService', () => {
     });
 
     it('should return warning status for high usage', async () => {
-      (dataSource as any).driver.pool = {
+      (dataSource as unknown as { driver: { pool?: MockPool } }).driver.pool = {
         size: 10,
         active: 9,
         idle: 1,
@@ -97,7 +104,7 @@ describe('PoolMonitorService', () => {
     });
 
     it('should return critical status for very high usage', async () => {
-      (dataSource as any).driver.pool = {
+      (dataSource as unknown as { driver: { pool?: MockPool } }).driver.pool = {
         size: 10,
         active: 10,
         idle: 0,
@@ -111,7 +118,7 @@ describe('PoolMonitorService', () => {
     });
 
     it('should return warning status when there are waiting requests', async () => {
-      (dataSource as any).driver.pool = {
+      (dataSource as unknown as { driver: { pool?: MockPool } }).driver.pool = {
         size: 10,
         active: 5,
         idle: 5,
@@ -130,7 +137,8 @@ describe('PoolMonitorService', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      (dataSource as any).driver = null;
+      (dataSource as unknown as { driver: { pool?: MockPool } | null }).driver =
+        null;
 
       await expect(service.monitorPool()).resolves.not.toThrow();
     });

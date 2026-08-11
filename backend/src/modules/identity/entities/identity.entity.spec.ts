@@ -157,7 +157,7 @@ describe('Role entity', () => {
 
   it('should support nullable description', () => {
     const role = new Role();
-    role.description = null as any;
+    role.description = null as unknown as string;
     expect(role.description).toBeNull();
   });
 
@@ -275,7 +275,7 @@ describe('LoginLog entity', () => {
       ip: '192.168.1.1',
       device: 'Chrome/120 Windows',
       detail: '登录成功',
-      success: 1 as any,
+      success: 1 as unknown as boolean,
       createTime: now,
     });
 
@@ -294,7 +294,7 @@ describe('LoginLog entity', () => {
   it('should support LOGIN_FAILED action', () => {
     const log = new LoginLog();
     log.action = 'LOGIN_FAILED';
-    log.success = 0 as any;
+    log.success = 0 as unknown as boolean;
     expect(log.action).toBe('LOGIN_FAILED');
     expect(log.success).toBe(0);
   });

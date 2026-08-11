@@ -92,9 +92,13 @@ describe('PointsService', () => {
       totalEarned: 10,
       totalSpent: 0,
     });
-    accountRepo.save.mockImplementation((a) => Promise.resolve(a));
-    txRepo.create.mockImplementation((t) => t);
-    txRepo.save.mockImplementation((t) => Promise.resolve(t));
+    accountRepo.save.mockImplementation((a: PointsAccount) =>
+      Promise.resolve(a),
+    );
+    txRepo.create.mockImplementation((t: PointsTransaction) => t);
+    txRepo.save.mockImplementation((t: PointsTransaction) =>
+      Promise.resolve(t),
+    );
 
     const account = await service.credit('STU1', 5, '完成课时', {
       type: 'LESSON',
@@ -129,9 +133,13 @@ describe('PointsService', () => {
       totalEarned: 100,
       totalSpent: 0,
     });
-    accountRepo.save.mockImplementation((a) => Promise.resolve(a));
-    txRepo.create.mockImplementation((t) => t);
-    txRepo.save.mockImplementation((t) => Promise.resolve(t));
+    accountRepo.save.mockImplementation((a: PointsAccount) =>
+      Promise.resolve(a),
+    );
+    txRepo.create.mockImplementation((t: PointsTransaction) => t);
+    txRepo.save.mockImplementation((t: PointsTransaction) =>
+      Promise.resolve(t),
+    );
     productRepo.findOne.mockResolvedValue({
       id: 1,
       name: '笔记本',
@@ -140,9 +148,11 @@ describe('PointsService', () => {
       status: PointsProductStatus.ON_SALE,
       deleted: false,
     });
-    productRepo.save.mockImplementation((p) => Promise.resolve(p));
-    exchangeRepo.create.mockImplementation((r) => r);
-    exchangeRepo.save.mockImplementation((r) =>
+    productRepo.save.mockImplementation((p: PointsProduct) =>
+      Promise.resolve(p),
+    );
+    exchangeRepo.create.mockImplementation((r: PointsExchangeRecord) => r);
+    exchangeRepo.save.mockImplementation((r: PointsExchangeRecord) =>
       Promise.resolve({ ...r, id: 10 }),
     );
 
