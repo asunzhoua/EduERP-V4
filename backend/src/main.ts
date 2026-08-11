@@ -25,15 +25,17 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Swagger / OpenAPI
-  const config = new DocumentBuilder()
-    .setTitle('EduOS API')
-    .setDescription('Education Operating System — API Documentation')
-    .setVersion('v0.3.5')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  // Swagger / OpenAPI（生产环境关闭，避免公网暴露完整接口文档）
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('EduOS API')
+      .setDescription('Education Operating System — API Documentation')
+      .setVersion('v0.3.5')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   const logger = new AppLogger();
   const port = process.env.SERVER_PORT || 3000;
