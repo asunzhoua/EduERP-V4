@@ -30,14 +30,60 @@ export enum SalaryRuleType {
  * BASE       — 底薪汇总（lessonId 空，按 teacherId + month 一条）
  * DAY        — 按天汇总（lessonId 空，按 teacherId + month + 日期一条）
  * BONUS      — 绩效奖励（lessonId 空）
- * DEDUCTION  — 扣款（lessonId 空）
+ * ALLOWANCE  — 津贴（通勤/住房/高温/其他，按 teacherId + month 汇总一条）
+ * DEDUCTION  — 扣款（请假/其他，按 teacherId + month 汇总一条）
+ * OUTING     — 外派课时（每笔一条，lessonId 存 outing_record.id，独立来源避免与 LESSON_FEE 的 lessonId 冲突）
  */
 export enum SalaryRecordSource {
   LESSON_FEE = 'LESSON_FEE',
   BASE = 'BASE',
   DAY = 'DAY',
   BONUS = 'BONUS',
+  ALLOWANCE = 'ALLOWANCE',
   DEDUCTION = 'DEDUCTION',
+  OUTING = 'OUTING',
+}
+
+/**
+ * 教师聘用形式（教师薪资档案）
+ *
+ * FULL_TIME — 全职（底薪 + 课时费）
+ * PART_TIME — 兼职
+ * OUTER     — 外聘
+ */
+export enum TeacherEmploymentType {
+  FULL_TIME = 'FULL_TIME',
+  PART_TIME = 'PART_TIME',
+  OUTER = 'OUTER',
+}
+
+/**
+ * 外派课时记录状态
+ *
+ * PENDING   — 待确认
+ * CONFIRMED — 已确认（仅 CONFIRMED 计入结算）
+ */
+export enum OutingRecordStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+}
+
+/**
+ * 津贴类型（教师薪资档案 / 规则 config.allowances）
+ */
+export enum AllowanceType {
+  COMMUTING = 'COMMUTING',
+  HOUSING = 'HOUSING',
+  HIGH_TEMP = 'HIGH_TEMP',
+  OTHER = 'OTHER',
+}
+
+/**
+ * 扣款类型（教师薪资档案 / 规则 config.deductions）
+ */
+export enum DeductionType {
+  LEAVE = 'LEAVE',
+  OTHER = 'OTHER',
 }
 
 /**

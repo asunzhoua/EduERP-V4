@@ -3,9 +3,15 @@ import { Repository } from 'typeorm';
 import { SalarySettlementService } from './salary-settlement.service';
 import { LessonStatus } from '@modules/teaching/lesson/enums/lesson-status.enum';
 import { AttendanceStatus } from '@modules/teaching/lesson-attendance/enums/attendance-status.enum';
-import { SalaryRecordSource, SalaryRuleType } from '../enums/salary.enums';
+import {
+  OutingRecordStatus,
+  SalaryRecordSource,
+  SalaryRuleType,
+} from '../enums/salary.enums';
 import { SalaryRecordEntity } from '../entities/salary-record.entity';
 import { SalaryRuleEntity } from '../entities/salary-rule.entity';
+import { TeacherSalaryProfileEntity } from '../entities/teacher-salary-profile.entity';
+import { OutingRecordEntity } from '../entities/outing-record.entity';
 import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
 import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/lesson-attendance.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
@@ -13,13 +19,21 @@ import { User } from '@modules/identity/entities/user.entity';
 
 type Row = Record<string, unknown>;
 
+/** salary_record.detail 中本 spec 会断言的字段（类型安全，替代 as any） */
+interface RecordDetail {
+  ruleSnapshot?: { source?: string };
+  outingId?: number;
+  lessonCount?: number;
+}
+
 type Where = {
-  status?: LessonStatus;
-  teacherId?: number;
+  status?: LessonStatus | OutingRecordStatus;
+  teacherId?: number | { _value: unknown[] };
   month?: string;
   lessonId?: { _value: unknown[] };
   courseCode?: { _value: unknown[] };
   id?: { _value: unknown[] };
+  outingDate?: { _value: [string, string] };
 };
 
 type LessonOverrides = {
@@ -57,6 +71,33 @@ type RuleOverrides = {
 type CourseOverrides = {
   courseCode?: string;
   type?: string;
+};
+
+type ProfileOverrides = {
+  id?: number;
+  teacherId?: number;
+  employmentType?: string;
+  ruleType?: SalaryRuleType;
+  salaryConfig?: Record<string, unknown> | null;
+  allowances?: Record<string, unknown>[] | null;
+  deductions?: Record<string, unknown>[] | null;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
+  isActive?: boolean;
+  createTime?: Date;
+  updateTime?: Date;
+};
+
+type OutingOverrides = {
+  id?: number;
+  teacherId?: number;
+  outingDate?: string;
+  location?: string | null;
+  lessonCount?: number;
+  note?: string | null;
+  status?: OutingRecordStatus;
+  createTime?: Date;
+  updateTime?: Date;
 };
 
 // ─── Mock Factories ───
@@ -104,6 +145,39 @@ function createRule(overrides: RuleOverrides = {}) {
 
 function createCourse(overrides: CourseOverrides = {}) {
   return { courseCode: 'MATH001', type: '1v1', ...overrides };
+}
+
+function createProfile(overrides: ProfileOverrides = {}) {
+  return {
+    id: 9001,
+    teacherId: 5001,
+    employmentType: 'FULL_TIME',
+    ruleType: SalaryRuleType.PER_LESSON,
+    salaryConfig: { lessonPrice: 95, baseSalary: 3000 },
+    allowances: [{ type: 'COMMUTING', name: '通勤补贴', amount: 200 }],
+    deductions: [{ type: 'LEAVE', name: '请假扣款', amount: 100 }],
+    effectiveFrom: null,
+    effectiveTo: null,
+    isActive: true,
+    createTime: new Date('2026-07-01'),
+    updateTime: new Date('2026-07-01'),
+    ...overrides,
+  };
+}
+
+function createOuting(overrides: OutingOverrides = {}) {
+  return {
+    id: 1,
+    teacherId: 5001,
+    outingDate: '2026-07-15',
+    location: '合作校',
+    lessonCount: 2,
+    note: null,
+    status: OutingRecordStatus.CONFIRMED,
+    createTime: new Date('2026-07-01'),
+    updateTime: new Date('2026-07-01'),
+    ...overrides,
+  };
 }
 
 function createMockLessonRepo(lessons: Row[]) {
@@ -163,6 +237,46 @@ function createMockUserRepo(users: Row[]) {
   };
 }
 
+function createMockProfileRepo(profiles: Row[]) {
+  return {
+    _rows: profiles,
+    find: jest.fn().mockImplementation(({ where }: { where?: Where }) => {
+      const ids = (where?.teacherId as { _value?: unknown[] } | undefined)
+        ?._value;
+      if (Array.isArray(ids)) {
+        return Promise.resolve(
+          profiles.filter((p) => ids.includes(Number(p.teacherId))),
+        );
+      }
+      return Promise.resolve(profiles);
+    }),
+  };
+}
+
+function createMockOutingRepo(outings: Row[]) {
+  return {
+    _rows: outings,
+    find: jest.fn().mockImplementation(({ where }: { where?: Where }) => {
+      const ids = (where?.teacherId as { _value?: unknown[] } | undefined)
+        ?._value;
+      let out = outings;
+      if (Array.isArray(ids)) {
+        out = out.filter((o) => ids.includes(Number(o.teacherId)));
+      }
+      if (where?.status) {
+        out = out.filter((o) => o.status === where.status);
+      }
+      if (where?.outingDate?._value) {
+        const [s, e] = where.outingDate._value;
+        out = out.filter(
+          (o) => String(o.outingDate) >= s && String(o.outingDate) <= e,
+        );
+      }
+      return Promise.resolve(out);
+    }),
+  };
+}
+
 function createMockRecordRepo(existing: Row[] = []) {
   const saved: Row[] = [];
   const manager = {
@@ -202,6 +316,8 @@ function buildService(
     rules?: Row[];
     existing?: Row[];
     users?: Row[];
+    profiles?: Row[];
+    outings?: Row[];
   } = {},
 ) {
   const lessonRepo = createMockLessonRepo(opts.lessons ?? []);
@@ -210,6 +326,8 @@ function buildService(
   const ruleRepo = createMockRuleRepo(opts.rules ?? []);
   const recordRepo = createMockRecordRepo(opts.existing ?? []);
   const userRepo = createMockUserRepo(opts.users ?? []);
+  const profileRepo = createMockProfileRepo(opts.profiles ?? []);
+  const outingRepo = createMockOutingRepo(opts.outings ?? []);
   const service = new SalarySettlementService(
     recordRepo as unknown as Repository<SalaryRecordEntity>,
     ruleRepo as unknown as Repository<SalaryRuleEntity>,
@@ -217,6 +335,8 @@ function buildService(
     attendanceRepo as unknown as Repository<LessonAttendanceEntity>,
     courseRepo as unknown as Repository<CourseEntity>,
     userRepo as unknown as Repository<User>,
+    profileRepo as unknown as Repository<TeacherSalaryProfileEntity>,
+    outingRepo as unknown as Repository<OutingRecordEntity>,
   );
   return {
     service,
@@ -226,6 +346,8 @@ function buildService(
     courseRepo,
     ruleRepo,
     userRepo,
+    profileRepo,
+    outingRepo,
   };
 }
 
@@ -582,5 +704,179 @@ describe('SalarySettlementService.settle', () => {
     const rec = recordRepo._saved[0];
     expect(rec.salaryRuleId).toBe(2);
     expect(rec.amount).toBe(80);
+  });
+
+  // ─── P1: 教师薪资档案（档案优先） ───
+
+  it('档案优先：有 active 档案 → 用档案课时费/底薪/津贴/扣款', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson()],
+      attendances: [createAttendance()],
+      courses: [createCourse()],
+      rules: [createRule({ config: { lessonPrice: 80 } })], // 全局规则会被档案覆盖
+      profiles: [createProfile()],
+    });
+    const res = await service.settle('2026-07');
+    expect(res.created).toBe(4); // LESSON_FEE + BASE + ALLOWANCE + DEDUCTION
+
+    const lesson = recordRepo._saved.find(
+      (r) => r.source === SalaryRecordSource.LESSON_FEE,
+    );
+    expect(lesson!.amount).toBe(95); // 档案 lessonPrice，非全局 80
+    expect(lesson!.salaryRuleId).toBe(-9001); // 档案合成规则 id 为负数
+    expect((lesson!.detail as RecordDetail).ruleSnapshot?.source).toBe(
+      'profile',
+    );
+
+    const base = recordRepo._saved.find(
+      (r) => r.source === SalaryRecordSource.BASE,
+    );
+    expect(base!.amount).toBe(3000);
+
+    const allowance = recordRepo._saved.find(
+      (r) => r.source === SalaryRecordSource.ALLOWANCE,
+    );
+    expect(allowance).toBeDefined();
+    expect(allowance!.amount).toBe(200);
+    expect(allowance!.lessonId).toBeNull();
+
+    const deduction = recordRepo._saved.find(
+      (r) => r.source === SalaryRecordSource.DEDUCTION,
+    );
+    expect(deduction).toBeDefined();
+    expect(deduction!.amount).toBe(-100); // 扣款记负数
+  });
+
+  it('档案失效（isActive=false）→ 回落全局规则，不生成津贴/扣款', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson()],
+      attendances: [createAttendance()],
+      courses: [createCourse()],
+      rules: [createRule({ config: { lessonPrice: 80 } })],
+      profiles: [createProfile({ isActive: false })],
+    });
+    const res = await service.settle('2026-07');
+    expect(res.created).toBe(1);
+    const rec = recordRepo._saved[0];
+    expect(rec.source).toBe(SalaryRecordSource.LESSON_FEE);
+    expect(rec.amount).toBe(80);
+    expect(rec.salaryRuleId).toBe(1); // 全局规则 id
+  });
+
+  it('档案生效区间：effectiveTo 早于结算月 → 档案不生效，回落全局', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson()],
+      attendances: [createAttendance()],
+      courses: [createCourse()],
+      rules: [createRule({ config: { lessonPrice: 80 } })],
+      profiles: [createProfile({ effectiveTo: '2026-06-30' })],
+    });
+    const res = await service.settle('2026-07');
+    expect(res.created).toBe(1);
+    expect(recordRepo._saved[0].amount).toBe(80);
+  });
+
+  // ─── P1: 外派课时 ───
+
+  it('外派：档案有 lessonPrice → OUTING 记录 = price × lessonCount', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson()],
+      attendances: [createAttendance()],
+      courses: [createCourse()],
+      profiles: [createProfile()],
+      outings: [createOuting({ lessonCount: 2 })],
+    });
+    const res = await service.settle('2026-07');
+    expect(res.created).toBe(5); // LESSON_FEE + BASE + ALLOWANCE + DEDUCTION + OUTING
+    const outing = recordRepo._saved.find(
+      (r) => r.source === SalaryRecordSource.OUTING,
+    );
+    expect(outing).toBeDefined();
+    expect(outing!.lessonId).toBe(1); // outing.id
+    expect(outing!.amount).toBe(190); // 95 × 2
+    expect(outing!.salaryRuleId).toBe(-9001);
+    expect((outing!.detail as RecordDetail).outingId).toBe(1);
+    expect((outing!.detail as RecordDetail).lessonCount).toBe(2);
+    expect(outing!.needsReview).toBe(false);
+  });
+
+  it('外派：无档案 → 回落全局 OUTING 规则', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson()],
+      attendances: [createAttendance()],
+      courses: [createCourse()],
+      rules: [
+        createRule({
+          id: 7,
+          type: SalaryRuleType.OUTING,
+          config: { lessonPrice: 150 },
+        }),
+      ],
+      outings: [createOuting({ lessonCount: 1 })],
+    });
+    await service.settle('2026-07');
+    const outing = recordRepo._saved.find(
+      (r) => r.source === SalaryRecordSource.OUTING,
+    );
+    expect(outing).toBeDefined();
+    expect(outing!.amount).toBe(150);
+    expect(outing!.salaryRuleId).toBe(7);
+  });
+
+  it('外派：无任何规则 → needsReview 兜底，amount=0', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson()],
+      attendances: [createAttendance()],
+      courses: [createCourse()],
+      rules: [],
+      outings: [createOuting()],
+    });
+    await service.settle('2026-07');
+    const outing = recordRepo._saved.find(
+      (r) => r.source === SalaryRecordSource.OUTING,
+    );
+    expect(outing).toBeDefined();
+    expect(outing!.amount).toBe(0);
+    expect(outing!.needsReview).toBe(true);
+  });
+
+  it('外派：PENDING 状态不计入结算', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson()],
+      attendances: [createAttendance()],
+      courses: [createCourse()],
+      profiles: [createProfile()],
+      outings: [createOuting({ status: OutingRecordStatus.PENDING })],
+    });
+    await service.settle('2026-07');
+    const outing = recordRepo._saved.find(
+      (r) => r.source === SalaryRecordSource.OUTING,
+    );
+    expect(outing).toBeUndefined();
+  });
+
+  it('外派：幂等，已有 OUTING 记录则跳过', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson()],
+      attendances: [createAttendance()],
+      courses: [createCourse()],
+      profiles: [createProfile()],
+      outings: [createOuting()],
+      existing: [
+        {
+          teacherId: 5001,
+          source: SalaryRecordSource.OUTING,
+          lessonId: 1,
+          lessonDate: '2026-07-15',
+          month: '2026-07',
+        },
+      ],
+    });
+    const res = await service.settle('2026-07');
+    const outing = recordRepo._saved.find(
+      (r) => r.source === SalaryRecordSource.OUTING,
+    );
+    expect(outing).toBeUndefined();
+    expect(res.created).toBe(4); // LESSON_FEE + BASE + ALLOWANCE + DEDUCTION
   });
 });

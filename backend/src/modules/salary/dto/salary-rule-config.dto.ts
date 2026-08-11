@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsObject,
   IsOptional,
+  IsString,
   Min,
   ValidateNested,
   ArrayMinSize,
@@ -81,6 +82,40 @@ export class BonusConfigDto {
   lessonTarget?: LessonTargetDto;
 }
 
+/** 津贴/扣款项（教师维度）：{ type, name, amount }，结算按档案生成 ALLOWANCE/DEDUCTION */
+export class AllowanceConfigDto {
+  @ApiPropertyOptional({
+    description: '津贴类型 COMMUTING/HOUSING/HIGH_TEMP/OTHER',
+  })
+  @IsString()
+  type: string;
+
+  @ApiPropertyOptional({ description: '显示名称' })
+  @IsString()
+  name: string;
+
+  @ApiPropertyOptional({ description: '金额' })
+  @IsNumber()
+  @Min(0)
+  amount: number;
+}
+
+/** 扣款项（教师维度）：{ type, name, amount }，结算按档案生成 DEDUCTION */
+export class DeductionConfigDto {
+  @ApiPropertyOptional({ description: '扣款类型 LEAVE/OTHER' })
+  @IsString()
+  type: string;
+
+  @ApiPropertyOptional({ description: '显示名称' })
+  @IsString()
+  name: string;
+
+  @ApiPropertyOptional({ description: '金额' })
+  @IsNumber()
+  @Min(0)
+  amount: number;
+}
+
 /**
  * 规则扩展配置（`salary_rule.config` JSON 强类型校验）。
  *
@@ -144,6 +179,24 @@ export class SalaryRuleConfigDto {
   @ValidateNested()
   @Type(() => BonusConfigDto)
   bonus?: BonusConfigDto;
+
+  @ApiPropertyOptional({
+    description: '津贴项（教师维度，结算生成 ALLOWANCE 记录）',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AllowanceConfigDto)
+  allowances?: AllowanceConfigDto[];
+
+  @ApiPropertyOptional({
+    description: '扣款项（教师维度，结算生成 DEDUCTION 记录）',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DeductionConfigDto)
+  deductions?: DeductionConfigDto[];
 
   @ApiPropertyOptional({
     description: '生效起始日（YYYY-MM-DD，缺省长期有效）',

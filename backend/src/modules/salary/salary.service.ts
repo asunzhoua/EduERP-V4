@@ -7,7 +7,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SalaryRuleEntity } from './entities/salary-rule.entity';
 import { SalaryRecordEntity } from './entities/salary-record.entity';
-import { SalaryRecordStatus, SalaryRuleType } from './enums/salary.enums';
+import { TeacherSalaryProfileEntity } from './entities/teacher-salary-profile.entity';
+import { OutingRecordEntity } from './entities/outing-record.entity';
+import {
+  OutingRecordStatus,
+  SalaryRecordStatus,
+  SalaryRuleType,
+  TeacherEmploymentType,
+} from './enums/salary.enums';
 import { validateRuleConfig } from './dto/rule-config.util';
 import { SalaryRuleConfigDto } from './dto/salary-rule-config.dto';
 import {
@@ -16,6 +23,14 @@ import {
   QuerySalaryRecordDto,
   SalaryStatisticsQueryDto,
 } from './dto/salary.dto';
+import {
+  UpsertTeacherSalaryProfileDto,
+  QuerySalaryTeacherDto,
+  CreateOutingRecordDto,
+  UpdateOutingRecordDto,
+  QueryOutingRecordDto,
+} from './dto/salary-profile.dto';
+import { User } from '@modules/identity/entities/user.entity';
 
 type SalaryTotalsRow = {
   totalRecords: string;
@@ -36,6 +51,12 @@ export class SalaryService {
     private readonly salaryRuleRepo: Repository<SalaryRuleEntity>,
     @InjectRepository(SalaryRecordEntity)
     private readonly salaryRecordRepo: Repository<SalaryRecordEntity>,
+    @InjectRepository(TeacherSalaryProfileEntity)
+    private readonly profileRepo: Repository<TeacherSalaryProfileEntity>,
+    @InjectRepository(OutingRecordEntity)
+    private readonly outingRepo: Repository<OutingRecordEntity>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) {}
 
   // ==================== 工资记录查询 ====================
@@ -253,5 +274,163 @@ export class SalaryService {
       throw new NotFoundException(`Salary rule ${id} not found`);
     }
     return rule;
+  }
+
+  // ==================== 教师薪资档案 ====================
+
+  async getProfile(teacherId: number) {
+    return this.profileRepo.findOne({ where: { teacherId } });
+  }
+
+  async upsertProfile(
+    teacherId: number,
+    dto: UpsertTeacherSalaryProfileDto,
+    operatedBy: number,
+  ) {
+    const config = validateRuleConfig(
+      dto.ruleType as SalaryRuleType,
+      dto.salaryConfig ?? null,
+    );
+    const existing = await this.profileRepo.findOne({ where: { teacherId } });
+    if (existing) {
+      Object.assign(existing, {
+        employmentType: dto.employmentType as TeacherEmploymentType,
+        ruleType: dto.ruleType as SalaryRuleType,
+        salaryConfig: config,
+        allowances: dto.allowances ?? null,
+        deductions: dto.deductions ?? null,
+        city: dto.city ?? null,
+        socialBase: dto.socialBase ?? null,
+        socialRatios: dto.socialRatios ?? null,
+        taxSpecialDeductions: dto.taxSpecialDeductions ?? null,
+        effectiveFrom: dto.effectiveFrom ?? null,
+        effectiveTo: dto.effectiveTo ?? null,
+        isActive: dto.isActive !== false,
+        note: dto.note ?? null,
+        updatedBy: operatedBy,
+      });
+      return this.profileRepo.save(existing);
+    }
+    const profile = this.profileRepo.create({
+      teacherId,
+      employmentType: dto.employmentType as TeacherEmploymentType,
+      ruleType: dto.ruleType as SalaryRuleType,
+      salaryConfig: config,
+      allowances: dto.allowances ?? null,
+      deductions: dto.deductions ?? null,
+      city: dto.city ?? null,
+      socialBase: dto.socialBase ?? null,
+      socialRatios: dto.socialRatios ?? null,
+      taxSpecialDeductions: dto.taxSpecialDeductions ?? null,
+      effectiveFrom: dto.effectiveFrom ?? null,
+      effectiveTo: dto.effectiveTo ?? null,
+      isActive: dto.isActive !== false,
+      note: dto.note ?? null,
+      createdBy: operatedBy,
+    });
+    return this.profileRepo.save(profile);
+  }
+
+  // ==================== 教师列表（建档选择） ====================
+
+  async getTeachers(query: QuerySalaryTeacherDto) {
+    const { keyword, page = 1, pageSize = 20 } = query;
+    const qb = this.userRepo.createQueryBuilder('user');
+    qb.where('user.role = :role', { role: 'Teacher' });
+    qb.andWhere('user.status = :status', { status: 1 });
+    if (keyword) {
+      qb.andWhere('(user.name LIKE :kw OR user.mobile LIKE :kw)', {
+        kw: `%${keyword}%`,
+      });
+    }
+    qb.orderBy('user.id', 'DESC');
+    qb.skip((page - 1) * pageSize).take(pageSize);
+    qb.select([
+      'user.id',
+      'user.name',
+      'user.mobile',
+      'user.teacherLevel',
+      'user.status',
+      'user.createTime',
+    ]);
+    const [items, total] = await qb.getManyAndCount();
+    return { items, total, page, pageSize };
+  }
+
+  // ==================== 外派课时记录 ====================
+
+  async createOuting(dto: CreateOutingRecordDto, operatedBy: number) {
+    const outing = this.outingRepo.create({
+      teacherId: dto.teacherId,
+      outingDate: dto.outingDate,
+      location: dto.location ?? null,
+      lessonCount: dto.lessonCount ?? 1,
+      note: dto.note ?? null,
+      status: OutingRecordStatus.PENDING,
+      createdBy: operatedBy,
+    });
+    return this.outingRepo.save(outing);
+  }
+
+  async updateOuting(
+    id: number,
+    dto: UpdateOutingRecordDto,
+    operatedBy: number,
+  ) {
+    const outing = await this.outingRepo.findOne({ where: { id } });
+    if (!outing) {
+      throw new NotFoundException(`Outing record ${id} not found`);
+    }
+    Object.assign(outing, dto);
+    outing.updatedBy = operatedBy;
+    return this.outingRepo.save(outing);
+  }
+
+  async updateOutingStatus(id: number, status: string, operatedBy: number) {
+    const outing = await this.outingRepo.findOne({ where: { id } });
+    if (!outing) {
+      throw new NotFoundException(`Outing record ${id} not found`);
+    }
+    if (
+      !Object.values(OutingRecordStatus).includes(status as OutingRecordStatus)
+    ) {
+      throw new BadRequestException(`Invalid outing status ${status}`);
+    }
+    outing.status = status as OutingRecordStatus;
+    outing.updatedBy = operatedBy;
+    return this.outingRepo.save(outing);
+  }
+
+  async deleteOuting(id: number) {
+    const outing = await this.outingRepo.findOne({ where: { id } });
+    if (!outing) {
+      throw new NotFoundException(`Outing record ${id} not found`);
+    }
+    await this.outingRepo.delete(id);
+  }
+
+  async getOutings(query: QueryOutingRecordDto) {
+    const { teacherId, month, status, page = 1, pageSize = 20 } = query;
+    const qb = this.outingRepo.createQueryBuilder('outing');
+    if (teacherId) {
+      qb.andWhere('outing.teacherId = :teacherId', { teacherId });
+    }
+    if (status) {
+      qb.andWhere('outing.status = :status', { status });
+    }
+    if (month) {
+      const m = /^(\d{4})-(\d{2})$/.exec(month);
+      if (m) {
+        const lastDay = new Date(Number(m[1]), Number(m[2]), 0).getDate();
+        qb.andWhere('outing.outingDate BETWEEN :start AND :end', {
+          start: `${month}-01`,
+          end: `${month}-${String(lastDay).padStart(2, '0')}`,
+        });
+      }
+    }
+    qb.orderBy('outing.outingDate', 'DESC').addOrderBy('outing.id', 'DESC');
+    qb.skip((page - 1) * pageSize).take(pageSize);
+    const [records, total] = await qb.getManyAndCount();
+    return { records, total, page, pageSize };
   }
 }

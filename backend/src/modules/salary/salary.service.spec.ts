@@ -3,6 +3,9 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { SalaryService } from './salary.service';
 import { SalaryRuleEntity } from './entities/salary-rule.entity';
 import { SalaryRecordEntity } from './entities/salary-record.entity';
+import { TeacherSalaryProfileEntity } from './entities/teacher-salary-profile.entity';
+import { OutingRecordEntity } from './entities/outing-record.entity';
+import { User } from '@modules/identity/entities/user.entity';
 
 describe('SalaryService.getStatistics', () => {
   let service: SalaryService;
@@ -55,6 +58,12 @@ describe('SalaryService.getStatistics', () => {
             createQueryBuilder: jest.fn().mockImplementation(() => qb),
           },
         },
+        {
+          provide: getRepositoryToken(TeacherSalaryProfileEntity),
+          useValue: {},
+        },
+        { provide: getRepositoryToken(OutingRecordEntity), useValue: {} },
+        { provide: getRepositoryToken(User), useValue: {} },
       ],
     }).compile();
     service = module.get(SalaryService);

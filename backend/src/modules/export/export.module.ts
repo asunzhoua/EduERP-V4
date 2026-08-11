@@ -26,6 +26,6 @@ import { User } from '../identity/entities/user.entity';
   ],
   controllers: [ExportController],
   providers: [ExportService, CsvWriter, ExcelWriter],
-  exports: [ExportService],
+  exports: [ExportService, ExcelWriter],
 })
 export class ExportModule {}

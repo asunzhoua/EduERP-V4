@@ -151,6 +151,18 @@ export function validateRuleConfig(
     assertNumber(config.minLessonForBase, 'minLessonForBase');
     result.minLessonForBase = config.minLessonForBase;
   }
+  if (Array.isArray(config.allowances)) {
+    result.allowances = config.allowances.map((a) => ({
+      ...a,
+      amount: round2(a.amount),
+    }));
+  }
+  if (Array.isArray(config.deductions)) {
+    result.deductions = config.deductions.map((d) => ({
+      ...d,
+      amount: round2(d.amount),
+    }));
+  }
 
   return result;
 }

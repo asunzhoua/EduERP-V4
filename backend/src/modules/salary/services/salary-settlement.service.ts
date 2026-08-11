@@ -13,11 +13,14 @@ import {
 import { CourseEntity } from '@modules/teaching/course/course.entity';
 import { User } from '@modules/identity/entities/user.entity';
 import {
+  OutingRecordStatus,
   SalaryRecordStatus,
   SalaryRecordSource,
   SalaryRuleType,
 } from '../enums/salary.enums';
 import { SalaryRuleConfigDto } from '../dto/salary-rule-config.dto';
+import { TeacherSalaryProfileEntity } from '../entities/teacher-salary-profile.entity';
+import { OutingRecordEntity } from '../entities/outing-record.entity';
 import { computeLessonFee, scoreRule } from './salary-calculator.service';
 
 export interface SettleResult {
@@ -51,6 +54,24 @@ function monthRange(month: string): { start: string; end: string } {
   };
 }
 
+/**
+ * 结算单元内的「生效规则」：真实 salary_rule 或教师档案合成规则。
+ * 档案合成规则 id 用负数（-profile.id），避免与真实规则 id 混淆；
+ * 结算落库 salaryRuleId 即用该 id，规则快照带 source 区分来源。
+ */
+interface EffectiveRule {
+  id: number;
+  name: string;
+  type: SalaryRuleType;
+  baseAmount: number;
+  multiplier: number;
+  courseType: string | null;
+  teacherLevel: string | null;
+  config: SalaryRuleConfigDto | null;
+  updateTime: Date;
+  source: 'rule' | 'profile';
+}
+
 @Injectable()
 export class SalarySettlementService {
   private readonly logger = new Logger(SalarySettlementService.name);
@@ -68,6 +89,10 @@ export class SalarySettlementService {
     private readonly courseRepo: Repository<CourseEntity>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(TeacherSalaryProfileEntity)
+    private readonly profileRepo: Repository<TeacherSalaryProfileEntity>,
+    @InjectRepository(OutingRecordEntity)
+    private readonly outingRepo: Repository<OutingRecordEntity>,
   ) {}
 
   async settle(
@@ -98,28 +123,37 @@ export class SalarySettlementService {
 
     const lessonIds = lessons.map((l) => l.id);
     const courseCodes = [...new Set(lessons.map((l) => l.courseCode))];
+    const teacherIds = [...new Set(lessons.map((l) => l.teacherId))];
 
-    const [attendances, courses, rules] = await Promise.all([
-      this.attendanceRepo.find({ where: { lessonId: In(lessonIds) } }),
-      this.courseRepo.find({ where: { courseCode: In(courseCodes) } }),
-      this.ruleRepo.find({ where: { isActive: true } }),
-    ]);
+    const [attendances, courses, rules, profiles, outings, users] =
+      await Promise.all([
+        this.attendanceRepo.find({ where: { lessonId: In(lessonIds) } }),
+        this.courseRepo.find({ where: { courseCode: In(courseCodes) } }),
+        this.ruleRepo.find({ where: { isActive: true } }),
+        this.profileRepo.find({ where: { teacherId: In(teacherIds) } }),
+        this.outingRepo.find({
+          where: {
+            teacherId: In(teacherIds),
+            status: OutingRecordStatus.CONFIRMED,
+            outingDate: Between(start, end),
+          },
+        }),
+        this.userRepo.find({ where: { id: In(teacherIds) } }),
+      ]);
 
     const courseTypeByCode = new Map(
       courses.map((c) => [c.courseCode, c.type]),
     );
     const activeRules = rules;
 
-    // 按教师分组
-    const teacherIds = [...new Set(lessons.map((l) => l.teacherId))];
+    // 教师薪资档案（档案优先：有当月生效档案 → 用档案当个人规则）
+    const profileByTeacher = new Map<number, TeacherSalaryProfileEntity>();
+    for (const p of profiles) profileByTeacher.set(Number(p.teacherId), p);
 
     // 教师等级（salary_rule.teacherLevel 精确匹配依据）
     const teacherLevelByUser = new Map<number, string | null>();
-    if (teacherIds.length > 0) {
-      const users = await this.userRepo.find({ where: { id: In(teacherIds) } });
-      for (const u of users)
-        teacherLevelByUser.set(Number(u.id), u.teacherLevel ?? null);
-    }
+    for (const u of users)
+      teacherLevelByUser.set(Number(u.id), u.teacherLevel ?? null);
 
     const existingRecords = teacherId
       ? await this.recordRepo.find({ where: { month, teacherId } })
@@ -143,31 +177,41 @@ export class SalarySettlementService {
         attendanceByLesson.set(a.lessonId, arr);
       }
 
-      // 为每节课挑选规则（同一规则按 type + courseType/teacherLevel 匹配）
+      // 档案优先：教师有当月生效档案 → 全程用档案个人规则；否则回落全局规则打分
+      const profile = profileByTeacher.get(tid) ?? null;
+      const useProfile =
+        profile !== null && this.profileInEffect(profile, month);
+      const profileRule = useProfile ? this.fromProfile(profile) : null;
+
+      // 为每节课挑选规则（档案优先；否则按 type + courseType/teacherLevel 匹配）
       interface MatchedLesson {
         lesson: LessonEntity;
-        rule: SalaryRuleEntity | null;
+        rule: EffectiveRule | null;
         headcount: number;
       }
       const matched: MatchedLesson[] = [];
       for (const lesson of teacherLessons) {
         const courseType = courseTypeByCode.get(lesson.courseCode) ?? null;
         const teacherLevel = teacherLevelByUser.get(lesson.teacherId) ?? null;
-        let best: SalaryRuleEntity | null = null;
-        let bestScore = 0;
-        for (const rule of activeRules) {
-          if (!this.ruleInEffect(rule, month)) continue;
-          const s = scoreRule(rule, courseType, teacherLevel);
-          if (s > bestScore) {
-            bestScore = s;
-            best = rule;
+        let best: EffectiveRule | null = null;
+        if (profileRule) {
+          best = profileRule;
+        } else {
+          let bestScore = 0;
+          for (const rule of activeRules) {
+            if (!this.ruleInEffect(this.fromRule(rule), month)) continue;
+            const s = scoreRule(rule, courseType, teacherLevel);
+            if (s > bestScore) {
+              bestScore = s;
+              best = this.fromRule(rule);
+            }
           }
         }
         const list = attendanceByLesson.get(lesson.id) ?? [];
         const headcount = list.filter((a) =>
           DEDUCTIBLE_STATUSES.has(a.status as AttendanceStatus),
         ).length;
-        matched.push({ lesson, rule: bestScore > 0 ? best : null, headcount });
+        matched.push({ lesson, rule: best, headcount });
       }
 
       // 各规则当月课时数（TIER 累计档位依据）
@@ -262,12 +306,12 @@ export class SalarySettlementService {
             duration: durationMinutes(m.lesson.startTime, m.lesson.endTime),
             studentCount: m.headcount,
             amount: fee.amount,
-            ruleVersion: this.ruleVersion(rule),
+            ruleVersion: this.effectiveVersion(rule),
             status: SalaryRecordStatus.PENDING,
             needsReview: false,
             detail: {
               ruleId: rule.id,
-              ruleSnapshot: this.ruleSnapshot(rule),
+              ruleSnapshot: this.effectiveSnapshot(rule),
               headcount: m.headcount,
               feeMode: rule.type,
               tierLevel: fee.tierLevel,
@@ -280,7 +324,7 @@ export class SalarySettlementService {
         }
       }
 
-      const matchedRules = new Map<number, SalaryRuleEntity>();
+      const matchedRules = new Map<number, EffectiveRule>();
       for (const m of matched) if (m.rule) matchedRules.set(m.rule.id, m.rule);
 
       // BASE / DAY / BONUS（按教师月聚合）
@@ -308,12 +352,12 @@ export class SalarySettlementService {
                 lessonDate: end,
                 studentCount: null,
                 amount: config.baseSalary,
-                ruleVersion: this.ruleVersion(rule),
+                ruleVersion: this.effectiveVersion(rule),
                 status: SalaryRecordStatus.PENDING,
                 needsReview: false,
                 detail: {
                   ruleId: rule.id,
-                  ruleSnapshot: this.ruleSnapshot(rule),
+                  ruleSnapshot: this.effectiveSnapshot(rule),
                   monthLessonCount: count,
                   baseSalary: config.baseSalary,
                   calcFormula: 'baseSalary',
@@ -348,12 +392,12 @@ export class SalarySettlementService {
                 lessonDate: d,
                 studentCount: null,
                 amount: config.lessonPrice,
-                ruleVersion: this.ruleVersion(rule),
+                ruleVersion: this.effectiveVersion(rule),
                 status: SalaryRecordStatus.PENDING,
                 needsReview: false,
                 detail: {
                   ruleId: rule.id,
-                  ruleSnapshot: this.ruleSnapshot(rule),
+                  ruleSnapshot: this.effectiveSnapshot(rule),
                   dayLessonCount: dayLessons,
                   pricePerDay: config.lessonPrice,
                   calcFormula: 'perDay',
@@ -403,12 +447,12 @@ export class SalarySettlementService {
                 lessonDate: end,
                 studentCount: null,
                 amount: bonusAmount,
-                ruleVersion: this.ruleVersion(rule),
+                ruleVersion: this.effectiveVersion(rule),
                 status: SalaryRecordStatus.PENDING,
                 needsReview: false,
                 detail: {
                   ruleId: rule.id,
-                  ruleSnapshot: this.ruleSnapshot(rule),
+                  ruleSnapshot: this.effectiveSnapshot(rule),
                   monthLessonCount: count,
                   calcFormula: formula.join('+') || 'none',
                 },
@@ -416,6 +460,74 @@ export class SalarySettlementService {
               });
               existingKeys.add(key);
             }
+          }
+        }
+      }
+
+      // ALLOWANCE / DEDUCTION（档案个人津贴与扣款，按教师月汇总一条；DEDUCTION 记负数）
+      if (useProfile && profile) {
+        this.appendAllowanceDeduction(
+          tid,
+          profile,
+          month,
+          end,
+          operatedBy,
+          existingKeys,
+          toCreate,
+        );
+      }
+
+      // OUTING 外派课时（仅 CONFIRMED，每笔一条，lessonId = outing.id）
+      const teacherOutings = outings.filter((o) => o.teacherId === tid);
+      if (teacherOutings.length > 0) {
+        const teacherLevel = teacherLevelByUser.get(tid) ?? null;
+        for (const outing of teacherOutings) {
+          const eff = this.matchOutingRule(
+            profileRule,
+            activeRules,
+            month,
+            teacherLevel,
+          );
+          const price =
+            eff === null ? null : (eff.config?.lessonPrice ?? eff.baseAmount);
+          const key = this.recordKey(
+            tid,
+            SalaryRecordSource.OUTING,
+            outing.id,
+            null,
+          );
+          if (!existingKeys.has(key)) {
+            toCreate.push({
+              teacherId: tid,
+              lessonId: outing.id,
+              salaryRuleId: eff ? eff.id : 0,
+              source: SalaryRecordSource.OUTING,
+              month,
+              lessonDate: outing.outingDate,
+              studentCount: null,
+              amount:
+                eff && price !== null
+                  ? Math.round(price * outing.lessonCount * 100) / 100
+                  : 0,
+              ruleVersion: eff ? this.effectiveVersion(eff) : '',
+              status: SalaryRecordStatus.PENDING,
+              needsReview: !eff,
+              notes: eff ? undefined : '无适用外派规则',
+              detail: {
+                outingId: outing.id,
+                lessonCount: outing.lessonCount,
+                location: outing.location,
+                pricePerLesson: price,
+                ruleId: eff ? eff.id : null,
+                ruleSnapshot: eff ? this.effectiveSnapshot(eff) : null,
+                calcFormula:
+                  eff && price !== null
+                    ? `lessonPrice(${price})*lessonCount(${outing.lessonCount})`
+                    : 'no-outing-rule',
+              },
+              createdBy: operatedBy,
+            });
+            existingKeys.add(key);
           }
         }
       }
@@ -453,15 +565,50 @@ export class SalarySettlementService {
     lessonId: number | null,
     lessonDate: string | null,
   ): string {
-    if (source === SalaryRecordSource.LESSON_FEE)
+    if (
+      source === SalaryRecordSource.LESSON_FEE ||
+      source === SalaryRecordSource.OUTING
+    )
       return `${teacherId}:${source}:${lessonId}`;
     if (source === SalaryRecordSource.DAY)
       return `${teacherId}:${source}:${lessonDate}`;
     return `${teacherId}:${source}`;
   }
 
-  private ruleVersion(rule: SalaryRuleEntity): string {
-    const d = rule.updateTime ?? rule.createTime;
+  /** 真实规则 → EffectiveRule */
+  private fromRule(rule: SalaryRuleEntity): EffectiveRule {
+    return {
+      id: rule.id,
+      name: rule.name,
+      type: rule.type,
+      baseAmount: Number(rule.baseAmount),
+      multiplier: Number(rule.multiplier),
+      courseType: rule.courseType ?? null,
+      teacherLevel: rule.teacherLevel ?? null,
+      config: rule.config ?? null,
+      updateTime: rule.updateTime ?? rule.createTime,
+      source: 'rule',
+    };
+  }
+
+  /** 教师档案 → EffectiveRule（id 用负数 -profile.id 区分来源） */
+  private fromProfile(profile: TeacherSalaryProfileEntity): EffectiveRule {
+    return {
+      id: -profile.id,
+      name: `档案#${profile.teacherId}`,
+      type: profile.ruleType,
+      baseAmount: 0,
+      multiplier: 1,
+      courseType: null,
+      teacherLevel: null,
+      config: (profile.salaryConfig as SalaryRuleConfigDto) ?? null,
+      updateTime: profile.updateTime ?? profile.createTime,
+      source: 'profile',
+    };
+  }
+
+  private effectiveVersion(rule: EffectiveRule): string {
+    const d = rule.updateTime;
     if (!d) return '';
     const y = d.getFullYear();
     const mo = String(d.getMonth() + 1).padStart(2, '0');
@@ -469,28 +616,148 @@ export class SalarySettlementService {
     return `${y}-${mo}-${da}`;
   }
 
-  private ruleSnapshot(rule: SalaryRuleEntity): Record<string, any> {
+  private effectiveSnapshot(rule: EffectiveRule): Record<string, any> {
     return {
       id: rule.id,
       name: rule.name,
       type: rule.type,
-      baseAmount: Number(rule.baseAmount),
-      multiplier: Number(rule.multiplier),
+      baseAmount: rule.baseAmount,
+      multiplier: rule.multiplier,
       courseType: rule.courseType,
       teacherLevel: rule.teacherLevel,
       config: rule.config,
+      source: rule.source,
     };
   }
 
-  private ruleInEffect(rule: SalaryRuleEntity, month: string): boolean {
-    const config = rule.config ?? null;
+  private ruleInEffect(rule: EffectiveRule, month: string): boolean {
+    const config = rule.config;
     if (!config) return true;
-    const from = config.effectiveFrom as string | undefined;
-    const to = config.effectiveTo as string | undefined;
+    const from = config.effectiveFrom;
+    const to = config.effectiveTo;
     const monthStart = `${month}-01`;
     if (from && monthStart < from) return false;
     if (to && monthStart > to) return false;
     return true;
+  }
+
+  /** 档案生效区间（isActive + effectiveFrom/effectiveTo，按结算月首日判断） */
+  private profileInEffect(
+    profile: TeacherSalaryProfileEntity,
+    month: string,
+  ): boolean {
+    if (!profile.isActive) return false;
+    const monthStart = `${month}-01`;
+    if (profile.effectiveFrom && monthStart < profile.effectiveFrom)
+      return false;
+    if (profile.effectiveTo && monthStart > profile.effectiveTo) return false;
+    return true;
+  }
+
+  /** 外派课时计价规则：档案有 lessonPrice 优先；否则回落全局 OUTING 规则 */
+  private matchOutingRule(
+    profileRule: EffectiveRule | null,
+    activeRules: SalaryRuleEntity[],
+    month: string,
+    teacherLevel: string | null,
+  ): EffectiveRule | null {
+    if (profileRule && profileRule.config?.lessonPrice !== undefined) {
+      return profileRule;
+    }
+    let best: EffectiveRule | null = null;
+    let bestScore = 0;
+    for (const r of activeRules) {
+      if (r.type !== SalaryRuleType.OUTING) continue;
+      if (!this.ruleInEffect(this.fromRule(r), month)) continue;
+      const s = scoreRule(r, null, teacherLevel);
+      if (s > bestScore) {
+        bestScore = s;
+        best = this.fromRule(r);
+      }
+    }
+    return bestScore > 0 ? best : null;
+  }
+
+  /** 档案津贴/扣款 → ALLOWANCE / DEDUCTION（各教师每月一条，DEDUCTION 记负数） */
+  private appendAllowanceDeduction(
+    tid: number,
+    profile: TeacherSalaryProfileEntity,
+    month: string,
+    monthEnd: string,
+    operatedBy: number,
+    existingKeys: Set<string>,
+    toCreate: Partial<SalaryRecordEntity>[],
+  ): void {
+    const eff = this.fromProfile(profile);
+    const allowanceItems = (profile.allowances ?? []) as {
+      type?: string;
+      name?: string;
+      amount?: number;
+    }[];
+    if (allowanceItems.length > 0) {
+      const key = this.recordKey(tid, SalaryRecordSource.ALLOWANCE, null, null);
+      if (!existingKeys.has(key)) {
+        const total = allowanceItems.reduce(
+          (s, a) => s + (Number(a.amount) || 0),
+          0,
+        );
+        toCreate.push({
+          teacherId: tid,
+          lessonId: null,
+          salaryRuleId: eff.id,
+          source: SalaryRecordSource.ALLOWANCE,
+          month,
+          lessonDate: monthEnd,
+          studentCount: null,
+          amount: Math.round(total * 100) / 100,
+          ruleVersion: this.effectiveVersion(eff),
+          status: SalaryRecordStatus.PENDING,
+          needsReview: false,
+          detail: {
+            profileId: profile.id,
+            items: allowanceItems,
+            calcFormula: 'allowances-sum',
+          },
+          createdBy: operatedBy,
+        });
+        existingKeys.add(key);
+      }
+    }
+
+    const deductionItems = (profile.deductions ?? []) as {
+      type?: string;
+      name?: string;
+      amount?: number;
+    }[];
+    if (deductionItems.length > 0) {
+      const key = this.recordKey(tid, SalaryRecordSource.DEDUCTION, null, null);
+      if (!existingKeys.has(key)) {
+        const total = deductionItems.reduce(
+          (s, d) => s + (Number(d.amount) || 0),
+          0,
+        );
+        toCreate.push({
+          teacherId: tid,
+          lessonId: null,
+          salaryRuleId: eff.id,
+          source: SalaryRecordSource.DEDUCTION,
+          month,
+          lessonDate: monthEnd,
+          studentCount: null,
+          amount: -Math.round(total * 100) / 100,
+          ruleVersion: this.effectiveVersion(eff),
+          status: SalaryRecordStatus.PENDING,
+          needsReview: false,
+          detail: {
+            profileId: profile.id,
+            items: deductionItems,
+            calcFormula: 'deductions-sum',
+          },
+          createdBy: operatedBy,
+        });
+        existingKeys.add(key);
+      }
+    }
   }
 
   private isFullAttendance(attendances: LessonAttendanceEntity[]): boolean {
