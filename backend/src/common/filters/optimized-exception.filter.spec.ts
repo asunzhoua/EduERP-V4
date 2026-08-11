@@ -77,6 +77,44 @@ describe('OptimizedExceptionFilter', () => {
       );
     });
 
+    it('should preserve a specific 400 message (e.g. 无待发放工资条)', () => {
+      const exception = new HttpException(
+        '无待发放工资条',
+        HttpStatus.BAD_REQUEST,
+      );
+
+      filter.catch(exception, mockHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: 400,
+          message: '无待发放工资条',
+        }),
+      );
+    });
+
+    it('should mask ValidationPipe array messages for 400', () => {
+      const exception = new HttpException(
+        {
+          statusCode: 400,
+          message: ['month must be a string', 'page must be a number'],
+          error: 'Bad Request',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+
+      filter.catch(exception, mockHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: 400,
+          message: '请求参数错误，请检查输入',
+        }),
+      );
+    });
+
     it('should handle 401 Unauthorized', () => {
       const exception = new HttpException(
         'Unauthorized',

@@ -37,6 +37,7 @@ export class OptimizedExceptionFilter implements ExceptionFilter {
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = '服务器内部错误';
+    let isValidationArray = false;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -45,16 +46,19 @@ export class OptimizedExceptionFilter implements ExceptionFilter {
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
       } else if (typeof exceptionResponse === 'object') {
-        const resp = exceptionResponse as { message?: string };
-        message = resp.message || exception.message;
-        if (Array.isArray(message)) {
-          message = message.join('; ');
+        const resp = exceptionResponse as { message?: string | string[] };
+        if (Array.isArray(resp.message)) {
+          // ValidationPipe 的 400 是字段错误数组，统一用通用文案
+          isValidationArray = true;
+          message = resp.message.join('; ');
+        } else {
+          message = (resp.message as string | undefined) || exception.message;
         }
       }
     }
 
     // Optimize user-facing message
-    const optimizedMessage = this.optimizeMessage(status, message);
+    const optimizedMessage = this.optimizeMessage(status, message, isValidationArray);
 
     const errorResponse: ErrorResponse = {
       code: status,
@@ -83,19 +87,29 @@ export class OptimizedExceptionFilter implements ExceptionFilter {
     response.status(status).json(errorResponse);
   }
 
-  private optimizeMessage(status: HttpStatus, message: string): string {
-    // Preserve specific app-authored messages for auth failures (401/403) and
-    // resource conflicts (409) so users see the real reason (e.g. 密码错误 /
-    // 用户名已存在) instead of a generic placeholder. NestJS builds generic
-    // English defaults for no-arg exceptions.
+  private optimizeMessage(
+    status: HttpStatus,
+    message: string,
+    isValidationArray = false,
+  ): string {
+    // Preserve specific app-authored messages for auth failures (401/403),
+    // resource conflicts (409), and business BadRequestException (400) so users
+    // see the real reason (e.g. 密码错误 / 无待发放工资条) instead of a generic
+    // placeholder. NestJS builds generic English defaults for no-arg exceptions.
     const isSpecific =
+      status === HttpStatus.BAD_REQUEST ||
       status === HttpStatus.UNAUTHORIZED ||
       status === HttpStatus.FORBIDDEN ||
       status === HttpStatus.CONFLICT;
     const isGenericDefault =
+      message === 'Bad Request' ||
       message === 'Unauthorized' ||
       message === 'Forbidden' ||
       message === 'Conflict';
+    // 校验类 400（ValidationPipe 字段错误数组）不暴露英文明细，用通用文案
+    if (status === HttpStatus.BAD_REQUEST && (isValidationArray || isGenericDefault)) {
+      return '请求参数错误，请检查输入';
+    }
     if (isSpecific && message && !isGenericDefault) {
       return message;
     }
