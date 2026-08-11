@@ -168,15 +168,15 @@ export const INSURANCE_POLICY_SEED: InsurancePolicySeed[] = [
   {
     city: '宁波',
     name: '宁波 2026 年度社保公积金默认',
-    effectiveFrom: '2026-01-01',
-    socialBaseMin: 4500,
-    socialBaseMax: 22500,
+    effectiveFrom: '2026-07-01',
+    socialBaseMin: 4986,
+    socialBaseMax: 25299,
     socialBase: 8000,
     ratios: {
       pension: 0.08,
-      medical: 0.02,
-      unemployment: 0.005,
-      housingFund: 0.07,
+      medical: 0.005,
+      unemployment: 0.002,
+      housingFund: 0.05,
     },
     employerRatios: {
       pension: 0.14,
@@ -184,7 +184,7 @@ export const INSURANCE_POLICY_SEED: InsurancePolicySeed[] = [
       unemployment: 0.005,
       injury: 0.002,
       maternity: 0.007,
-      housingFund: 0.07,
+      housingFund: 0.05,
     },
   },
   {
