@@ -4,7 +4,6 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  Index,
 } from 'typeorm';
 
 /**
@@ -17,7 +16,6 @@ export class PointsAccount {
   id: number;
 
   @Column({ type: 'varchar', length: 20, unique: true })
-  @Index()
   studentCode: string;
 
   @Column({ type: 'int', default: 0 })
