@@ -178,6 +178,34 @@
   color: var(--danger, #C4483F);
 }
 
+/* 构成子项（扣款/补贴明细） */
+.bd-items {
+  display: flex;
+  flex-direction: column;
+  padding: 4rpx 0 12rpx 28rpx;
+  border-left: 2rpx solid var(--bg, #FAF6F0);
+  margin-left: 12rpx;
+}
+
+.bd-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6rpx 0;
+}
+
+.bd-item-name {
+  font-size: 24rpx;
+  color: var(--muted, #6F675D);
+}
+
+.bd-item-amount {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: var(--muted, #6F675D);
+  font-variant-numeric: tabular-nums;
+}
+
 /* 记录列表 */
 .record-list {
   display: flex;

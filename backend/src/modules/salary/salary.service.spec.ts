@@ -48,6 +48,27 @@ describe('SalaryService.getStatistics', () => {
         { source: 'DEDUCTION', count: '1', amount: '-200' },
       ]),
     };
+    const itemRows = {
+      select: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([
+        {
+          source: 'ALLOWANCE',
+          detail: JSON.stringify({
+            items: [
+              { type: 'COMMUTING', name: '交通补贴', amount: 300 },
+              { type: 'HOUSING', name: '住房补贴', amount: 700 },
+            ],
+          }),
+        },
+        {
+          source: 'DEDUCTION',
+          detail: JSON.stringify({
+            items: [{ type: 'OTHER', name: '其他扣款', amount: 200 }],
+          }),
+        },
+      ]),
+    };
     qb = {
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
@@ -55,7 +76,8 @@ describe('SalaryService.getStatistics', () => {
         .fn()
         .mockReturnValueOnce(totals)
         .mockReturnValueOnce(statusRows)
-        .mockReturnValueOnce(bySource),
+        .mockReturnValueOnce(bySource)
+        .mockReturnValueOnce(itemRows),
     };
   });
 
@@ -118,11 +140,24 @@ describe('SalaryService.getStatistics', () => {
   it('返回按来源聚合的 breakdown（数值化、金额降序、扣款保留负号）', async () => {
     const res = await service.getStatistics({ year: 2026, month: 7 });
     expect(res.breakdown).toEqual([
-      { source: 'BASE', count: 1, amount: 8000 },
-      { source: 'DAY', count: 6, amount: 1800 },
-      { source: 'ALLOWANCE', count: 1, amount: 1000 },
-      { source: 'BONUS', count: 1, amount: 500 },
-      { source: 'DEDUCTION', count: 1, amount: -200 },
+      { source: 'BASE', count: 1, amount: 8000, items: [] },
+      { source: 'DAY', count: 6, amount: 1800, items: [] },
+      {
+        source: 'ALLOWANCE',
+        count: 1,
+        amount: 1000,
+        items: [
+          { name: '交通补贴', amount: 300 },
+          { name: '住房补贴', amount: 700 },
+        ],
+      },
+      { source: 'BONUS', count: 1, amount: 500, items: [] },
+      {
+        source: 'DEDUCTION',
+        count: 1,
+        amount: -200,
+        items: [{ name: '其他扣款', amount: 200 }],
+      },
     ]);
   });
 });

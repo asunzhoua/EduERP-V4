@@ -4,6 +4,7 @@ import {
   SalarySlipService,
   calcTax,
   calcSocial,
+  mergeItems,
   type SlipPreview,
 } from './salary-slip.service';
 import { SalarySlipEntity } from '../entities/salary-slip.entity';
@@ -112,12 +113,46 @@ describe('工资条纯函数', () => {
       expect(calcSocial(8000, { pension: 0.08 })).toBe(640);
     });
   });
+
+  describe('mergeItems（津贴/扣款构成子项）', () => {
+    it('空或缺失 items → []', () => {
+      expect(mergeItems(undefined)).toEqual([]);
+      expect(mergeItems([])).toEqual([]);
+    });
+
+    it('按 name 合并求和，amount 保留原值', () => {
+      expect(
+        mergeItems([
+          { type: 'COMMUTING', name: '交通补贴', amount: 300 },
+          { type: 'HOUSING', name: '住房补贴', amount: 700 },
+        ]),
+      ).toEqual([
+        { name: '交通补贴', amount: 300 },
+        { name: '住房补贴', amount: 700 },
+      ]);
+    });
+
+    it('同名子项合并为一个，金额相加（四舍五入两位）', () => {
+      expect(
+        mergeItems([
+          { type: 'OTHER', name: '请假扣款', amount: 100 },
+          { type: 'OTHER', name: '请假扣款', amount: 50.005 },
+        ]),
+      ).toEqual([{ name: '请假扣款', amount: 150.01 }]);
+    });
+
+    it('无 name 时回退用 type，再回退「其他」', () => {
+      expect(mergeItems([{ type: 'HOUSING', amount: 500 }])).toEqual([
+        { name: 'HOUSING', amount: 500 },
+      ]);
+    });
+  });
 });
 
 describe('SalarySlipService', () => {
   let service: SalarySlipService;
 
-  const recordRepo = { find: jest.fn() };
+  const recordRepo = { find: jest.fn(), createQueryBuilder: jest.fn() };
   const profileRepo = { find: jest.fn() };
   const userRepo = {
     find: jest.fn(),
@@ -126,6 +161,7 @@ describe('SalarySlipService', () => {
   const slipRepo = {
     find: jest.fn(),
     findOne: jest.fn(),
+    save: jest.fn(),
     createQueryBuilder: jest.fn(),
     manager: { transaction: jest.fn() },
   };
@@ -193,12 +229,21 @@ describe('SalarySlipService', () => {
         source: SalaryRecordSource.ALLOWANCE,
         amount: 500,
         month: '2026-08',
+        detail: {
+          items: [
+            { type: 'COMMUTING', name: '交通补贴', amount: 300 },
+            { type: 'HOUSING', name: '住房补贴', amount: 200 },
+          ],
+        },
       },
       {
         teacherId: 1,
         source: SalaryRecordSource.DEDUCTION,
         amount: -200,
         month: '2026-08',
+        detail: {
+          items: [{ type: 'OTHER', name: '请假扣款', amount: 200 }],
+        },
       },
     ] as SalaryRecordEntity[];
 
@@ -249,10 +294,23 @@ describe('SalarySlipService', () => {
 
     // detail 快照留痕
     expect(slip.detail.breakdown).toEqual([
-      { source: 'LESSON_FEE', count: 1, amount: 5000 },
-      { source: 'BASE', count: 1, amount: 3000 },
-      { source: 'ALLOWANCE', count: 1, amount: 500 },
-      { source: 'DEDUCTION', count: 1, amount: -200 },
+      { source: 'LESSON_FEE', count: 1, amount: 5000, items: [] },
+      { source: 'BASE', count: 1, amount: 3000, items: [] },
+      {
+        source: 'ALLOWANCE',
+        count: 1,
+        amount: 500,
+        items: [
+          { name: '交通补贴', amount: 300 },
+          { name: '住房补贴', amount: 200 },
+        ],
+      },
+      {
+        source: 'DEDUCTION',
+        count: 1,
+        amount: -200,
+        items: [{ name: '请假扣款', amount: 200 }],
+      },
     ]);
     expect(slip.detail.social.base).toBe(8000);
     expect(slip.detail.tax.method).toContain('月度估算');
@@ -380,6 +438,70 @@ describe('SalarySlipService', () => {
     expect(res.slips[0].netAmount).toBe(6843);
     // dry-run 不应查询 persisted
     expect(slipRepo.find).not.toHaveBeenCalled();
+  });
+
+  it('recomputeByConfig：开关切换重算非 PAID，PAID 锁定不动', async () => {
+    recordRepo.createQueryBuilder.mockReturnValue({
+      select: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([{ month: '2026-08' }]),
+    });
+    recordRepo.find.mockResolvedValue(teacherRecords());
+    profileRepo.find.mockResolvedValue([]);
+    userRepo.find.mockResolvedValue([{ id: 1, name: '张老师' }]);
+    taxPolicyService.findActiveForMonth.mockResolvedValue(taxPolicy());
+    insurancePolicyService.findActiveForCity.mockResolvedValue(nbePolicy());
+
+    const pendingSlip = {
+      id: 1,
+      teacherId: 1,
+      month: '2026-08',
+      status: SalaryRecordStatus.PENDING,
+      grossAmount: 0,
+      socialAmount: 0,
+      taxAmount: 0,
+      netAmount: 0,
+      detail: null,
+      needsReview: false,
+      notes: null,
+      updatedBy: null,
+    };
+    const paidSlip = {
+      id: 2,
+      teacherId: 1,
+      month: '2026-08',
+      status: SalaryRecordStatus.PAID,
+      grossAmount: 9999,
+      socialAmount: 9999,
+      taxAmount: 9999,
+      netAmount: 9999,
+      detail: null,
+      needsReview: false,
+      notes: '历史',
+      updatedBy: null,
+    };
+    // build() 内部查一次 persisted，recompute 再查一次 → 均返回同一列表
+    slipRepo.find.mockResolvedValue([pendingSlip, paidSlip]);
+    const saveMock = jest
+      .fn()
+      .mockImplementation((s: unknown) => Promise.resolve(s));
+    slipRepo.save.mockImplementation(saveMock);
+
+    const res = await service.recomputeByConfig(9);
+
+    expect(res.recomputed).toBe(1);
+    expect(res.skippedPaid).toBe(1);
+    expect(res.months).toEqual(['2026-08']);
+    // PAID 锁定不动
+    expect(paidSlip.grossAmount).toBe(9999);
+    expect(paidSlip.status).toBe(SalaryRecordStatus.PAID);
+    expect(saveMock).toHaveBeenCalledTimes(1);
+    // PENDING 按最新配置重建（保留 status 与 id）
+    expect(pendingSlip.grossAmount).toBe(8300);
+    expect(pendingSlip.socialAmount).toBe(1400);
+    expect(pendingSlip.taxAmount).toBe(57);
+    expect(pendingSlip.netAmount).toBe(6843);
+    expect(pendingSlip.status).toBe(SalaryRecordStatus.PENDING);
+    expect(pendingSlip.updatedBy).toBe(9);
   });
 
   it('exportExcel：按筛选导出全部并生成 xlsx', async () => {

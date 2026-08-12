@@ -11,6 +11,7 @@ import { TeacherSalaryProfileEntity } from './entities/teacher-salary-profile.en
 import { OutingRecordEntity } from './entities/outing-record.entity';
 import {
   OutingRecordStatus,
+  SalaryRecordSource,
   SalaryRecordStatus,
   SalaryRuleType,
   TeacherEmploymentType,
@@ -31,6 +32,10 @@ import {
   QueryOutingRecordDto,
 } from './dto/salary-profile.dto';
 import { User } from '@modules/identity/entities/user.entity';
+import {
+  mergeItems,
+  type BreakdownItem,
+} from './services/salary-slip.service';
 
 type SalaryTotalsRow = {
   totalRecords: string;
@@ -43,6 +48,23 @@ type SalaryStatusRow = {
   status: SalaryRecordStatus;
   amount: string;
 };
+
+/** 解析记录 detail.items（raw 查询 JSON 列可能为字符串），容错返回空数组 */
+function parseDetailItems(
+  detail: unknown,
+): { type?: string; name?: string; amount?: number }[] {
+  if (detail == null) return [];
+  let obj: unknown = detail;
+  if (typeof detail === 'string') {
+    try {
+      obj = JSON.parse(detail);
+    } catch {
+      return [];
+    }
+  }
+  const items = (obj as { items?: unknown } | null)?.items;
+  return Array.isArray(items) ? (items as { type?: string; name?: string; amount?: number }[]) : [];
+}
 
 @Injectable()
 export class SalaryService {
@@ -188,12 +210,33 @@ export class SalaryService {
       .groupBy('record.source')
       .getRawMany<{ source: string; count: string; amount: string }>();
 
+    // 扣款/补贴构成子项（ALLOWANCE/DEDUCTION 记录 detail.items）
+    const itemRows = await qb
+      .clone()
+      .select(['record.source AS source', 'record.detail AS detail'])
+      .andWhere("record.source IN ('ALLOWANCE', 'DEDUCTION')")
+      .getRawMany<{ source: string; detail: unknown }>();
+
     const breakdown = bySource
-      .map((row) => ({
-        source: row.source,
-        count: parseInt(row.count, 10) || 0,
-        amount: parseFloat(row.amount) || 0,
-      }))
+      .map((row) => {
+        const items: BreakdownItem[] = [];
+        if (
+          row.source === SalaryRecordSource.ALLOWANCE ||
+          row.source === SalaryRecordSource.DEDUCTION
+        ) {
+          for (const ir of itemRows) {
+            if (ir.source !== row.source) continue;
+            const sub = parseDetailItems(ir.detail);
+            if (sub.length) items.push(...mergeItems(sub));
+          }
+        }
+        return {
+          source: row.source,
+          count: parseInt(row.count, 10) || 0,
+          amount: parseFloat(row.amount) || 0,
+          items,
+        };
+      })
       .sort((a, b) => b.amount - a.amount);
 
     return {

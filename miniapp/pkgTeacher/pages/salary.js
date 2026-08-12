@@ -98,12 +98,20 @@ Page({
         var src = SOURCE_MAP[b.source] || { text: b.source || '--' };
         var amount = Number(b.amount) || 0;
         var isDeduction = b.source === 'DEDUCTION';
+        var items = Array.isArray(b.items) ? b.items.map(function (it) {
+          var itAmount = Number(it.amount) || 0;
+          return {
+            name: it.name || '其他',
+            amountText: (isDeduction ? '-' : '') + Math.abs(itAmount).toFixed(2)
+          };
+        }) : [];
         return {
           source: b.source,
           name: src.text,
           amount: amount,
           amountText: (isDeduction ? '-' : '') + Math.abs(amount).toFixed(2),
-          isDeduction: isDeduction
+          isDeduction: isDeduction,
+          items: items
         };
       }) : [];
       self.setData({

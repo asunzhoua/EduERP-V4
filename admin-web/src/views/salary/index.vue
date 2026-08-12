@@ -1467,9 +1467,22 @@ const slipStatusColor: Record<SlipStatus, string> = {
 const slipBreakdownRows = computed(() => {
   const d = slipDetail.value?.detail
   if (!d || !Array.isArray(d.breakdown) || !d.breakdown.length) return []
-  return d.breakdown.map((b: { source: string; count: number; amount: number }) => {
+  return d.breakdown.map((b: {
+    source: string
+    count: number
+    amount: number
+    items?: { name?: string; amount?: number }[]
+  }) => {
     const isDeduction = b.source === 'DEDUCTION'
     const amount = Number(b.amount) || 0
+    const items = (Array.isArray(b.items) ? b.items : []).map((it) => {
+      const itAmount = Number(it.amount) || 0
+      return {
+        name: it.name ?? '其他',
+        amount: itAmount,
+        amountText: (isDeduction ? '-' : '') + formatMoney(Math.abs(itAmount)),
+      }
+    })
     return {
       source: b.source,
       name: sourceLabel[b.source as SalaryRecordSource] || b.source,
@@ -1477,8 +1490,18 @@ const slipBreakdownRows = computed(() => {
       amount,
       isDeduction,
       amountText: (isDeduction ? '-' : '') + formatMoney(Math.abs(amount)),
+      items,
     }
   })
+})
+
+/** 工资条自身的扣款快照（PAID 历史条不受全局开关影响）；
+ * 旧快照无 deductEnabled 标记时，以 detail 是否含 social/tax 明细为准 */
+const slipDeductEnabled = computed(() => {
+  const d = slipDetail.value?.detail
+  if (!d) return deductEnabled.value
+  if (typeof d.deductEnabled === 'boolean') return d.deductEnabled
+  return !!(d.social || d.tax) || deductEnabled.value
 })
 
 const slipPolicyLines = computed(() => {
@@ -1737,10 +1760,15 @@ async function onConfirmToggleDeduct() {
   deductSaving.value = true
   const next = !deductEnabled.value
   try {
-    await updateSalaryConfig({ enabled: next })
+    const res = await updateSalaryConfig({ enabled: next })
     deductEnabled.value = next
     deductConfirmVisible.value = false
-    message.success(next ? '已开启社保和个税' : '已关闭社保和个税')
+    const n = res?.recompute?.recomputed ?? 0
+    message.success(
+      (next ? '已开启社保和个税' : '已关闭社保和个税') +
+        (n ? `，重算 ${n} 张未发放工资条` : ''),
+    )
+    loadSlips()
   } catch (e) {
     message.error((e as Error).message || '保存失败')
   } finally {
@@ -2905,7 +2933,7 @@ onMounted(() => {
       @ok="onConfirmToggleDeduct"
     >
       <p>确认{{ deductEnabled ? '关闭' : '开启' }}社保和个税？</p>
-      <p class="form-tip">{{ deductEnabled ? '关闭后工资条不再显示社保和个税，实发=应发。' : '开启后新生成/重算的工资条将展示社保和个税。' }}</p>
+      <p class="form-tip">{{ deductEnabled ? '关闭后工资条不再显示社保和个税，实发=应发，未发放工资条将自动重算（已发放不动）。' : '开启后按设置的费率扣社保和个税，未发放工资条将自动重算（已发放不动）。' }}</p>
     </a-modal>
 
     <!-- 工资条详情抽屉 -->
@@ -2920,8 +2948,8 @@ onMounted(() => {
             <a-descriptions-item label="教师">{{ slipDetail.teacherName || slipDetail.teacherId }}</a-descriptions-item>
             <a-descriptions-item label="月份">{{ slipDetail.month }}</a-descriptions-item>
             <a-descriptions-item label="应发">{{ formatMoney(slipDetail.grossAmount) }}</a-descriptions-item>
-            <a-descriptions-item v-if="deductEnabled" label="五险一金">{{ formatMoney(slipDetail.socialAmount) }}</a-descriptions-item>
-            <a-descriptions-item v-if="deductEnabled" label="个税">{{ formatMoney(slipDetail.taxAmount) }}</a-descriptions-item>
+            <a-descriptions-item v-if="slipDeductEnabled" label="五险一金">{{ formatMoney(slipDetail.socialAmount) }}</a-descriptions-item>
+            <a-descriptions-item v-if="slipDeductEnabled" label="个税">{{ formatMoney(slipDetail.taxAmount) }}</a-descriptions-item>
             <a-descriptions-item label="实发">{{ formatMoney(slipDetail.netAmount) }}</a-descriptions-item>
             <a-descriptions-item label="状态">
               <a-tag :color="slipStatusColor[slipDetail.status as SlipStatus]">{{ slipStatusLabel[slipDetail.status as SlipStatus] }}</a-tag>
@@ -2931,12 +2959,20 @@ onMounted(() => {
           </a-descriptions>
           <a-divider style="margin: 16px 0">工资构成</a-divider>
           <div v-if="slipBreakdownRows.length" class="slip-breakdown">
-            <div v-for="row in slipBreakdownRows" :key="row.source" class="slip-breakdown-row">
-              <div class="row-left">
-                <span class="row-name">{{ row.name }}</span>
-                <span v-if="row.count > 1" class="row-count">×{{ row.count }}</span>
+            <div v-for="row in slipBreakdownRows" :key="row.source" class="slip-breakdown-group">
+              <div class="slip-breakdown-row">
+                <div class="row-left">
+                  <span class="row-name">{{ row.name }}</span>
+                  <span v-if="row.count > 1" class="row-count">×{{ row.count }}</span>
+                </div>
+                <span class="row-amount" :class="{ 'amount-deduct': row.isDeduction }">{{ row.amountText }}</span>
               </div>
-              <span class="row-amount" :class="{ 'amount-deduct': row.isDeduction }">{{ row.amountText }}</span>
+              <div v-if="row.items.length" class="slip-breakdown-items">
+                <div v-for="(it, i) in row.items" :key="i" class="slip-breakdown-item">
+                  <span class="item-name">{{ it.name }}</span>
+                  <span class="item-amount" :class="{ 'amount-deduct': row.isDeduction }">{{ it.amountText }}</span>
+                </div>
+              </div>
             </div>
           </div>
           <a-empty v-else description="无构成明细" />
@@ -3027,6 +3063,29 @@ onMounted(() => {
 }
 .slip-breakdown-row .amount-deduct {
   color: #ff4d4f;
+}
+.slip-breakdown-group {
+  display: flex;
+  flex-direction: column;
+}
+.slip-breakdown-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0 4px 24px;
+  border-left: 2px solid #f0f0f0;
+  margin-left: 12px;
+}
+.slip-breakdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 12px;
+  color: #666;
+  font-size: 13px;
+}
+.slip-breakdown-item .item-amount {
+  font-weight: 500;
 }
 .policy-details {
   margin-top: 12px;

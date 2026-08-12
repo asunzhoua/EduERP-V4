@@ -95,13 +95,18 @@ export class SalaryController {
 
   @Put('config')
   @Roles('Admin', 'SuperAdmin')
-  @ApiOperation({ summary: '更新社保 + 个税 总开关（只影响之后新生成/重算的工资条）' })
-  @ApiResponse({ status: 200, description: '成功更新配置' })
+  @ApiOperation({
+    summary:
+      '更新社保 + 个税 总开关并自动重算未发放工资条（PAID 锁定不动）',
+  })
+  @ApiResponse({ status: 200, description: '成功更新配置并触发重算' })
   async updateSalaryConfig(
     @Body() dto: UpdateSalaryConfigDto,
     @Request() req: AuthedRequest,
   ) {
-    return this.configService.update(dto.enabled, req.user.sub);
+    const config = await this.configService.update(dto.enabled, req.user.sub);
+    const recompute = await this.slipService.recomputeByConfig(req.user.sub);
+    return { ...config, recompute };
   }
 
   // ==================== 教师接口 ====================

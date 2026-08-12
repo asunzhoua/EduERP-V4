@@ -647,6 +647,12 @@ export function updatePayrollStatus(
 
 export interface SalaryConfig {
   enabled: boolean
+  /** 开关切换后自动重算未发放工资条的结果 */
+  recompute?: {
+    recomputed: number
+    skippedPaid: number
+    months: string[]
+  }
 }
 
 export function getSalaryConfig(): Promise<SalaryConfig> {

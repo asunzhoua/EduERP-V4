@@ -9,7 +9,7 @@ import { SalarySlipEntity } from '../entities/salary-slip.entity';
 import { SalaryRecordEntity } from '../entities/salary-record.entity';
 import { TeacherSalaryProfileEntity } from '../entities/teacher-salary-profile.entity';
 import { User } from '@modules/identity/entities/user.entity';
-import { SalaryRecordStatus } from '../enums/salary.enums';
+import { SalaryRecordSource, SalaryRecordStatus } from '../enums/salary.enums';
 import { TaxPolicyService } from './tax-policy.service';
 import { InsurancePolicyService } from './insurance-policy.service';
 import { SalaryConfigService } from './salary-config.service';
@@ -19,6 +19,27 @@ import { ExcelWriter } from '@modules/export/utils/excel-writer.util';
 /** 金额保留两位小数 */
 export function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+/** 扣款/补贴构成子项（工资构成明细行下缩进展示） */
+export interface BreakdownItem {
+  name: string;
+  amount: number;
+}
+
+/**
+ * 合并津贴/扣款明细子项（按 name/type 求和，amount 保留符号，DEDUCTION 为负）。
+ * items 缺失或为空 → []，保证结构一致。
+ */
+export function mergeItems(
+  items?: { type?: string; name?: string; amount?: number }[],
+): BreakdownItem[] {
+  const map = new Map<string, number>();
+  for (const it of items ?? []) {
+    const key = it.name ?? it.type ?? '其他';
+    map.set(key, round2((map.get(key) ?? 0) + (Number(it.amount) || 0)));
+  }
+  return [...map.entries()].map(([name, amount]) => ({ name, amount }));
 }
 
 /**
@@ -132,6 +153,52 @@ export class SalarySlipService {
       teachers: result.preview.length,
       slips: result.preview,
     };
+  }
+
+  /**
+   * 社保/个税总开关切换后自动重算未发放工资条：
+   * PENDING/APPROVED 用最新配置重建（保留 id 与 status），PAID 锁定不动。
+   */
+  async recomputeByConfig(operatedBy = 0) {
+    const monthRows = await this.recordRepo
+      .createQueryBuilder('record')
+      .select('DISTINCT record.month', 'month')
+      .getRawMany<{ month: string }>();
+    const months = monthRows.map((r) => r.month).filter(Boolean);
+
+    let recomputed = 0;
+    let skippedPaid = 0;
+    const updatedMonths: string[] = [];
+
+    for (const month of months) {
+      const result = await this.build(month, undefined, false);
+      const previewByTeacher = new Map(
+        result.preview.map((p) => [Number(p.teacherId), p]),
+      );
+      const slips = await this.slipRepo.find({ where: { month } });
+      let monthChanged = false;
+      for (const slip of slips) {
+        if (slip.status === SalaryRecordStatus.PAID) {
+          skippedPaid += 1;
+          continue;
+        }
+        const p = previewByTeacher.get(Number(slip.teacherId));
+        if (!p) continue;
+        slip.grossAmount = p.grossAmount;
+        slip.socialAmount = p.socialAmount;
+        slip.taxAmount = p.taxAmount;
+        slip.netAmount = p.netAmount;
+        slip.detail = p.detail;
+        slip.needsReview = p.needsReview;
+        slip.notes = p.notes.length ? p.notes.join('；') : null;
+        slip.updatedBy = operatedBy || null;
+        await this.slipRepo.save(slip);
+        recomputed += 1;
+        monthChanged = true;
+      }
+      if (monthChanged) updatedMonths.push(month);
+    }
+    return { recomputed, skippedPaid, months: updatedMonths };
   }
 
   async getSlips(query: QuerySalarySlipDto) {
@@ -494,13 +561,29 @@ export class SalarySlipService {
 
   private buildBreakdown(
     records: SalaryRecordEntity[],
-  ): { source: string; count: number; amount: number }[] {
-    const map = new Map<string, { count: number; amount: number }>();
+  ): { source: string; count: number; amount: number; items: BreakdownItem[] }[] {
+    const map = new Map<
+      string,
+      { count: number; amount: number; items: BreakdownItem[] }
+    >();
     for (const r of records) {
       const key = r.source as string;
-      const cur = map.get(key) ?? { count: 0, amount: 0 };
+      const cur = map.get(key) ?? { count: 0, amount: 0, items: [] };
       cur.count += 1;
       cur.amount += Number(r.amount) || 0;
+      if (
+        key === SalaryRecordSource.ALLOWANCE ||
+        key === SalaryRecordSource.DEDUCTION
+      ) {
+        const detailItems = (r.detail as { items?: unknown } | null)?.items;
+        if (Array.isArray(detailItems) && detailItems.length) {
+          cur.items.push(
+            ...mergeItems(
+              detailItems as { type?: string; name?: string; amount?: number }[],
+            ),
+          );
+        }
+      }
       map.set(key, cur);
     }
     return [...map.entries()]
@@ -508,6 +591,7 @@ export class SalarySlipService {
         source,
         count: v.count,
         amount: round2(v.amount),
+        items: v.items,
       }))
       .sort((a, b) => b.amount - a.amount);
   }
