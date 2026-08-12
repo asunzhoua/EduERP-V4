@@ -23,17 +23,20 @@ Page({
     const role = userInfo.role;
     const isStudentView = role === 'Student' || role === 'Parent';
     this.setData({ isStudentView });
-    if (isStudentView) {
-      this.loadStudentCourses();
-    } else {
-      this.loadCourses();
-    }
   },
 
-  // Tab 页 onLoad 仅一次；家长/学生视图每次切回刷新（从详情页返回后更新）
+  // Tab 页 onShow 每次切回都刷新；教师视图也要刷新，否则创建/编辑课程后返回列表看不到新课程
   onShow() {
     if (this.data.isStudentView) {
       this.loadStudentCourses();
+    } else {
+      this.setData({
+        page: 1,
+        courses: [],
+        hasMore: true,
+        searchKeyword: ''
+      });
+      this.loadCourses();
     }
   },
 
