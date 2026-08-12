@@ -8,7 +8,6 @@ import {
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { Subject } from '@common/enums/subject.enum';
 import { CourseType } from '../enums/course-type.enum';
 import { CourseStatus } from '../enums/course-status.enum';
 
@@ -19,10 +18,10 @@ export class QueryCourseDto {
   @MaxLength(100)
   name?: string;
 
-  @ApiPropertyOptional({ enum: Subject, description: '按学科筛选' })
-  @IsEnum(Subject)
+  @ApiPropertyOptional({ description: '按学科筛选（学科目录 code）' })
+  @IsString()
   @IsOptional()
-  subject?: Subject;
+  subject?: string;
 
   @ApiPropertyOptional({ enum: CourseType, description: '按类型筛选' })
   @IsEnum(CourseType)

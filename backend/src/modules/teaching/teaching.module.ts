@@ -4,6 +4,7 @@ import { EventBusModule } from '@events/event-bus.module';
 import { CourseModule } from './course/course.module';
 import { ClassModule } from './class/class.module';
 import { ClassroomModule } from './classroom/classroom.module';
+import { SubjectModule } from './subject/subject.module';
 import { ContractModule } from './contract/contract.module';
 import { EnrollmentModule } from './enrollment/enrollment.module';
 import { LessonModule } from './lesson/lesson.module';
@@ -41,6 +42,7 @@ import { TeacherDashboardController } from './teacher-dashboard/teacher-dashboar
     CourseModule,
     ClassModule,
     ClassroomModule,
+    SubjectModule,
     ContractModule,
     EnrollmentModule,
     LessonModule,
@@ -57,6 +59,7 @@ import { TeacherDashboardController } from './teacher-dashboard/teacher-dashboar
     CourseModule,
     ClassModule,
     ClassroomModule,
+    SubjectModule,
     ContractModule,
     EnrollmentModule,
     LessonModule,

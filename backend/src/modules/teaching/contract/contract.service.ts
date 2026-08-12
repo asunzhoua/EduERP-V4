@@ -44,7 +44,7 @@ const VALID_TRANSITIONS: Record<ContractStatus, ContractStatus[]> = {
 /** Input for creating a Contract. */
 export interface CreateContractInput {
   studentCode: string;
-  subject: Subject;
+  subject: string;
   totalLessons: number;
   validFrom: string;
   validTo?: string | null;
@@ -625,7 +625,7 @@ export class ContractService {
             throw new Error(`学员不存在: ${row['studentcode']}`);
           }
 
-          const subject = this.parseSubject(row['subject']) as Subject;
+          const subject = this.parseSubject(row['subject']) as string;
           const lessons = Number(row['lessons']);
           const unitPrice = row['unitprice']
             ? Number(row['unitprice'])
@@ -750,31 +750,55 @@ export class ContractService {
     return value.length > max ? value.slice(0, max) : value;
   }
 
-  /** 科目：接受枚举值（大小写不敏感）或中文别名 */
-  private parseSubject(value: string): Subject | null {
+  /**
+   * 科目：接受枚举值（大小写不敏感）或中文别名；
+   * 未知字符串（自定义学科 code / 名称）原样透传，不再 throw。
+   */
+  private parseSubject(value: string): string | null {
     const trimmed = value.trim();
+    if (!trimmed) return null;
     const upper = trimmed.toUpperCase();
     if (upper in Subject) {
       return Subject[upper as keyof typeof Subject];
     }
-    const aliases: Record<string, Subject> = {
-      数学: Subject.MATH,
-      英语: Subject.ENGLISH,
-      英文: Subject.ENGLISH,
-      语文: Subject.CHINESE,
-      中文: Subject.CHINESE,
-      物理: Subject.PHYSICS,
-      化学: Subject.CHEMISTRY,
-      美术: Subject.ART,
-      音乐: Subject.MUSIC,
-      舞蹈: Subject.DANCE,
-      体育: Subject.SPORTS,
-      运动: Subject.SPORTS,
-      编程: Subject.CODING,
-      计算机: Subject.CODING,
-      其他: Subject.OTHER,
+    const aliases: Record<string, string> = {
+      数学: 'MATH',
+      英语: 'ENGLISH',
+      英文: 'ENGLISH',
+      语文: 'CHINESE',
+      中文: 'CHINESE',
+      物理: 'PHYSICS',
+      化学: 'CHEMISTRY',
+      美术: 'ART',
+      音乐: 'MUSIC',
+      舞蹈: 'DANCE',
+      体育: 'SPORTS',
+      运动: 'SPORTS',
+      编程: 'CODING',
+      计算机: 'CODING',
+      游泳: 'SWIMMING',
+      篮球: 'BASKETBALL',
+      足球: 'FOOTBALL',
+      羽毛球: 'BADMINTON',
+      跆拳道: 'TAEKWONDO',
+      围棋: 'GO',
+      象棋: 'CHESS',
+      乐高: 'LEGO',
+      机器人: 'ROBOTICS',
+      科学实验: 'SCIENCE_EXP',
+      书法: 'CALLIGRAPHY',
+      素描: 'SKETCH',
+      国画: 'CHINESE_PAINTING',
+      手工: 'HANDCRAFT',
+      陶艺: 'CERAMICS',
+      乐器: 'INSTRUMENT',
+      口才: 'ELOQUENCE',
+      阅读: 'READING',
+      硬笔书法: 'HANDWRITING',
+      专注力: 'FOCUS',
+      其他: 'OTHER',
     };
-    return aliases[trimmed] ?? null;
+    return aliases[trimmed] ?? trimmed;
   }
 
   /** 日期字符串（YYYY-MM-DD）转当天起止 Date 范围；用于 createdAt 时间戳过滤 */

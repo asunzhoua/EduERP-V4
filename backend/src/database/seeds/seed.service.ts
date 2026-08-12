@@ -12,6 +12,8 @@ import { AppLogger } from '@utils/logger';
 import { ClassEntity } from '../../modules/teaching/class/class.entity';
 import { ClassStatus } from '../../modules/teaching/class/enums/class-status.enum';
 import { ClassroomEntity } from '../../modules/teaching/classroom/classroom.entity';
+import { SubjectEntity } from '../../modules/teaching/subject/subject.entity';
+import { DEFAULT_SUBJECTS } from '../../modules/teaching/subject/subject-catalog';
 import { Student } from '../../modules/student/entities/student.entity';
 import { Gender } from '../../modules/student/enums/gender.enum';
 import { StudentStatus } from '../../modules/student/enums/student-status.enum';
@@ -91,6 +93,7 @@ export class SeedService {
       const manager = queryRunner.manager;
 
       await this.seedRoles(manager);
+      await this.seedSubjects(manager);
       await this.seedPermissions(manager);
       await this.seedAdminUser(manager);
       await this.seedTestUsers(manager);
@@ -132,6 +135,30 @@ export class SeedService {
       if (!exists) {
         await repo.save({ name, description: `${name} role` });
         this.logger.log(`Role created: ${name}`, 'Seed');
+      }
+    }
+  }
+
+  /** 默认学科目录 — 31 条（含艺术类/体育类细分/益智科技/语言表达），find-or-create 幂等 */
+  private async seedSubjects(manager: EntityManager) {
+    const repo = manager.getRepository(SubjectEntity);
+    for (const item of DEFAULT_SUBJECTS) {
+      const exists = await repo.findOne({ where: { code: item.code } });
+      if (!exists) {
+        await repo.save(
+          repo.create({
+            code: item.code,
+            name: item.name,
+            category: item.category,
+            isDefault: true,
+            sortOrder: item.sortOrder,
+            createdBy: 0,
+          }),
+        );
+        this.logger.log(
+          `Default subject seeded: ${item.name} (${item.code})`,
+          'Seed',
+        );
       }
     }
   }

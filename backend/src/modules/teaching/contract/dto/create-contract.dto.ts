@@ -2,7 +2,6 @@ import {
   IsString,
   IsNotEmpty,
   MaxLength,
-  IsEnum,
   IsInt,
   Min,
   IsDateString,
@@ -11,7 +10,6 @@ import {
   IsArray,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Subject } from '@common/enums/subject.enum';
 
 export class CreateContractDto {
   @ApiProperty({ description: 'Student code', example: 'STU20260001' })
@@ -20,10 +18,11 @@ export class CreateContractDto {
   @MaxLength(20)
   studentCode!: string;
 
-  @ApiProperty({ description: 'Subject', enum: Subject, example: Subject.MATH })
-  @IsEnum(Subject)
+  @ApiProperty({ description: 'Subject (catalog code)', example: 'MATH' })
+  @IsString()
   @IsNotEmpty()
-  subject!: Subject;
+  @MaxLength(32)
+  subject!: string;
 
   @ApiProperty({ description: 'Total lessons in contract', example: 30 })
   @IsInt()

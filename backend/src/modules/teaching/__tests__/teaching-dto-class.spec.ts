@@ -320,10 +320,19 @@ describe('CreateCourseDto', () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 
-  it('should fail when subject is invalid', async () => {
+  it('should pass with custom subject code', async () => {
     const dto = plainToInstance(CreateCourseDto, {
       ...valid,
-      subject: 'INVALID',
+      subject: 'SUBJ0001',
+    });
+    const errors = await validate(dto);
+    expect(errors.length).toBe(0);
+  });
+
+  it('should fail when subject is empty', async () => {
+    const dto = plainToInstance(CreateCourseDto, {
+      ...valid,
+      subject: '',
     });
     const errors = await validate(dto);
     expect(errors.length).toBeGreaterThan(0);
@@ -404,10 +413,10 @@ describe('UpdateCourseDto', () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 
-  it('should fail when subject is invalid', async () => {
-    const dto = plainToInstance(UpdateCourseDto, { subject: 'INVALID' });
+  it('should pass with custom subject code', async () => {
+    const dto = plainToInstance(UpdateCourseDto, { subject: 'SUBJ0001' });
     const errors = await validate(dto);
-    expect(errors.length).toBeGreaterThan(0);
+    expect(errors.length).toBe(0);
   });
 
   it('should fail when totalHours < 0.5', async () => {
@@ -467,9 +476,9 @@ describe('QueryCourseDto', () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 
-  it('should fail when subject is invalid', async () => {
-    const dto = plainToInstance(QueryCourseDto, { subject: 'INVALID' });
+  it('should pass with custom subject filter', async () => {
+    const dto = plainToInstance(QueryCourseDto, { subject: 'SUBJ0001' });
     const errors = await validate(dto);
-    expect(errors.length).toBeGreaterThan(0);
+    expect(errors.length).toBe(0);
   });
 });

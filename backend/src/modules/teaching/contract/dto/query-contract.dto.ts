@@ -8,7 +8,6 @@ import {
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { Subject } from '@common/enums/subject.enum';
 import { ContractStatus } from '../enums/contract-status.enum';
 
 export class QueryContractDto {
@@ -18,10 +17,10 @@ export class QueryContractDto {
   @MaxLength(20)
   studentCode?: string;
 
-  @ApiPropertyOptional({ enum: Subject, description: '按学科筛选' })
-  @IsEnum(Subject)
+  @ApiPropertyOptional({ description: '按学科筛选（学科目录 code）' })
+  @IsString()
   @IsOptional()
-  subject?: Subject;
+  subject?: string;
 
   @ApiPropertyOptional({ enum: ContractStatus, description: '按状态筛选' })
   @IsEnum(ContractStatus)

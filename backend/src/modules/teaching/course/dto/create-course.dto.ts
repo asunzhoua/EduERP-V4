@@ -9,7 +9,6 @@ import {
   Min,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Subject } from '@common/enums/subject.enum';
 import { CourseType } from '../enums/course-type.enum';
 
 export class CreateCourseDto {
@@ -19,10 +18,14 @@ export class CreateCourseDto {
   @MaxLength(100)
   name: string;
 
-  @ApiProperty({ enum: Subject, description: '学科类别' })
-  @IsEnum(Subject)
+  @ApiProperty({
+    description: '学科类别（学科目录 code，可自定义）',
+    example: 'MATH',
+  })
+  @IsString()
   @IsNotEmpty()
-  subject: Subject;
+  @MaxLength(32)
+  subject: string;
 
   @ApiProperty({ enum: CourseType, description: '课程类型' })
   @IsEnum(CourseType)

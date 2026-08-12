@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual } from 'typeorm';
 import { ContractEntity } from './contract.entity';
 import { ContractStatus } from './enums/contract-status.enum';
-import { Subject } from '@common/enums/subject.enum';
 
 @Injectable()
 export class ContractRepository {
@@ -26,7 +25,7 @@ export class ContractRepository {
 
   async findActiveByStudentCodeAndSubject(
     studentCode: string,
-    subject: Subject,
+    subject: string,
   ): Promise<ContractEntity | null> {
     return this.repo.findOne({
       where: { studentCode, subject, status: ContractStatus.ACTIVE },

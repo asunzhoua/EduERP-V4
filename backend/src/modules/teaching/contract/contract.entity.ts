@@ -7,7 +7,6 @@ import {
   Unique,
 } from 'typeorm';
 import { ContractStatus } from './enums/contract-status.enum';
-import { Subject } from '@common/enums/subject.enum';
 
 @Entity('contract')
 @Unique(['contractCode'])
@@ -26,8 +25,8 @@ export class ContractEntity {
 
   // ─── Product ───
 
-  @Column({ type: 'enum', enum: Subject })
-  subject: Subject;
+  @Column({ type: 'varchar', length: 32 })
+  subject: string;
 
   @Column({ type: 'int' })
   totalLessons: number;

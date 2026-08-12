@@ -8,7 +8,6 @@ import {
   Index,
 } from 'typeorm';
 import { CourseStatus } from './enums/course-status.enum';
-import { Subject } from '@common/enums/subject.enum';
 import { CourseType } from './enums/course-type.enum';
 
 @Entity('course')
@@ -24,9 +23,9 @@ export class CourseEntity {
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
-  @Column({ type: 'enum', enum: Subject })
+  @Column({ type: 'varchar', length: 32 })
   @Index()
-  subject: Subject;
+  subject: string;
 
   @Column({ type: 'enum', enum: CourseType })
   @Index()

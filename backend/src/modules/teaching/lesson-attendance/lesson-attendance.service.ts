@@ -27,7 +27,6 @@ import { ContractStatus } from '@modules/teaching/contract/enums/contract-status
 import { ContractEntity } from '@modules/teaching/contract/contract.entity';
 import { ClassEntity } from '@modules/teaching/class/class.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
-import { Subject } from '@common/enums/subject.enum';
 import { Student } from '@modules/student/entities/student.entity';
 import { LessonRepository } from '../lesson/lesson.repository';
 import { LessonEntity } from '../lesson/lesson.entity';
@@ -241,7 +240,7 @@ export class LessonAttendanceService {
       // Subject resolution may throw on a repo/DB error; guard so an infra
       // failure never propagates (the attendance is already saved). Distinguish
       // from a genuine "no subject" business case: infra errors get no badge.
-      let subject: Subject | null = null;
+      let subject: string | null = null;
       let resolveFailed = false;
       try {
         subject = await this.resolveLessonSubject(entity.classCode);
@@ -362,7 +361,7 @@ export class LessonAttendanceService {
     const saved = await this.attendanceRepo.saveAll(results);
 
     // ─── PHASE 2: Contract lesson deduction for all deductible students ───
-    let subject: Subject | null = null;
+    let subject: string | null = null;
     let resolveFailed = false;
     if (results.length > 0) {
       try {
@@ -583,7 +582,7 @@ export class LessonAttendanceService {
    */
   private async resolveLessonSubject(
     classCode: string,
-  ): Promise<Subject | null> {
+  ): Promise<string | null> {
     const cls = await this.classRepo.findOne({ where: { classCode } });
     if (!cls) {
       this.logger.warn(`Cannot resolve subject: class ${classCode} not found.`);
@@ -674,7 +673,7 @@ export class LessonAttendanceService {
    */
   private async deductLessonFromContract(
     studentCode: string,
-    subject: Subject,
+    subject: string,
   ): Promise<LessonDeductionResult | null> {
     // 1. Find active contract for student + subject
     const contract = await this.contractRepo.findActiveByStudentCodeAndSubject(
@@ -850,7 +849,7 @@ export class LessonAttendanceService {
    */
   private async rollbackLessonDeduction(
     record: LessonAttendanceEntity,
-    subject: Subject | null,
+    subject: string | null,
   ): Promise<LessonDeductionResult | null> {
     // 1. Exact-contract restore via ledger (ACTIVE / EXHAUSTED only)
     let contract: ContractEntity | null = null;
