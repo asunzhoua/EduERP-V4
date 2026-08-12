@@ -629,6 +629,24 @@ describe('LessonService', () => {
       expect(result.actualStartTime).not.toBeNull();
     });
 
+    it('should allow SCHEDULED -> FINISHED (teacher 扣课 submits attendance = lesson done)', async () => {
+      const scheduled = { ...mockLesson, status: LessonStatus.SCHEDULED };
+      lessonRepo.findOneById.mockResolvedValue(scheduled);
+      lessonRepo.save.mockResolvedValue({
+        ...scheduled,
+        status: LessonStatus.FINISHED,
+        actualEndTime: new Date(),
+      });
+
+      const result = await service.updateStatus(1, LessonStatus.FINISHED, 1);
+      expect(result.status).toBe(LessonStatus.FINISHED);
+      expect(result.actualEndTime).not.toBeNull();
+      expect(mockPublish).toHaveBeenCalledWith(
+        'lesson.completed',
+        expect.objectContaining({ lessonId: 1 }),
+      );
+    });
+
     it('should allow TEACHING -> FINISHED (fills actualEndTime)', async () => {
       const teaching = {
         ...mockLesson,

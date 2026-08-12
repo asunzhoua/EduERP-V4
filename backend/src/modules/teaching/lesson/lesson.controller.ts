@@ -257,9 +257,16 @@ export class LessonController {
       records,
     });
 
+    // 扣课提交即完成：转 FINISHED 才会被工资结算 settle() 计入
+    const finished = await this.lessonService.updateStatus(
+      lesson.id,
+      LessonStatus.FINISHED,
+      operatorId,
+    );
+
     return ApiResponse.success(
       {
-        lesson,
+        lesson: finished,
         lessonNumber,
         attendanceCount: dto.attendanceRecords.length,
       },

@@ -25,6 +25,7 @@ const VALID_TRANSITIONS: Record<LessonStatus, LessonStatus[]> = {
   [LessonStatus.DRAFT]: [LessonStatus.SCHEDULED, LessonStatus.CANCELLED],
   [LessonStatus.SCHEDULED]: [
     LessonStatus.TEACHING,
+    LessonStatus.FINISHED, // 教师端扣课提交考勤即完成，直接进入工资结算
     LessonStatus.CANCELLED,
     LessonStatus.SUSPENDED,
   ],

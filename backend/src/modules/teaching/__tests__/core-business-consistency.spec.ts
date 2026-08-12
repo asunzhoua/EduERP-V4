@@ -52,6 +52,8 @@ import { ClassEntity } from '../class/class.entity';
 import { CourseEntity } from '../course/course.entity';
 import { PointsService } from '@modules/points/points.service';
 import { User } from '@modules/identity/entities/user.entity';
+import { TeacherSalaryProfileEntity } from '@modules/salary/entities/teacher-salary-profile.entity';
+import { OutingRecordEntity } from '@modules/salary/entities/outing-record.entity';
 
 // ─── Mock type helpers ───
 
@@ -1010,6 +1012,12 @@ describe('Core Business Consistency Audit', () => {
       const mockUserRepo = {
         find: jest.fn().mockResolvedValue([]),
       } as unknown as Repository<User>;
+      const mockProfileRepo = {
+        find: jest.fn().mockResolvedValue([]),
+      } as unknown as Repository<TeacherSalaryProfileEntity>;
+      const mockOutingRepo = {
+        find: jest.fn().mockResolvedValue([]),
+      } as unknown as Repository<OutingRecordEntity>;
       return new SalarySettlementService(
         mockSalaryRecordRepo as unknown as Repository<SalaryRecordEntity>,
         mockSalaryRuleRepo as unknown as Repository<SalaryRuleEntity>,
@@ -1017,6 +1025,8 @@ describe('Core Business Consistency Audit', () => {
         mockAttendanceRepo as unknown as Repository<LessonAttendanceEntity>,
         mockCourseRepo as unknown as Repository<CourseEntity>,
         mockUserRepo,
+        mockProfileRepo,
+        mockOutingRepo,
       );
     }
 

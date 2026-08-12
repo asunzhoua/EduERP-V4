@@ -397,7 +397,7 @@ describe('LessonController', () => {
   // ─── createWithAttendance ───
 
   describe('createWithAttendance', () => {
-    it('should create the lesson as SCHEDULED (check-in path)', async () => {
+    it('should create the lesson as SCHEDULED then auto-complete to FINISHED', async () => {
       mockClassService.findByCode = jest
         .fn()
         .mockResolvedValue({ courseCode: 'CS101' });
@@ -413,6 +413,9 @@ describe('LessonController', () => {
         status: LessonStatus.SCHEDULED,
       };
       service.create = jest.fn().mockResolvedValue(created);
+      service.updateStatus = jest
+        .fn()
+        .mockResolvedValue({ ...created, status: LessonStatus.FINISHED });
       mockLessonAttendanceService.autoCreateForLesson = jest
         .fn()
         .mockResolvedValue([]);
@@ -429,7 +432,7 @@ describe('LessonController', () => {
         attendanceRecords: [{ studentCode: 'STU-001', status: 'PRESENT' }],
       };
 
-      await controller.createWithAttendance(
+      const res = await controller.createWithAttendance(
         dto as unknown as CreateLessonWithAttendanceDto,
         mockReq,
       );
@@ -442,6 +445,12 @@ describe('LessonController', () => {
           status: LessonStatus.SCHEDULED,
         }),
       );
+      expect(service.updateStatus).toHaveBeenCalledWith(
+        50,
+        LessonStatus.FINISHED,
+        42,
+      );
+      expect(res.data.lesson.status).toBe(LessonStatus.FINISHED);
     });
   });
 });
