@@ -1,6 +1,7 @@
 // pages/student/classes.js
 const { get } = require('../../utils/request');
 const { ensureCurrentChild, studentApiPath, showChildSwitch } = require('../../utils/child-context');
+const { getSubjectMap } = require('../../utils/subjects');
 
 Page({
   data: {
@@ -52,11 +53,12 @@ Page({
     this.setData({ loading: true, error: null });
 
     try {
+      const map = await getSubjectMap();
       const contracts = await get(studentApiPath('/students/self/contracts'));
-      
+
       const classes = contracts.map(c => ({
         classCode: c.classCode,
-        subject: c.subject,
+        subject: map[c.subject] || c.subject,
         teacherName: c.teacherName || '',
         totalLessons: c.totalLessons,
         remainingLessons: c.remainingLessons,

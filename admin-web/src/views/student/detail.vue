@@ -5,7 +5,8 @@ import { message } from 'ant-design-vue'
 import { ArrowLeftOutlined } from '@ant-design/icons-vue'
 import { fetchStudent, type Student, type Gender, type StudentStatus } from '@/api/student'
 import { fetchStudentContracts, type Contract } from '@/api/enrollment'
-import { formatDate, formatMoney, subjectLabel } from '@/utils/format'
+import { formatDate, formatMoney } from '@/utils/format'
+import { ensureSubjectsLoaded, subjectName } from '@/utils/subjectCatalog'
 import AdjustContractLessonsModal from '@/components/AdjustContractLessonsModal.vue'
 
 const route = useRoute()
@@ -60,7 +61,10 @@ function goBack() {
   router.push('/students')
 }
 
-onMounted(load)
+onMounted(() => {
+  ensureSubjectsLoaded()
+  load()
+})
 </script>
 
 <template>
@@ -102,7 +106,7 @@ onMounted(load)
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'subject'">
-          {{ subjectLabel(record.subject) }}
+          {{ subjectName(record.subject) }}
         </template>
         <template v-else-if="column.key === 'status'">
           <a-tag :color="contractStatusColor[record.status] || 'default'">{{ contractStatusLabel[record.status] || record.status }}</a-tag>

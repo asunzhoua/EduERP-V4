@@ -1,6 +1,7 @@
 // pages/parent/child-detail.js
 const { get, del } = require('../../utils/request');
 const { setCurrentChildId, invalidateChildrenCache } = require('../../utils/child-context');
+const { getSubjectMap } = require('../../utils/subjects');
 const { RENEWAL_WARNING_THRESHOLD, RENEWAL_CRITICAL_THRESHOLD } = require('../../utils/renewal-threshold');
 
 const LESSON_STATUS_TEXT = {
@@ -98,8 +99,10 @@ Page({
       ]);
 
       const rawContracts = Array.isArray(contracts) ? contracts : (contracts.items || []);
+      const map = await getSubjectMap();
       const decoratedContracts = rawContracts.map((c) => ({
         ...c,
+        subject: map[c.subject] || c.subject,
         warningLevel: calcWarningLevel(c.status, c.remainingLessons)
       }));
 

@@ -15,7 +15,8 @@ import {
   type Enrollment,
   type Subject,
 } from '@/api/enrollment'
-import { formatDate, formatDateTime, formatMoney, subjectLabel } from '@/utils/format'
+import { formatDate, formatDateTime, formatMoney } from '@/utils/format'
+import { ensureSubjectsLoaded, subjectGroupOptions, subjectName } from '@/utils/subjectCatalog'
 import AdjustContractLessonsModal from '@/components/AdjustContractLessonsModal.vue'
 import ImportExcelModal from '@/components/ImportExcelModal.vue'
 
@@ -31,8 +32,6 @@ const contractQuery = reactive({ studentCode: '', status: undefined as ContractS
 
 const statusLabel: Record<ContractStatus, string> = { ACTIVE: '生效中', EXHAUSTED: '已用完', EXPIRED: '已过期', REFUNDED: '已退款', FROZEN: '已冻结' }
 const statusColor: Record<ContractStatus, string> = { ACTIVE: 'green', EXHAUSTED: 'default', EXPIRED: 'orange', REFUNDED: 'default', FROZEN: 'blue' }
-
-const subjects: Subject[] = ['MATH', 'ENGLISH', 'CHINESE', 'PHYSICS', 'CHEMISTRY', 'ART', 'MUSIC', 'DANCE', 'SPORTS', 'CODING', 'OTHER']
 
 const contractColumns = [
   { title: '合同号', dataIndex: 'contractCode', key: 'contractCode', width: 150 },
@@ -70,7 +69,7 @@ const contractModalOpen = ref(false)
 const contractModalLoading = ref(false)
 const contractForm = reactive({
   studentCode: '',
-  subject: 'MATH' as Subject,
+  subject: 'MATH',
   totalLessons: undefined as number | undefined,
   validFrom: '',
   validTo: undefined as string | undefined,
@@ -80,7 +79,7 @@ const contractForm = reactive({
 })
 
 function openContractCreate() {
-  Object.assign(contractForm, { studentCode: '', subject: 'MATH' as Subject, totalLessons: undefined, validFrom: '', validTo: undefined, unitPrice: undefined, totalAmount: undefined, note: '' })
+  Object.assign(contractForm, { studentCode: '', subject: 'MATH', totalLessons: undefined, validFrom: '', validTo: undefined, unitPrice: undefined, totalAmount: undefined, note: '' })
   contractModalOpen.value = true
 }
 
@@ -101,7 +100,7 @@ async function onContractSubmit() {
   try {
     await createContract({
       studentCode: contractForm.studentCode,
-      subject: contractForm.subject,
+      subject: contractForm.subject as Subject,
       totalLessons: contractForm.totalLessons,
       validFrom: contractForm.validFrom,
       validTo: contractForm.validTo || undefined,
@@ -262,7 +261,10 @@ const lessonImportOpen = ref(false)
 const lessonImportHint =
   '表头（支持中文）：学员编码 / 科目（数学/英语 或 MATH/ENGLISH）/ 课时数（正整数）/ 单价（可选）/ 到期日（可选，YYYY-MM-DD）。\n已有同科目有效合同时按累加方式增加课时；无有效合同则自动新建合同。'
 
-onMounted(loadContracts)
+onMounted(() => {
+  ensureSubjectsLoaded()
+  loadContracts()
+})
 </script>
 
 <template>
@@ -299,7 +301,7 @@ onMounted(loadContracts)
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'subject'">
-              {{ subjectLabel(record.subject) }}
+              {{ subjectName(record.subject) }}
             </template>
             <template v-else-if="column.key === 'status'">
               <a-tag :color="statusColor[record.status as ContractStatus]">{{ statusLabel[record.status as ContractStatus] || record.status }}</a-tag>
@@ -326,7 +328,9 @@ onMounted(loadContracts)
             </a-form-item>
             <a-form-item label="学科" required>
               <a-select v-model:value="contractForm.subject" placeholder="请选择学科" style="width: 100%">
-                <a-select-option v-for="s in subjects" :key="s" :value="s">{{ subjectLabel(s) }}</a-select-option>
+                <a-select-opt-group v-for="g in subjectGroupOptions()" :key="g.category" :label="g.label">
+                  <a-select-option v-for="s in g.items" :key="s.code" :value="s.code">{{ s.name }}</a-select-option>
+                </a-select-opt-group>
               </a-select>
             </a-form-item>
             <a-form-item label="总课时" required>

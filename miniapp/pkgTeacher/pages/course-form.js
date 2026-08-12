@@ -1,17 +1,19 @@
 // pkgTeacher/pages/course-form.js
 const { get, post, put } = require('../../utils/request');
-
-const SUBJECT_LABELS = {
-  MATH: '数学', ENGLISH: '英语', CHINESE: '语文', PHYSICS: '物理',
-  CHEMISTRY: '化学', ART: '美术', MUSIC: '音乐', DANCE: '舞蹈',
-  SPORTS: '体育', CODING: '编程', OTHER: '其他'
-};
-const SUBJECT_VALUES = Object.keys(SUBJECT_LABELS);
+const {
+  getSubjectGroups,
+  getSubjectMap,
+  addSubject,
+  CATEGORY_LABELS,
+} = require('../../utils/subjects');
 
 const TYPE_LABELS = {
   INDIVIDUAL: '一对一', GROUP: '班课', TRIAL: '体验课', CAMP: '集训营'
 };
 const TYPE_VALUES = Object.keys(TYPE_LABELS);
+
+const CATEGORY_VALUES = Object.keys(CATEGORY_LABELS);
+const CATEGORY_NAMES = CATEGORY_VALUES.map(function (c) { return CATEGORY_LABELS[c]; });
 
 Page({
   data: {
@@ -22,10 +24,8 @@ Page({
 
     // 课程基础信息
     name: '',
-    subject: '',
-    subjectIndex: -1,
-    subjectNames: SUBJECT_VALUES.map(function (v) { return SUBJECT_LABELS[v]; }),
-    subjectValues: SUBJECT_VALUES,
+    subject: '',         // 学科 code
+    subjectName: '',     // 学科中文名（展示）
     type: '',
     typeIndex: -1,
     typeNames: TYPE_VALUES.map(function (v) { return TYPE_LABELS[v]; }),
@@ -38,11 +38,26 @@ Page({
 
     // 描述 / 备注
     description: '',
-    note: ''
+    note: '',
+
+    // 学科分组弹窗
+    subjectModal: false,
+    subjectGroups: [],
+    expandedMap: {},     // { category: true } 分组展开状态
+    subjectLoaded: false,
+
+    // 新增学科
+    subjectAddMode: false,
+    newSubjectName: '',
+    newSubjectCategoryIndex: 0,
+    newSubjectCategoryNames: CATEGORY_NAMES,
+    newSubjectCategoryValues: CATEGORY_VALUES,
+    addingSubject: false,
   },
 
   onLoad(options) {
     const { code } = options;
+    this.loadSubjectGroups();
     if (code) {
       this.setData({ isEdit: true, code });
       wx.setNavigationBarTitle({ title: '编辑课程' });
@@ -52,18 +67,31 @@ Page({
     }
   },
 
+  // 拉取学科目录（分组）；编辑模式若已设 subject，顺带补中文名
+  async loadSubjectGroups() {
+    const groups = await getSubjectGroups();
+    const expandedMap = {};
+    groups.forEach(function (g) { expandedMap[g.category] = true; });
+    const patch = { subjectGroups: groups, expandedMap: expandedMap, subjectLoaded: true };
+    if (this.data.subject && !this.data.subjectName) {
+      const map = await getSubjectMap();
+      patch.subjectName = map[this.data.subject] || this.data.subject;
+    }
+    this.setData(patch);
+  },
+
   // 编辑模式：预填课程详情
   async loadCourseDetail(code) {
     this.setData({ loading: true });
     try {
       const course = await get('/courses/' + code);
       if (!course) return;
-      const subjectIndex = SUBJECT_VALUES.indexOf(course.subject);
       const typeIndex = TYPE_VALUES.indexOf(course.type);
+      const map = await getSubjectMap();
       this.setData({
         name: course.name || '',
         subject: course.subject || '',
-        subjectIndex: subjectIndex >= 0 ? subjectIndex : -1,
+        subjectName: (course.subject && map[course.subject]) || course.subject || '',
         type: course.type || '',
         typeIndex: typeIndex >= 0 ? typeIndex : -1,
         totalHours: course.totalHours != null ? String(course.totalHours) : '',
@@ -84,10 +112,73 @@ Page({
     this.setData({ name: e.detail.value });
   },
 
-  // 学科下拉
-  onSubjectChange(e) {
-    const index = Number(e.detail.value);
-    this.setData({ subjectIndex: index, subject: SUBJECT_VALUES[index] });
+  // 学科弹窗
+  openSubjectModal() {
+    this.setData({ subjectModal: true, subjectAddMode: false });
+  },
+
+  closeSubjectModal() {
+    this.setData({ subjectModal: false, subjectAddMode: false });
+  },
+
+  noop() {},
+
+  toggleSubjectGroup(e) {
+    const cat = e.currentTarget.dataset.category;
+    const expandedMap = Object.assign({}, this.data.expandedMap);
+    expandedMap[cat] = !expandedMap[cat];
+    this.setData({ expandedMap: expandedMap });
+  },
+
+  selectSubject(e) {
+    const { code, name } = e.currentTarget.dataset;
+    this.setData({ subject: code, subjectName: name, subjectModal: false, subjectAddMode: false });
+  },
+
+  // 新增学科
+  openAddSubject() {
+    this.setData({ subjectAddMode: true, newSubjectName: '', newSubjectCategoryIndex: 0 });
+  },
+
+  cancelAddSubject() {
+    this.setData({ subjectAddMode: false });
+  },
+
+  onAddSubjectNameInput(e) {
+    this.setData({ newSubjectName: e.detail.value });
+  },
+
+  onAddSubjectCategoryChange(e) {
+    this.setData({ newSubjectCategoryIndex: Number(e.detail.value) });
+  },
+
+  async confirmAddSubject() {
+    const name = this.data.newSubjectName.trim();
+    if (!name) {
+      wx.showToast({ title: '请输入学科名称', icon: 'none' });
+      return;
+    }
+    if (this.data.addingSubject) return;
+    this.setData({ addingSubject: true });
+    try {
+      const category = this.data.newSubjectCategoryValues[this.data.newSubjectCategoryIndex] || 'OTHER';
+      const created = await addSubject({ name: name, category: category });
+      const code = (created && created.code) || '';
+      const displayName = (created && created.name) || name;
+      await this.loadSubjectGroups(); // 刷新分组
+      this.setData({
+        subject: code,
+        subjectName: displayName,
+        subjectAddMode: false,
+        subjectModal: false,
+      });
+      wx.showToast({ title: '学科已添加', icon: 'success' });
+    } catch (err) {
+      console.error('[CourseForm] 新增学科失败:', err);
+      // request.js 已 toast 后端错误，留在弹窗内
+    } finally {
+      this.setData({ addingSubject: false });
+    }
   },
 
   // 课程类型下拉

@@ -1,5 +1,6 @@
 // pages/teacher/courses.js
 const { get } = require('../../utils/request');
+const { getSubjectMap } = require('../../utils/subjects');
 
 Page({
   data: {
@@ -79,10 +80,11 @@ Page({
     }
 
     // 本地过滤
-    const filtered = this.data.courses.filter(course => 
-      course.name.includes(keyword) || 
+    const filtered = this.data.courses.filter(course =>
+      course.name.includes(keyword) ||
       course.courseCode.includes(keyword) ||
-      course.subject.includes(keyword)
+      course.subject.includes(keyword) ||
+      (course.subjectCode && course.subjectCode.includes(keyword))
     );
     
     this.setData({ filteredCourses: filtered });
@@ -103,10 +105,11 @@ Page({
     this.setData({ loading: true, error: null });
 
     try {
+      const map = await getSubjectMap();
       const contracts = await get('/students/self/contracts');
       const studentCourses = (Array.isArray(contracts) ? contracts : []).map(c => ({
         classCode: c.classCode,
-        subject: c.subject,
+        subject: map[c.subject] || c.subject,
         teacherName: c.teacherName || '',
         totalLessons: c.totalLessons,
         remainingLessons: c.remainingLessons,
@@ -148,8 +151,11 @@ Page({
         pageSize: this.data.pageSize
       });
 
-      const courses = data.items || [];
-      
+      const map = await getSubjectMap();
+      const courses = (data.items || []).map((c) => {
+        return Object.assign({}, c, { subject: map[c.subject] || c.subject, subjectCode: c.subject });
+      });
+
       this.setData({
         courses: courses,
         filteredCourses: courses,  // 初始化时显示全部
@@ -180,8 +186,11 @@ Page({
         keyword: this.data.searchKeyword || undefined
       });
 
-      const newCourses = data.items || [];
-      
+      const map = await getSubjectMap();
+      const newCourses = (data.items || []).map((c) => {
+        return Object.assign({}, c, { subject: map[c.subject] || c.subject, subjectCode: c.subject });
+      });
+
       if (newCourses.length > 0) {
         const allCourses = [...this.data.courses, ...newCourses];
         this.setData({

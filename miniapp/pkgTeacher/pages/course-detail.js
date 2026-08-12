@@ -1,5 +1,6 @@
 // pages/teacher/course-detail.js
 const { get, del } = require('../../utils/request');
+const { getSubjectMap } = require('../../utils/subjects');
 
 Page({
   data: {
@@ -50,8 +51,9 @@ Page({
         this.setData({ error: '未找到该课程信息', loading: false });
         return;
       }
+      const map = await getSubjectMap();
       this.setData({
-        course: data,
+        course: Object.assign({}, data, { subject: map[data.subject] || data.subject }),
         loading: false
       });
     } catch (err) {

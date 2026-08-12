@@ -5,6 +5,8 @@ var childContext = require('../../utils/child-context');
 var ensureCurrentChild = childContext.ensureCurrentChild;
 var studentApiPath = childContext.studentApiPath;
 var showChildSwitch = childContext.showChildSwitch;
+var subjectUtil = require('../../utils/subjects');
+var getSubjectMap = subjectUtil.getSubjectMap;
 
 Page({
   data: {
@@ -87,6 +89,7 @@ Page({
       get(studentApiPath('/students/self/contracts')).catch(function () { return []; }),
       get(studentApiPath('/students/self/attendance')).catch(function () { return []; })
     ]).then(function (results) {
+      return getSubjectMap().then(function (map) {
       var info = results[0] || {};
       var contracts = results[1] || [];
       var attendance = results[2] || [];
@@ -147,7 +150,7 @@ Page({
 
         return {
           contractCode: c.contractCode || '--',
-          subject: c.subject || '未知科目',
+          subject: (c.subject && map[c.subject]) || c.subject || '未知科目',
           teacherName: c.teacherName || '未分配',
           totalLessons: c.totalLessons || 0,
           remainingLessons: c.remainingLessons || 0,
@@ -234,6 +237,7 @@ Page({
         recentLessons: recentLessons,
         loading: false,
         error: null
+      });
       });
     }).catch(function (err) {
       console.error('[Profile] 加载失败:', err);

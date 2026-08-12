@@ -119,3 +119,197 @@
 .submit-btn[disabled] {
   background: #FBEEE2;
 }
+
+/* 学科选择弹窗 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+}
+
+.subject-modal {
+  width: 100%;
+  background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 24rpx 0 40rpx;
+  box-sizing: border-box;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 32rpx 20rpx;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #2E2A25;
+}
+
+.modal-close {
+  font-size: 44rpx;
+  color: #9B9084;
+  padding: 0 8rpx;
+  line-height: 1;
+}
+
+.subject-scroll {
+  max-height: 60vh;
+  padding: 0 32rpx;
+  box-sizing: border-box;
+}
+
+.subject-group {
+  margin-bottom: 12rpx;
+}
+
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 8rpx;
+  border-bottom: 2rpx solid #FAF6F0;
+}
+
+.group-label {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #2E2A25;
+}
+
+.group-arrow {
+  font-size: 24rpx;
+  color: #9B9084;
+}
+
+.group-items {
+  padding: 8rpx 0;
+}
+
+.subject-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 16rpx;
+  margin: 6rpx 0;
+  border-radius: 12rpx;
+  background: #FAF6F0;
+}
+
+.subject-item.active {
+  background: #FBEEE2;
+}
+
+.subject-item-name {
+  font-size: 28rpx;
+  color: #2E2A25;
+}
+
+.subject-item.active .subject-item-name {
+  color: #D97B3E;
+  font-weight: bold;
+}
+
+.subject-check {
+  font-size: 28rpx;
+  color: #D97B3E;
+}
+
+.empty-hint {
+  padding: 40rpx 0;
+  text-align: center;
+  font-size: 26rpx;
+  color: #9B9084;
+}
+
+.add-subject-entry {
+  margin: 16rpx 32rpx 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22rpx 0;
+  border: 2rpx dashed #D97B3E;
+  border-radius: 16rpx;
+  color: #D97B3E;
+}
+
+.add-entry-icon {
+  font-size: 32rpx;
+  margin-right: 8rpx;
+}
+
+.add-entry-text {
+  font-size: 28rpx;
+}
+
+/* 新增学科表单 */
+.add-subject-body {
+  padding: 0 32rpx;
+}
+
+.add-row {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 2rpx solid #FAF6F0;
+}
+
+.add-label {
+  width: 140rpx;
+  font-size: 28rpx;
+  color: #2E2A25;
+  flex-shrink: 0;
+}
+
+.add-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #2E2A25;
+}
+
+.add-picker {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 28rpx;
+  color: #2E2A25;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 24rpx;
+  padding: 32rpx 32rpx 0;
+}
+
+.modal-btn {
+  flex: 1;
+  font-size: 30rpx;
+  border-radius: 16rpx;
+  padding: 20rpx 0;
+}
+
+.modal-btn.cancel {
+  background: #FAF6F0;
+  color: #2E2A25;
+}
+
+.modal-btn.primary {
+  background: #D97B3E;
+  color: #fff;
+}
+
+.modal-btn.primary[disabled] {
+  background: #FBEEE2;
+}

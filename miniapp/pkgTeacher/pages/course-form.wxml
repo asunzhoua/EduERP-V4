@@ -16,12 +16,10 @@
     <!-- 学科 -->
     <view class="form-section">
       <view class="form-label">学科 <text class="required">*</text></view>
-      <picker range="{{subjectNames}}" value="{{subjectIndex}}" bindchange="onSubjectChange">
-        <view class="picker-wrapper">
-          <text class="picker-text {{subject ? '' : 'placeholder'}}">{{subjectNames[subjectIndex] || '请选择学科'}}</text>
-          <text class="picker-arrow">></text>
-        </view>
-      </picker>
+      <view class="picker-wrapper" bindtap="openSubjectModal">
+        <text class="picker-text {{subject ? '' : 'placeholder'}}">{{subjectName || '请选择学科'}}</text>
+        <text class="picker-arrow">></text>
+      </view>
     </view>
 
     <!-- 课程类型 -->
@@ -73,4 +71,67 @@
       </button>
     </view>
   </block>
+
+  <!-- 学科选择弹窗 -->
+  <view class="modal-mask" wx:if="{{subjectModal}}" bindtap="closeSubjectModal">
+    <view class="subject-modal" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title">{{subjectAddMode ? '新增学科' : '选择学科'}}</text>
+        <text class="modal-close" bindtap="closeSubjectModal">×</text>
+      </view>
+
+      <!-- 新增学科模式 -->
+      <block wx:if="{{subjectAddMode}}">
+        <view class="add-subject-body">
+          <view class="add-row">
+            <text class="add-label">学科名称</text>
+            <input class="add-input" placeholder="请输入学科名称" value="{{newSubjectName}}" bindinput="onAddSubjectNameInput" maxlength="32" focus="{{true}}" />
+          </view>
+          <view class="add-row">
+            <text class="add-label">所属分组</text>
+            <picker range="{{newSubjectCategoryNames}}" value="{{newSubjectCategoryIndex}}" bindchange="onAddSubjectCategoryChange">
+              <view class="add-picker">
+                <text>{{newSubjectCategoryNames[newSubjectCategoryIndex]}}</text>
+                <text class="picker-arrow">></text>
+              </view>
+            </picker>
+          </view>
+        </view>
+        <view class="modal-actions">
+          <button class="modal-btn cancel" bindtap="cancelAddSubject">取消</button>
+          <button class="modal-btn primary" bindtap="confirmAddSubject" disabled="{{addingSubject}}">{{addingSubject ? '添加中...' : '确定添加'}}</button>
+        </view>
+      </block>
+
+      <!-- 选择学科模式 -->
+      <block wx:else>
+        <scroll-view scroll-y class="subject-scroll">
+          <view class="subject-group" wx:for="{{subjectGroups}}" wx:key="category" wx:for-item="group">
+            <view class="group-header" bindtap="toggleSubjectGroup" data-category="{{group.category}}">
+              <text class="group-label">{{group.label}}</text>
+              <text class="group-arrow">{{expandedMap[group.category] ? '▾' : '▸'}}</text>
+            </view>
+            <view class="group-items" wx:if="{{expandedMap[group.category]}}">
+              <view
+                class="subject-item {{subject === item.code ? 'active' : ''}}"
+                wx:for="{{group.items}}"
+                wx:key="code"
+                bindtap="selectSubject"
+                data-code="{{item.code}}"
+                data-name="{{item.name}}"
+              >
+                <text class="subject-item-name">{{item.name}}</text>
+                <text wx:if="{{subject === item.code}}" class="subject-check">✓</text>
+              </view>
+            </view>
+          </view>
+          <view wx:if="{{!subjectGroups.length}}" class="empty-hint">学科目录加载中...</view>
+        </scroll-view>
+        <view class="add-subject-entry" bindtap="openAddSubject">
+          <text class="add-entry-icon">＋</text>
+          <text class="add-entry-text">新增学科</text>
+        </view>
+      </block>
+    </view>
+  </view>
 </view>

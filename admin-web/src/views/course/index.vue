@@ -12,18 +12,17 @@ import {
   type CourseType,
   type CourseStatus,
 } from '@/api/course'
-import { subjectLabel } from '@/utils/format'
+import { ensureSubjectsLoaded, subjectGroupOptions, subjectName } from '@/utils/subjectCatalog'
 
 const loading = ref(false)
 const list = ref<CourseItem[]>([])
 const total = ref(0)
 
-const query = reactive({ keyword: '', status: undefined as CourseStatus | undefined, subject: undefined as Subject | undefined, page: 1, pageSize: 10 })
+const query = reactive({ keyword: '', status: undefined as CourseStatus | undefined, subject: undefined as string | undefined, page: 1, pageSize: 10 })
 
 const statusLabel: Record<CourseStatus, string> = { DRAFT: '草稿', PUBLISHED: '已上架', ARCHIVED: '已归档' }
 const statusColor: Record<CourseStatus, string> = { DRAFT: 'default', PUBLISHED: 'green', ARCHIVED: 'blue' }
 const typeLabel: Record<CourseType, string> = { INDIVIDUAL: '一对一', GROUP: '小班', TRIAL: '体验', CAMP: '营地' }
-const subjectOptions: Subject[] = ['MATH', 'ENGLISH', 'CHINESE', 'PHYSICS', 'CHEMISTRY', 'ART', 'MUSIC', 'DANCE', 'SPORTS', 'CODING', 'OTHER']
 
 const columns = [
   { title: '课程编号', dataIndex: 'courseCode', key: 'courseCode', width: 130 },
@@ -68,7 +67,7 @@ const modalLoading = ref(false)
 const editing = ref<CourseItem | null>(null)
 const form = reactive({
   name: '',
-  subject: 'MATH' as Subject,
+  subject: 'MATH',
   type: 'INDIVIDUAL' as CourseType,
   totalHours: 1,
   totalLessons: 1,
@@ -82,7 +81,7 @@ function openCreate() {
   editing.value = null
   Object.assign(form, {
     name: '',
-    subject: 'MATH' as Subject,
+    subject: 'MATH',
     type: 'INDIVIDUAL' as CourseType,
     totalHours: 1,
     totalLessons: 1,
@@ -128,7 +127,7 @@ async function onSubmit() {
     if (editing.value) {
       await updateCourse(editing.value.courseCode, {
         name: form.name,
-        subject: form.subject,
+        subject: form.subject as Subject,
         type: form.type,
         totalHours: form.totalHours,
         totalLessons: form.totalLessons,
@@ -141,7 +140,7 @@ async function onSubmit() {
     } else {
       await createCourse({
         name: form.name,
-        subject: form.subject,
+        subject: form.subject as Subject,
         type: form.type,
         totalHours: form.totalHours,
         totalLessons: form.totalLessons,
@@ -200,7 +199,10 @@ function onArchive(row: CourseItem) {
   })
 }
 
-onMounted(load)
+onMounted(() => {
+  ensureSubjectsLoaded()
+  load()
+})
 </script>
 
 <template>
@@ -215,8 +217,10 @@ onMounted(load)
         </a-select>
       </a-form-item>
       <a-form-item>
-        <a-select v-model:value="query.subject" placeholder="学科" allow-clear style="width: 120px" @change="onSearch">
-          <a-select-option v-for="s in subjectOptions" :key="s" :value="s">{{ subjectLabel(s) }}</a-select-option>
+        <a-select v-model:value="query.subject" placeholder="学科" allow-clear style="width: 140px" @change="onSearch">
+          <a-select-opt-group v-for="g in subjectGroupOptions()" :key="g.category" :label="g.label">
+            <a-select-option v-for="s in g.items" :key="s.code" :value="s.code">{{ s.name }}</a-select-option>
+          </a-select-opt-group>
         </a-select>
       </a-form-item>
       <a-form-item>
@@ -240,7 +244,7 @@ onMounted(load)
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'subject'">
-          {{ subjectLabel(record.subject as string) }}
+          {{ subjectName(record.subject as string) }}
         </template>
         <template v-else-if="column.key === 'type'">
           {{ typeLabel[record.type as CourseType] || record.type }}
@@ -273,7 +277,9 @@ onMounted(load)
           <a-col :span="12">
             <a-form-item label="学科" required>
               <a-select v-model:value="form.subject" placeholder="请选择学科" style="width: 100%">
-                <a-select-option v-for="s in subjectOptions" :key="s" :value="s">{{ subjectLabel(s) }}</a-select-option>
+                <a-select-opt-group v-for="g in subjectGroupOptions()" :key="g.category" :label="g.label">
+                  <a-select-option v-for="s in g.items" :key="s.code" :value="s.code">{{ s.name }}</a-select-option>
+                </a-select-opt-group>
               </a-select>
             </a-form-item>
           </a-col>

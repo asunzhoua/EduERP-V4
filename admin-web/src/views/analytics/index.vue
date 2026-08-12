@@ -9,7 +9,8 @@ import {
   type ConsumptionStatistics,
   type MetricItem,
 } from '@/api/analytics'
-import { formatDate, formatNumber, subjectLabel } from '@/utils/format'
+import { formatDate, formatNumber } from '@/utils/format'
+import { ensureSubjectsLoaded, subjectName } from '@/utils/subjectCatalog'
 
 const metricsLoading = ref(false)
 const attendanceLoading = ref(false)
@@ -104,6 +105,7 @@ async function loadConsumption() {
 }
 
 onMounted(() => {
+  ensureSubjectsLoaded()
   loadMetrics()
   loadAttendance()
   loadConsumption()
@@ -207,7 +209,7 @@ onMounted(() => {
           <a-table :columns="courseColumns" :data-source="consumption.byCourse" row-key="subject" size="small" :pagination="false">
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'subject'">
-                {{ subjectLabel(record.subject) }}
+                {{ subjectName(record.subject) }}
               </template>
             </template>
           </a-table>

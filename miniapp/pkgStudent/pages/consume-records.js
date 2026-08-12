@@ -1,11 +1,6 @@
 // pages/student/consume-records.js
 const { get } = require('../../utils/request');
-
-const SUBJECT_LABELS = {
-  MATH: '数学', ENGLISH: '英语', CHINESE: '语文', PHYSICS: '物理',
-  CHEMISTRY: '化学', ART: '美术', MUSIC: '音乐', DANCE: '舞蹈',
-  SPORTS: '体育', CODING: '编程', OTHER: '其他'
-};
+const { getSubjectMap } = require('../../utils/subjects');
 
 const PAGE_SIZE = 20;
 
@@ -64,6 +59,7 @@ Page({
     }
 
     try {
+      const map = await getSubjectMap();
       const data = await get('/contracts/' + this.data.contractCode + '/consume-records', {
         page: page,
         pageSize: PAGE_SIZE
@@ -76,7 +72,7 @@ Page({
         startTime: r.startTime || '',
         endTime: r.endTime || '',
         courseName: r.courseName || '',
-        subjectLabel: SUBJECT_LABELS[r.subject] || r.subject || '',
+        subjectLabel: map[r.subject] || r.subject || '',
         lessonTypeLabel: r.lessonTypeLabel || (r.lessonType === 'MAKEUP' ? '补课' : '正常'),
         lessonsConsumed: r.lessonsConsumed || 1,
         topic: r.topic || '',

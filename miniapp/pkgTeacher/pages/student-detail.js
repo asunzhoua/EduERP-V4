@@ -1,12 +1,7 @@
 // pages/teacher/student-detail.js
 const { get } = require('../../utils/request');
+const { getSubjectMap } = require('../../utils/subjects');
 const { RENEWAL_WARNING_THRESHOLD, RENEWAL_CRITICAL_THRESHOLD } = require('../../utils/renewal-threshold');
-
-const SUBJECT_LABELS = {
-  MATH: '数学', ENGLISH: '英语', CHINESE: '语文', PHYSICS: '物理',
-  CHEMISTRY: '化学', ART: '美术', MUSIC: '音乐', DANCE: '舞蹈',
-  SPORTS: '体育', CODING: '编程', OTHER: '其他'
-};
 
 const CONTRACT_STATUS_LABELS = {
   ACTIVE: '生效中', EXHAUSTED: '已用完', EXPIRED: '已过期',
@@ -89,10 +84,12 @@ Page({
         totalLessons: e.totalLessons || 0
       }));
 
+      const map = await getSubjectMap();
+
       // 合同课时（与家长/学生/后台同源：contract.remainingLessons）
       const contractList = (Array.isArray(contractsRes) ? contractsRes : []).map(c => ({
         contractCode: c.contractCode,
-        subject: SUBJECT_LABELS[c.subject] || c.subject,
+        subject: map[c.subject] || c.subject,
         totalLessons: c.totalLessons || 0,
         remainingLessons: c.remainingLessons || 0,
         status: c.status,
