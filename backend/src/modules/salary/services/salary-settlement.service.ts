@@ -178,7 +178,7 @@ export class SalarySettlementService {
       }
 
       // 档案优先：教师有当月生效档案 → 全程用档案个人规则；否则回落全局规则打分
-      const profile = profileByTeacher.get(tid) ?? null;
+      const profile = profileByTeacher.get(Number(tid)) ?? null;
       const useProfile =
         profile !== null && this.profileInEffect(profile, month);
       const profileRule = useProfile ? this.fromProfile(profile) : null;
@@ -192,7 +192,8 @@ export class SalarySettlementService {
       const matched: MatchedLesson[] = [];
       for (const lesson of teacherLessons) {
         const courseType = courseTypeByCode.get(lesson.courseCode) ?? null;
-        const teacherLevel = teacherLevelByUser.get(lesson.teacherId) ?? null;
+        const teacherLevel =
+          teacherLevelByUser.get(Number(lesson.teacherId)) ?? null;
         let best: EffectiveRule | null = null;
         if (profileRule) {
           best = profileRule;
@@ -480,7 +481,7 @@ export class SalarySettlementService {
       // OUTING 外派课时（仅 CONFIRMED，每笔一条，lessonId = outing.id）
       const teacherOutings = outings.filter((o) => o.teacherId === tid);
       if (teacherOutings.length > 0) {
-        const teacherLevel = teacherLevelByUser.get(tid) ?? null;
+        const teacherLevel = teacherLevelByUser.get(Number(tid)) ?? null;
         for (const outing of teacherOutings) {
           const eff = this.matchOutingRule(
             profileRule,

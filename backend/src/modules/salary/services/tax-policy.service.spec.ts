@@ -48,7 +48,10 @@ describe('TaxPolicyService', () => {
       andWhere: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       addOrderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
       getMany: jest.fn(),
+      getManyAndCount: jest.fn(),
     };
     taxRepo.createQueryBuilder.mockReturnValue(qb);
   });
@@ -79,6 +82,30 @@ describe('TaxPolicyService', () => {
   it('findActiveForMonth：无生效版本返回 null', async () => {
     qb.getMany.mockResolvedValue([]);
     expect(await service.findActiveForMonth('2026-08')).toBeNull();
+  });
+
+  it('list：支持 page/pageSize 分页并返回 { items, total, page, pageSize }', async () => {
+    qb.getManyAndCount.mockResolvedValue([[{ id: 1 }], 1]);
+    const res = await service.list({
+      activeOnly: false,
+      page: 2,
+      pageSize: 10,
+    });
+    expect(qb.skip).toHaveBeenCalledWith(10);
+    expect(qb.take).toHaveBeenCalledWith(10);
+    expect(res).toEqual({
+      items: [{ id: 1 }],
+      total: 1,
+      page: 2,
+      pageSize: 10,
+    });
+  });
+
+  it('list：activeOnly 过滤生效区间覆盖今天', async () => {
+    qb.getManyAndCount.mockResolvedValue([[], 0]);
+    await service.list({ activeOnly: true });
+    expect(qb.where).toHaveBeenCalled();
+    expect(qb.andWhere).toHaveBeenCalled();
   });
 });
 

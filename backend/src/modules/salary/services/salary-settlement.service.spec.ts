@@ -187,7 +187,9 @@ function createMockLessonRepo(lessons: Row[]) {
       let out = lessons;
       if (where?.status) out = out.filter((l) => l.status === where.status);
       if (where?.teacherId)
-        out = out.filter((l) => l.teacherId === where.teacherId);
+        out = out.filter(
+          (l) => Number(l.teacherId) === Number(where.teacherId),
+        );
       return Promise.resolve(out);
     }),
   };
@@ -230,7 +232,9 @@ function createMockUserRepo(users: Row[]) {
     find: jest.fn().mockImplementation(({ where }: { where?: Where }) => {
       const ids = where?.id?._value;
       if (Array.isArray(ids)) {
-        return Promise.resolve(users.filter((u) => ids.includes(Number(u.id))));
+        return Promise.resolve(
+          users.filter((u) => ids.some((x) => Number(x) === Number(u.id))),
+        );
       }
       return Promise.resolve(users);
     }),
@@ -245,7 +249,9 @@ function createMockProfileRepo(profiles: Row[]) {
         ?._value;
       if (Array.isArray(ids)) {
         return Promise.resolve(
-          profiles.filter((p) => ids.includes(Number(p.teacherId))),
+          profiles.filter((p) =>
+            ids.some((x) => Number(x) === Number(p.teacherId)),
+          ),
         );
       }
       return Promise.resolve(profiles);
@@ -261,7 +267,9 @@ function createMockOutingRepo(outings: Row[]) {
         ?._value;
       let out = outings;
       if (Array.isArray(ids)) {
-        out = out.filter((o) => ids.includes(Number(o.teacherId)));
+        out = out.filter((o) =>
+          ids.some((x) => Number(x) === Number(o.teacherId)),
+        );
       }
       if (where?.status) {
         out = out.filter((o) => o.status === where.status);
@@ -745,6 +753,40 @@ describe('SalarySettlementService.settle', () => {
     );
     expect(deduction).toBeDefined();
     expect(deduction!.amount).toBe(-100); // 扣款记负数
+  });
+
+  it('生产 bigint：lesson.teacherId 为字符串时档案仍命中（Number 归一化回归）', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson({ teacherId: '5001' })], // MySQL bigint 返回字符串
+      attendances: [createAttendance({ teacherId: '5001' })],
+      courses: [createCourse()],
+      rules: [createRule({ config: { lessonPrice: 80 } })], // 全局规则会被档案覆盖
+      profiles: [createProfile()], // teacherId: 5001 number
+    });
+    const res = await service.settle('2026-07');
+    expect(res.created).toBe(4); // LESSON_FEE + BASE + ALLOWANCE + DEDUCTION
+    const lesson = recordRepo._saved.find(
+      (r) => r.source === SalaryRecordSource.LESSON_FEE,
+    );
+    expect(lesson!.amount).toBe(95); // 档案 lessonPrice，非全局 80
+    expect(lesson!.salaryRuleId).toBe(-9001);
+  });
+
+  it('生产 bigint：teacherId 字符串时 teacherLevel 等级规则仍命中', async () => {
+    const { service, recordRepo } = buildService({
+      lessons: [createLesson({ teacherId: '5001' })],
+      attendances: [createAttendance({ teacherId: '5001' })],
+      courses: [createCourse()],
+      rules: [
+        createRule({ teacherLevel: '中级', config: { lessonPrice: 120 } }),
+      ],
+      users: [{ id: 5001, teacherLevel: '中级' }],
+    });
+    const res = await service.settle('2026-07');
+    expect(res.created).toBe(1);
+    const rec = recordRepo._saved[0];
+    expect(rec.needsReview).toBe(false);
+    expect(rec.amount).toBe(120);
   });
 
   it('档案失效（isActive=false）→ 回落全局规则，不生成津贴/扣款', async () => {

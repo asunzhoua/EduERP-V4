@@ -76,7 +76,7 @@ export class TaxPolicyService {
   }
 
   async list(query: QueryTaxPolicyDto) {
-    const { activeOnly } = query;
+    const { activeOnly, page = 1, pageSize = 20 } = query;
     const qb = this.taxPolicyRepo.createQueryBuilder('p');
     if (activeOnly) {
       const today = dateStr(new Date());
@@ -85,9 +85,12 @@ export class TaxPolicyService {
         { today },
       );
     }
-    qb.orderBy('p.effectiveFrom', 'DESC').addOrderBy('p.id', 'DESC');
-    const items = await qb.getMany();
-    return { items, total: items.length };
+    qb.orderBy('p.effectiveFrom', 'DESC')
+      .addOrderBy('p.id', 'DESC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize);
+    const [items, total] = await qb.getManyAndCount();
+    return { items, total, page, pageSize };
   }
 
   /** 当月生效版本（工资条生成用）：按 effectiveFrom 最新取一条 */

@@ -133,6 +133,18 @@ export class QueryTaxPolicyDto {
   @Type(() => Boolean)
   @IsBoolean()
   activeOnly?: boolean;
+
+  @ApiPropertyOptional({ default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  page?: number;
+
+  @ApiPropertyOptional({ default: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  pageSize?: number;
 }
 
 // ─── 五险一金政策 ───
