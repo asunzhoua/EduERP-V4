@@ -286,13 +286,14 @@ describe('SalarySlipService', () => {
     expect(res.skipped).toBe(0);
 
     const slip = firstSlip(res);
-    expect(slip.grossAmount).toBe(8300); // 5000+3000+500-200
+    expect(slip.grossAmount).toBe(8500); // 应发 = 收入项和 5000+3000+500，不含扣款
+    expect(slip.deductionAmount).toBe(200); // |Σ DEDUCTION|
     expect(slip.socialAmount).toBe(1400); // 8000*0.175
-    expect(slip.taxAmount).toBe(57); // (8300-1400-5000)*0.03
-    expect(slip.netAmount).toBe(6843);
+    expect(slip.taxAmount).toBe(63); // (8500-1400-5000)*0.03
+    expect(slip.netAmount).toBe(6837); // 8500-200-1400-63
     expect(slip.needsReview).toBe(false);
 
-    // detail 快照留痕
+    // detail 快照留痕（breakdown 只含收入项，扣款单列在 deduction）
     expect(slip.detail.breakdown).toEqual([
       { source: 'LESSON_FEE', count: 1, amount: 5000, items: [] },
       { source: 'BASE', count: 1, amount: 3000, items: [] },
@@ -305,13 +306,11 @@ describe('SalarySlipService', () => {
           { name: '住房补贴', amount: 200 },
         ],
       },
-      {
-        source: 'DEDUCTION',
-        count: 1,
-        amount: -200,
-        items: [{ name: '请假扣款', amount: 200 }],
-      },
     ]);
+    expect(slip.detail.deduction).toEqual({
+      amount: 200,
+      items: [{ name: '请假扣款', amount: 200 }],
+    });
     expect(slip.detail.social.base).toBe(8000);
     expect(slip.detail.tax.method).toContain('月度估算');
     expect(slip.detail.policies.taxPolicy!.name).toBe('2026 个税');
@@ -356,7 +355,7 @@ describe('SalarySlipService', () => {
     ]);
   });
 
-  it('总开关关闭：不计算社保/个税，实发=应发，不提示缺政策', async () => {
+  it('总开关关闭：不计算社保/个税，扣款单列，实发=应发−扣款', async () => {
     salaryConfigService.get.mockResolvedValue({ enabled: false });
     recordRepo.find.mockResolvedValue(teacherRecords());
     profileRepo.find.mockResolvedValue([]);
@@ -365,15 +364,20 @@ describe('SalarySlipService', () => {
     const res = await service.generateSlips('2026-08', undefined, 9);
     const slip = firstSlip(res);
 
-    expect(slip.grossAmount).toBe(8300);
+    expect(slip.grossAmount).toBe(8500);
+    expect(slip.deductionAmount).toBe(200);
     expect(slip.socialAmount).toBe(0);
     expect(slip.taxAmount).toBe(0);
-    expect(slip.netAmount).toBe(8300);
+    expect(slip.netAmount).toBe(8300); // 8500-200
     expect(slip.needsReview).toBe(false);
     expect(slip.notes).toContain('社保个税功能未开启');
     expect(slip.detail.deductEnabled).toBe(false);
     expect(slip.detail.social).toBeNull();
     expect(slip.detail.tax).toBeNull();
+    expect(slip.detail.deduction).toEqual({
+      amount: 200,
+      items: [{ name: '请假扣款', amount: 200 }],
+    });
     // 关闭时不取政策
     expect(taxPolicyService.findActiveForMonth).not.toHaveBeenCalled();
     expect(insurancePolicyService.findActiveForCity).not.toHaveBeenCalled();
@@ -409,8 +413,8 @@ describe('SalarySlipService', () => {
     expect(slip.socialAmount).toBe(2250);
     expect(slip.detail.social.source).toBe('profile');
     expect(slip.detail.social.base).toBe(10000);
-    // taxable = 8300-2250-5000 = 1050 → 3% → 31.5
-    expect(slip.taxAmount).toBe(31.5);
+    // taxable = 8500-2250-5000 = 1250 → 3% → 37.5
+    expect(slip.taxAmount).toBe(37.5);
   });
 
   it('基数 clamp：城市政策 base 低于下限 → 取下限', async () => {
@@ -473,7 +477,7 @@ describe('SalarySlipService', () => {
 
     const res = await service.preview('2026-08');
     expect(res.slips).toHaveLength(1);
-    expect(res.slips[0].netAmount).toBe(6843);
+    expect(res.slips[0].netAmount).toBe(6837);
     // dry-run 不应查询 persisted
     expect(slipRepo.find).not.toHaveBeenCalled();
   });
@@ -534,10 +538,11 @@ describe('SalarySlipService', () => {
     expect(paidSlip.status).toBe(SalaryRecordStatus.PAID);
     expect(saveMock).toHaveBeenCalledTimes(1);
     // PENDING 按最新配置重建（保留 status 与 id）
-    expect(pendingSlip.grossAmount).toBe(8300);
+    expect(pendingSlip.grossAmount).toBe(8500);
+    expect(pendingSlip.deductionAmount).toBe(200);
     expect(pendingSlip.socialAmount).toBe(1400);
-    expect(pendingSlip.taxAmount).toBe(57);
-    expect(pendingSlip.netAmount).toBe(6843);
+    expect(pendingSlip.taxAmount).toBe(63);
+    expect(pendingSlip.netAmount).toBe(6837);
     expect(pendingSlip.status).toBe(SalaryRecordStatus.PENDING);
     expect(pendingSlip.updatedBy).toBe(9);
   });
@@ -551,10 +556,11 @@ describe('SalarySlipService', () => {
         {
           teacherId: 1,
           month: '2026-08',
-          grossAmount: 8300,
+          grossAmount: 8500,
+          deductionAmount: 200,
           socialAmount: 1400,
-          taxAmount: 57,
-          netAmount: 6843,
+          taxAmount: 63,
+          netAmount: 6837,
           status: SalaryRecordStatus.PENDING,
           needsReview: false,
           notes: null,
@@ -575,6 +581,8 @@ describe('SalarySlipService', () => {
       string[],
     ];
     expect(sheetName).toBe('工资条');
+    expect(headers).toContain('应发');
+    expect(headers).toContain('扣款');
     expect(headers).toContain('实发');
   });
 

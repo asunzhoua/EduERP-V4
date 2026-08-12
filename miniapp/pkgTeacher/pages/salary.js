@@ -35,6 +35,8 @@ Page({
     month: currentMonth(),
     statistics: {
       totalAmount: 0,
+      deductionAmount: 0,
+      netAmount: 0,
       paidAmount: 0,
       pendingAmount: 0,
       recordCount: 0,
@@ -114,9 +116,33 @@ Page({
           items: items
         };
       }) : [];
+
+      // 扣款明细（单列在构成卡末尾，含子项说明扣的是什么钱）
+      var ded = data.deduction;
+      if (ded && Number(ded.amount) > 0) {
+        var dedAmount = Number(ded.amount) || 0;
+        var dedItems = Array.isArray(ded.items) ? ded.items.map(function (it) {
+          var ia = Number(it.amount) || 0;
+          return {
+            name: it.name || '其他',
+            amountText: '-' + Math.abs(ia).toFixed(2)
+          };
+        }) : [];
+        breakdown.push({
+          source: 'DEDUCTION',
+          name: '扣款',
+          amount: dedAmount,
+          amountText: '-' + dedAmount.toFixed(2),
+          isDeduction: true,
+          items: dedItems
+        });
+      }
+
       self.setData({
         statistics: {
           totalAmount: data.totalAmount || 0,
+          deductionAmount: data.deductionAmount || 0,
+          netAmount: data.netAmount || 0,
           paidAmount: data.paidAmount || 0,
           pendingAmount: data.pendingAmount || 0,
           recordCount: data.recordCount || data.totalRecords || 0,

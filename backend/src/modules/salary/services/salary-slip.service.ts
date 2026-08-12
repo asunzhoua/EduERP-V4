@@ -86,6 +86,7 @@ export interface SlipPreview {
   teacherId: number;
   teacherName?: string;
   grossAmount: number;
+  deductionAmount: number;
   socialAmount: number;
   taxAmount: number;
   netAmount: number;
@@ -185,6 +186,7 @@ export class SalarySlipService {
         const p = previewByTeacher.get(Number(slip.teacherId));
         if (!p) continue;
         slip.grossAmount = p.grossAmount;
+        slip.deductionAmount = p.deductionAmount;
         slip.socialAmount = p.socialAmount;
         slip.taxAmount = p.taxAmount;
         slip.netAmount = p.netAmount;
@@ -260,6 +262,7 @@ export class SalarySlipService {
       month: s.month,
       teacherName: nameByTeacher.get(Number(s.teacherId)) ?? '',
       grossAmount: Number(s.grossAmount) || 0,
+      deductionAmount: Number(s.deductionAmount) || 0,
       socialAmount: Number(s.socialAmount) || 0,
       taxAmount: Number(s.taxAmount) || 0,
       netAmount: Number(s.netAmount) || 0,
@@ -275,6 +278,7 @@ export class SalarySlipService {
         'month',
         'teacherName',
         'grossAmount',
+        'deductionAmount',
         ...(deductEnabled ? ['socialAmount', 'taxAmount'] : []),
         'netAmount',
         'status',
@@ -285,6 +289,7 @@ export class SalarySlipService {
         '月份',
         '教师',
         '应发',
+        '扣款',
         ...(deductEnabled ? ['五险一金', '个税'] : []),
         '实发',
         '状态',
@@ -386,10 +391,22 @@ export class SalarySlipService {
     const preview: SlipPreview[] = [];
     for (const tid of teacherIds) {
       const teacherRecords = group.get(tid) ?? [];
-      const gross = round2(
-        teacherRecords.reduce((s, r) => s + (Number(r.amount) || 0), 0),
+      // 收入项与扣款拆分：应发只含收入 source，DEDUCTION 单列在应发与实发之间
+      const incomeRecords = teacherRecords.filter(
+        (r) => r.source !== SalaryRecordSource.DEDUCTION,
       );
-      // 收入分项（按 source 汇总）
+      const deductionRecords = teacherRecords.filter(
+        (r) => r.source === SalaryRecordSource.DEDUCTION,
+      );
+      const gross = round2(
+        incomeRecords.reduce((s, r) => s + (Number(r.amount) || 0), 0),
+      );
+      const deductionAmount = round2(
+        Math.abs(
+          deductionRecords.reduce((s, r) => s + (Number(r.amount) || 0), 0),
+        ),
+      );
+      // 收入分项（按 source 汇总，不含扣款）
       const breakdown = this.buildBreakdown(teacherRecords);
 
       const profile = profileByTeacher.get(tid) ?? null;
@@ -472,12 +489,15 @@ export class SalarySlipService {
         );
         taxAmount = calcTax(taxable, brackets);
       }
-      const netAmount = round2(gross - socialAmount - taxAmount);
+      const netAmount = round2(
+        gross - deductionAmount - socialAmount - taxAmount,
+      );
 
       preview.push({
         teacherId: tid,
         teacherName: nameByTeacher.get(tid),
         grossAmount: gross,
+        deductionAmount,
         socialAmount,
         taxAmount,
         netAmount,
@@ -486,6 +506,21 @@ export class SalarySlipService {
         detail: {
           breakdown,
           deductEnabled,
+          deduction: {
+            amount: deductionAmount,
+            items: mergeItems(
+              deductionRecords.flatMap((r) => {
+                const di = (r.detail as { items?: unknown } | null)?.items;
+                return Array.isArray(di)
+                  ? (di as {
+                      type?: string;
+                      name?: string;
+                      amount?: number;
+                    }[])
+                  : [];
+              }),
+            ),
+          },
           social: deductEnabled
             ? {
                 base: socialBase,
@@ -548,6 +583,7 @@ export class SalarySlipService {
       teacherId: p.teacherId,
       month,
       grossAmount: p.grossAmount,
+      deductionAmount: p.deductionAmount,
       socialAmount: p.socialAmount,
       taxAmount: p.taxAmount,
       netAmount: p.netAmount,
@@ -567,13 +603,14 @@ export class SalarySlipService {
       { count: number; amount: number; items: BreakdownItem[] }
     >();
     for (const r of records) {
+      // 扣款单列（detail.deduction），不入收入构成
+      if (r.source === SalaryRecordSource.DEDUCTION) continue;
       const key = r.source as string;
       const cur = map.get(key) ?? { count: 0, amount: 0, items: [] };
       cur.count += 1;
       cur.amount += Number(r.amount) || 0;
       if (
         key === SalaryRecordSource.ALLOWANCE ||
-        key === SalaryRecordSource.DEDUCTION ||
         key === SalaryRecordSource.BONUS
       ) {
         const detailItems = (r.detail as { items?: unknown } | null)?.items;

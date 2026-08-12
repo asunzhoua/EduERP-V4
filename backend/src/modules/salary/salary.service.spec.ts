@@ -62,15 +62,21 @@ describe('SalaryService.getStatistics', () => {
           }),
         },
         {
-          source: 'DEDUCTION',
-          detail: JSON.stringify({
-            items: [{ type: 'OTHER', name: '其他扣款', amount: 200 }],
-          }),
-        },
-        {
           source: 'BONUS',
           detail: JSON.stringify({
             items: [{ name: '课时达标奖', amount: 500 }],
+          }),
+        },
+      ]),
+    };
+    const deductionRows = {
+      select: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([
+        {
+          source: 'DEDUCTION',
+          detail: JSON.stringify({
+            items: [{ type: 'OTHER', name: '其他扣款', amount: 200 }],
           }),
         },
       ]),
@@ -83,7 +89,8 @@ describe('SalaryService.getStatistics', () => {
         .mockReturnValueOnce(totals)
         .mockReturnValueOnce(statusRows)
         .mockReturnValueOnce(bySource)
-        .mockReturnValueOnce(itemRows),
+        .mockReturnValueOnce(itemRows)
+        .mockReturnValueOnce(deductionRows),
     };
   });
 
@@ -121,7 +128,9 @@ describe('SalaryService.getStatistics', () => {
 
   it('返回 paid/pending 拆分、recordCount 与 teacherCount', async () => {
     const res = await service.getStatistics({ year: 2026, month: 8 });
-    expect(res.totalAmount).toBe(2000);
+    expect(res.totalAmount).toBe(11300); // 收入项和 8000+1800+1000+500
+    expect(res.deductionAmount).toBe(200);
+    expect(res.netAmount).toBe(11100);
     expect(res.recordCount).toBe(10);
     expect(res.teacherCount).toBe(3);
     expect(res.paidAmount).toBe(500);
@@ -143,7 +152,7 @@ describe('SalaryService.getStatistics', () => {
     });
   });
 
-  it('返回按来源聚合的 breakdown（数值化、金额降序、扣款保留负号）', async () => {
+  it('返回按来源聚合的 breakdown（收入项、金额降序；扣款单列 deductionAmount）', async () => {
     const res = await service.getStatistics({ year: 2026, month: 7 });
     expect(res.breakdown).toEqual([
       { source: 'BASE', count: 1, amount: 8000, items: [] },
@@ -157,14 +166,19 @@ describe('SalaryService.getStatistics', () => {
           { name: '住房补贴', amount: 700 },
         ],
       },
-      { source: 'BONUS', count: 1, amount: 500, items: [{ name: '课时达标奖', amount: 500 }] },
       {
-        source: 'DEDUCTION',
+        source: 'BONUS',
         count: 1,
-        amount: -200,
-        items: [{ name: '其他扣款', amount: 200 }],
+        amount: 500,
+        items: [{ name: '课时达标奖', amount: 500 }],
       },
     ]);
+    expect(res.deductionAmount).toBe(200);
+    expect(res.netAmount).toBe(11100);
+    expect(res.deduction).toEqual({
+      amount: 200,
+      items: [{ name: '其他扣款', amount: 200 }],
+    });
   });
 });
 

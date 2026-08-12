@@ -499,6 +499,7 @@ export interface SalarySlip {
   teacherId: number | string
   month: string
   grossAmount: number
+  deductionAmount: number
   socialAmount: number
   taxAmount: number
   netAmount: number
@@ -515,6 +516,7 @@ export interface SlipPreviewItem {
   teacherId: number
   teacherName?: string
   grossAmount: number
+  deductionAmount: number
   socialAmount: number
   taxAmount: number
   netAmount: number

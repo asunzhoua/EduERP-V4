@@ -13,12 +13,13 @@ import { SalaryRecordStatus } from '../enums/salary.enums';
  * 工资条
  *
  * 由当月 salary_record 聚合生成（独立服务 SalarySlipService，不塞进 settle）：
- *   grossAmount = Σ source 金额（DEDUCTION 为负自然扣除）
+ *   grossAmount = Σ 收入 source 金额（BASE/DAY/LESSON_FEE/ALLOWANCE/BONUS/OUTING，不含扣款）
+ *   deductionAmount = |Σ DEDUCTION 金额|（考勤/其他扣款，单列在应发与实发之间）
  *   socialAmount = 个人五险一金（档案覆盖优先，否则取当期 insurance policy）
  *   taxAmount = 月度估算个税（(gross − social − 起征点 − 专项附加) → 税率表）
- *   netAmount = gross − social − tax
+ *   netAmount = gross − deduction − social − tax
  *
- * detail 含：收入分项（按 source 汇总）、个税/五险政策快照、计算过程。
+ * detail 含：收入分项（按 source 汇总）、扣款快照、个税/五险政策快照、计算过程。
  * UNIQUE(teacherId, month) 幂等；status 置 PAID 时联动当月 salary_record 置 PAID。
  *
  * @see docs/SALARY-DEEP-ANALYSIS-AND-FULLCHAIN-ROADMAP.md
@@ -39,6 +40,9 @@ export class SalarySlipEntity {
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   grossAmount: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  deductionAmount: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   socialAmount: number;

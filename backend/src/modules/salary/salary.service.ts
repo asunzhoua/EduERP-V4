@@ -34,6 +34,7 @@ import {
 import { User } from '@modules/identity/entities/user.entity';
 import {
   mergeItems,
+  round2,
   type BreakdownItem,
 } from './services/salary-slip.service';
 
@@ -199,7 +200,7 @@ export class SalaryService {
       }
     }
 
-    // 按来源聚合（工资构成：底薪/课时费/津贴/扣款…），管理端与教师端共用
+    // 按来源聚合（工资构成：底薪/课时费/津贴/绩效…），管理端与教师端共用
     const bySource = await qb
       .clone()
       .select([
@@ -210,19 +211,31 @@ export class SalaryService {
       .groupBy('record.source')
       .getRawMany<{ source: string; count: string; amount: string }>();
 
-    // 津贴/扣款/绩效构成子项（ALLOWANCE/DEDUCTION/BONUS 记录 detail.items）
+    // 应发 = 收入项和（不含扣款）；扣款单列（|Σ DEDUCTION|）
+    let totalAmount = 0;
+    let deductionAmount = 0;
+    for (const row of bySource) {
+      const amt = parseFloat(row.amount) || 0;
+      if (row.source === SalaryRecordSource.DEDUCTION) {
+        deductionAmount += Math.abs(amt);
+      } else {
+        totalAmount += amt;
+      }
+    }
+
+    // 津贴/绩效构成子项（ALLOWANCE/BONUS 记录 detail.items）
     const itemRows = await qb
       .clone()
       .select(['record.source AS source', 'record.detail AS detail'])
-      .andWhere("record.source IN ('ALLOWANCE', 'DEDUCTION', 'BONUS')")
+      .andWhere("record.source IN ('ALLOWANCE', 'BONUS')")
       .getRawMany<{ source: string; detail: unknown }>();
 
     const breakdown = bySource
+      .filter((row) => row.source !== SalaryRecordSource.DEDUCTION)
       .map((row) => {
         const items: BreakdownItem[] = [];
         if (
           row.source === SalaryRecordSource.ALLOWANCE ||
-          row.source === SalaryRecordSource.DEDUCTION ||
           row.source === SalaryRecordSource.BONUS
         ) {
           for (const ir of itemRows) {
@@ -240,12 +253,27 @@ export class SalaryService {
       })
       .sort((a, b) => b.amount - a.amount);
 
+    // 扣款明细（DEDUCTION 记录 detail.items 合并，教师端/管理端展示扣款构成）
+    const deductionRows = await qb
+      .clone()
+      .select(['record.source AS source', 'record.detail AS detail'])
+      .andWhere("record.source = 'DEDUCTION'")
+      .getRawMany<{ source: string; detail: unknown }>();
+    const deductionItems: BreakdownItem[] = [];
+    for (const ir of deductionRows) {
+      const sub = parseDetailItems(ir.detail);
+      if (sub.length) deductionItems.push(...mergeItems(sub));
+    }
+
     return {
       year,
       month,
       monthNum,
       totalRecords: parseInt(totals.totalRecords) || 0,
-      totalAmount: parseFloat(totals.totalAmount) || 0,
+      totalAmount,
+      deductionAmount,
+      netAmount: round2(totalAmount - deductionAmount),
+      deduction: { amount: deductionAmount, items: deductionItems },
       totalMinutes: parseInt(totals.totalMinutes) || 0,
       teacherCount: parseInt(totals.teacherCount) || 0,
       recordCount: parseInt(totals.totalRecords) || 0,

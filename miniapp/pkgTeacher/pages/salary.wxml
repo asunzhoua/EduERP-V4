@@ -29,16 +29,16 @@
       </view>
       <view class="summary-row">
         <view class="summary-item">
+          <text class="sum-num sum-deduct">{{statistics.deductionAmount ? '-' + '¥' + statistics.deductionAmount : '-'}}</text>
+          <text class="sum-label">扣款</text>
+        </view>
+        <view class="summary-item">
+          <text class="sum-num">¥{{statistics.netAmount}}</text>
+          <text class="sum-label">实发</text>
+        </view>
+        <view class="summary-item">
           <text class="sum-num">{{statistics.recordCount}}</text>
           <text class="sum-label">记录数</text>
-        </view>
-        <view class="summary-item">
-          <text class="sum-num">¥{{statistics.pendingAmount}}</text>
-          <text class="sum-label">未发放</text>
-        </view>
-        <view class="summary-item">
-          <text class="sum-num">¥{{statistics.paidAmount}}</text>
-          <text class="sum-label">已发放</text>
         </view>
       </view>
     </view>

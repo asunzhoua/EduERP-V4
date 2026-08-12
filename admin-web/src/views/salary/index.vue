@@ -1504,6 +1504,21 @@ const slipDeductEnabled = computed(() => {
   return !!(d.social || d.tax) || deductEnabled.value
 })
 
+/** 扣款金额：优先新字段 deductionAmount，旧快照从 detail.deduction.amount 兜底 */
+const slipDeductionAmount = computed(() => {
+  const s = slipDetail.value
+  if (!s) return 0
+  const direct = Number(s.deductionAmount) || 0
+  if (direct) return direct
+  return Number(s.detail?.deduction?.amount) || 0
+})
+
+/** 扣款明细子项（考勤/其他等，detail.deduction.items） */
+const slipDeductionItems = computed(() => {
+  const items = slipDetail.value?.detail?.deduction?.items
+  return Array.isArray(items) ? items : []
+})
+
 const slipPolicyLines = computed(() => {
   const d = slipDetail.value?.detail
   if (!d) return [] as string[]
@@ -1568,6 +1583,16 @@ const slipColumns = computed(() => {
       key: 'grossAmount',
       width: 100,
       customRender: ({ text }: { text: number }) => formatMoney(text),
+    },
+    {
+      title: '扣款',
+      dataIndex: 'deductionAmount',
+      key: 'deductionAmount',
+      width: 90,
+      customRender: ({ text }: { text: number }) =>
+        Number(text)
+          ? h('span', { style: 'color:#cf1322' }, '-' + formatMoney(Math.abs(Number(text))))
+          : '-',
     },
     {
       title: '五险一金',
@@ -2948,6 +2973,10 @@ onMounted(() => {
             <a-descriptions-item label="教师">{{ slipDetail.teacherName || slipDetail.teacherId }}</a-descriptions-item>
             <a-descriptions-item label="月份">{{ slipDetail.month }}</a-descriptions-item>
             <a-descriptions-item label="应发">{{ formatMoney(slipDetail.grossAmount) }}</a-descriptions-item>
+            <a-descriptions-item label="扣款">
+              <span v-if="slipDeductionAmount" style="color:#cf1322">-{{ formatMoney(slipDeductionAmount) }}</span>
+              <span v-else>-</span>
+            </a-descriptions-item>
             <a-descriptions-item v-if="slipDeductEnabled" label="五险一金">{{ formatMoney(slipDetail.socialAmount) }}</a-descriptions-item>
             <a-descriptions-item v-if="slipDeductEnabled" label="个税">{{ formatMoney(slipDetail.taxAmount) }}</a-descriptions-item>
             <a-descriptions-item label="实发">{{ formatMoney(slipDetail.netAmount) }}</a-descriptions-item>
@@ -2975,7 +3004,21 @@ onMounted(() => {
               </div>
             </div>
           </div>
-          <a-empty v-else description="无构成明细" />
+          <a-empty v-if="!slipBreakdownRows.length && !slipDeductionItems.length" description="无构成明细" />
+          <div v-if="slipDeductionItems.length" class="slip-breakdown" style="margin-top: 12px">
+            <div class="slip-breakdown-group">
+              <div class="slip-breakdown-row">
+                <div class="row-left">
+                  <span class="row-name">扣款</span>
+                </div>
+                <span class="row-amount amount-deduct">-{{ formatMoney(slipDeductionAmount) }}</span>
+              </div>
+              <div v-for="(it, i) in slipDeductionItems" :key="i" class="slip-breakdown-item">
+                <span class="item-name">{{ it.name }}</span>
+                <span class="item-amount amount-deduct">-{{ formatMoney(Math.abs(Number(it.amount) || 0)) }}</span>
+              </div>
+            </div>
+          </div>
           <details v-if="slipPolicyLines.length" class="policy-details">
             <summary>政策快照（审计留痕）</summary>
             <div v-for="(line, i) in slipPolicyLines" :key="i" class="policy-line">{{ line }}</div>
