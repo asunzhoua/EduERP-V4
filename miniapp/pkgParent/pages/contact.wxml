@@ -1,0 +1,21 @@
+<!-- pkgParent/pages/contact.wxml -->
+<view class="contact-page">
+  <view class="contact-card">
+    <view class="org-name">{{contactInfo.name || '机构名称'}}</view>
+
+    <view class="info-row">
+      <view class="info-label">地址</view>
+      <view class="info-value">{{contactInfo.address || '暂无地址信息'}}</view>
+    </view>
+
+    <view class="info-row" wx:if="{{contactInfo.phone}}">
+      <view class="info-label">电话</view>
+      <view class="info-value">{{contactInfo.phone}}</view>
+    </view>
+
+    <button class="call-btn" wx:if="{{contactInfo.phone}}" bindtap="callPhone">拨打电话</button>
+    <view class="empty-hint" wx:else>机构暂未提供联系电话</view>
+  </view>
+
+  <view class="back-link" bindtap="goBack">返回</view>
+</view>

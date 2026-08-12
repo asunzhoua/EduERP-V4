@@ -21,7 +21,6 @@
         "pages/class-detail",
         "pages/course-detail",
         "pages/students",
-        "pages/salary",
         "pages/my-exceptions",
         "pages/leave-apply"
       ]
@@ -49,7 +48,9 @@
       "pages": [
         "pages/index",
         "pages/add-student",
-        "pages/child-detail"
+        "pages/child-detail",
+        "pages/contact",
+        "pages/edit-student"
       ]
     },
     {

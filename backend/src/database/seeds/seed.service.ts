@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, EntityManager } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { Setting } from '../../modules/admin/entities/setting.entity';
 import { User } from '../../modules/identity/entities/user.entity';
 import { Role } from '../../modules/identity/entities/role.entity';
 import { Permission } from '../../modules/identity/entities/permission.entity';
@@ -101,6 +102,7 @@ export class SeedService {
       await this.seedTestLessons(manager);
       await this.seedTestAttendance(manager);
       await this.seedTestTeacherAssignments(manager);
+      await this.seedSettings(manager);
 
       await queryRunner.commitTransaction();
       this.logger.log(
@@ -1010,6 +1012,23 @@ export class SeedService {
           `Test teacher assignment created: teacherId=${data.teacherId} → ${data.classCode}`,
           'Seed',
         );
+      }
+    }
+  }
+
+  /** 机构联系信息相关设置项（家长端「联系机构」展示，find-or-create 幂等） */
+  private async seedSettings(manager: EntityManager): Promise<void> {
+    const repo = manager.getRepository(Setting);
+    const defaults = [
+      { key: 'school.name', category: 'school', description: '机构名称（家长端「联系机构」展示）' },
+      { key: 'school.address', category: 'school', description: '机构地址' },
+      { key: 'school.phone', category: 'school', description: '联系电话' },
+      { key: 'campus.name', category: 'system', description: '校区名称' },
+    ];
+    for (const d of defaults) {
+      const existing = await repo.findOne({ where: { key: d.key } });
+      if (!existing) {
+        await repo.save(repo.create({ key: d.key, value: '', category: d.category, description: d.description }));
       }
     }
   }

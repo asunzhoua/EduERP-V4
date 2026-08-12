@@ -1,0 +1,37 @@
+<!-- pkgParent/pages/edit-student.wxml -->
+<view class="auth-page">
+  <view class="auth-sub">修改孩子的基本信息</view>
+
+  <view class="auth-form">
+    <view class="field">
+      <input class="input" placeholder="小朋友姓名" placeholder-class="ph"
+        value="{{name}}" data-field="name" bindinput="onInput" maxlength="50" />
+    </view>
+
+    <picker mode="selector" range="{{genderOptions}}" bindchange="onGenderChange">
+      <view class="field picker-field">
+        <view class="picker-value {{genderIndex === -1 ? 'ph' : ''}}">{{genderIndex === -1 ? '请选择性别' : genderOptions[genderIndex]}}</view>
+        <view class="picker-arrow">›</view>
+      </view>
+    </picker>
+
+    <picker mode="date" start="1995-01-01" end="{{today}}" bindchange="onBirthChange">
+      <view class="field picker-field">
+        <view class="picker-value {{birthDate ? '' : 'ph'}}">{{birthDate || '请选择生日'}}</view>
+        <view class="picker-arrow">›</view>
+      </view>
+    </picker>
+
+    <view class="field">
+      <input class="input" placeholder="就读年级，如：三年级" placeholder-class="ph"
+        value="{{grade}}" data-field="grade" bindinput="onInput" maxlength="50" />
+    </view>
+
+    <view class="field">
+      <input class="input" placeholder="就读学校（选填）" placeholder-class="ph"
+        value="{{school}}" data-field="school" bindinput="onInput" maxlength="100" />
+    </view>
+
+    <button class="btn-primary-full" bindtap="onSubmit" disabled="{{loading}}">保存</button>
+  </view>
+</view>

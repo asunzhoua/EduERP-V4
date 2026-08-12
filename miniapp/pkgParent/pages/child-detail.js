@@ -1,5 +1,6 @@
 // pages/parent/child-detail.js
-const { get } = require('../../utils/request');
+const { get, del } = require('../../utils/request');
+const { setCurrentChildId, invalidateChildrenCache } = require('../../utils/child-context');
 const { RENEWAL_WARNING_THRESHOLD, RENEWAL_CRITICAL_THRESHOLD } = require('../../utils/renewal-threshold');
 
 const LESSON_STATUS_TEXT = {
@@ -46,6 +47,9 @@ Page({
 
   onLoad(options) {
     if (options.id) {
+      // 设置当前孩子，后续学生维度请求映射到该孩子
+      setCurrentChildId(options.id);
+
       // 从 URL 参数获取基本信息
       const childInfo = {
         id: options.id,
@@ -141,7 +145,48 @@ Page({
 
   // 课时不足行动引导：联系机构续费
   goToContact() {
-    wx.showToast({ title: '请拨打机构前台电话联系续费', icon: 'none' });
+    wx.navigateTo({
+      url: '/pkgParent/pages/contact',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 编辑孩子基本信息
+  goToEdit() {
+    wx.navigateTo({
+      url: '/pkgParent/pages/edit-student?id=' + this.data.childId,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 解绑孩子
+  goToUnbind() {
+    var self = this;
+    var childInfo = this.data.childInfo || {};
+    wx.showModal({
+      title: '解绑孩子',
+      content: '确定解除与「' + (childInfo.name || '') + '」的绑定吗？解绑后无法在此查看孩子数据。',
+      success: function (res) {
+        if (!res.confirm) return;
+        del('/students/my-children/' + self.data.childId).then(function () {
+          invalidateChildrenCache();
+          wx.showToast({ title: '已解除绑定', icon: 'success' });
+          setTimeout(function () {
+            wx.navigateBack({
+              fail: function () {
+                wx.switchTab({ url: '/pages/index/index' });
+              }
+            });
+          }, 1000);
+        }).catch(function () {
+          // request.js 已 toast 错误，留在当前页
+        });
+      }
+    });
   },
 
   // 切换孩子：跳转多孩子列表页（parent/index 全量列表）

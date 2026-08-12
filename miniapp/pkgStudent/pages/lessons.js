@@ -1,6 +1,7 @@
 // pages/student/lessons.js
 const { get } = require('../../utils/request');
 const { statusText } = require('../../utils/attendance-status');
+const { ensureCurrentChild, studentApiPath, showChildSwitch } = require('../../utils/child-context');
 
 Page({
   data: {
@@ -14,7 +15,9 @@ Page({
     stats: { total: 0, present: 0, absent: 0, late: 0, leave: 0, sick: 0, makeup: 0, online: 0, offline: 0 },
     filterStatus: 'ALL',
     loading: true,
-    error: null
+    error: null,
+    isParent: false,
+    currentChildName: ''
   },
 
   onLoad() {
@@ -26,13 +29,27 @@ Page({
       wx.reLaunch({ url: '/pages/index/index' });
       return;
     }
-    this.loadContracts();
-    this.loadLessons();
+    ensureCurrentChild().then((ctx) => {
+      this.setData({ isParent: ctx.isParent, currentChildName: ctx.currentChild ? ctx.currentChild.name : '' });
+      this.loadContracts();
+      this.loadLessons();
+    });
   },
 
   onShow() {
-    // 从其他页面返回时刷新余额与课时
-    this.loadContracts();
+    // 从其他页面返回时刷新余额与课时（并同步当前孩子）
+    ensureCurrentChild().then((ctx) => {
+      this.setData({ isParent: ctx.isParent, currentChildName: ctx.currentChild ? ctx.currentChild.name : '' });
+      this.loadContracts();
+    });
+  },
+
+  onSwitchChild() {
+    showChildSwitch((child) => {
+      this.setData({ currentChildName: child.name });
+      this.loadContracts();
+      this.loadLessons();
+    });
   },
 
   onPullDownRefresh() {
@@ -44,7 +61,7 @@ Page({
   // 课时余额：总课时 / 已使用 / 剩余
   async loadContracts() {
     try {
-      const contracts = await get('/students/self/contracts');
+      const contracts = await get(studentApiPath('/students/self/contracts'));
       const list = Array.isArray(contracts) ? contracts : [];
       const total = list.reduce((s, c) => s + (c.totalLessons || 0), 0);
       const remaining = list.reduce((s, c) => s + (c.remainingLessons || 0), 0);
@@ -60,7 +77,7 @@ Page({
   async loadLessons(from, to) {
     try {
       this.setData({ loading: true, error: null });
-      const data = await get('/students/self/lessons', {
+      const data = await get(studentApiPath('/students/self/lessons'), {
         from: from || this.data.fromDate,
         to: to || this.data.toDate
       });

@@ -1,0 +1,75 @@
+/* pkgParent/pages/contact.wxss · 暖杏奶油白卡片风格 */
+.contact-page {
+  min-height: 100vh;
+  background: #FAF6F0;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.contact-card {
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  padding: 40rpx 32rpx;
+  box-shadow: 0 2rpx 8rpx rgba(120, 80, 40, .08);
+}
+
+.org-name {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #2E2A25;
+  margin-bottom: 32rpx;
+}
+
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 20rpx;
+}
+
+.info-label {
+  flex: none;
+  width: 96rpx;
+  font-size: 28rpx;
+  color: #9B9084;
+}
+
+.info-value {
+  flex: 1;
+  font-size: 28rpx;
+  color: #2E2A25;
+}
+
+.call-btn {
+  margin-top: 40rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 999rpx;
+  background: #A64E1D;
+  color: #FFFFFF;
+  font-size: 30rpx;
+  font-weight: 600;
+  border: none;
+}
+
+.call-btn::after {
+  border: none;
+}
+
+.call-btn:active {
+  opacity: .85;
+}
+
+.empty-hint {
+  margin-top: 40rpx;
+  text-align: center;
+  font-size: 26rpx;
+  color: #9B9084;
+}
+
+.back-link {
+  margin-top: 32rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #A64E1D;
+  padding: 20rpx 0;
+}

@@ -6,6 +6,21 @@
   box-sizing: border-box;
 }
 
+/* 孩子切换条 */
+.child-switch-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 16rpx 24rpx;
+  padding: 16rpx 24rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  color: #555;
+}
+.child-switch-label { font-weight: 500; }
+.child-switch-arrow { color: #A64E1D; }
+
 /* 引言 */
 .fb-intro {
   background: linear-gradient(160deg, #FBE6CF, #FAF6F0);

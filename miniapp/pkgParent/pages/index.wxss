@@ -82,3 +82,32 @@
   padding: 4rpx 16rpx;
   border-radius: 16rpx;
 }
+
+/* 快捷入口卡片（请假记录 / 订阅设置） */
+.quick-entries {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 24rpx;
+}
+
+.entry-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 28rpx 0;
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(59,157,255,0.08));
+}
+
+.entry-icon {
+  width: 56rpx;
+  height: 56rpx;
+}
+
+.entry-text {
+  font-size: 26rpx;
+  color: #2E2A25;
+}

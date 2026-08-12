@@ -1,6 +1,7 @@
 // pages/index/index.js
 const app = getApp();
 const { get } = require('../../utils/request');
+const { setCurrentChildId, getCurrentChildId } = require('../../utils/child-context');
 const { statusText } = require('../../utils/attendance-status');
 const { RENEWAL_WARNING_THRESHOLD } = require('../../utils/renewal-threshold');
 
@@ -88,6 +89,10 @@ Page({
     try {
       const data = await get('/students/my-children');
       const children = Array.isArray(data) ? data : (data && data.items) || [];
+      // 若无全局「当前孩子」，默认设为第一个（child-context 持久化）
+      if (Array.isArray(children) && children.length && !getCurrentChildId()) {
+        setCurrentChildId(children[0].id);
+      }
       this.setData({
         children,
         childCountText: children.length > 0 ? children.length + ' 个孩子已关联' : ''
@@ -133,7 +138,10 @@ Page({
           this.applyStudentHomeData([], [], { count: 0 }, { balance: 0 }, []);
           return;
         }
-        const childId = children[0].id;
+        const currentId = getCurrentChildId();
+        const childId = currentId && children.some((c) => Number(c.id) === Number(currentId))
+          ? currentId
+          : children[0].id;
         [contracts, lessons, unread, points, feedback] = await Promise.all([
           get('/students/' + childId + '/contracts').catch(() => { failed += 1; return []; }),
           get('/students/' + childId + '/lessons').catch(() => { failed += 1; return []; }),
@@ -304,6 +312,7 @@ Page({
   // 孩子切换 → 进入对应孩子详情
   goToChild(e) {
     const d = e.currentTarget.dataset;
+    setCurrentChildId(d.id);
     wx.navigateTo({
       url: '/pkgParent/pages/child-detail?id=' + d.id +
         '&name=' + encodeURIComponent(d.name || '') +
@@ -318,7 +327,22 @@ Page({
 
   // 联系机构
   goToContact() {
-    wx.showToast({ title: '请拨打机构前台电话联系', icon: 'none' });
+    wx.navigateTo({
+      url: '/pkgParent/pages/contact',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 订阅设置
+  goToSubscribe() {
+    wx.navigateTo({
+      url: '/pkgStudent/pages/subscribe',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   },
 
   // 运营看板（仅 Admin/SuperAdmin）

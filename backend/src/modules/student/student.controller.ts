@@ -42,6 +42,7 @@ import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { ApiResponse } from '@common/dto/api-response';
 import { AuthedRequest } from '@common/types/authed-request';
 import { CreateParentLeaveRequestDto } from './dto/create-parent-leave-request.dto';
+import { ParentUpdateStudentDto } from './dto/parent-update-student.dto';
 import { PointsService } from '../points/points.service';
 
 @Controller('students')
@@ -398,6 +399,41 @@ export class StudentController {
     return ApiResponse.success(result);
   }
 
+  @Get(':childId/points-mall/products')
+  @Roles('Parent')
+  async getChildPointsMallProducts(
+    @Param('childId', ParseIntPipe) childId: number,
+    @CurrentUser() parent: AuthedRequest['user'],
+  ) {
+    await this.studentService.getChildForParent(parent.sub, childId);
+    const products = await this.pointsService.listOnSaleProducts();
+    return ApiResponse.success(products);
+  }
+
+  @Post(':childId/points-mall/exchange')
+  @Roles('Parent')
+  async exchangeChildPoints(
+    @Param('childId', ParseIntPipe) childId: number,
+    @Body() body: { productId?: number; quantity?: number },
+    @CurrentUser() parent: AuthedRequest['user'],
+  ) {
+    const student = await this.studentService.getChildForParent(
+      parent.sub,
+      childId,
+    );
+    if (!body || !body.productId) {
+      return ApiResponse.error(400, '请选择要兑换的商品');
+    }
+    const record = await this.pointsService.exchange(
+      student.studentCode,
+      student.name,
+      Number(body.productId),
+      Number(body.quantity) || 1,
+      Number(parent.sub),
+    );
+    return ApiResponse.success(record, '兑换成功');
+  }
+
   // --- Parent Leave Request (GAP-002) ---
 
   @Post('leave-requests')
@@ -435,6 +471,44 @@ export class StudentController {
       CreatedSource.API,
     );
     return ApiResponse.success(student, '添加学生成功');
+  }
+
+  @Get('my-children/:childId')
+  @Roles('Parent')
+  async getChildForParent(
+    @Param('childId', ParseIntPipe) childId: number,
+    @CurrentUser() parent: AuthedRequest['user'],
+  ) {
+    const student = await this.studentService.getChildForParent(
+      parent.sub,
+      childId,
+    );
+    return ApiResponse.success(student);
+  }
+
+  @Put('my-children/:childId')
+  @Roles('Parent')
+  async updateChild(
+    @Param('childId', ParseIntPipe) childId: number,
+    @Body() dto: ParentUpdateStudentDto,
+    @CurrentUser() parent: AuthedRequest['user'],
+  ) {
+    const student = await this.studentService.updateChild(
+      parent.sub,
+      childId,
+      dto,
+    );
+    return ApiResponse.success(student, '保存成功');
+  }
+
+  @Delete('my-children/:childId')
+  @Roles('Parent')
+  async unlinkChild(
+    @Param('childId', ParseIntPipe) childId: number,
+    @CurrentUser() parent: AuthedRequest['user'],
+  ) {
+    await this.studentService.unlinkChild(parent.sub, childId);
+    return ApiResponse.success(null, '已解除绑定');
   }
 
   @Get()

@@ -1,6 +1,10 @@
 // pages/student/profile.js
 var request = require('../../utils/request');
 var get = request.get;
+var childContext = require('../../utils/child-context');
+var ensureCurrentChild = childContext.ensureCurrentChild;
+var studentApiPath = childContext.studentApiPath;
+var showChildSwitch = childContext.showChildSwitch;
 
 Page({
   data: {
@@ -25,7 +29,10 @@ Page({
     recentLessons: [],
     // UI 状态
     loading: true,
-    error: null
+    error: null,
+    // 孩子切换
+    isParent: false,
+    currentChildName: ''
   },
 
   onLoad: function () {
@@ -37,11 +44,27 @@ Page({
       wx.reLaunch({ url: '/pages/index/index' });
       return;
     }
-    this.loadData();
+    var self = this;
+    ensureCurrentChild().then(function (ctx) {
+      self.setData({ isParent: ctx.isParent, currentChildName: ctx.currentChild ? ctx.currentChild.name : '' });
+      self.loadData();
+    });
   },
 
   onShow: function () {
-    this.loadData();
+    var self = this;
+    ensureCurrentChild().then(function (ctx) {
+      self.setData({ isParent: ctx.isParent, currentChildName: ctx.currentChild ? ctx.currentChild.name : '' });
+      self.loadData();
+    });
+  },
+
+  onSwitchChild: function () {
+    var self = this;
+    showChildSwitch(function (child) {
+      self.setData({ currentChildName: child.name });
+      self.loadData();
+    });
   },
 
   onPullDownRefresh: function () {
@@ -60,9 +83,9 @@ Page({
     self.setData({ loading: true, error: null });
 
     return Promise.all([
-      get('/students/self').catch(function () { return null; }),
-      get('/students/self/contracts').catch(function () { return []; }),
-      get('/students/self/attendance').catch(function () { return []; })
+      get(studentApiPath('/students/self')).catch(function () { return null; }),
+      get(studentApiPath('/students/self/contracts')).catch(function () { return []; }),
+      get(studentApiPath('/students/self/attendance')).catch(function () { return []; })
     ]).then(function (results) {
       var info = results[0] || {};
       var contracts = results[1] || [];

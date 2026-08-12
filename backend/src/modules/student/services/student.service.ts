@@ -35,6 +35,7 @@ import {
   LeaveRequestStatus,
 } from '@modules/teaching/leave-request/leave-request.entity';
 import { CreateParentLeaveRequestDto } from '../dto/create-parent-leave-request.dto';
+import { ParentUpdateStudentDto } from '../dto/parent-update-student.dto';
 import { EnrollmentEntity } from '@modules/teaching/enrollment/enrollment.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
 import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
@@ -438,6 +439,50 @@ export class StudentService {
       throw new NotFoundException(`Student not found (ID: ${childId})`);
     }
     return student;
+  }
+
+  /**
+   * 校验家长-孩子绑定并返回孩子(公开给 controller 复用 assertParentChild)
+   */
+  async getChildForParent(parentId: number, childId: number): Promise<Student> {
+    return this.assertParentChild(parentId, childId);
+  }
+
+  /**
+   * 家长编辑孩子信息:只允许 name/gender/birthDate/grade/school 五个字段,防越权
+   */
+  async updateChild(
+    parentId: number,
+    childId: number,
+    dto: ParentUpdateStudentDto,
+  ): Promise<Student> {
+    const student = await this.assertParentChild(parentId, childId);
+    const allowed = ['name', 'gender', 'birthDate', 'grade', 'school'];
+    const dtoRecord = dto as unknown as Record<
+      string,
+      string | null | undefined
+    >;
+    const studentRecord = student as unknown as Record<
+      string,
+      string | null | undefined
+    >;
+    for (const field of allowed) {
+      if (dtoRecord[field] !== undefined) {
+        studentRecord[field] = dtoRecord[field];
+      }
+    }
+    return this.studentRepository.save(student);
+  }
+
+  /**
+   * 家长解绑孩子:仅删除 student_parent 绑定记录,不影响学生在册
+   */
+  async unlinkChild(parentId: number, childId: number): Promise<void> {
+    const link = await this.studentParentRepository.findOne({
+      where: { parentId, studentId: childId },
+    });
+    if (!link) throw new NotFoundException('未找到该孩子的关联');
+    await this.studentParentRepository.remove(link);
   }
 
   /**

@@ -1,5 +1,11 @@
 <!-- pages/student/points-mall/points-mall.wxml -->
 <view class="container">
+  <!-- 孩子切换条 -->
+  <view class="child-switch-bar" wx:if="{{isParent}}" bindtap="onSwitchChild">
+    <text class="child-switch-label">当前孩子：{{currentChildName}}</text>
+    <text class="child-switch-arrow">切换 ›</text>
+  </view>
+
   <!-- 顶部余额 -->
   <view class="balance-bar">
     <text class="balance-label">我的积分</text>

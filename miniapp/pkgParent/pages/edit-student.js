@@ -1,43 +1,52 @@
-// pkgParent/pages/add-student.js
-const { post, get } = require('../../utils/request');
+// pkgParent/pages/edit-student.js
+const { get, put } = require('../../utils/request');
 const { invalidateChildrenCache } = require('../../utils/child-context');
 
 Page({
   data: {
+    childId: null,
     name: '',
     genderIndex: -1,
     genderOptions: ['男', '女'],
     birthDate: '',
     grade: '',
     school: '',
-    classes: [],
-    classLabels: ['暂不选择班级'],
-    classIndex: 0,
     today: '',
     loading: false
   },
 
-  onLoad() {
+  onLoad(options) {
     const d = new Date();
     const today =
       d.getFullYear() +
       '-' + String(d.getMonth() + 1).padStart(2, '0') +
       '-' + String(d.getDate()).padStart(2, '0');
-    this.setData({ today });
-    this.loadOpenClasses();
+    this.setData({ today: today, childId: options.id || null });
+
+    if (options.id) {
+      this.loadChild(options.id);
+    }
   },
 
-  // 加载可选班级（选填，失败不影响填表）
-  loadOpenClasses() {
+  // 加载孩子详情并预填表单
+  loadChild(id) {
     var self = this;
-    get('/classes/open').then(function (res) {
-      var classes = (res && res.items) || [];
-      var labels = ['暂不选择班级'].concat(classes.map(function (c) {
-        return c.name + (c.schedule ? ' · ' + c.schedule : '');
-      }));
-      self.setData({ classes: classes, classLabels: labels });
+    get('/students/my-children/' + id).then(function (child) {
+      var genderIndex = child.gender === 'MALE' ? 0 : 1;
+      var birthDate = child.birthDate || '';
+      // 非 'YYYY-MM-DD' 格式时尽量截取前 10 位
+      if (birthDate && !/^\d{4}-\d{2}-\d{2}/.test(birthDate)) {
+        birthDate = birthDate.slice(0, 10);
+      }
+      self.setData({
+        name: child.name || '',
+        genderIndex: genderIndex,
+        birthDate: birthDate,
+        grade: child.grade || '',
+        school: child.school || ''
+      });
     }).catch(function () {
-      // 班级加载失败时仍可提交（不选班级）
+      // request.js 已 toast 错误，留在当前页
     });
   },
 
@@ -56,13 +65,13 @@ Page({
     this.setData({ birthDate: e.detail.value });
   },
 
-  onClassChange: function (e) {
-    this.setData({ classIndex: Number(e.detail.value) });
-  },
-
   onSubmit: function () {
     var self = this;
     if (self.data.loading) return; // 防重复点击
+    if (!self.data.childId) {
+      wx.showToast({ title: '孩子信息缺失', icon: 'none' });
+      return;
+    }
 
     var name = (self.data.name || '').trim();
     var birthDate = self.data.birthDate || '';
@@ -90,30 +99,25 @@ Page({
       return;
     }
 
-    var selectedClass = self.data.classIndex > 0
-      ? self.data.classes[self.data.classIndex - 1]
-      : null;
-
     self.setData({ loading: true });
-    post('/students/my-children', {
+    put('/students/my-children/' + self.data.childId, {
       name: name,
       gender: self.data.genderIndex === 0 ? 'MALE' : 'FEMALE',
       birthDate: birthDate,
       grade: grade,
-      school: school || undefined,
-      classCode: selectedClass ? selectedClass.classCode : undefined
+      school: school || undefined
     }).then(function () {
       invalidateChildrenCache();
-      wx.showToast({ title: '添加成功', icon: 'success' });
+      wx.showToast({ title: '保存成功', icon: 'success' });
       setTimeout(function () {
         wx.navigateBack({
           fail: function () {
-            wx.reLaunch({ url: '/pages/student/index' });
+            wx.switchTab({ url: '/pages/index/index' });
           }
         });
       }, 1000);
     }).catch(function () {
-      // request.js 已弹具体错误（如手机号已被注册等），留在当前页
+      // request.js 已 toast 错误，留在当前页
     }).finally(function () {
       self.setData({ loading: false });
     });

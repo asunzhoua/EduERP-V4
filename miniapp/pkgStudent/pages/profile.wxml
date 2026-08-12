@@ -1,5 +1,11 @@
 <!-- pages/student/profile.wxml -->
 <view class="container">
+  <!-- 孩子切换条 -->
+  <view class="child-switch-bar" wx:if="{{isParent}}" bindtap="onSwitchChild">
+    <text class="child-switch-label">当前孩子：{{currentChildName}}</text>
+    <text class="child-switch-arrow">切换 ›</text>
+  </view>
+
   <!-- 顶部个人信息卡片 -->
   <view class="profile-header">
     <view class="avatar-area">

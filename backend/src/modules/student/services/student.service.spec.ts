@@ -12,6 +12,7 @@ import { StudentParent } from '../entities/student-parent.entity';
 import { StudentAuditLog } from '../entities/student-audit-log.entity';
 import { StudentCodeGeneratorService } from './student-code-generator.service';
 import { ImportService } from '@utils/services/import.service';
+import { ParentUpdateStudentDto } from '../dto/parent-update-student.dto';
 import { StudentStatus } from '../enums/student-status.enum';
 import { CreatedSource } from '@common/enums/created-source.enum';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
@@ -626,6 +627,79 @@ describe('StudentService', () => {
       );
       await expect(service.getChildFeedback(1, 2)).rejects.toThrow(
         ForbiddenException,
+      );
+    });
+  });
+
+  // ─── parent-child management (getChildForParent / updateChild / unlinkChild) ───
+
+  describe('parent-child management', () => {
+    beforeEach(() => {
+      studentParentRepo.findOne.mockResolvedValue({
+        id: 1,
+        parentId: 1,
+        studentId: 2,
+      });
+      studentRepo.findById.mockResolvedValue({ ...mockStudent, id: 2 });
+    });
+
+    it('getChildForParent returns the bound child', async () => {
+      const result = await service.getChildForParent(1, 2);
+      expect(result.id).toBe(2);
+      expect(studentParentRepo.findOne).toHaveBeenCalledWith({
+        where: { parentId: 1, studentId: 2 },
+      });
+    });
+
+    it('getChildForParent throws ForbiddenException when not bound', async () => {
+      studentParentRepo.findOne.mockResolvedValue(null);
+      await expect(service.getChildForParent(1, 2)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('updateChild updates only allowed fields', async () => {
+      const child = { ...mockStudent, id: 2, name: '张三', grade: '一年级' };
+      studentRepo.findById.mockResolvedValue(child);
+      studentRepo.save.mockImplementation((s) => s);
+
+      const result = await service.updateChild(1, 2, {
+        name: '小红',
+        grade: '二年级',
+        phone: '13900000000', // 非允许字段应被忽略,防越权
+      } as unknown as ParentUpdateStudentDto);
+
+      expect(result.name).toBe('小红');
+      expect(studentRepo.save).toHaveBeenCalled();
+      const saved = studentRepo.save.mock.calls[0][0] as Student;
+      expect(saved.name).toBe('小红');
+      expect(saved.grade).toBe('二年级');
+      expect(saved.phone).toBe(child.phone); // phone 未被修改
+    });
+
+    it('updateChild throws ForbiddenException when not bound', async () => {
+      studentParentRepo.findOne.mockResolvedValue(null);
+      await expect(
+        service.updateChild(1, 2, { name: '小红' }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('unlinkChild removes the binding record', async () => {
+      const link = { id: 1, parentId: 1, studentId: 2 };
+      studentParentRepo.findOne.mockResolvedValue(link);
+
+      await service.unlinkChild(1, 2);
+
+      expect(studentParentRepo.findOne).toHaveBeenCalledWith({
+        where: { parentId: 1, studentId: 2 },
+      });
+      expect(studentParentRepo.remove).toHaveBeenCalledWith(link);
+    });
+
+    it('unlinkChild throws NotFoundException when no binding', async () => {
+      studentParentRepo.findOne.mockResolvedValue(null);
+      await expect(service.unlinkChild(1, 2)).rejects.toThrow(
+        NotFoundException,
       );
     });
   });

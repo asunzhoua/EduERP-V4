@@ -53,6 +53,33 @@
   background: #FCF0DE;
 }
 
+/* 编辑信息 / 解绑孩子 按钮行 */
+.btn-row {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 8rpx;
+}
+
+.mini-btn {
+  flex: 1;
+  text-align: center;
+  font-size: 24rpx;
+  padding: 12rpx 0;
+  border-radius: 999rpx;
+}
+
+.edit-btn {
+  color: #A64E1D;
+  border: 1rpx solid #F0D9B8;
+  background: #FCF0DE;
+}
+
+.unbind-btn {
+  color: #C4483F;
+  border: 1rpx solid #F3D5D2;
+  background: #FDF0EF;
+}
+
 .tabs {
   display: flex;
   background: #fff;

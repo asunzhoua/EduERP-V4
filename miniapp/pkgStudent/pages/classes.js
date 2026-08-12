@@ -1,11 +1,14 @@
 // pages/student/classes.js
 const { get } = require('../../utils/request');
+const { ensureCurrentChild, studentApiPath, showChildSwitch } = require('../../utils/child-context');
 
 Page({
   data: {
     classes: [],
     loading: true,
-    error: null
+    error: null,
+    isParent: false,
+    currentChildName: ''
   },
 
   onLoad() {
@@ -17,11 +20,24 @@ Page({
       wx.reLaunch({ url: '/pages/index/index' });
       return;
     }
-    this.loadData();
+    ensureCurrentChild().then((ctx) => {
+      this.setData({ isParent: ctx.isParent, currentChildName: ctx.currentChild ? ctx.currentChild.name : '' });
+      this.loadData();
+    });
   },
 
   onShow() {
-    this.loadData();
+    ensureCurrentChild().then((ctx) => {
+      this.setData({ isParent: ctx.isParent, currentChildName: ctx.currentChild ? ctx.currentChild.name : '' });
+      this.loadData();
+    });
+  },
+
+  onSwitchChild() {
+    showChildSwitch((child) => {
+      this.setData({ currentChildName: child.name });
+      this.loadData();
+    });
   },
 
   onPullDownRefresh() {
@@ -36,7 +52,7 @@ Page({
     this.setData({ loading: true, error: null });
 
     try {
-      const contracts = await get('/students/self/contracts');
+      const contracts = await get(studentApiPath('/students/self/contracts'));
       
       const classes = contracts.map(c => ({
         classCode: c.classCode,

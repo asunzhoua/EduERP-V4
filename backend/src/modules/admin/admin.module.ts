@@ -12,6 +12,7 @@ import { AdminTeachersService } from './admin-teachers.service';
 import { AdminTeachersController } from './admin-teachers.controller';
 import { SettingsService } from './settings.service';
 import { SettingsController } from './settings.controller';
+import { PublicSettingsController } from './public-settings.controller';
 import { OperationLogsService } from './operation-logs.service';
 import { OperationLogsController } from './operation-logs.controller';
 import { OperationLogInterceptor } from './operation-log.interceptor';
@@ -33,6 +34,7 @@ import { PointsMallController } from './points-mall.controller';
   controllers: [
     AdminTeachersController,
     SettingsController,
+    PublicSettingsController,
     OperationLogsController,
     PointsMallController,
   ],

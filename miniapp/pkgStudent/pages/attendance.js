@@ -1,13 +1,16 @@
 // pages/student/attendance.js
 const { get } = require('../../utils/request');
 const { statusText, statusClass } = require('../../utils/attendance-status');
+const { ensureCurrentChild, studentApiPath, showChildSwitch } = require('../../utils/child-context');
 
 Page({
   data: {
     attendanceList: [],
     stats: { total: 0, present: 0, absent: 0, late: 0, leave: 0, sick: 0, makeup: 0, online: 0, offline: 0, attendanceRate: 0 },
     loading: true,
-    error: null
+    error: null,
+    isParent: false,
+    currentChildName: ''
   },
 
   onLoad() {
@@ -19,13 +22,23 @@ Page({
       wx.reLaunch({ url: '/pages/index/index' });
       return;
     }
-    this.loadAttendance();
+    ensureCurrentChild().then((ctx) => {
+      this.setData({ isParent: ctx.isParent, currentChildName: ctx.currentChild ? ctx.currentChild.name : '' });
+      this.loadAttendance();
+    });
+  },
+
+  onSwitchChild() {
+    showChildSwitch((child) => {
+      this.setData({ currentChildName: child.name });
+      this.loadAttendance();
+    });
   },
 
   async loadAttendance() {
     try {
       this.setData({ loading: true, error: null });
-      const res = await get('/students/self/attendance');
+      const res = await get(studentApiPath('/students/self/attendance'));
       const attendanceList = (Array.isArray(res) ? res : []).map(a => ({
         ...a,
         statusText: statusText(a.status),

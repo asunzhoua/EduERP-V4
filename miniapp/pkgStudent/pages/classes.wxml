@@ -1,5 +1,11 @@
 <!-- pages/student/classes.wxml -->
 <view class="container">
+  <!-- 孩子切换条 -->
+  <view class="child-switch-bar" wx:if="{{isParent}}" bindtap="onSwitchChild">
+    <text class="child-switch-label">当前孩子：{{currentChildName}}</text>
+    <text class="child-switch-arrow">切换 ›</text>
+  </view>
+
   <view class="page-header">
     <text class="page-title">孩子的课程</text>
   </view>

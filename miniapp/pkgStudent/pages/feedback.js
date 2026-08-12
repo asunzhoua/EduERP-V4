@@ -1,15 +1,28 @@
 // pages/student/feedback/feedback.js
 const { get } = require('../../utils/request');
+const { ensureCurrentChild, studentApiPath, showChildSwitch } = require('../../utils/child-context');
 
 Page({
   data: {
     list: [],
     loading: true,
-    error: null
+    error: null,
+    isParent: false,
+    currentChildName: ''
   },
 
   onShow() {
-    this.loadFeedback();
+    ensureCurrentChild().then((ctx) => {
+      this.setData({ isParent: ctx.isParent, currentChildName: ctx.currentChild ? ctx.currentChild.name : '' });
+      this.loadFeedback();
+    });
+  },
+
+  onSwitchChild() {
+    showChildSwitch((child) => {
+      this.setData({ currentChildName: child.name });
+      this.loadFeedback();
+    });
   },
 
   onPullDownRefresh() {
@@ -21,7 +34,7 @@ Page({
   async loadFeedback() {
     try {
       this.setData({ loading: true, error: null });
-      const data = await get('/students/self/feedback');
+      const data = await get(studentApiPath('/students/self/feedback'));
       const list = (Array.isArray(data) ? data : []).map(f => ({
         ...f,
         dateText: f.lessonDate || ''

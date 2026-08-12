@@ -1,16 +1,29 @@
 // pages/student/points/points.js
 const { get } = require('../../utils/request');
+const { ensureCurrentChild, studentApiPath, showChildSwitch } = require('../../utils/child-context');
 
 Page({
   data: {
     summary: { balance: 0, totalEarned: 0, totalSpent: 0 },
     transactions: [],
     loading: true,
-    error: null
+    error: null,
+    isParent: false,
+    currentChildName: ''
   },
 
   onShow() {
-    this.loadPoints();
+    ensureCurrentChild().then((ctx) => {
+      this.setData({ isParent: ctx.isParent, currentChildName: ctx.currentChild ? ctx.currentChild.name : '' });
+      this.loadPoints();
+    });
+  },
+
+  onSwitchChild() {
+    showChildSwitch((child) => {
+      this.setData({ currentChildName: child.name });
+      this.loadPoints();
+    });
   },
 
   onPullDownRefresh() {
@@ -22,7 +35,7 @@ Page({
   async loadPoints() {
     try {
       this.setData({ loading: true, error: null });
-      const data = await get('/students/self/points');
+      const data = await get(studentApiPath('/students/self/points'));
       const summary = data || {};
       const txs = Array.isArray(summary.transactions) ? summary.transactions : [];
       this.setData({

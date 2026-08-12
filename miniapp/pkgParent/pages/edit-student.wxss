@@ -1,0 +1,31 @@
+/* pkgParent/pages/edit-student.wxss · 复用 add-student 暖杏奶油表单样式 */
+@import "../../pages/register/register.wxss";
+
+/* picker 字段与输入框同视觉：胶囊圆角 + 右侧箭头 */
+.picker-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 100rpx;
+  border-radius: 999rpx;
+  border: 2rpx solid var(--border, #EDE5DA);
+  background: #FFFFFF;
+  padding: 0 40rpx;
+  box-sizing: border-box;
+}
+
+.picker-value {
+  font-size: 30rpx;
+  color: var(--fg, #2E2A25);
+}
+
+.picker-value.ph {
+  color: var(--faint, #9B9084);
+}
+
+.picker-arrow {
+  color: #C8BFB2;
+  font-size: 40rpx;
+  line-height: 1;
+}

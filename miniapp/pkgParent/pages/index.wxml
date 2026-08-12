@@ -41,4 +41,16 @@
       </view>
     </view>
   </view>
+
+  <!-- 快捷入口 -->
+  <view class="quick-entries">
+    <view class="entry-card" bindtap="goToLeaveRecords">
+      <view class="entry-icon ic ic-list"></view>
+      <text class="entry-text">请假记录</text>
+    </view>
+    <view class="entry-card" bindtap="goToSubscribe">
+      <view class="entry-icon ic ic-bell"></view>
+      <text class="entry-text">订阅设置</text>
+    </view>
+  </view>
 </view>

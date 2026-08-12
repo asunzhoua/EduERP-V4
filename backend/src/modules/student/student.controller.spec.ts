@@ -12,6 +12,7 @@ import { User } from '../identity/entities/user.entity';
 import { PointsService } from '../points/points.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { ParentCreateStudentDto } from './dto/parent-create-student.dto';
+import { ParentUpdateStudentDto } from './dto/parent-update-student.dto';
 import { UpdateStudentStatusDto } from './dto/update-student-status.dto';
 import { AuthedRequest } from '@common/types/authed-request';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -80,6 +81,9 @@ describe('StudentController', () => {
       getChildLessons: jest.fn().mockResolvedValue([]),
       getChildPoints: jest.fn().mockResolvedValue({ balance: 0 }),
       getChildFeedback: jest.fn().mockResolvedValue([]),
+      getChildForParent: jest.fn().mockResolvedValue(mockStudent),
+      updateChild: jest.fn().mockResolvedValue(mockStudent),
+      unlinkChild: jest.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -359,5 +363,87 @@ describe('StudentController', () => {
     } as unknown as AuthedRequest['user']);
     expect(result.code).toBe(0);
     expect(service.getChildFeedback).toHaveBeenCalledWith(2, 5);
+  });
+
+  it('GET /students/my-children/:childId - getChildForParent', async () => {
+    service.getChildForParent.mockResolvedValue(mockStudent);
+
+    const result = await controller.getChildForParent(5, {
+      sub: 2,
+    } as unknown as AuthedRequest['user']);
+    expect(result.code).toBe(0);
+    expect(result.data).toEqual(mockStudent);
+    expect(service.getChildForParent).toHaveBeenCalledWith(2, 5);
+  });
+
+  it('PUT /students/my-children/:childId - updateChild', async () => {
+    const dto = { name: '小红', grade: '二年级' };
+    service.updateChild.mockResolvedValue({ ...mockStudent, name: '小红' });
+
+    const result = await controller.updateChild(
+      5,
+      dto as unknown as ParentUpdateStudentDto,
+      { sub: 2 } as unknown as AuthedRequest['user'],
+    );
+    expect(result.code).toBe(0);
+    expect(result.message).toBe('保存成功');
+    expect(service.updateChild).toHaveBeenCalledWith(2, 5, dto);
+  });
+
+  it('DELETE /students/my-children/:childId - unlinkChild', async () => {
+    const result = await controller.unlinkChild(5, {
+      sub: 2,
+    } as unknown as AuthedRequest['user']);
+    expect(result.code).toBe(0);
+    expect(result.data).toBeNull();
+    expect(service.unlinkChild).toHaveBeenCalledWith(2, 5);
+  });
+
+  it('GET /students/:childId/points-mall/products - verifies binding then lists products', async () => {
+    service.getChildForParent.mockResolvedValue(mockStudent);
+    mockPointsService.listOnSaleProducts.mockResolvedValue([
+      { id: 7, name: '铅笔盒' },
+    ]);
+
+    const result = await controller.getChildPointsMallProducts(5, {
+      sub: 2,
+    } as unknown as AuthedRequest['user']);
+    expect(result.code).toBe(0);
+    expect(result.data).toHaveLength(1);
+    expect(service.getChildForParent).toHaveBeenCalledWith(2, 5);
+    expect(mockPointsService.listOnSaleProducts).toHaveBeenCalled();
+  });
+
+  it('POST /students/:childId/points-mall/exchange - exchanges with child info', async () => {
+    service.getChildForParent.mockResolvedValue(mockStudent);
+    mockPointsService.exchange.mockResolvedValue({ id: 99 });
+
+    const result = await controller.exchangeChildPoints(
+      5,
+      { productId: 7, quantity: 2 },
+      { sub: 2 } as unknown as AuthedRequest['user'],
+    );
+    expect(result.code).toBe(0);
+    expect(result.data).toEqual({ id: 99 });
+    expect(service.getChildForParent).toHaveBeenCalledWith(2, 5);
+    expect(mockPointsService.exchange).toHaveBeenCalledWith(
+      'STU20240001',
+      '张三',
+      7,
+      2,
+      2,
+    );
+  });
+
+  it('POST /students/:childId/points-mall/exchange - 400 without productId', async () => {
+    service.getChildForParent.mockResolvedValue(mockStudent);
+
+    const result = await controller.exchangeChildPoints(
+      5,
+      {},
+      { sub: 2 } as unknown as AuthedRequest['user'],
+    );
+    expect(result.code).toBe(400);
+    expect(mockPointsService.exchange).not.toHaveBeenCalled();
   });
 });

@@ -60,5 +60,25 @@ Page({
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
     });
+  },
+
+  // 请假记录
+  goToLeaveRecords() {
+    wx.navigateTo({
+      url: '/pkgStudent/pages/leave-records',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 订阅设置
+  goToSubscribe() {
+    wx.navigateTo({
+      url: '/pkgStudent/pages/subscribe',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   }
 });

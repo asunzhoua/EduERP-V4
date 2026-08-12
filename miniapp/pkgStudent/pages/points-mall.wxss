@@ -6,6 +6,21 @@
   box-sizing: border-box;
 }
 
+/* 孩子切换条 */
+.child-switch-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 16rpx 24rpx;
+  padding: 16rpx 24rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  color: #555;
+}
+.child-switch-label { font-weight: 500; }
+.child-switch-arrow { color: #A64E1D; }
+
 /* 顶部余额：固定不随列表滚动 */
 .balance-bar {
   position: fixed;

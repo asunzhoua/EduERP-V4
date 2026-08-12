@@ -1,5 +1,6 @@
 // pages/student/points-mall/points-mall.js
 const { get, post } = require('../../utils/request');
+const { ensureCurrentChild, studentApiPath, showChildSwitch } = require('../../utils/child-context');
 
 Page({
   data: {
@@ -7,11 +8,23 @@ Page({
     products: [],
     loading: true,
     exchangingId: null,
-    error: null
+    error: null,
+    isParent: false,
+    currentChildName: ''
   },
 
   onShow() {
-    this.loadMall();
+    ensureCurrentChild().then((ctx) => {
+      this.setData({ isParent: ctx.isParent, currentChildName: ctx.currentChild ? ctx.currentChild.name : '' });
+      this.loadMall();
+    });
+  },
+
+  onSwitchChild() {
+    showChildSwitch((child) => {
+      this.setData({ currentChildName: child.name });
+      this.loadMall();
+    });
   },
 
   onPullDownRefresh() {
@@ -24,8 +37,8 @@ Page({
     let failed = 0;
     this.setData({ loading: true, error: null });
     const [points, products] = await Promise.all([
-      get('/students/self/points').catch(() => { failed++; return null; }),
-      get('/students/self/points-mall/products').catch(() => { failed++; return null; })
+      get(studentApiPath('/students/self/points')).catch(() => { failed++; return null; }),
+      get(studentApiPath('/students/self/points-mall/products')).catch(() => { failed++; return null; })
     ]);
     // 全部失败才显示错误态，部分失败容错（保留已成功数据）
     if (failed === 2) {
@@ -63,7 +76,7 @@ Page({
   async doExchange(product) {
     this.setData({ exchangingId: product.id });
     try {
-      await post('/students/self/points-mall/exchange', {
+      await post(studentApiPath('/students/self/points-mall/exchange'), {
         productId: product.id,
         quantity: 1
       });
