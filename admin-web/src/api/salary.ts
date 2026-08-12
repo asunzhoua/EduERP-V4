@@ -15,6 +15,7 @@ export type SalaryRecordSource =
 export interface SalaryRecord {
   id: number | string
   teacherId: number | string
+  teacherName?: string | null
   lessonId: number | string | null
   attendanceId: number | string | null
   salaryRuleId: number | string
@@ -47,6 +48,7 @@ export interface SalaryStatistics {
 
 export interface SalaryRecordQuery {
   teacherId?: number | string
+  teacherName?: string
   month?: string
   startDate?: string
   endDate?: string

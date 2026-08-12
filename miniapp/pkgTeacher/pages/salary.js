@@ -16,8 +16,10 @@ var SOURCE_MAP = {
   LESSON_FEE: { text: '课时费' },
   BASE: { text: '底薪' },
   DAY: { text: '按天' },
-  BONUS: { text: '奖金' },
-  DEDUCTION: { text: '扣款' }
+  BONUS: { text: '绩效' },
+  ALLOWANCE: { text: '津贴' },
+  DEDUCTION: { text: '扣款' },
+  OUTING: { text: '外派' }
 };
 
 var STATUS_MAP = {

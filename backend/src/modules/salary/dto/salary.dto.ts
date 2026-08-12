@@ -124,6 +124,11 @@ export class QuerySalaryRecordDto {
   @IsNumber()
   teacherId?: number;
 
+  @ApiPropertyOptional({ description: '教师姓名模糊搜索（与 teacherId 二选一，可同时）' })
+  @IsOptional()
+  @IsString()
+  teacherName?: string;
+
   @ApiPropertyOptional({ description: '结算月份 YYYY-MM（优先于日期区间）' })
   @IsOptional()
   @IsString()

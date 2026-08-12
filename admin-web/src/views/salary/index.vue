@@ -146,16 +146,30 @@ const sourceLabel: Record<SalaryRecordSource, string> = {
 const query = reactive({
   status: undefined as SalaryRecordStatus | undefined,
   source: undefined as SalaryRecordSource | undefined,
-  teacherId: '',
+  teacherName: '',
   month: undefined as string | undefined,
   page: 1,
   pageSize: 10,
 })
 
 const columns = [
-  { title: '记录ID', dataIndex: 'id', key: 'id', width: 90 },
-  { title: '教师ID', dataIndex: 'teacherId', key: 'teacherId', width: 90 },
-  { title: '来源', dataIndex: 'source', key: 'source', width: 90 },
+  { title: '序号', dataIndex: 'id', key: 'id', width: 70 },
+  {
+    title: '教师',
+    dataIndex: 'teacherName',
+    key: 'teacherName',
+    width: 110,
+    customRender: ({ text, record }: { text?: string | null; record: SalaryRecord }) =>
+      text || record.teacherId,
+  },
+  {
+    title: '来源',
+    dataIndex: 'source',
+    key: 'source',
+    width: 90,
+    customRender: ({ text }: { text: SalaryRecordSource }) =>
+      sourceLabel[text] || text,
+  },
   {
     title: '课时日期',
     dataIndex: 'lessonDate',
@@ -216,7 +230,7 @@ async function loadRecords() {
       fetchSalaryRecords({
         status: query.status,
         source: query.source,
-        teacherId: query.teacherId || undefined,
+        teacherName: query.teacherName || undefined,
         month: query.month || undefined,
         page: query.page,
         pageSize: query.pageSize,
@@ -241,7 +255,7 @@ function onSearch() {
 function onReset() {
   query.status = undefined
   query.source = undefined
-  query.teacherId = ''
+  query.teacherName = ''
   query.month = undefined
   query.page = 1
   loadRecords()
@@ -256,7 +270,7 @@ function onUpdateStatus(row: SalaryRecord, target: SalaryRecordStatus) {
   const text = textMap[target]
   Modal.confirm({
     title: `确认${text}该工资记录？`,
-    content: `教师 ${row.teacherId} 的 ${sourceLabel[row.source] || row.source} ${formatMoney(row.amount)} 将被${text}。`,
+    content: `教师 ${row.teacherName || row.teacherId} 的 ${sourceLabel[row.source] || row.source} ${formatMoney(row.amount)} 将被${text}。`,
     okText: `确认${text}`,
     cancelText: '取消',
     onOk: async () => {
@@ -1884,7 +1898,7 @@ onMounted(() => {
             </a-select>
           </a-form-item>
           <a-form-item>
-            <a-input v-model:value="query.teacherId" placeholder="教师ID" allow-clear style="width: 120px" @press-enter="onSearch" />
+            <a-input v-model:value="query.teacherName" placeholder="教师姓名" allow-clear style="width: 130px" @press-enter="onSearch" />
           </a-form-item>
           <a-form-item>
             <a-space>

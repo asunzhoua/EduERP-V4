@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { SalaryRuleEntity } from './entities/salary-rule.entity';
 import { SalaryRecordEntity } from './entities/salary-record.entity';
 import { TeacherSalaryProfileEntity } from './entities/teacher-salary-profile.entity';
@@ -64,6 +64,7 @@ export class SalaryService {
   async getRecords(query: QuerySalaryRecordDto) {
     const {
       teacherId,
+      teacherName,
       month,
       startDate,
       endDate,
@@ -77,6 +78,14 @@ export class SalaryService {
 
     if (teacherId) {
       qb.andWhere('record.teacherId = :teacherId', { teacherId });
+    }
+
+    // 教师姓名模糊搜索：join User.name
+    if (teacherName) {
+      qb.innerJoin(User, 'u', 'u.id = record.teacherId').andWhere(
+        'u.name LIKE :teacherName',
+        { teacherName: `%${teacherName}%` },
+      );
     }
 
     if (month) {
@@ -101,8 +110,22 @@ export class SalaryService {
 
     const [records, total] = await qb.getManyAndCount();
 
+    // 附加教师姓名（批量取 User.name，与工资条 getSlips 同模式）
+    const teacherIds = [...new Set(records.map((r) => Number(r.teacherId)))];
+    const users = teacherIds.length
+      ? await this.userRepo.find({
+          where: { id: In(teacherIds) },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameByTeacher = new Map(users.map((u) => [Number(u.id), u.name]));
+    const items = records.map((r) => ({
+      ...r,
+      teacherName: nameByTeacher.get(Number(r.teacherId)) ?? null,
+    }));
+
     return {
-      records,
+      records: items,
       total,
       page,
       pageSize,
@@ -117,7 +140,12 @@ export class SalaryService {
     const { teacherId } = query;
 
     const qb = this.salaryRecordRepo.createQueryBuilder('record');
-    qb.where('record.month = :month', { month });
+    // 未指定月份时统计全量，与记录列表默认视图保持一致
+    if (query.month !== undefined) {
+      qb.where('record.month = :month', { month });
+    } else if (query.year !== undefined) {
+      qb.where('record.month LIKE :yearPrefix', { yearPrefix: `${year}-%` });
+    }
     if (teacherId) {
       qb.andWhere('record.teacherId = :teacherId', { teacherId });
     }
