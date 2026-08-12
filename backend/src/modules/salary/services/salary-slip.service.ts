@@ -595,9 +595,12 @@ export class SalarySlipService {
     };
   }
 
-  private buildBreakdown(
-    records: SalaryRecordEntity[],
-  ): { source: string; count: number; amount: number; items: BreakdownItem[] }[] {
+  private buildBreakdown(records: SalaryRecordEntity[]): {
+    source: string;
+    count: number;
+    amount: number;
+    items: BreakdownItem[];
+  }[] {
     const map = new Map<
       string,
       { count: number; amount: number; items: BreakdownItem[] }
@@ -605,19 +608,24 @@ export class SalarySlipService {
     for (const r of records) {
       // 扣款单列（detail.deduction），不入收入构成
       if (r.source === SalaryRecordSource.DEDUCTION) continue;
-      const key = r.source as string;
+      const source = r.source as SalaryRecordSource;
+      const key = source as string;
       const cur = map.get(key) ?? { count: 0, amount: 0, items: [] };
       cur.count += 1;
       cur.amount += Number(r.amount) || 0;
       if (
-        key === SalaryRecordSource.ALLOWANCE ||
-        key === SalaryRecordSource.BONUS
+        source === SalaryRecordSource.ALLOWANCE ||
+        source === SalaryRecordSource.BONUS
       ) {
         const detailItems = (r.detail as { items?: unknown } | null)?.items;
         if (Array.isArray(detailItems) && detailItems.length) {
           cur.items.push(
             ...mergeItems(
-              detailItems as { type?: string; name?: string; amount?: number }[],
+              detailItems as {
+                type?: string;
+                name?: string;
+                amount?: number;
+              }[],
             ),
           );
         }

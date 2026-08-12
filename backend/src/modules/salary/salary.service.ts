@@ -64,7 +64,9 @@ function parseDetailItems(
     }
   }
   const items = (obj as { items?: unknown } | null)?.items;
-  return Array.isArray(items) ? (items as { type?: string; name?: string; amount?: number }[]) : [];
+  return Array.isArray(items)
+    ? (items as { type?: string; name?: string; amount?: number }[])
+    : [];
 }
 
 @Injectable()
@@ -209,7 +211,11 @@ export class SalaryService {
         'SUM(record.amount) AS amount',
       ])
       .groupBy('record.source')
-      .getRawMany<{ source: string; count: string; amount: string }>();
+      .getRawMany<{
+        source: SalaryRecordSource;
+        count: string;
+        amount: string;
+      }>();
 
     // 应发 = 收入项和（不含扣款）；扣款单列（|Σ DEDUCTION|）
     let totalAmount = 0;
@@ -228,7 +234,7 @@ export class SalaryService {
       .clone()
       .select(['record.source AS source', 'record.detail AS detail'])
       .andWhere("record.source IN ('ALLOWANCE', 'BONUS')")
-      .getRawMany<{ source: string; detail: unknown }>();
+      .getRawMany<{ source: SalaryRecordSource; detail: unknown }>();
 
     const breakdown = bySource
       .filter((row) => row.source !== SalaryRecordSource.DEDUCTION)
@@ -258,7 +264,7 @@ export class SalaryService {
       .clone()
       .select(['record.source AS source', 'record.detail AS detail'])
       .andWhere("record.source = 'DEDUCTION'")
-      .getRawMany<{ source: string; detail: unknown }>();
+      .getRawMany<{ source: SalaryRecordSource; detail: unknown }>();
     const deductionItems: BreakdownItem[] = [];
     for (const ir of deductionRows) {
       const sub = parseDetailItems(ir.detail);

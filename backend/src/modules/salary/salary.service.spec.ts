@@ -228,7 +228,10 @@ describe('SalaryService.getRecords', () => {
 
     const res = await service.getRecords({ page: 1, pageSize: 10 });
 
-    expect(res.records[0]).toMatchObject({ teacherId: 2, teacherName: '张老师' });
+    expect(res.records[0]).toMatchObject({
+      teacherId: 2,
+      teacherName: '张老师',
+    });
     expect(userRepo.find).toHaveBeenCalledTimes(1);
   });
 
@@ -266,9 +269,8 @@ describe('SalaryService.getRecords', () => {
 
     await service.getRecords({ teacherId: 2 });
 
-    expect(qb.andWhere).toHaveBeenCalledWith(
-      'record.teacherId = :teacherId',
-      { teacherId: 2 },
-    );
+    expect(qb.andWhere).toHaveBeenCalledWith('record.teacherId = :teacherId', {
+      teacherId: 2,
+    });
   });
 });
