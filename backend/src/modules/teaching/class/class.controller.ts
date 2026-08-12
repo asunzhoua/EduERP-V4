@@ -12,6 +12,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -31,6 +32,7 @@ import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { AuthedRequest } from '@common/types/authed-request';
+import { TeacherRole } from '@common/enums/teacher-role.enum';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 
 @ApiTags('Class')
@@ -46,7 +48,7 @@ export class ClassController {
   // ─── Class CRUD ───
 
   @Post()
-  @Roles('SuperAdmin', 'Admin')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Create a new class (DRAFT)' })
   @SwaggerResponse({ status: 0, description: 'Class created successfully' })
   async create(
@@ -55,6 +57,18 @@ export class ClassController {
   ): Promise<ApiResponse> {
     const operatorId = req.user.sub;
     const cls = await this.classService.create(dto, operatorId);
+
+    // Teacher 自建班级：自动指派本人为 PRIMARY 老师
+    if (req.user.role === 'Teacher') {
+      await this.classService.assignTeacher({
+        classCode: cls.classCode,
+        teacherId: operatorId,
+        role: TeacherRole.PRIMARY,
+        assignedBy: operatorId,
+        reason: 'teacher self-created',
+      });
+    }
+
     return ApiResponse.success(cls, 'Class created');
   }
 
@@ -98,20 +112,21 @@ export class ClassController {
   }
 
   @Put(':code')
-  @Roles('SuperAdmin', 'Admin')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Update class (DRAFT only)' })
   async update(
     @Param('code') code: string,
     @Body() dto: UpdateClassDto,
     @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
+    await this.assertOwnership(code, req);
     const operatorId = req.user.sub;
     const cls = await this.classService.update(code, dto, operatorId);
     return ApiResponse.success(cls, 'Class updated');
   }
 
   @Patch(':code/status')
-  @Roles('SuperAdmin', 'Admin')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change class status' })
   async updateStatus(
@@ -119,6 +134,7 @@ export class ClassController {
     @Body() dto: UpdateClassStatusDto,
     @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
+    await this.assertOwnership(code, req);
     const operatorId = req.user.sub;
     const cls = await this.classService.updateStatus(
       code,
@@ -130,16 +146,31 @@ export class ClassController {
   }
 
   @Delete(':code')
-  @Roles('SuperAdmin')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete class (DRAFT only)' })
   async remove(
     @Param('code') code: string,
     @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
+    await this.assertOwnership(code, req);
     const operatorId = req.user.sub;
     await this.classService.remove(code, operatorId);
     return ApiResponse.success(null, 'Class deleted');
+  }
+
+  // ─── Ownership Guard (Teacher) ───
+
+  /** Teacher 仅能管理自己是 PRIMARY 的班级；Admin/SuperAdmin 不受限。 */
+  private async assertOwnership(
+    code: string,
+    req: AuthedRequest,
+  ): Promise<void> {
+    if (req.user.role !== 'Teacher') return;
+    const primary = await this.classService.findPrimaryTeacher(code);
+    if (!primary || Number(primary.teacherId) !== Number(req.user.sub)) {
+      throw new ForbiddenException('You can only manage your own classes');
+    }
   }
 
   // ─── Teacher Assignment (class-scoped) ───

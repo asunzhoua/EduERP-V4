@@ -63,6 +63,11 @@ export class UpdateClassDto {
   @MaxLength(100)
   room?: string;
 
+  @ApiPropertyOptional({ description: '教室 ID（关联 classroom 表）' })
+  @IsNumber()
+  @IsOptional()
+  classroomId?: number;
+
   @ApiPropertyOptional({ description: '标签', type: [String] })
   @IsArray()
   @IsOptional()

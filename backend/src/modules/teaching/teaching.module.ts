@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventBusModule } from '@events/event-bus.module';
 import { CourseModule } from './course/course.module';
 import { ClassModule } from './class/class.module';
+import { ClassroomModule } from './classroom/classroom.module';
 import { ContractModule } from './contract/contract.module';
 import { EnrollmentModule } from './enrollment/enrollment.module';
 import { LessonModule } from './lesson/lesson.module';
@@ -39,6 +40,7 @@ import { TeacherDashboardController } from './teacher-dashboard/teacher-dashboar
     EventBusModule,
     CourseModule,
     ClassModule,
+    ClassroomModule,
     ContractModule,
     EnrollmentModule,
     LessonModule,
@@ -54,6 +56,7 @@ import { TeacherDashboardController } from './teacher-dashboard/teacher-dashboar
   exports: [
     CourseModule,
     ClassModule,
+    ClassroomModule,
     ContractModule,
     EnrollmentModule,
     LessonModule,

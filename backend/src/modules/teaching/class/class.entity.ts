@@ -35,8 +35,9 @@ export class ClassEntity {
   @Column({ type: 'date' })
   startDate: string;
 
-  @Column({ type: 'int' })
-  totalLessons: number;
+  // 总课时口径已废弃：可空保留（历史数据），新班级不强制填写
+  @Column({ type: 'int', nullable: true })
+  totalLessons: number | null;
 
   @Column({ type: 'int', default: 60 })
   defaultDuration: number;
@@ -56,6 +57,10 @@ export class ClassEntity {
   maxStudents: number;
 
   // ─── Optional Fields ───
+
+  @Column({ type: 'bigint', nullable: true })
+  @Index()
+  classroomId: number | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   room: string | null;

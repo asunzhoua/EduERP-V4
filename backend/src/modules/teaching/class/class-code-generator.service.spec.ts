@@ -113,12 +113,15 @@ describe('ClassCodeGeneratorService', () => {
       });
     });
 
-    it('should filter out deleted records', async () => {
-      const qb = setupQueryMock(null);
+    it('should consider soft-deleted records when computing the max sequence', async () => {
+      // classCode 是 UNIQUE：软删记录仍占用编码空间，生成器必须把软删记录算进去，
+      // 否则「创建→软删最高位→再创建」会撞码返回 500。
+      const qb = setupQueryMock({ classCode: 'CL2026070100' } as ClassEntity);
 
-      await service.generateClassCode();
+      const code = await service.generateClassCode();
 
-      expect(qb.andWhere).toHaveBeenCalledWith('cls.deleted = :deleted', {
+      expect(code).toBe('CL2026070101');
+      expect(qb.andWhere).not.toHaveBeenCalledWith('cls.deleted = :deleted', {
         deleted: false,
       });
     });

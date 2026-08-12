@@ -16,10 +16,11 @@ export class ClassCodeGeneratorService {
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
     const prefix = `CL${year}${month}`;
 
+    // classCode 是 UNIQUE，软删除记录仍占用编码空间，因此必须纳入 max 计算，
+    // 否则「创建→软删最高位→再创建」会生成重复编码触发 500。
     const latest = await this.classRepository
       .createQueryBuilder('cls')
       .where('cls.classCode LIKE :prefix', { prefix: `${prefix}%` })
-      .andWhere('cls.deleted = :deleted', { deleted: false })
       .orderBy('cls.classCode', 'DESC')
       .getOne();
 

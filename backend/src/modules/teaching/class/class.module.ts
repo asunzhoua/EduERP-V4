@@ -10,6 +10,7 @@ import { TeacherAssignmentModule } from '../teacher-assignment/teacher-assignmen
 import { EnrollmentModule } from '../enrollment/enrollment.module';
 import { CourseModule } from '../course/course.module';
 import { LessonModule } from '../lesson/lesson.module';
+import { ClassroomModule } from '../classroom/classroom.module';
 import { User } from '../../identity/entities/user.entity';
 
 @Module({
@@ -18,6 +19,7 @@ import { User } from '../../identity/entities/user.entity';
     EventEmitterModule,
     TeacherAssignmentModule,
     EnrollmentModule,
+    ClassroomModule,
     forwardRef(() => CourseModule),
     forwardRef(() => LessonModule),
   ],

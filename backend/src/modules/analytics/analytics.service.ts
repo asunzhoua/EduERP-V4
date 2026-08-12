@@ -213,7 +213,7 @@ export class AnalyticsService {
         where: { classCode: In(classCodes) },
       });
       const totalLessonsSum = classes.reduce(
-        (sum, c) => sum + c.totalLessons,
+        (sum, c) => sum + (c.totalLessons ?? 0),
         0,
       );
 

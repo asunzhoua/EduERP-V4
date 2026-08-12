@@ -11,6 +11,7 @@ import { RolePermission } from '../../modules/identity/entities/role-permission.
 import { AppLogger } from '@utils/logger';
 import { ClassEntity } from '../../modules/teaching/class/class.entity';
 import { ClassStatus } from '../../modules/teaching/class/enums/class-status.enum';
+import { ClassroomEntity } from '../../modules/teaching/classroom/classroom.entity';
 import { Student } from '../../modules/student/entities/student.entity';
 import { Gender } from '../../modules/student/enums/gender.enum';
 import { StudentStatus } from '../../modules/student/enums/student-status.enum';
@@ -93,7 +94,8 @@ export class SeedService {
       await this.seedPermissions(manager);
       await this.seedAdminUser(manager);
       await this.seedTestUsers(manager);
-      await this.seedTestClasses(manager);
+      const classroomIds = await this.seedClassrooms(manager);
+      await this.seedTestClasses(manager, classroomIds);
       await this.seedTestStudents(manager);
       await this.seedTestParentStudentLinks(manager);
       await this.seedTestContracts(manager);
@@ -407,14 +409,51 @@ export class SeedService {
     );
   }
 
-  /** 创建测试班级 — 2 个 ACTIVE 班级 */
-  private async seedTestClasses(manager: EntityManager) {
+  /** 创建测试教室 — 3 个，幂等；返回 name→id 映射供班级引用 */
+  private async seedClassrooms(
+    manager: EntityManager,
+  ): Promise<Record<string, number>> {
+    const repo = manager.getRepository(ClassroomEntity);
+    const userRepo = manager.getRepository(User);
+    const admin = await userRepo.findOne({ where: { username: 'admin' } });
+    const adminId = admin ? Number(admin.id) : 0;
+
+    const classrooms = [
+      { name: 'A101 教室', capacity: 20, note: '数学专用教室' },
+      { name: 'A102 教室', capacity: 25, note: '英语教室' },
+      { name: 'B201 多功能厅', capacity: 30, note: null },
+    ];
+
+    const idMap: Record<string, number> = {};
+    for (const data of classrooms) {
+      const exists = await repo.findOne({ where: { name: data.name } });
+      if (exists) {
+        idMap[data.name] = Number(exists.id);
+      } else {
+        const saved = await repo.save(
+          repo.create({ ...data, createdBy: adminId }),
+        );
+        idMap[data.name] = Number(saved.id);
+        this.logger.log(`Test classroom created: ${data.name}`, 'Seed');
+      }
+    }
+    return idMap;
+  }
+
+  /** 创建测试班级 — 2 个 ACTIVE 班级（绑定教室；旧数据幂等回填） */
+  private async seedTestClasses(
+    manager: EntityManager,
+    classroomIds?: Record<string, number>,
+  ) {
     const repo = manager.getRepository(ClassEntity);
     const userRepo = manager.getRepository(User);
     const admin = await userRepo.findOne({ where: { username: 'admin' } });
     const adminId = admin ? Number(admin.id) : 0;
 
-    // 班级1：周六上午班 — 数学思维
+    const class1RoomId = classroomIds?.['A101 教室'] ?? null;
+    const class2RoomId = classroomIds?.['A102 教室'] ?? null;
+
+    // 班级1：周六上午班 — 数学思维（A101 教室）
     const class1Exists = await repo.findOne({
       where: { classCode: 'CL2026070001' },
     });
@@ -431,13 +470,23 @@ export class SeedService {
         startTime: '09:00',
         endTime: '10:30',
         maxStudents: 20,
+        classroomId: class1RoomId,
+        room: class1RoomId ? 'A101 教室' : null,
         createdBy: adminId,
       });
       await repo.save(class1);
       this.logger.log('Test class created: 周六上午班 (CL2026070001)', 'Seed');
+    } else if (
+      class1Exists.classroomId === null ||
+      class1Exists.classroomId === undefined
+    ) {
+      class1Exists.classroomId = class1RoomId;
+      class1Exists.room = class1RoomId ? 'A101 教室' : null;
+      await repo.save(class1Exists);
+      this.logger.log('Test class classroom backfilled: CL2026070001', 'Seed');
     }
 
-    // 班级2：周日下午班 — 英语口语
+    // 班级2：周日下午班 — 英语口语（A102 教室）
     const class2Exists = await repo.findOne({
       where: { classCode: 'CL2026070002' },
     });
@@ -454,10 +503,20 @@ export class SeedService {
         startTime: '14:00',
         endTime: '15:30',
         maxStudents: 20,
+        classroomId: class2RoomId,
+        room: class2RoomId ? 'A102 教室' : null,
         createdBy: adminId,
       });
       await repo.save(class2);
       this.logger.log('Test class created: 周日下午班 (CL2026070002)', 'Seed');
+    } else if (
+      class2Exists.classroomId === null ||
+      class2Exists.classroomId === undefined
+    ) {
+      class2Exists.classroomId = class2RoomId;
+      class2Exists.room = class2RoomId ? 'A102 教室' : null;
+      await repo.save(class2Exists);
+      this.logger.log('Test class classroom backfilled: CL2026070002', 'Seed');
     }
   }
 
@@ -1020,7 +1079,11 @@ export class SeedService {
   private async seedSettings(manager: EntityManager): Promise<void> {
     const repo = manager.getRepository(Setting);
     const defaults = [
-      { key: 'school.name', category: 'school', description: '机构名称（家长端「联系机构」展示）' },
+      {
+        key: 'school.name',
+        category: 'school',
+        description: '机构名称（家长端「联系机构」展示）',
+      },
       { key: 'school.address', category: 'school', description: '机构地址' },
       { key: 'school.phone', category: 'school', description: '联系电话' },
       { key: 'campus.name', category: 'system', description: '校区名称' },
@@ -1028,7 +1091,14 @@ export class SeedService {
     for (const d of defaults) {
       const existing = await repo.findOne({ where: { key: d.key } });
       if (!existing) {
-        await repo.save(repo.create({ key: d.key, value: '', category: d.category, description: d.description }));
+        await repo.save(
+          repo.create({
+            key: d.key,
+            value: '',
+            category: d.category,
+            description: d.description,
+          }),
+        );
       }
     }
   }

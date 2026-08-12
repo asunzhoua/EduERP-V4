@@ -34,15 +34,21 @@ export class CreateClassDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   startDate: string;
 
-  @ApiProperty({ description: '总课次数', example: 20 })
+  @ApiPropertyOptional({ description: '总课次数（已废弃，可空）', example: 20 })
   @IsNumber()
+  @IsOptional()
   @Min(1)
-  totalLessons: number;
+  totalLessons?: number;
 
-  @ApiProperty({ description: '默认每节课分钟数', example: 60 })
+  @ApiPropertyOptional({
+    description: '默认每节课分钟数',
+    example: 60,
+    default: 60,
+  })
   @IsNumber()
+  @IsOptional()
   @Min(15)
-  defaultDuration: number;
+  defaultDuration?: number;
 
   @ApiProperty({
     description: '上课日 (0=Sun..6=Sat)',
@@ -77,6 +83,11 @@ export class CreateClassDto {
   @IsOptional()
   @MaxLength(100)
   room?: string;
+
+  @ApiPropertyOptional({ description: '教室 ID（关联 classroom 表）' })
+  @IsNumber()
+  @IsOptional()
+  classroomId?: number;
 
   @ApiPropertyOptional({ description: '标签', type: [String] })
   @IsArray()

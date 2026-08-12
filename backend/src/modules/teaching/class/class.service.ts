@@ -14,6 +14,8 @@ import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { QueryClassDto } from './dto/query-class.dto';
 import { TeacherAssignmentService } from '../teacher-assignment/teacher-assignment.service';
+import { TeacherAssignmentEntity } from '../teacher-assignment/teacher-assignment.entity';
+import { ClassroomService } from '../classroom/classroom.service';
 import { TeacherRole } from '@common/enums/teacher-role.enum';
 import { CourseRepository } from '../course/course.repository';
 import { EnrollmentRepository } from '../enrollment/enrollment.repository';
@@ -37,6 +39,7 @@ export class ClassService {
     private readonly classRepo: ClassRepository,
     private readonly codeGenerator: ClassCodeGeneratorService,
     private readonly teacherAssignmentService: TeacherAssignmentService,
+    private readonly classroomService: ClassroomService,
     private readonly courseRepo: CourseRepository,
     private readonly enrollmentRepo: EnrollmentRepository,
     private readonly lessonRepo: LessonRepository,
@@ -49,19 +52,27 @@ export class ClassService {
   async create(dto: CreateClassDto, operatedBy: number): Promise<ClassEntity> {
     const classCode = await this.codeGenerator.generateClassCode();
 
+    // 若指定教室，校验存在性并冗余同步 room（写教室名）
+    let room: string | null = dto.room ?? null;
+    if (dto.classroomId !== undefined && dto.classroomId !== null) {
+      const classroom = await this.classroomService.findById(dto.classroomId);
+      room = classroom.name;
+    }
+
     const cls = this.classRepo.raw.create({
       classCode,
       courseCode: dto.courseCode,
       name: dto.name,
       status: ClassStatus.DRAFT,
       startDate: dto.startDate,
-      totalLessons: dto.totalLessons,
-      defaultDuration: dto.defaultDuration,
+      totalLessons: dto.totalLessons ?? null,
+      defaultDuration: dto.defaultDuration ?? 60,
       dayOfWeek: dto.dayOfWeek,
       startTime: dto.startTime,
       endTime: dto.endTime,
       maxStudents: dto.maxStudents ?? 20,
-      room: dto.room ?? null,
+      classroomId: dto.classroomId ?? null,
+      room,
       tags: dto.tags ?? null,
       note: dto.note ?? null,
       createdBy: operatedBy,
@@ -120,6 +131,7 @@ export class ClassService {
       'startTime',
       'endTime',
       'maxStudents',
+      'classroomId',
       'room',
       'tags',
       'note',
@@ -129,6 +141,16 @@ export class ClassService {
       const newValue = dto[field];
       if (newValue !== undefined) {
         (cls[field as keyof ClassEntity] as typeof newValue) = newValue;
+      }
+    }
+
+    // 若改 classroomId，同步 room（冗余写教室名）
+    if (dto.classroomId !== undefined) {
+      if (dto.classroomId === null) {
+        cls.room = null;
+      } else {
+        const classroom = await this.classroomService.findById(dto.classroomId);
+        cls.room = classroom.name;
       }
     }
 
@@ -237,11 +259,21 @@ export class ClassService {
     return `${dayStr} ${startTime}-${endTime}`;
   }
 
-  private computeEndDate(startDate: string, totalLessons: number): string {
-    const start = new Date(startDate);
-    const endDate = new Date(start);
-    endDate.setDate(endDate.getDate() + totalLessons * 7);
-    return endDate.toISOString().split('T')[0];
+  private async enrichClassroomNames(
+    classes: ClassEntity[],
+  ): Promise<Map<number, string>> {
+    const classroomIds = [
+      ...new Set(
+        classes
+          .map((c) => c.classroomId)
+          .filter((id): id is number => id !== null && id !== undefined),
+      ),
+    ];
+    if (classroomIds.length === 0) return new Map();
+    const classrooms = await this.classroomService.findByIds(classroomIds);
+    const map = new Map<number, string>();
+    classrooms.forEach((cr) => map.set(Number(cr.id), cr.name));
+    return map;
   }
 
   async enrichClasses(classes: ClassEntity[]): Promise<any[]> {
@@ -250,13 +282,19 @@ export class ClassService {
     const classCodes = classes.map((c) => c.classCode);
     const courseCodes = [...new Set(classes.map((c) => c.courseCode))];
 
-    const [courses, enrollmentCounts, lessonCounts, endDateMap] =
-      await Promise.all([
-        this.courseRepo.findByCodes(courseCodes),
-        this.enrollmentRepo.countActiveByClassCodes(classCodes),
-        this.lessonRepo.countFinishedByClassCodes(classCodes),
-        this.lessonRepo.findMaxScheduledDateByClassCodes(classCodes),
-      ]);
+    const [
+      courses,
+      enrollmentCounts,
+      lessonCounts,
+      endDateMap,
+      classroomNames,
+    ] = await Promise.all([
+      this.courseRepo.findByCodes(courseCodes),
+      this.enrollmentRepo.countActiveByClassCodes(classCodes),
+      this.lessonRepo.countFinishedByClassCodes(classCodes),
+      this.lessonRepo.findMaxScheduledDateByClassCodes(classCodes),
+      this.enrichClassroomNames(classes),
+    ]);
 
     const courseNameMap = new Map<string, string>();
     courses.forEach((c) => courseNameMap.set(c.courseCode, c.name));
@@ -286,24 +324,33 @@ export class ClassService {
       currentStudents: enrollmentCounts.get(cls.classCode) ?? 0,
       completedLessons: lessonCounts.get(cls.classCode) ?? 0,
       schedule: this.formatSchedule(cls.dayOfWeek, cls.startTime, cls.endTime),
-      endDate:
-        endDateMap.get(cls.classCode) ??
-        this.computeEndDate(cls.startDate, cls.totalLessons),
+      endDate: endDateMap.get(cls.classCode) ?? null,
+      classroomName:
+        cls.classroomId !== null && cls.classroomId !== undefined
+          ? (classroomNames.get(Number(cls.classroomId)) ?? cls.room ?? '')
+          : (cls.room ?? ''),
     }));
   }
 
   async enrichClass(cls: ClassEntity): Promise<any> {
-    const [course, currentStudents, completedLessons, endDate, primaryTeacher] =
-      await Promise.all([
-        this.courseRepo.findOneByCode(cls.courseCode),
-        this.enrollmentRepo.countActiveByClassCode(cls.classCode),
-        this.lessonRepo.countByClassCodeAndStatus(
-          cls.classCode,
-          LessonStatus.FINISHED,
-        ),
-        this.lessonRepo.findMaxScheduledDateByClassCode(cls.classCode),
-        this.teacherAssignmentService.findActivePrimary(cls.classCode),
-      ]);
+    const [
+      course,
+      currentStudents,
+      completedLessons,
+      endDate,
+      primaryTeacher,
+      classroomNames,
+    ] = await Promise.all([
+      this.courseRepo.findOneByCode(cls.courseCode),
+      this.enrollmentRepo.countActiveByClassCode(cls.classCode),
+      this.lessonRepo.countByClassCodeAndStatus(
+        cls.classCode,
+        LessonStatus.FINISHED,
+      ),
+      this.lessonRepo.findMaxScheduledDateByClassCode(cls.classCode),
+      this.teacherAssignmentService.findActivePrimary(cls.classCode),
+      this.enrichClassroomNames([cls]),
+    ]);
 
     let teacherName = '';
     if (primaryTeacher) {
@@ -320,7 +367,11 @@ export class ClassService {
       currentStudents,
       completedLessons,
       schedule: this.formatSchedule(cls.dayOfWeek, cls.startTime, cls.endTime),
-      endDate: endDate ?? this.computeEndDate(cls.startDate, cls.totalLessons),
+      endDate: endDate ?? null,
+      classroomName:
+        cls.classroomId !== null && cls.classroomId !== undefined
+          ? (classroomNames.get(Number(cls.classroomId)) ?? cls.room ?? '')
+          : (cls.room ?? ''),
     };
   }
 
@@ -348,6 +399,13 @@ export class ClassService {
     await this.findByCode(classCode);
 
     return this.teacherAssignmentService.findActiveByClass(classCode);
+  }
+
+  /** 当前 PRIMARY 教师（用于 Teacher 归属校验）。 */
+  async findPrimaryTeacher(
+    classCode: string,
+  ): Promise<TeacherAssignmentEntity | null> {
+    return this.teacherAssignmentService.findActivePrimary(classCode);
   }
 
   // ─── Activation Guard (private) ───
@@ -378,15 +436,135 @@ export class ClassService {
       errors.push('startDate must be defined');
     }
 
-    // Guard 3: totalLessons > 0
-    if (!cls.totalLessons || cls.totalLessons <= 0) {
-      errors.push('totalLessons must be greater than 0');
-    }
-
     if (errors.length > 0) {
       throw new BadRequestException(
         `Class activation failed — guards not met:\n  ${errors.join('\n  ')}`,
       );
     }
+
+    // 排班冲突检测（同教室 / 同 PRIMARY 老师，时段重叠）
+    const conflictErrors = await this.checkScheduleConflict(cls);
+    if (conflictErrors.length > 0) {
+      throw new BadRequestException(
+        `Class activation failed — schedule conflicts:\n  ${conflictErrors.join('\n  ')}`,
+      );
+    }
+  }
+
+  // ─── Schedule Conflict Detection ───
+
+  /**
+   * 排班冲突检测：
+   *   1. 同教室：另一未删除 DRAFT/ACTIVE 班级使用同一 classroomId，且「星期几有交集 + 时段重叠」。
+   *   2. 同 PRIMARY 老师：该老师的另一未删除 DRAFT/ACTIVE 班级，且「星期几有交集 + 时段重叠」。
+   * 时间比较基于 "HH:MM" 字典序：a.startTime < b.endTime && b.startTime < a.endTime 即重叠。
+   * 返回人类可读的冲突描述列表（空数组 = 无冲突）。
+   */
+  private async checkScheduleConflict(cls: ClassEntity): Promise<string[]> {
+    const conflicts: string[] = [];
+
+    // 1. 同教室冲突
+    if (cls.classroomId !== null && cls.classroomId !== undefined) {
+      const rows = await this.classRepo.raw
+        .createQueryBuilder('c')
+        .select('c.classCode', 'classCode')
+        .addSelect('c.name', 'name')
+        .addSelect('c.dayOfWeek', 'dayOfWeek')
+        .addSelect('c.startTime', 'startTime')
+        .addSelect('c.endTime', 'endTime')
+        .where('c.deleted = :deleted', { deleted: false })
+        .andWhere('c.status IN (:...statuses)', {
+          statuses: [ClassStatus.DRAFT, ClassStatus.ACTIVE],
+        })
+        .andWhere('c.classroomId = :classroomId', {
+          classroomId: cls.classroomId,
+        })
+        .andWhere('c.id != :id', { id: cls.id })
+        .getRawMany<{
+          classCode: string;
+          name: string;
+          dayOfWeek: string;
+          startTime: string;
+          endTime: string;
+        }>();
+
+      for (const row of rows) {
+        let rowDays: number[] = [];
+        try {
+          rowDays = JSON.parse(row.dayOfWeek) as number[];
+        } catch {
+          rowDays = [];
+        }
+        const sharedDays = rowDays.filter((d) => cls.dayOfWeek.includes(d));
+        if (
+          sharedDays.length > 0 &&
+          this.overlaps(row.startTime, row.endTime, cls.startTime, cls.endTime)
+        ) {
+          conflicts.push(
+            `教室冲突：与班级 ${row.classCode}（${row.name}）共用教室，时段重叠`,
+          );
+        }
+      }
+    }
+
+    // 2. 同 PRIMARY 老师冲突（子查询与 class.repository findMany 一致）
+    const primary = await this.teacherAssignmentService.findActivePrimary(
+      cls.classCode,
+    );
+    if (primary) {
+      const rows = await this.classRepo.raw
+        .createQueryBuilder('c')
+        .select('c.classCode', 'classCode')
+        .addSelect('c.name', 'name')
+        .addSelect('c.dayOfWeek', 'dayOfWeek')
+        .addSelect('c.startTime', 'startTime')
+        .addSelect('c.endTime', 'endTime')
+        .where('c.deleted = :deleted', { deleted: false })
+        .andWhere('c.status IN (:...statuses)', {
+          statuses: [ClassStatus.DRAFT, ClassStatus.ACTIVE],
+        })
+        .andWhere('c.id != :id', { id: cls.id })
+        .andWhere(
+          `c.classCode IN (SELECT ta.classCode FROM teacher_assignment ta WHERE ta.teacherId = :teacherId AND ta.effectiveTo IS NULL)`,
+          { teacherId: primary.teacherId },
+        )
+        .getRawMany<{
+          classCode: string;
+          name: string;
+          dayOfWeek: string;
+          startTime: string;
+          endTime: string;
+        }>();
+
+      for (const row of rows) {
+        let rowDays: number[] = [];
+        try {
+          rowDays = JSON.parse(row.dayOfWeek) as number[];
+        } catch {
+          rowDays = [];
+        }
+        const sharedDays = rowDays.filter((d) => cls.dayOfWeek.includes(d));
+        if (
+          sharedDays.length > 0 &&
+          this.overlaps(row.startTime, row.endTime, cls.startTime, cls.endTime)
+        ) {
+          conflicts.push(
+            `老师排班冲突：与班级 ${row.classCode}（${row.name}）上课时段重叠`,
+          );
+        }
+      }
+    }
+
+    return conflicts;
+  }
+
+  /** "HH:MM" 字符串时间区间是否重叠（字典序比较）。 */
+  private overlaps(
+    aStart: string,
+    aEnd: string,
+    bStart: string,
+    bEnd: string,
+  ): boolean {
+    return aStart < bEnd && bStart < aEnd;
   }
 }

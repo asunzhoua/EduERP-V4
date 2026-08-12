@@ -5,6 +5,7 @@ import { ClassService } from './class.service';
 import { ClassRepository } from './class.repository';
 import { ClassCodeGeneratorService } from './class-code-generator.service';
 import { TeacherAssignmentService } from '../teacher-assignment/teacher-assignment.service';
+import { ClassroomService } from '../classroom/classroom.service';
 import { CourseRepository } from '../course/course.repository';
 import { EnrollmentRepository } from '../enrollment/enrollment.repository';
 import { LessonRepository } from '../lesson/lesson.repository';
@@ -18,8 +19,19 @@ describe('ClassService', () => {
   let service: ClassService;
   let classRepo: { save: jest.Mock; findOneByCode: jest.Mock };
   let codeGenerator: { generateClassCode: jest.Mock };
-  let teacherService: { countActivePrimary: jest.Mock; assign: jest.Mock };
+  let teacherService: {
+    countActivePrimary: jest.Mock;
+    assign: jest.Mock;
+    findActivePrimary: jest.Mock;
+  };
   let mockRawCreate: jest.Mock;
+  let mockQB: {
+    select: jest.Mock;
+    addSelect: jest.Mock;
+    where: jest.Mock;
+    andWhere: jest.Mock;
+    getRawMany: jest.Mock;
+  };
 
   const mockClass: ClassEntity = {
     id: 1,
@@ -48,8 +60,18 @@ describe('ClassService', () => {
 
   beforeEach(async () => {
     mockRawCreate = jest.fn();
+    mockQB = {
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn(),
+    };
     const mockClassRepo = {
-      raw: { create: mockRawCreate },
+      raw: {
+        create: mockRawCreate,
+        createQueryBuilder: jest.fn().mockReturnValue(mockQB),
+      },
       save: jest.fn(),
       findOneByCode: jest.fn(),
       findMany: jest.fn(),
@@ -88,12 +110,18 @@ describe('ClassService', () => {
       findOne: jest.fn(),
     };
 
+    const mockClassroomService = {
+      findById: jest.fn(),
+      findByIds: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ClassService,
         { provide: ClassRepository, useValue: mockClassRepo },
         { provide: ClassCodeGeneratorService, useValue: mockCodeGenerator },
         { provide: TeacherAssignmentService, useValue: mockTeacherService },
+        { provide: ClassroomService, useValue: mockClassroomService },
         { provide: CourseRepository, useValue: mockCourseRepo },
         { provide: EnrollmentRepository, useValue: mockEnrollmentRepo },
         { provide: LessonRepository, useValue: mockLessonRepo },
@@ -200,14 +228,86 @@ describe('ClassService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should block DRAFT -> ACTIVE without totalLessons', async () => {
-      const draft = { ...mockClass, totalLessons: 0 };
+    it('should block DRAFT -> ACTIVE on same classroom schedule conflict', async () => {
+      const draft = {
+        ...mockClass,
+        classroomId: 1,
+        dayOfWeek: [6] as number[],
+        startTime: '09:00',
+        endTime: '10:30',
+        startDate: '2026-07-12',
+      };
       classRepo.findOneByCode.mockResolvedValue(draft);
       teacherService.countActivePrimary.mockResolvedValue(1);
+      teacherService.findActivePrimary.mockResolvedValue(null);
+      mockQB.getRawMany.mockResolvedValue([
+        {
+          classCode: 'CL2026070002',
+          name: '周日上午班',
+          dayOfWeek: '[6]',
+          startTime: '09:30',
+          endTime: '11:00',
+        },
+      ]);
 
       await expect(
         service.updateStatus('CL2026070001', ClassStatus.ACTIVE, 1),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should block DRAFT -> ACTIVE on same teacher schedule conflict', async () => {
+      const draft = {
+        ...mockClass,
+        classroomId: null,
+        dayOfWeek: [0] as number[],
+        startTime: '14:00',
+        endTime: '15:30',
+        startDate: '2026-07-12',
+      };
+      classRepo.findOneByCode.mockResolvedValue(draft);
+      teacherService.countActivePrimary.mockResolvedValue(1);
+      teacherService.findActivePrimary.mockResolvedValue({
+        teacherId: 2,
+      } as any);
+      mockQB.getRawMany.mockResolvedValue([
+        {
+          classCode: 'CL2026070003',
+          name: '周日下午班',
+          dayOfWeek: '[0]',
+          startTime: '14:30',
+          endTime: '16:00',
+        },
+      ]);
+
+      await expect(
+        service.updateStatus('CL2026070001', ClassStatus.ACTIVE, 1),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should allow DRAFT -> ACTIVE when no schedule conflicts', async () => {
+      const draft = {
+        ...mockClass,
+        classroomId: 1,
+        dayOfWeek: [6] as number[],
+        startTime: '09:00',
+        endTime: '10:30',
+        startDate: '2026-07-12',
+      };
+      classRepo.findOneByCode.mockResolvedValue(draft);
+      classRepo.save.mockResolvedValue({
+        ...draft,
+        status: ClassStatus.ACTIVE,
+      });
+      teacherService.countActivePrimary.mockResolvedValue(1);
+      teacherService.findActivePrimary.mockResolvedValue(null);
+      mockQB.getRawMany.mockResolvedValue([]);
+
+      const result = await service.updateStatus(
+        'CL2026070001',
+        ClassStatus.ACTIVE,
+        1,
+      );
+      expect(result.status).toBe(ClassStatus.ACTIVE);
     });
 
     it('should allow ACTIVE -> COMPLETED', async () => {
