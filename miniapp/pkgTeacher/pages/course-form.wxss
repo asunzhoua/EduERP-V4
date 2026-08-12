@@ -52,6 +52,12 @@
   color: #C4483F;
 }
 
+.optional {
+  color: #9B9084;
+  font-size: 22rpx;
+  font-weight: normal;
+}
+
 /* 选择器 */
 .picker-wrapper {
   display: flex;

@@ -37,13 +37,13 @@
 
     <!-- 总课时(小时) -->
     <view class="form-section">
-      <view class="form-label">总课时(小时) <text class="required">*</text></view>
+      <view class="form-label">总课时(小时) <text class="optional">选填</text></view>
       <input class="form-input" type="digit" placeholder="如 40" value="{{totalHours}}" bindinput="onTotalHoursInput" maxlength="6" />
     </view>
 
     <!-- 总课次数 -->
     <view class="form-section">
-      <view class="form-label">总课次数 <text class="required">*</text></view>
+      <view class="form-label">总课次数 <text class="optional">选填</text></view>
       <input class="form-input" type="number" placeholder="如 40" value="{{totalLessons}}" bindinput="onTotalLessonsInput" maxlength="4" />
     </view>
 

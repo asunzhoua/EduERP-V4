@@ -140,12 +140,12 @@ Page({
       wx.showToast({ title: '请选择课程类型', icon: 'none' });
       return;
     }
-    if (!totalHours || Number(totalHours) <= 0) {
-      wx.showToast({ title: '请填写总课时(小时)', icon: 'none' });
+    if (totalHours && Number(totalHours) <= 0) {
+      wx.showToast({ title: '总课时需大于 0', icon: 'none' });
       return;
     }
-    if (!totalLessons || Number(totalLessons) <= 0) {
-      wx.showToast({ title: '请填写总课次数', icon: 'none' });
+    if (totalLessons && Number(totalLessons) <= 0) {
+      wx.showToast({ title: '总课次数需大于 0', icon: 'none' });
       return;
     }
     if (!defaultDuration || Number(defaultDuration) <= 0) {
@@ -159,8 +159,8 @@ Page({
       name: name.trim(),
       subject,
       type,
-      totalHours: Number(totalHours),
-      totalLessons: Number(totalLessons),
+      totalHours: totalHours ? Number(totalHours) : undefined,
+      totalLessons: totalLessons ? Number(totalLessons) : undefined,
       defaultDuration: Number(defaultDuration),
       description: description.trim() || undefined,
       note: note.trim() || undefined
