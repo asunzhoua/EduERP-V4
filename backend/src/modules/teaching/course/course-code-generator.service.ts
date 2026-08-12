@@ -16,11 +16,11 @@ export class CourseCodeGeneratorService {
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
     const prefix = `CS${year}${month}`;
 
-    // Find the latest course code with this prefix
+    // courseCode 是 UNIQUE，软删除记录仍占用编码空间，因此必须纳入 max 计算，
+    // 否则「创建→软删最高位→再创建」会生成重复编码触发 500。
     const latest = await this.courseRepository
       .createQueryBuilder('course')
       .where('course.courseCode LIKE :prefix', { prefix: `${prefix}%` })
-      .andWhere('course.deleted = :deleted', { deleted: false })
       .orderBy('course.courseCode', 'DESC')
       .getOne();
 

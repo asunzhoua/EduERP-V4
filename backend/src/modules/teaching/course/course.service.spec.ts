@@ -118,6 +118,38 @@ describe('CourseService', () => {
       expect(result.status).toBe(CourseStatus.DRAFT);
       expect(codeGenerator.generateCourseCode).toHaveBeenCalled();
     });
+
+    it('should create a course without totalHours/totalLessons (nullable)', async () => {
+      codeGenerator.generateCourseCode.mockResolvedValue('CS2026070002');
+      courseRepo.raw.create.mockReturnValue({
+        ...mockCourse,
+        totalHours: null,
+        totalLessons: null,
+      });
+      courseRepo.save.mockResolvedValue({
+        ...mockCourse,
+        courseCode: 'CS2026070002',
+        totalHours: null,
+        totalLessons: null,
+      });
+      auditLogRepo.create.mockReturnValue({} as CourseAuditLog);
+      auditLogRepo.save.mockResolvedValue({} as CourseAuditLog);
+
+      const result = await service.create(
+        {
+          name: '少儿英语一级',
+          subject: Subject.ENGLISH,
+          type: CourseType.GROUP,
+          defaultDuration: 60,
+        },
+        1,
+      );
+
+      expect(result.courseCode).toBe('CS2026070002');
+      expect(courseRepo.raw.create).toHaveBeenCalledWith(
+        expect.objectContaining({ totalHours: null, totalLessons: null }),
+      );
+    });
   });
 
   // ─── Find ───

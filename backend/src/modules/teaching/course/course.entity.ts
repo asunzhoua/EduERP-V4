@@ -37,11 +37,11 @@ export class CourseEntity {
 
   // ─── Content Metrics ───
 
-  @Column({ type: 'decimal', precision: 6, scale: 1 })
-  totalHours: number;
+  @Column({ type: 'decimal', precision: 6, scale: 1, nullable: true })
+  totalHours: number | null;
 
-  @Column({ type: 'int' })
-  totalLessons: number;
+  @Column({ type: 'int', nullable: true })
+  totalLessons: number | null;
 
   @Column({ type: 'int' })
   defaultDuration: number;

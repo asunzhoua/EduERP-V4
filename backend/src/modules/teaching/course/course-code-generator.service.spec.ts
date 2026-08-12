@@ -113,14 +113,26 @@ describe('CourseCodeGeneratorService', () => {
       });
     });
 
-    it('should filter out deleted records', async () => {
+    it('should NOT filter deleted records (soft-deleted rows still occupy the code space)', async () => {
       const qb = setupQueryMock(null);
 
       await service.generateCourseCode();
 
-      expect(qb.andWhere).toHaveBeenCalledWith('course.deleted = :deleted', {
-        deleted: false,
-      });
+      // courseCode 是 UNIQUE，软删除记录仍占用编码空间，因此 max 计算必须纳入，
+      // 不能加 deleted = false 过滤，否则「软删最高位后重建」会生成重复编码。
+      expect(qb.andWhere).not.toHaveBeenCalled();
+    });
+
+    it('should increment past a soft-deleted latest record', async () => {
+      // 最高位是软删除记录（deleted=true），仍应作为 max 参与计算，生成下一位
+      setupQueryMock({
+        courseCode: 'CS2026070105',
+        deleted: true,
+      } as CourseEntity);
+
+      const code = await service.generateCourseCode();
+
+      expect(code).toBe('CS2026070106');
     });
 
     it('should order by course_code DESC', async () => {

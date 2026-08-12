@@ -34,15 +34,17 @@ export class CreateCourseDto {
   @IsOptional()
   description?: string;
 
-  @ApiProperty({ description: '总课时(小时)', example: 40 })
+  @ApiPropertyOptional({ description: '总课时(小时)，选填', example: 40 })
+  @IsOptional()
   @IsNumber()
   @Min(0.5)
-  totalHours: number;
+  totalHours?: number;
 
-  @ApiProperty({ description: '总课次数', example: 40 })
+  @ApiPropertyOptional({ description: '总课次数，选填', example: 40 })
+  @IsOptional()
   @IsNumber()
   @Min(1)
-  totalLessons: number;
+  totalLessons?: number;
 
   @ApiProperty({ description: '默认每节课分钟数', example: 60 })
   @IsNumber()
