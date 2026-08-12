@@ -213,10 +213,10 @@ Page({
     });
   },
 
-  // 右下角 FAB：创建班级
+  // 右下角 FAB：创建课程
   createCourse() {
     wx.navigateTo({
-      url: '/pkgTeacher/pages/class-form',
+      url: '/pkgTeacher/pages/course-form',
       fail() {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }

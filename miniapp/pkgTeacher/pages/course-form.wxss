@@ -1,0 +1,115 @@
+.container {
+  padding: 20rpx;
+  background: #FAF6F0;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-bottom: 60rpx;
+}
+
+/* 加载中 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #EDE5DA;
+  border-top-color: #D97B3E;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #9B9084;
+}
+
+/* 表单区块 */
+.form-section {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.form-label {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #2E2A25;
+  margin-bottom: 16rpx;
+}
+
+.required {
+  color: #C4483F;
+}
+
+/* 选择器 */
+.picker-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 2rpx solid #FAF6F0;
+}
+
+.picker-text {
+  font-size: 28rpx;
+  color: #2E2A25;
+}
+
+.picker-text.placeholder {
+  color: #9B9084;
+}
+
+.picker-arrow {
+  font-size: 28rpx;
+  color: #EDE5DA;
+}
+
+/* 单行输入 */
+.form-input {
+  width: 100%;
+  height: 72rpx;
+  font-size: 28rpx;
+  color: #2E2A25;
+  border-bottom: 2rpx solid #FAF6F0;
+}
+
+/* 文本框 */
+.form-textarea {
+  width: 100%;
+  min-height: 120rpx;
+  font-size: 28rpx;
+  color: #2E2A25;
+  padding: 16rpx;
+  background: #FAF6F0;
+  border-radius: 16rpx;
+  box-sizing: border-box;
+}
+
+/* 提交按钮 */
+.submit-section {
+  padding: 20rpx 0 40rpx;
+}
+
+.submit-btn {
+  width: 100%;
+  font-size: 32rpx;
+  background: #D97B3E;
+  color: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx 0;
+}
+
+.submit-btn[disabled] {
+  background: #FBEEE2;
+}

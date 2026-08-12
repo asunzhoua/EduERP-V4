@@ -1,5 +1,5 @@
 // pages/teacher/course-detail.js
-const { get } = require('../../utils/request');
+const { get, del } = require('../../utils/request');
 
 Page({
   data: {
@@ -31,9 +31,18 @@ Page({
     }
   },
 
+  // 从编辑页返回后刷新详情（首次 onShow 时 course 尚未加载，跳过）
+  onShow() {
+    if (this.data.course && this.data.courseCode) {
+      this.loadCourseDetail(this.data.courseCode, true);
+    }
+  },
+
   // 加载课程详情
-  async loadCourseDetail(code) {
-    this.setData({ loading: true, error: null });
+  async loadCourseDetail(code, silent) {
+    if (!silent) {
+      this.setData({ loading: true, error: null });
+    }
 
     try {
       const data = await get(`/courses/${code}`);
@@ -78,5 +87,42 @@ Page({
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
     });
+  },
+
+  // 编辑课程（仅 DRAFT 显示入口）
+  goToEdit() {
+    wx.navigateTo({
+      url: `/pkgTeacher/pages/course-form?code=${this.data.courseCode}`,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 删除课程（仅 DRAFT 显示入口）
+  goToDelete() {
+    wx.showModal({
+      title: '删除课程',
+      content: '删除该课程？删除后不可恢复',
+      confirmText: '删除',
+      confirmColor: '#C4483F',
+      success: (res) => {
+        if (!res.confirm) return;
+        this.doDelete();
+      }
+    });
+  },
+
+  async doDelete() {
+    try {
+      await del('/courses/' + this.data.courseCode);
+      wx.showToast({ title: '删除成功', icon: 'success' });
+      setTimeout(() => {
+        wx.navigateBack();
+      }, 1200);
+    } catch (err) {
+      console.error('[Course Detail] 删除失败:', err);
+      // request.js 已 toast 后端错误
+    }
   }
 });

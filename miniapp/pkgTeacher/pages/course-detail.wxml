@@ -52,5 +52,11 @@
     <view class="action-section">
       <button class="action-btn primary" bindtap="goToClasses">查看班级</button>
     </view>
+
+    <!-- 草稿课程：编辑/删除 -->
+    <view class="action-bar" wx:if="{{course.status === 'DRAFT'}}">
+      <button class="edit-btn" bindtap="goToEdit">编辑课程</button>
+      <button class="delete-btn" bindtap="goToDelete">删除课程</button>
+    </view>
   </view>
 </view>

@@ -1,0 +1,76 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 表单 -->
+  <block wx:else>
+    <!-- 课程名称 -->
+    <view class="form-section">
+      <view class="form-label">课程名称 <text class="required">*</text></view>
+      <input class="form-input" placeholder="请输入课程名称" value="{{name}}" bindinput="onNameInput" maxlength="100" />
+    </view>
+
+    <!-- 学科 -->
+    <view class="form-section">
+      <view class="form-label">学科 <text class="required">*</text></view>
+      <picker range="{{subjectNames}}" value="{{subjectIndex}}" bindchange="onSubjectChange">
+        <view class="picker-wrapper">
+          <text class="picker-text {{subject ? '' : 'placeholder'}}">{{subjectNames[subjectIndex] || '请选择学科'}}</text>
+          <text class="picker-arrow">></text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 课程类型 -->
+    <view class="form-section">
+      <view class="form-label">课程类型 <text class="required">*</text></view>
+      <picker range="{{typeNames}}" value="{{typeIndex}}" bindchange="onTypeChange">
+        <view class="picker-wrapper">
+          <text class="picker-text {{type ? '' : 'placeholder'}}">{{typeNames[typeIndex] || '请选择课程类型'}}</text>
+          <text class="picker-arrow">></text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 总课时(小时) -->
+    <view class="form-section">
+      <view class="form-label">总课时(小时) <text class="required">*</text></view>
+      <input class="form-input" type="digit" placeholder="如 40" value="{{totalHours}}" bindinput="onTotalHoursInput" maxlength="6" />
+    </view>
+
+    <!-- 总课次数 -->
+    <view class="form-section">
+      <view class="form-label">总课次数 <text class="required">*</text></view>
+      <input class="form-input" type="number" placeholder="如 40" value="{{totalLessons}}" bindinput="onTotalLessonsInput" maxlength="4" />
+    </view>
+
+    <!-- 每节分钟数 -->
+    <view class="form-section">
+      <view class="form-label">每节课时长(分钟) <text class="required">*</text></view>
+      <input class="form-input" type="number" placeholder="如 60" value="{{defaultDuration}}" bindinput="onDefaultDurationInput" maxlength="4" />
+    </view>
+
+    <!-- 课程描述 -->
+    <view class="form-section">
+      <view class="form-label">课程描述</view>
+      <textarea class="form-textarea" placeholder="选填，课程介绍..." value="{{description}}" bindinput="onDescriptionInput" maxlength="500" />
+    </view>
+
+    <!-- 内部备注 -->
+    <view class="form-section">
+      <view class="form-label">内部备注</view>
+      <textarea class="form-textarea" placeholder="选填，仅自己可见..." value="{{note}}" bindinput="onNoteInput" maxlength="200" />
+    </view>
+
+    <!-- 提交按钮 -->
+    <view class="submit-section">
+      <button class="submit-btn" bindtap="onSubmit" disabled="{{submitting}}">
+        <text wx:if="{{!submitting}}">{{isEdit ? '保存' : '创建课程'}}</text>
+        <text wx:else>提交中...</text>
+      </button>
+    </view>
+  </block>
+</view>

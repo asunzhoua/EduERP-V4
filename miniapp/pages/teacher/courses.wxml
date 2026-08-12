@@ -84,7 +84,7 @@
       <view class="ic ic-list empty-ic"></view>
       <text class="empty-text" wx:if="{{searchKeyword}}">未找到匹配的课程</text>
       <text class="empty-text" wx:else>暂无课程</text>
-      <text class="empty-hint" wx:if="{{!searchKeyword}}">点击右下角按钮创建班级</text>
+      <text class="empty-hint" wx:if="{{!searchKeyword}}">点击右下角按钮创建课程</text>
     </view>
   </view>
 
