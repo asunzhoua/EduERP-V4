@@ -1,6 +1,8 @@
 // pages/teacher/class-detail.js
 const { get, del } = require('../../utils/request');
 
+const DAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
 Page({
   data: {
     classCode: '',
@@ -51,10 +53,15 @@ Page({
     }
 
     try {
-      const [classInfo, studentsData] = await Promise.all([
+      const [rawClass, studentsData] = await Promise.all([
         get(`/classes/${code}`),
         get(`/classes/${code}/students`)
       ]);
+
+      const classInfo = Object.assign({}, rawClass, {
+        dayText: this.computeDayText(rawClass.dayOfWeek),
+        timeRange: this.computeTimeRange(rawClass.startTime, rawClass.endTime)
+      });
 
       this.setData({
         classInfo,
@@ -68,6 +75,18 @@ Page({
         loading: false
       });
     }
+  },
+
+  // 星期数组 → "周六" / "周六、周日"
+  computeDayText(dayOfWeek) {
+    if (!Array.isArray(dayOfWeek) || dayOfWeek.length === 0) return '';
+    return dayOfWeek.slice().sort((a, b) => a - b).map((d) => DAY_LABELS[d]).join('、');
+  },
+
+  // 开始-结束时间 → "09:00-10:30"
+  computeTimeRange(startTime, endTime) {
+    if (!startTime || !endTime) return '';
+    return startTime + '-' + endTime;
   },
 
   // 切换 Tab

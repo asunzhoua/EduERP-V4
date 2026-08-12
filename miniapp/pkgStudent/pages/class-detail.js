@@ -1,6 +1,8 @@
 // pages/student/class-detail.js
 const { get } = require('../../utils/request');
 
+const DAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
 Page({
   data: {
     classCode: '',
@@ -46,8 +48,6 @@ Page({
       const info = classDetail.data || classDetail;
 
       const completedLessons = info.completedLessons || 0;
-      const totalLessons = info.totalLessons || 0;
-      const progress = totalLessons > 0 ? Math.round(completedLessons / totalLessons * 100) : 0;
 
       this.setData({
         classInfo: {
@@ -55,10 +55,12 @@ Page({
           subject: info.courseName || '',
           teacherName: info.teacherName || '',
           completedLessons,
-          totalLessons,
-          progress,
           status: info.status,
-          contractCode: info.contractCode || ''
+          contractCode: info.contractCode || '',
+          startDate: info.startDate || '',
+          dayText: this.computeDayText(info.dayOfWeek),
+          timeRange: this.computeTimeRange(info.startTime, info.endTime),
+          schedule: info.schedule || ''
         },
         loading: false
       });
@@ -69,6 +71,18 @@ Page({
         loading: false
       });
     }
+  },
+
+  // 星期数组 → "周六" / "周六、周日"
+  computeDayText(dayOfWeek) {
+    if (!Array.isArray(dayOfWeek) || dayOfWeek.length === 0) return '';
+    return dayOfWeek.slice().sort((a, b) => a - b).map((d) => DAY_LABELS[d]).join('、');
+  },
+
+  // 开始-结束时间 → "09:00-10:30"
+  computeTimeRange(startTime, endTime) {
+    if (!startTime || !endTime) return '';
+    return startTime + '-' + endTime;
   },
 
   // 返回班级列表（避免导航栈堆积）

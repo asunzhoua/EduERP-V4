@@ -25,18 +25,28 @@
       <text class="class-code-label">班级编码：{{classInfo.classCode}}</text>
     </view>
 
-    <!-- 进度信息 -->
+    <!-- 上课安排 -->
+    <view class="info-section">
+      <view class="section-title">上课安排</view>
+      <view class="info-row">
+        <text class="info-label">上课日期</text>
+        <text class="info-value">{{classInfo.dayText || '未安排'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">上课时间</text>
+        <text class="info-value">{{classInfo.timeRange || '未安排'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">开班日期</text>
+        <text class="info-value">{{classInfo.startDate || '未安排'}}</text>
+      </view>
+    </view>
+
+    <!-- 学习进度 -->
     <view class="info-section">
       <view class="section-title">学习进度</view>
-      <view class="progress-area">
-        <view class="progress-bar-big">
-          <view class="progress-fill-big" style="width: {{classInfo.progress}}%"></view>
-        </view>
-        <text class="progress-percent">{{classInfo.progress}}%</text>
-      </view>
       <view class="progress-detail">
         <text>已完成 {{classInfo.completedLessons}} 课时</text>
-        <text>共 {{classInfo.totalLessons}} 课时</text>
       </view>
     </view>
 

@@ -100,6 +100,23 @@
   margin-bottom: 16rpx;
 }
 
+/* 信息行 */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14rpx 0;
+  font-size: 28rpx;
+}
+
+.info-label {
+  color: #9B9084;
+}
+
+.info-value {
+  color: #2E2A25;
+}
+
 /* 进度区域 */
 .progress-area {
   display: flex;

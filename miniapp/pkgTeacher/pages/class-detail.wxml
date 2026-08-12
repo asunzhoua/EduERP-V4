@@ -67,6 +67,14 @@
               <text class="info-value">{{classInfo.classCode}}</text>
             </view>
             <view class="info-item">
+              <text class="info-label">上课日期</text>
+              <text class="info-value">{{classInfo.dayText || '未安排'}}</text>
+            </view>
+            <view class="info-item">
+              <text class="info-label">上课时间</text>
+              <text class="info-value">{{classInfo.timeRange || '未安排'}}</text>
+            </view>
+            <view class="info-item">
               <text class="info-label">开班日期</text>
               <text class="info-value">{{classInfo.startDate}}</text>
             </view>
