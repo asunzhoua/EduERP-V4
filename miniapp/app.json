@@ -22,7 +22,8 @@
         "pages/course-detail",
         "pages/students",
         "pages/my-exceptions",
-        "pages/leave-apply"
+        "pages/leave-apply",
+        "pages/class-form"
       ]
     },
     {

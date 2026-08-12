@@ -49,21 +49,17 @@
             <text class="info-value">{{item.courseName}}</text>
           </view>
           <view class="info-row">
-            <text class="info-label">时间:</text>
-            <text class="info-value">{{item.startDate}} ~ {{item.endDate}}</text>
+            <text class="info-label">教室:</text>
+            <text class="info-value">{{item.classroomName || '未分配'}} · {{item.schedule}}</text>
           </view>
         </view>
 
-        <!-- 进度条 -->
-        <view class="progress-section" wx:if="{{item.totalLessons > 0}}">
+        <!-- 进度：仅显示已完成课时 -->
+        <view class="progress-section">
           <view class="progress-header">
             <text class="progress-label">课程进度</text>
-            <text class="progress-text">{{item.completedLessons || 0}}/{{item.totalLessons}} 课时</text>
+            <text class="progress-text">已完成 {{item.completedLessons || 0}} 课时</text>
           </view>
-          <view class="progress-bar">
-            <view class="progress-fill progress-{{item.status}}" style="width: {{progressMap[item.classCode]}}%"></view>
-          </view>
-          <text class="progress-percent">{{progressMap[item.classCode]}}%</text>
         </view>
 
         <!-- 底部：学生数 + 操作按钮 -->
@@ -118,8 +114,13 @@
     <view class="empty-state" wx:elif="{{classes.length === 0}}">
       <view class="ic ic-list empty-ic"></view>
       <text class="empty-text">暂无班级</text>
-      <text class="empty-hint">请先创建班级</text>
+      <text class="empty-hint">点击右下角按钮创建班级</text>
     </view>
+  </view>
+
+  <!-- 新增按钮 -->
+  <view class="fab" bindtap="createClass">
+    <text class="fab-icon">+</text>
   </view>
   </block>
 

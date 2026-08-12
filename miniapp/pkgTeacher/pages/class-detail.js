@@ -1,5 +1,5 @@
 // pages/teacher/class-detail.js
-const { get } = require('../../utils/request');
+const { get, del } = require('../../utils/request');
 
 Page({
   data: {
@@ -30,16 +30,25 @@ Page({
       this.setData({ classCode: code });
       this.loadClassDetail(code);
     } else {
-      this.setData({ 
+      this.setData({
         error: '缺少班级编码',
-        loading: false 
+        loading: false
       });
     }
   },
 
+  // 从编辑页返回后刷新详情（首次 onShow 时 classInfo 尚未加载，跳过）
+  onShow() {
+    if (this.data.classInfo && this.data.classCode) {
+      this.loadClassDetail(this.data.classCode, true);
+    }
+  },
+
   // 加载班级详情
-  async loadClassDetail(code) {
-    this.setData({ loading: true, error: null });
+  async loadClassDetail(code, silent) {
+    if (!silent) {
+      this.setData({ loading: true, error: null });
+    }
 
     try {
       const [classInfo, studentsData] = await Promise.all([
@@ -101,6 +110,43 @@ Page({
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
     });
+  },
+
+  // 编辑班级（仅 DRAFT 显示入口）
+  goToEdit() {
+    wx.navigateTo({
+      url: `/pkgTeacher/pages/class-form?code=${this.data.classCode}`,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 删除班级（仅 DRAFT 显示入口）
+  goToDelete() {
+    wx.showModal({
+      title: '删除班级',
+      content: '删除该班级？删除后不可恢复',
+      confirmText: '删除',
+      confirmColor: '#C4483F',
+      success: (res) => {
+        if (!res.confirm) return;
+        this.doDelete();
+      }
+    });
+  },
+
+  async doDelete() {
+    try {
+      await del('/classes/' + this.data.classCode);
+      wx.showToast({ title: '删除成功', icon: 'success' });
+      setTimeout(() => {
+        wx.navigateBack();
+      }, 1200);
+    } catch (err) {
+      console.error('[Class Detail] 删除失败:', err);
+      // request.js 已 toast 后端错误
+    }
   },
 
   // 返回

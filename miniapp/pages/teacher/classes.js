@@ -8,8 +8,7 @@ Page({
     loading: true,
     error: null,
     filter: 'ALL',
-    progressMap: {},
-    courseCode: '',  // 班级进度缓存
+    courseCode: '',  // 班级筛选
     isStudentView: false,  // 家长/学生视图：出勤 Tab 原地渲染出勤记录，保留 tab 栏
     studentAllAttendance: [],
     studentAttendance: [],
@@ -33,10 +32,12 @@ Page({
     this.loadClasses();
   },
 
-  // Tab 页 onLoad 仅一次；家长/学生视图每次切回刷新（从详情页返回后更新）
+  // Tab 页 onLoad 仅一次；每次切回刷新（创建/删除/编辑返回后能看到最新班级）
   onShow() {
     if (this.data.isStudentView) {
       this.loadStudentAttendance();
+    } else {
+      this.loadClasses();
     }
   },
 
@@ -69,16 +70,9 @@ Page({
       const data = await get('/classes', params);
 
       const classes = data.items || [];
-      
-      // 计算每个班级的进度
-      const progressMap = {};
-      classes.forEach(cls => {
-        progressMap[cls.classCode] = this.calculateProgress(cls);
-      });
 
       this.setData({
         classes: classes,
-        progressMap: progressMap,
         loading: false
       });
 
@@ -149,19 +143,23 @@ Page({
     });
   },
 
-  // 计算班级进度
-  calculateProgress(classItem) {
-    if (!classItem.totalLessons || classItem.totalLessons === 0) return 0;
-    return Math.round((classItem.completedLessons || 0) / classItem.totalLessons * 100);
-  },
-
   // 筛选切换
   onFilterChange(e) {
     const { value } = e.currentTarget.dataset;
     if (value === this.data.filter) return;
-    
+
     this.setData({ filter: value, classes: [] });
     this.loadClasses();
+  },
+
+  // 右下角 FAB：创建班级
+  createClass() {
+    wx.navigateTo({
+      url: '/pkgTeacher/pages/class-form',
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   },
 
   // 跳转班级详情

@@ -79,8 +79,12 @@
               <text class="info-value">{{classInfo.currentStudents}}/{{classInfo.maxStudents}}人</text>
             </view>
             <view class="info-item">
+              <text class="info-label">教室</text>
+              <text class="info-value">{{classInfo.classroomName || '未分配'}}</text>
+            </view>
+            <view class="info-item">
               <text class="info-label">课时进度</text>
-              <text class="info-value">{{classInfo.completedLessons}}/{{classInfo.totalLessons}}节</text>
+              <text class="info-value">已完成 {{classInfo.completedLessons}} 课时</text>
             </view>
             <view class="info-item">
               <text class="info-label">出勤率</text>
@@ -113,10 +117,7 @@
           <text class="panel-title">课时进度</text>
         </view>
         <view class="progress-card">
-          <view class="progress-bar">
-            <view class="progress-fill" style="width: {{classInfo.totalLessons > 0 ? (classInfo.completedLessons / classInfo.totalLessons) * 100 : 0}}%"></view>
-          </view>
-          <text class="progress-text">{{classInfo.completedLessons}}/{{classInfo.totalLessons}} 节课</text>
+          <text class="progress-text">已完成 {{classInfo.completedLessons}} 课时</text>
         </view>
 
         <!-- 课时列表 -->
@@ -148,6 +149,12 @@
 
         <button class="record-btn" bindtap="goToRecordLesson">记录课时</button>
       </view>
+    </view>
+
+    <!-- 草稿班级：编辑/删除 -->
+    <view class="action-bar" wx:if="{{classInfo.status === 'DRAFT'}}">
+      <button class="edit-btn" bindtap="goToEdit">编辑班级</button>
+      <button class="delete-btn" bindtap="goToDelete">删除班级</button>
     </view>
   </view>
 </view>

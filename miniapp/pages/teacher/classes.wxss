@@ -4,6 +4,7 @@
   background: var(--bg, #FAF6F0);
   min-height: 100vh;
   box-sizing: border-box;
+  padding-bottom: 150rpx;
 }
 
 /* 筛选栏 */
@@ -143,30 +144,6 @@
   color: var(--accent-deep, #A64E1D);
 }
 
-.progress-bar {
-  height: 14rpx;
-  background: #F1EBE1;
-  border-radius: 999rpx;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: 999rpx;
-}
-
-.progress-fill.progress-ACTIVE { background: var(--accent, #D97B3E); }
-.progress-fill.progress-DRAFT { background: var(--warning, #D98E2B); }
-.progress-fill.progress-COMPLETED { background: var(--growth, #5B7A66); }
-
-.progress-percent {
-  font-size: 24rpx;
-  color: var(--accent-deep, #A64E1D);
-  margin-top: 8rpx;
-  display: block;
-  text-align: right;
-}
-
 /* 底部 */
 .class-footer {
   display: flex;
@@ -299,6 +276,29 @@
 .empty-hint {
   font-size: 24rpx;
   color: var(--accent-deep, #A64E1D);
+}
+
+/* 右下角新增按钮 */
+.fab {
+  position: fixed;
+  right: 40rpx;
+  bottom: 60rpx;
+  width: 108rpx;
+  height: 108rpx;
+  border-radius: 50%;
+  background: var(--accent-deep, #A64E1D);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 16rpx 40rpx rgba(166,78,29,.3);
+  z-index: 100;
+}
+
+.fab-icon {
+  font-size: 64rpx;
+  font-weight: 300;
+  line-height: 1;
 }
 
 /* ===== 家长/学生视图：出勤记录 ===== */
