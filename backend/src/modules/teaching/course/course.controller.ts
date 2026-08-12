@@ -12,6 +12,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -24,6 +25,7 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { UpdateCourseStatusDto } from './dto/update-course-status.dto';
 import { QueryCourseDto } from './dto/query-course.dto';
+import { CourseStatus } from './enums/course-status.enum';
 import { ApiResponse } from '@common/dto/api-response';
 import { JwtAuthGuard } from '../../identity/auth/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
@@ -38,7 +40,7 @@ export class CourseController {
   constructor(private readonly courseService: CourseService) {}
 
   @Post()
-  @Roles('SuperAdmin', 'Admin')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Create a new course' })
   @SwaggerResponse({ status: 0, description: 'Course created successfully' })
   async create(
@@ -77,13 +79,14 @@ export class CourseController {
   }
 
   @Put(':code')
-  @Roles('SuperAdmin', 'Admin')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Update course (field-level audit)' })
   async update(
     @Param('code') code: string,
     @Body() dto: UpdateCourseDto,
     @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
+    await this.assertManagePermission(code, req);
     const operatorId = req.user.sub;
     const course = await this.courseService.update(code, dto, operatorId);
     return ApiResponse.success(course, 'Course updated');
@@ -108,15 +111,33 @@ export class CourseController {
   }
 
   @Delete(':code')
-  @Roles('SuperAdmin')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete course (DRAFT only)' })
   async remove(
     @Param('code') code: string,
     @Req() req: AuthedRequest,
   ): Promise<ApiResponse> {
+    await this.assertManagePermission(code, req);
     const operatorId = req.user.sub;
     await this.courseService.remove(code, operatorId);
     return ApiResponse.success(null, 'Course deleted');
+  }
+
+  // ─── Ownership Guard (Teacher) ───
+
+  /** Teacher 仅能管理自己创建的 DRAFT 课程；Admin/SuperAdmin 不受限。 */
+  private async assertManagePermission(
+    code: string,
+    req: AuthedRequest,
+  ): Promise<void> {
+    if (req.user.role !== 'Teacher') return;
+    const course = await this.courseService.findByCode(code);
+    if (Number(course.createdBy) !== Number(req.user.sub)) {
+      throw new ForbiddenException('You can only manage your own courses');
+    }
+    if (course.status !== CourseStatus.DRAFT) {
+      throw new ForbiddenException('Only DRAFT courses can be edited');
+    }
   }
 }

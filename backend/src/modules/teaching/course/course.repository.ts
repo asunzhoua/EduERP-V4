@@ -48,10 +48,10 @@ export class CourseRepository {
     if (options.status) {
       qb.andWhere('c.status = :status', { status: options.status });
     }
-    // M-01 修复: Teacher 只能看到自己负责的课程
+    // M-01 修复: Teacher 只能看到自己负责的课程 + 自己创建的课程
     if (options.teacherId) {
       qb.andWhere(
-        `c.courseCode IN (
+        `(c.createdBy = :teacherId OR c.courseCode IN (
           SELECT cl.courseCode FROM class cl
           WHERE cl.deleted = false
           AND cl.classCode IN (
@@ -59,7 +59,7 @@ export class CourseRepository {
             WHERE ta.teacherId = :teacherId
             AND ta.effectiveTo IS NULL
           )
-        )`,
+        ))`,
         { teacherId: options.teacherId },
       );
     }

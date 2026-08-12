@@ -31,6 +31,7 @@ describe('CourseController', () => {
     totalHours: 40,
     totalLessons: 40,
     defaultDuration: 60,
+    createdBy: 1,
   };
 
   const mockCourseService = {
@@ -195,6 +196,61 @@ describe('CourseController', () => {
       expect(result.data).toEqual({ ...mockCourse, name: 'Updated' });
       expect(service.update).toHaveBeenCalledWith('ENG101', dto, 'admin-1');
     });
+
+    it('should allow Teacher to update own DRAFT course', async () => {
+      const dto: UpdateCourseDto = { name: 'Updated' };
+      const teacherReq = { user: { sub: '1', role: 'Teacher' } };
+      mockCourseService.findByCode.mockResolvedValue({
+        ...mockCourse,
+        createdBy: 1,
+      });
+
+      const result = await controller.update(
+        'ENG101',
+        dto,
+        teacherReq as unknown as AuthedRequest,
+      );
+
+      expect(result.code).toBe(0);
+      expect(service.update).toHaveBeenCalledWith('ENG101', dto, '1');
+    });
+
+    it('should forbid Teacher updating a course they do not own', async () => {
+      const dto: UpdateCourseDto = { name: 'Updated' };
+      const teacherReq = { user: { sub: '1', role: 'Teacher' } };
+      mockCourseService.findByCode.mockResolvedValue({
+        ...mockCourse,
+        createdBy: 99,
+      });
+
+      await expect(
+        controller.update(
+          'ENG101',
+          dto,
+          teacherReq as unknown as AuthedRequest,
+        ),
+      ).rejects.toThrow('You can only manage your own courses');
+      expect(service.update).not.toHaveBeenCalled();
+    });
+
+    it('should forbid Teacher updating a non-DRAFT course', async () => {
+      const dto: UpdateCourseDto = { name: 'Updated' };
+      const teacherReq = { user: { sub: '1', role: 'Teacher' } };
+      mockCourseService.findByCode.mockResolvedValue({
+        ...mockCourse,
+        createdBy: 1,
+        status: CourseStatus.PUBLISHED,
+      });
+
+      await expect(
+        controller.update(
+          'ENG101',
+          dto,
+          teacherReq as unknown as AuthedRequest,
+        ),
+      ).rejects.toThrow('Only DRAFT courses can be edited');
+      expect(service.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('PATCH /courses/:code/status', () => {
@@ -232,6 +288,35 @@ describe('CourseController', () => {
       expect(result.message).toBe('Course deleted');
       expect(result.data).toBeNull();
       expect(service.remove).toHaveBeenCalledWith('ENG101', 'admin-1');
+    });
+
+    it('should allow Teacher to delete own DRAFT course', async () => {
+      const teacherReq = { user: { sub: '1', role: 'Teacher' } };
+      mockCourseService.findByCode.mockResolvedValue({
+        ...mockCourse,
+        createdBy: 1,
+      });
+
+      const result = await controller.remove(
+        'ENG101',
+        teacherReq as unknown as AuthedRequest,
+      );
+
+      expect(result.code).toBe(0);
+      expect(service.remove).toHaveBeenCalledWith('ENG101', '1');
+    });
+
+    it('should forbid Teacher deleting a course they do not own', async () => {
+      const teacherReq = { user: { sub: '1', role: 'Teacher' } };
+      mockCourseService.findByCode.mockResolvedValue({
+        ...mockCourse,
+        createdBy: 99,
+      });
+
+      await expect(
+        controller.remove('ENG101', teacherReq as unknown as AuthedRequest),
+      ).rejects.toThrow('You can only manage your own courses');
+      expect(service.remove).not.toHaveBeenCalled();
     });
   });
 });
