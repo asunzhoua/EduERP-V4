@@ -261,11 +261,6 @@ Page({
     wx.navigateTo({ url: '/pkgTeacher/pages/students' });
   },
 
-  // 跳转我的工资
-  goToSalary: function () {
-    wx.navigateTo({ url: '/pkgTeacher/pages/salary' });
-  },
-
   // 跳转课程异常
   goToMyExceptions: function () {
     wx.navigateTo({ url: '/pkgTeacher/pages/my-exceptions' });

@@ -131,10 +131,6 @@
 
     <!-- 异常入口 -->
     <view class="quick-nav" style="margin-top: 20rpx;">
-      <view class="nav-item" bindtap="goToSalary">
-        <view class="ni ic ic-money"></view>
-        <text class="nav-text">我的工资</text>
-      </view>
       <view class="nav-item" bindtap="goToMyExceptions">
         <view class="ni ic ic-warn"></view>
         <text class="nav-text">我的课程异常</text>
