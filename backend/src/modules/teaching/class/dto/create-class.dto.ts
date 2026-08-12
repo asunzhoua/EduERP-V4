@@ -10,6 +10,7 @@ import {
   ArrayMinSize,
   ArrayMaxSize,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateClassDto {
@@ -85,6 +86,7 @@ export class CreateClassDto {
   room?: string;
 
   @ApiPropertyOptional({ description: '教室 ID（关联 classroom 表）' })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   classroomId?: number;

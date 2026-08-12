@@ -252,7 +252,7 @@ Page({
       dayOfWeek,
       startTime,
       endTime,
-      classroomId: classroomId || undefined,
+      classroomId: classroomId ? Number(classroomId) : undefined,
       maxStudents: maxStudents ? Number(maxStudents) : undefined,
       note: note.trim() || undefined
     };

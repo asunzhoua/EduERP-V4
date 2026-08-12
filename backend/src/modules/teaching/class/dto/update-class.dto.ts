@@ -7,6 +7,7 @@ import {
   Min,
   Matches,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateClassDto {
@@ -64,6 +65,7 @@ export class UpdateClassDto {
   room?: string;
 
   @ApiPropertyOptional({ description: '教室 ID（关联 classroom 表）' })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   classroomId?: number;
