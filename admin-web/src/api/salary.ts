@@ -640,3 +640,17 @@ export function updatePayrollStatus(
 ): Promise<SalaryPayroll> {
   return http.put<SalaryPayroll>(`/salary/payroll/${id}/status`, { status })
 }
+
+// ─── 社保/个税总开关 ───
+
+export interface SalaryConfig {
+  enabled: boolean
+}
+
+export function getSalaryConfig(): Promise<SalaryConfig> {
+  return http.get<SalaryConfig>('/salary/config')
+}
+
+export function updateSalaryConfig(data: { enabled: boolean }): Promise<SalaryConfig> {
+  return http.put<SalaryConfig>('/salary/config', data)
+}

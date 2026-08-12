@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, onMounted, reactive, ref } from 'vue'
+import { computed, h, onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { ReloadOutlined, SearchOutlined } from '@ant-design/icons-vue'
 import {
@@ -34,6 +34,8 @@ import {
   generateSalarySlips,
   previewSalarySlips,
   updateSlipStatus,
+  getSalaryConfig,
+  updateSalaryConfig,
   fetchPayrolls,
   createPayroll,
   updatePayrollStatus,
@@ -204,6 +206,12 @@ const columns = [
 async function loadRecords() {
   loading.value = true
   try {
+    const statsQuery: { year?: number; month?: number } = {}
+    if (query.month) {
+      const [y, m] = query.month.split('-').map(Number)
+      statsQuery.year = y
+      statsQuery.month = m
+    }
     const [res, stats] = await Promise.all([
       fetchSalaryRecords({
         status: query.status,
@@ -213,7 +221,7 @@ async function loadRecords() {
         page: query.page,
         pageSize: query.pageSize,
       }),
-      fetchSalaryStatistics(),
+      fetchSalaryStatistics(statsQuery),
     ])
     list.value = res.records
     total.value = res.total
@@ -1442,49 +1450,54 @@ const slipStatusColor: Record<SlipStatus, string> = {
   PAID: 'green',
 }
 
-const slipColumns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
-  { title: '教师', dataIndex: 'teacherName', key: 'teacherName', width: 120 },
-  { title: '月份', dataIndex: 'month', key: 'month', width: 90 },
-  {
-    title: '应发',
-    dataIndex: 'grossAmount',
-    key: 'grossAmount',
-    width: 100,
-    customRender: ({ text }: { text: number }) => formatMoney(text),
-  },
-  {
-    title: '五险一金',
-    dataIndex: 'socialAmount',
-    key: 'socialAmount',
-    width: 100,
-    customRender: ({ text }: { text: number }) => formatMoney(text),
-  },
-  {
-    title: '个税',
-    dataIndex: 'taxAmount',
-    key: 'taxAmount',
-    width: 90,
-    customRender: ({ text }: { text: number }) => formatMoney(text),
-  },
-  {
-    title: '实发',
-    dataIndex: 'netAmount',
-    key: 'netAmount',
-    width: 100,
-    customRender: ({ text }: { text: number }) => formatMoney(text),
-  },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
-  {
-    title: '需复核',
-    dataIndex: 'needsReview',
-    key: 'needsReview',
-    width: 80,
-    customRender: ({ text }: { text: boolean }) =>
-      text ? h('a-tag', { color: 'red' }, '是') : '-',
-  },
-  { title: '操作', dataIndex: 'action', key: 'action', width: 150, fixed: 'right' as const },
-]
+const slipColumns = computed(() => {
+  const all = [
+    { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
+    { title: '教师', dataIndex: 'teacherName', key: 'teacherName', width: 120 },
+    { title: '月份', dataIndex: 'month', key: 'month', width: 90 },
+    {
+      title: '应发',
+      dataIndex: 'grossAmount',
+      key: 'grossAmount',
+      width: 100,
+      customRender: ({ text }: { text: number }) => formatMoney(text),
+    },
+    {
+      title: '五险一金',
+      dataIndex: 'socialAmount',
+      key: 'socialAmount',
+      width: 100,
+      customRender: ({ text }: { text: number }) => formatMoney(text),
+    },
+    {
+      title: '个税',
+      dataIndex: 'taxAmount',
+      key: 'taxAmount',
+      width: 90,
+      customRender: ({ text }: { text: number }) => formatMoney(text),
+    },
+    {
+      title: '实发',
+      dataIndex: 'netAmount',
+      key: 'netAmount',
+      width: 100,
+      customRender: ({ text }: { text: number }) => formatMoney(text),
+    },
+    { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
+    {
+      title: '需复核',
+      dataIndex: 'needsReview',
+      key: 'needsReview',
+      width: 80,
+      customRender: ({ text }: { text: boolean }) =>
+        text ? h('a-tag', { color: 'red' }, '是') : '-',
+    },
+    { title: '操作', dataIndex: 'action', key: 'action', width: 150, fixed: 'right' as const },
+  ]
+  return deductEnabled.value
+    ? all
+    : all.filter((c) => c.key !== 'socialAmount' && c.key !== 'taxAmount')
+})
 
 async function loadSlips() {
   slipLoading.value = true
@@ -1614,6 +1627,40 @@ async function showSlipDetail(row: SalarySlip) {
     slipDetailVisible.value = false
   } finally {
     slipDetailLoading.value = false
+  }
+}
+
+// ─────────────────────────── 社保/个税总开关 ───────────────────────────
+
+const deductEnabled = ref(false)
+const deductConfirmVisible = ref(false)
+const deductSaving = ref(false)
+
+async function loadSalaryConfig() {
+  try {
+    const res = await getSalaryConfig()
+    deductEnabled.value = res.enabled
+  } catch (e) {
+    message.error((e as Error).message || '加载社保/个税配置失败')
+  }
+}
+
+function onToggleDeduct() {
+  deductConfirmVisible.value = true
+}
+
+async function onConfirmToggleDeduct() {
+  deductSaving.value = true
+  const next = !deductEnabled.value
+  try {
+    await updateSalaryConfig({ enabled: next })
+    deductEnabled.value = next
+    deductConfirmVisible.value = false
+    message.success(next ? '已开启社保和个税' : '已关闭社保和个税')
+  } catch (e) {
+    message.error((e as Error).message || '保存失败')
+  } finally {
+    deductSaving.value = false
   }
 }
 
@@ -1772,12 +1819,14 @@ function onTabChange(key: string) {
   } else if (key === 'slips') loadSlips()
   else if (key === 'payroll') loadPayrolls()
   else if (key === 'profile') loadInsuranceCities()
+  else if (key === 'soc-tax') loadSalaryConfig()
 }
 
 onMounted(() => {
   loadRecords()
   loadRules()
   loadInsuranceCities()
+  loadSalaryConfig()
 })
 </script>
 
@@ -2288,6 +2337,18 @@ onMounted(() => {
         </a-table>
       </a-tab-pane>
 
+      <!-- ── 社保/个税设置 ── -->
+      <a-tab-pane key="soc-tax" tab="社保/个税设置">
+        <a-form layout="vertical" style="max-width: 520px">
+          <a-form-item label="社保 + 个税 总开关">
+            <a-switch :checked="deductEnabled" :loading="deductSaving" @change="onToggleDeduct" />
+            <div class="form-tip">
+              关闭时工资条不显示社保和个税，实发=应发；比例在「五险一金政策 / 个税政策」Tab 维护。只影响之后新生成/重算的工资条，历史不动。
+            </div>
+          </a-form-item>
+        </a-form>
+      </a-tab-pane>
+
       <!-- ── 工资条 ── -->
       <a-tab-pane key="slips" tab="工资条">
         <div class="toolbar">
@@ -2752,6 +2813,17 @@ onMounted(() => {
       </a-form>
     </a-modal>
 
+    <!-- 社保/个税总开关确认弹窗 -->
+    <a-modal
+      v-model:open="deductConfirmVisible"
+      title="社保/个税总开关"
+      :confirm-loading="deductSaving"
+      @ok="onConfirmToggleDeduct"
+    >
+      <p>确认{{ deductEnabled ? '关闭' : '开启' }}社保和个税？</p>
+      <p class="form-tip">{{ deductEnabled ? '关闭后工资条不再显示社保和个税，实发=应发。' : '开启后新生成/重算的工资条将展示社保和个税。' }}</p>
+    </a-modal>
+
     <!-- 工资条详情抽屉 -->
     <a-drawer
       v-model:open="slipDetailVisible"
@@ -2764,8 +2836,8 @@ onMounted(() => {
             <a-descriptions-item label="教师">{{ slipDetail.teacherName || slipDetail.teacherId }}</a-descriptions-item>
             <a-descriptions-item label="月份">{{ slipDetail.month }}</a-descriptions-item>
             <a-descriptions-item label="应发">{{ formatMoney(slipDetail.grossAmount) }}</a-descriptions-item>
-            <a-descriptions-item label="五险一金">{{ formatMoney(slipDetail.socialAmount) }}</a-descriptions-item>
-            <a-descriptions-item label="个税">{{ formatMoney(slipDetail.taxAmount) }}</a-descriptions-item>
+            <a-descriptions-item v-if="deductEnabled" label="五险一金">{{ formatMoney(slipDetail.socialAmount) }}</a-descriptions-item>
+            <a-descriptions-item v-if="deductEnabled" label="个税">{{ formatMoney(slipDetail.taxAmount) }}</a-descriptions-item>
             <a-descriptions-item label="实发">{{ formatMoney(slipDetail.netAmount) }}</a-descriptions-item>
             <a-descriptions-item label="状态">
               <a-tag :color="slipStatusColor[slipDetail.status as SlipStatus]">{{ slipStatusLabel[slipDetail.status as SlipStatus] }}</a-tag>
@@ -2809,6 +2881,12 @@ onMounted(() => {
 }
 .save-tip {
   margin-top: 8px;
+}
+.form-tip {
+  margin-top: 4px;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+  line-height: 1.6;
 }
 .tier-sep {
   color: #999;

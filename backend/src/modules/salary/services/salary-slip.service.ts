@@ -12,6 +12,7 @@ import { User } from '@modules/identity/entities/user.entity';
 import { SalaryRecordStatus } from '../enums/salary.enums';
 import { TaxPolicyService } from './tax-policy.service';
 import { InsurancePolicyService } from './insurance-policy.service';
+import { SalaryConfigService } from './salary-config.service';
 import { QuerySalarySlipDto } from '../dto/salary-slip.dto';
 import { ExcelWriter } from '@modules/export/utils/excel-writer.util';
 
@@ -85,6 +86,7 @@ export class SalarySlipService {
     private readonly userRepo: Repository<User>,
     private readonly taxPolicyService: TaxPolicyService,
     private readonly insurancePolicyService: InsurancePolicyService,
+    private readonly configService: SalaryConfigService,
     private readonly excelWriter: ExcelWriter,
   ) {}
 
@@ -170,6 +172,7 @@ export class SalarySlipService {
   /** 工资条 Excel 导出（按筛选条件导出全部，不分页） */
   async exportExcel(query: QuerySalarySlipDto): Promise<Buffer> {
     const { month, teacherId, status } = query;
+    const deductEnabled = (await this.configService.get()).enabled;
     const qb = this.slipRepo.createQueryBuilder('s');
     if (month) qb.andWhere('s.month = :month', { month });
     if (teacherId) qb.andWhere('s.teacherId = :teacherId', { teacherId });
@@ -205,8 +208,7 @@ export class SalarySlipService {
         'month',
         'teacherName',
         'grossAmount',
-        'socialAmount',
-        'taxAmount',
+        ...(deductEnabled ? ['socialAmount', 'taxAmount'] : []),
         'netAmount',
         'status',
         'needsReview',
@@ -216,8 +218,7 @@ export class SalarySlipService {
         '月份',
         '教师',
         '应发',
-        '五险一金',
-        '个税',
+        ...(deductEnabled ? ['五险一金', '个税'] : []),
         '实发',
         '状态',
         '需复核',
@@ -282,6 +283,7 @@ export class SalarySlipService {
   // ─── 内部：聚合 + 计算 ───
 
   private async build(month: string, teacherId?: number, dryRun = false) {
+    const deductEnabled = (await this.configService.get()).enabled;
     const recordWhere: Record<string, any> = { month };
     if (teacherId) recordWhere.teacherId = teacherId;
     const records = await this.recordRepo.find({ where: recordWhere });
@@ -310,7 +312,9 @@ export class SalarySlipService {
       : [];
     const nameByTeacher = new Map(users.map((u) => [Number(u.id), u.name]));
 
-    const taxPolicy = await this.taxPolicyService.findActiveForMonth(month);
+    const taxPolicy = deductEnabled
+      ? await this.taxPolicyService.findActiveForMonth(month)
+      : null;
 
     const preview: SlipPreview[] = [];
     for (const tid of teacherIds) {
@@ -322,68 +326,85 @@ export class SalarySlipService {
       const breakdown = this.buildBreakdown(teacherRecords);
 
       const profile = profileByTeacher.get(tid) ?? null;
-      const insurance = await this.insurancePolicyService.findActiveForCity(
-        profile?.city ?? null,
-        month,
-      );
+      const insurance = deductEnabled
+        ? await this.insurancePolicyService.findActiveForCity(
+            profile?.city ?? null,
+            month,
+          )
+        : null;
 
       const notes: string[] = [];
       let needsReview = false;
 
-      // 五险一金
-      let socialBase: number;
-      if (profile?.socialBase != null) {
-        socialBase = Number(profile.socialBase);
-      } else if (insurance?.socialBase != null) {
-        let base = Number(insurance.socialBase);
-        if (
-          insurance.socialBaseMin != null &&
-          base < Number(insurance.socialBaseMin)
-        ) {
-          base = Number(insurance.socialBaseMin);
+      // 社保 + 个税总开关关闭时：不计不算、不提示
+      let socialBase = 0;
+      let ratios: Record<string, any> | null = null;
+      let socialAmount = 0;
+      if (deductEnabled) {
+        // 五险一金
+        if (profile?.socialBase != null) {
+          socialBase = Number(profile.socialBase);
+        } else if (insurance?.socialBase != null) {
+          let base = Number(insurance.socialBase);
+          if (
+            insurance.socialBaseMin != null &&
+            base < Number(insurance.socialBaseMin)
+          ) {
+            base = Number(insurance.socialBaseMin);
+          }
+          if (
+            insurance.socialBaseMax != null &&
+            base > Number(insurance.socialBaseMax)
+          ) {
+            base = Number(insurance.socialBaseMax);
+          }
+          socialBase = base;
+        } else {
+          socialBase = 0;
+          needsReview = true;
+          notes.push('无五险一金基数（档案与城市政策均未配置）');
         }
-        if (
-          insurance.socialBaseMax != null &&
-          base > Number(insurance.socialBaseMax)
-        ) {
-          base = Number(insurance.socialBaseMax);
+        if (socialBase > 0 && !insurance) {
+          needsReview = true;
+          notes.push('无城市五险一金政策');
         }
-        socialBase = base;
-      } else {
-        socialBase = 0;
-        needsReview = true;
-        notes.push('无五险一金基数（档案与城市政策均未配置）');
-      }
-      if (socialBase > 0 && !insurance) {
-        needsReview = true;
-        notes.push('无城市五险一金政策');
-      }
 
-      const ratios = profile?.socialRatios ?? insurance?.ratios ?? null;
-      if (!ratios) {
-        needsReview = true;
-        notes.push('无五险一金个人比例');
+        ratios = profile?.socialRatios ?? insurance?.ratios ?? null;
+        if (!ratios) {
+          needsReview = true;
+          notes.push('无五险一金个人比例');
+        }
+        socialAmount = calcSocial(socialBase, ratios);
+      } else {
+        notes.push('社保个税功能未开启');
       }
-      const socialAmount = calcSocial(socialBase, ratios);
 
       // 个税（月度估算口径）
-      const threshold = taxPolicy ? Number(taxPolicy.taxThreshold) : 5000;
-      const brackets = taxPolicy?.brackets ?? null;
-      if (!taxPolicy) {
-        needsReview = true;
-        notes.push('无当月个税政策，按默认起征点估算');
+      let threshold = 5000;
+      let brackets: Record<string, any>[] | null = null;
+      let specialDeductions: { type?: string; amount?: number }[] = [];
+      let specialTotal = 0;
+      let taxable = 0;
+      let taxAmount = 0;
+      if (deductEnabled) {
+        threshold = taxPolicy ? Number(taxPolicy.taxThreshold) : 5000;
+        brackets = taxPolicy?.brackets ?? null;
+        if (!taxPolicy) {
+          needsReview = true;
+          notes.push('无当月个税政策，按默认起征点估算');
+        }
+        specialDeductions = (profile?.taxSpecialDeductions ?? []) as {
+          type?: string;
+          amount?: number;
+        }[];
+        specialTotal = round2(
+          specialDeductions.reduce((s, d) => s + (Number(d.amount) || 0), 0),
+        );
+        taxable = round2(
+          Math.max(0, gross - socialAmount - threshold - specialTotal),
+        );
+        taxAmount = calcTax(taxable, brackets);
       }
-      const specialDeductions = (profile?.taxSpecialDeductions ?? []) as {
-        type?: string;
-        amount?: number;
-      }[];
-      const specialTotal = round2(
-        specialDeductions.reduce((s, d) => s + (Number(d.amount) || 0), 0),
-      );
-      const taxable = round2(
-        Math.max(0, gross - socialAmount - threshold - specialTotal),
-      );
-      const taxAmount = calcTax(taxable, brackets);
       const netAmount = round2(gross - socialAmount - taxAmount);
 
       preview.push({
@@ -397,24 +418,29 @@ export class SalarySlipService {
         notes,
         detail: {
           breakdown,
-          social: {
-            base: socialBase,
-            ratios,
-            amount: socialAmount,
-            source:
-              profile?.socialBase != null
-                ? 'profile'
-                : insurance
-                  ? 'policy'
-                  : 'none',
-          },
-          tax: {
-            method: '月度估算（未含累计预扣）',
-            threshold,
-            specialDeductions,
-            taxable,
-            brackets,
-          },
+          deductEnabled,
+          social: deductEnabled
+            ? {
+                base: socialBase,
+                ratios,
+                amount: socialAmount,
+                source:
+                  profile?.socialBase != null
+                    ? 'profile'
+                    : insurance
+                      ? 'policy'
+                      : 'none',
+              }
+            : null,
+          tax: deductEnabled
+            ? {
+                method: '月度估算（未含累计预扣）',
+                threshold,
+                specialDeductions,
+                taxable,
+                brackets,
+              }
+            : null,
           policies: {
             taxPolicy: taxPolicy
               ? {

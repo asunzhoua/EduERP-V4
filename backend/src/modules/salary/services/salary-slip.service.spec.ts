@@ -12,6 +12,7 @@ import { TeacherSalaryProfileEntity } from '../entities/teacher-salary-profile.e
 import { User } from '@modules/identity/entities/user.entity';
 import { TaxPolicyService } from './tax-policy.service';
 import { InsurancePolicyService } from './insurance-policy.service';
+import { SalaryConfigService } from './salary-config.service';
 import { SalaryRecordSource, SalaryRecordStatus } from '../enums/salary.enums';
 import { DEFAULT_TAX_BRACKETS } from './tax-policy.service';
 import { ExcelWriter } from '@modules/export/utils/excel-writer.util';
@@ -130,6 +131,9 @@ describe('SalarySlipService', () => {
   };
   const taxPolicyService = { findActiveForMonth: jest.fn() };
   const insurancePolicyService = { findActiveForCity: jest.fn() };
+  const salaryConfigService = {
+    get: jest.fn().mockResolvedValue({ enabled: true }),
+  };
   const excelWriter = {
     generate: jest.fn().mockResolvedValue(Buffer.from('xlsx')),
   };
@@ -155,6 +159,7 @@ describe('SalarySlipService', () => {
         { provide: getRepositoryToken(User), useValue: userRepo },
         { provide: TaxPolicyService, useValue: taxPolicyService },
         { provide: InsurancePolicyService, useValue: insurancePolicyService },
+        { provide: SalaryConfigService, useValue: salaryConfigService },
         { provide: ExcelWriter, useValue: excelWriter },
       ],
     }).compile();
@@ -253,6 +258,31 @@ describe('SalarySlipService', () => {
     expect(slip.detail.tax.method).toContain('月度估算');
     expect(slip.detail.policies.taxPolicy!.name).toBe('2026 个税');
     expect(slip.detail.policies.insurancePolicy!.city).toBe('宁波');
+  });
+
+  it('总开关关闭：不计算社保/个税，实发=应发，不提示缺政策', async () => {
+    salaryConfigService.get.mockResolvedValue({ enabled: false });
+    recordRepo.find.mockResolvedValue(teacherRecords());
+    profileRepo.find.mockResolvedValue([]);
+    userRepo.find.mockResolvedValue([{ id: 1, name: '张老师' }]);
+
+    const res = await service.generateSlips('2026-08', undefined, 9);
+    const slip = firstSlip(res);
+
+    expect(slip.grossAmount).toBe(8300);
+    expect(slip.socialAmount).toBe(0);
+    expect(slip.taxAmount).toBe(0);
+    expect(slip.netAmount).toBe(8300);
+    expect(slip.needsReview).toBe(false);
+    expect(slip.notes).toContain('社保个税功能未开启');
+    expect(slip.detail.deductEnabled).toBe(false);
+    expect(slip.detail.social).toBeNull();
+    expect(slip.detail.tax).toBeNull();
+    // 关闭时不取政策
+    expect(taxPolicyService.findActiveForMonth).not.toHaveBeenCalled();
+    expect(insurancePolicyService.findActiveForCity).not.toHaveBeenCalled();
+
+    salaryConfigService.get.mockResolvedValue({ enabled: true });
   });
 
   it('档案覆盖：档案 socialBase/ratios 优先于城市政策', async () => {

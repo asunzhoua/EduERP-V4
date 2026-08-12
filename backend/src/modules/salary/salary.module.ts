@@ -8,6 +8,7 @@ import { SalaryTaxPolicyEntity } from './entities/salary-tax-policy.entity';
 import { SalaryInsurancePolicyEntity } from './entities/salary-insurance-policy.entity';
 import { SalarySlipEntity } from './entities/salary-slip.entity';
 import { SalaryPayrollEntity } from './entities/salary-payroll.entity';
+import { SalaryConfigEntity } from './entities/salary-config.entity';
 import { SalaryController } from './salary.controller';
 import { SalaryService } from './salary.service';
 import { SalaryCalculator } from './services/salary-calculator.service';
@@ -16,6 +17,7 @@ import { TaxPolicyService } from './services/tax-policy.service';
 import { InsurancePolicyService } from './services/insurance-policy.service';
 import { SalarySlipService } from './services/salary-slip.service';
 import { SalaryPayrollService } from './services/salary-payroll.service';
+import { SalaryConfigService } from './services/salary-config.service';
 import { LessonEntity } from '@modules/teaching/lesson/lesson.entity';
 import { LessonAttendanceEntity } from '@modules/teaching/lesson-attendance/lesson-attendance.entity';
 import { CourseEntity } from '@modules/teaching/course/course.entity';
@@ -33,6 +35,7 @@ import { ExportModule } from '../export/export.module';
       SalaryInsurancePolicyEntity,
       SalarySlipEntity,
       SalaryPayrollEntity,
+      SalaryConfigEntity,
       LessonEntity,
       LessonAttendanceEntity,
       CourseEntity,
@@ -49,6 +52,7 @@ import { ExportModule } from '../export/export.module';
     InsurancePolicyService,
     SalarySlipService,
     SalaryPayrollService,
+    SalaryConfigService,
   ],
   exports: [
     SalaryService,
@@ -57,6 +61,7 @@ import { ExportModule } from '../export/export.module';
     InsurancePolicyService,
     SalarySlipService,
     SalaryPayrollService,
+    SalaryConfigService,
   ],
 })
 export class SalaryModule {}

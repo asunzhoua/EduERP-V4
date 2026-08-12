@@ -57,6 +57,8 @@ import { InsurancePolicyService } from './services/insurance-policy.service';
 import { seedCities } from './services/insurance-policy.service';
 import { SalarySlipService } from './services/salary-slip.service';
 import { SalaryPayrollService } from './services/salary-payroll.service';
+import { SalaryConfigService } from './services/salary-config.service';
+import { UpdateSalaryConfigDto } from './dto/salary-config.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AuthedRequest } from '../../common/types/authed-request';
@@ -72,12 +74,34 @@ export class SalaryController {
     private readonly insurancePolicyService: InsurancePolicyService,
     private readonly slipService: SalarySlipService,
     private readonly payrollService: SalaryPayrollService,
+    private readonly configService: SalaryConfigService,
   ) {}
 
   /** 中文文件名：RFC 5987 filename* 编码，ASCII 回退名防解析问题 */
   private disposition(filename: string): string {
     const fallback = `export_${Date.now()}.xlsx`;
     return `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
+  }
+
+  // ==================== 全局配置（社保 + 个税 总开关） ====================
+
+  @Get('config')
+  @Roles('Admin', 'SuperAdmin')
+  @ApiOperation({ summary: '查询工资模块配置（社保 + 个税 总开关）' })
+  @ApiResponse({ status: 200, description: '成功返回配置' })
+  async getSalaryConfig() {
+    return this.configService.get();
+  }
+
+  @Put('config')
+  @Roles('Admin', 'SuperAdmin')
+  @ApiOperation({ summary: '更新社保 + 个税 总开关（只影响之后新生成/重算的工资条）' })
+  @ApiResponse({ status: 200, description: '成功更新配置' })
+  async updateSalaryConfig(
+    @Body() dto: UpdateSalaryConfigDto,
+    @Request() req: AuthedRequest,
+  ) {
+    return this.configService.update(dto.enabled, req.user.sub);
   }
 
   // ==================== 教师接口 ====================
