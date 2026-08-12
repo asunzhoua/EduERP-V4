@@ -596,6 +596,12 @@ describe('SalarySettlementService.settle', () => {
     );
     expect(bonus).toBeDefined();
     expect(bonus!.amount).toBe(300); // 100 + 200
+    // 绩效构成子项：满勤奖 + 课时达标奖
+    const bd = bonus!.detail as { items?: { name: string; amount: number }[] };
+    expect(bd.items).toEqual([
+      { name: '满勤奖', amount: 100 },
+      { name: '课时达标奖', amount: 200 },
+    ]);
   });
 
   it('指定教师结算只处理该教师课时', async () => {

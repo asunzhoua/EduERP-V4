@@ -318,6 +318,44 @@ describe('SalarySlipService', () => {
     expect(slip.detail.policies.insurancePolicy!.city).toBe('宁波');
   });
 
+  it('buildBreakdown：绩效行带构成子项（满勤奖/课时达标奖）', async () => {
+    const records = [
+      ...teacherRecords(),
+      {
+        teacherId: 1,
+        source: SalaryRecordSource.BONUS,
+        amount: 800,
+        month: '2026-08',
+        detail: {
+          items: [
+            { name: '满勤奖', amount: 300 },
+            { name: '课时达标奖', amount: 500 },
+          ],
+        },
+      } as SalaryRecordEntity,
+    ];
+    recordRepo.find.mockResolvedValue(records);
+    profileRepo.find.mockResolvedValue([]);
+    userRepo.find.mockResolvedValue([{ id: 1, name: '张老师' }]);
+    taxPolicyService.findActiveForMonth.mockResolvedValue(taxPolicy());
+    insurancePolicyService.findActiveForCity.mockResolvedValue(nbePolicy());
+    slipRepo.find.mockResolvedValue([]);
+
+    const res = await service.generateSlips('2026-08', undefined, 9);
+    const breakdown = firstSlip(res).detail.breakdown as {
+      source: string;
+      amount: number;
+      items: { name: string; amount: number }[];
+    }[];
+    const bonusRow = breakdown.find((b) => b.source === 'BONUS');
+    expect(bonusRow).toBeDefined();
+    expect(bonusRow!.amount).toBe(800);
+    expect(bonusRow!.items).toEqual([
+      { name: '满勤奖', amount: 300 },
+      { name: '课时达标奖', amount: 500 },
+    ]);
+  });
+
   it('总开关关闭：不计算社保/个税，实发=应发，不提示缺政策', async () => {
     salaryConfigService.get.mockResolvedValue({ enabled: false });
     recordRepo.find.mockResolvedValue(teacherRecords());

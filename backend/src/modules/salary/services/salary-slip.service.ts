@@ -573,7 +573,8 @@ export class SalarySlipService {
       cur.amount += Number(r.amount) || 0;
       if (
         key === SalaryRecordSource.ALLOWANCE ||
-        key === SalaryRecordSource.DEDUCTION
+        key === SalaryRecordSource.DEDUCTION ||
+        key === SalaryRecordSource.BONUS
       ) {
         const detailItems = (r.detail as { items?: unknown } | null)?.items;
         if (Array.isArray(detailItems) && detailItems.length) {

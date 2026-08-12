@@ -210,11 +210,11 @@ export class SalaryService {
       .groupBy('record.source')
       .getRawMany<{ source: string; count: string; amount: string }>();
 
-    // 扣款/补贴构成子项（ALLOWANCE/DEDUCTION 记录 detail.items）
+    // 津贴/扣款/绩效构成子项（ALLOWANCE/DEDUCTION/BONUS 记录 detail.items）
     const itemRows = await qb
       .clone()
       .select(['record.source AS source', 'record.detail AS detail'])
-      .andWhere("record.source IN ('ALLOWANCE', 'DEDUCTION')")
+      .andWhere("record.source IN ('ALLOWANCE', 'DEDUCTION', 'BONUS')")
       .getRawMany<{ source: string; detail: unknown }>();
 
     const breakdown = bySource
@@ -222,7 +222,8 @@ export class SalaryService {
         const items: BreakdownItem[] = [];
         if (
           row.source === SalaryRecordSource.ALLOWANCE ||
-          row.source === SalaryRecordSource.DEDUCTION
+          row.source === SalaryRecordSource.DEDUCTION ||
+          row.source === SalaryRecordSource.BONUS
         ) {
           for (const ir of itemRows) {
             if (ir.source !== row.source) continue;

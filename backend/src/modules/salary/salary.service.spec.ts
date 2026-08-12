@@ -67,6 +67,12 @@ describe('SalaryService.getStatistics', () => {
             items: [{ type: 'OTHER', name: '其他扣款', amount: 200 }],
           }),
         },
+        {
+          source: 'BONUS',
+          detail: JSON.stringify({
+            items: [{ name: '课时达标奖', amount: 500 }],
+          }),
+        },
       ]),
     };
     qb = {
@@ -151,7 +157,7 @@ describe('SalaryService.getStatistics', () => {
           { name: '住房补贴', amount: 700 },
         ],
       },
-      { source: 'BONUS', count: 1, amount: 500, items: [] },
+      { source: 'BONUS', count: 1, amount: 500, items: [{ name: '课时达标奖', amount: 500 }] },
       {
         source: 'DEDUCTION',
         count: 1,

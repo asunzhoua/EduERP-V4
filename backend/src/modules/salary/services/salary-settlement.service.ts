@@ -410,16 +410,18 @@ export class SalarySettlementService {
           }
         }
 
-        // BONUS 绩效
+        // BONUS 绩效（满勤奖 + 课时达标奖，items 记录每项构成）
         const bonus = config?.bonus;
         if (bonus) {
           let bonusAmount = 0;
           const formula: string[] = [];
+          const bonusItems: { name: string; amount: number }[] = [];
           const fullAttendanceBonus = bonus.fullAttendance;
           if (fullAttendanceBonus) {
             const isFull = this.isFullAttendance(teacherAttendances);
             if (isFull) {
               bonusAmount += fullAttendanceBonus;
+              bonusItems.push({ name: '满勤奖', amount: fullAttendanceBonus });
               formula.push(`fullAttendance(${fullAttendanceBonus})`);
             }
           }
@@ -428,6 +430,7 @@ export class SalarySettlementService {
           if (target?.threshold && target.amount) {
             if (count >= target.threshold) {
               bonusAmount += target.amount;
+              bonusItems.push({ name: '课时达标奖', amount: target.amount });
               formula.push(`lessonTarget(${target.amount})`);
             }
           }
@@ -455,6 +458,7 @@ export class SalarySettlementService {
                   ruleId: rule.id,
                   ruleSnapshot: this.effectiveSnapshot(rule),
                   monthLessonCount: count,
+                  items: bonusItems,
                   calcFormula: formula.join('+') || 'none',
                 },
                 createdBy: operatedBy,
