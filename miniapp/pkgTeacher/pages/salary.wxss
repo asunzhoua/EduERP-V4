@@ -135,6 +135,49 @@
   margin-top: 4rpx;
 }
 
+/* 工资构成 */
+.breakdown-card {
+  background: var(--card, #FFFFFF);
+  border-radius: var(--radius-md, 28rpx);
+  padding: 24rpx 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(120,80,40,.06));
+}
+
+.breakdown-title {
+  font-size: 24rpx;
+  color: var(--muted, #6F675D);
+  margin-bottom: 16rpx;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12rpx 0;
+  border-bottom: 2rpx solid var(--bg, #FAF6F0);
+}
+
+.breakdown-row:last-child {
+  border-bottom: none;
+}
+
+.bd-name {
+  font-size: 28rpx;
+  color: var(--fg, #2E2A25);
+}
+
+.bd-amount {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: var(--fg, #2E2A25);
+  font-variant-numeric: tabular-nums;
+}
+
+.bd-deduct {
+  color: var(--danger, #C4483F);
+}
+
 /* 记录列表 */
 .record-list {
   display: flex;

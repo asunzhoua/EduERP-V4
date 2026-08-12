@@ -177,6 +177,25 @@ export class SalaryService {
       }
     }
 
+    // 按来源聚合（工资构成：底薪/课时费/津贴/扣款…），管理端与教师端共用
+    const bySource = await qb
+      .clone()
+      .select([
+        'record.source AS source',
+        'COUNT(record.id) AS count',
+        'SUM(record.amount) AS amount',
+      ])
+      .groupBy('record.source')
+      .getRawMany<{ source: string; count: string; amount: string }>();
+
+    const breakdown = bySource
+      .map((row) => ({
+        source: row.source,
+        count: parseInt(row.count, 10) || 0,
+        amount: parseFloat(row.amount) || 0,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
     return {
       year,
       month,
@@ -188,6 +207,7 @@ export class SalaryService {
       recordCount: parseInt(totals.totalRecords) || 0,
       paidAmount,
       pendingAmount,
+      breakdown,
     };
   }
 

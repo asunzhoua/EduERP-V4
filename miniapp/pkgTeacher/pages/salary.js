@@ -15,7 +15,7 @@ function currentMonth() {
 var SOURCE_MAP = {
   LESSON_FEE: { text: '课时费' },
   BASE: { text: '底薪' },
-  DAY: { text: '按天' },
+  DAY: { text: '课时（按天）' },
   BONUS: { text: '绩效' },
   ALLOWANCE: { text: '津贴' },
   DEDUCTION: { text: '扣款' },
@@ -37,7 +37,8 @@ Page({
       totalAmount: 0,
       paidAmount: 0,
       pendingAmount: 0,
-      recordCount: 0
+      recordCount: 0,
+      breakdown: []
     },
     records: [],
     page: 1,
@@ -93,12 +94,25 @@ Page({
       month: parseInt(parts[1], 10)
     }).then(function (data) {
       data = data || {};
+      var breakdown = Array.isArray(data.breakdown) ? data.breakdown.map(function (b) {
+        var src = SOURCE_MAP[b.source] || { text: b.source || '--' };
+        var amount = Number(b.amount) || 0;
+        var isDeduction = b.source === 'DEDUCTION';
+        return {
+          source: b.source,
+          name: src.text,
+          amount: amount,
+          amountText: (isDeduction ? '-' : '') + Math.abs(amount).toFixed(2),
+          isDeduction: isDeduction
+        };
+      }) : [];
       self.setData({
         statistics: {
           totalAmount: data.totalAmount || 0,
           paidAmount: data.paidAmount || 0,
           pendingAmount: data.pendingAmount || 0,
-          recordCount: data.recordCount || data.totalRecords || 0
+          recordCount: data.recordCount || data.totalRecords || 0,
+          breakdown: breakdown
         }
       });
     }).catch(function (err) {
@@ -149,7 +163,7 @@ Page({
       id: item.id,
       sourceText: src.text,
       amount: amount,
-      amountText: (isDeduction ? '-' : '') + amount.toFixed(2),
+      amountText: (isDeduction ? '-' : '') + Math.abs(amount).toFixed(2),
       isDeduction: isDeduction,
       statusText: st.text,
       statusCls: st.cls,

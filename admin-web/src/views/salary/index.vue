@@ -136,7 +136,7 @@ const statusColor: Record<SalaryRecordStatus, string> = {
 const sourceLabel: Record<SalaryRecordSource, string> = {
   LESSON_FEE: '课时费',
   BASE: '底薪',
-  DAY: '按天',
+  DAY: '课时（按天）',
   BONUS: '绩效',
   ALLOWANCE: '津贴',
   DEDUCTION: '扣款',
@@ -166,7 +166,7 @@ const columns = [
     title: '来源',
     dataIndex: 'source',
     key: 'source',
-    width: 90,
+    width: 120,
     customRender: ({ text }: { text: SalaryRecordSource }) =>
       sourceLabel[text] || text,
   },
@@ -1464,6 +1464,76 @@ const slipStatusColor: Record<SlipStatus, string> = {
   PAID: 'green',
 }
 
+const slipBreakdownRows = computed(() => {
+  const d = slipDetail.value?.detail
+  if (!d || !Array.isArray(d.breakdown) || !d.breakdown.length) return []
+  return d.breakdown.map((b: { source: string; count: number; amount: number }) => {
+    const isDeduction = b.source === 'DEDUCTION'
+    const amount = Number(b.amount) || 0
+    return {
+      source: b.source,
+      name: sourceLabel[b.source as SalaryRecordSource] || b.source,
+      count: b.count,
+      amount,
+      isDeduction,
+      amountText: (isDeduction ? '-' : '') + formatMoney(Math.abs(amount)),
+    }
+  })
+})
+
+const slipPolicyLines = computed(() => {
+  const d = slipDetail.value?.detail
+  if (!d) return [] as string[]
+  const lines: string[] = []
+  if (d.social) {
+    const s = d.social
+    const srcName =
+      s.source === 'profile' ? '教师档案' : s.source === 'policy' ? '五险一金政策' : '未配置'
+    lines.push(`五险一金：${srcName}，个人 ${formatMoney(s.amount)}`)
+    if (s.base) lines.push(`社保基数：${formatMoney(s.base)}`)
+    if (s.ratios && Object.keys(s.ratios).length) {
+      const ratioLabel: Record<string, string> = {
+        pension: '养老',
+        medical: '医疗',
+        unemployment: '失业',
+        housingFund: '公积金',
+      }
+      const parts = Object.entries(s.ratios as Record<string, number>).map(
+        ([k, v]) => `${ratioLabel[k] || k}${Math.round(Number(v) * 1000) / 10}%`,
+      )
+      lines.push(`个人比例：${parts.join(' ')}`)
+    }
+  }
+  if (d.tax) {
+    const t = d.tax
+    lines.push(`个税：${t.method || '月度估算'}，起征点 ${formatMoney(t.threshold)}`)
+    if (t.specialDeductions?.length) {
+      const total = (t.specialDeductions as { amount?: number }[]).reduce(
+        (sum, x) => sum + (Number(x.amount) || 0),
+        0,
+      )
+      lines.push(`专项附加扣除：${formatMoney(total)}`)
+    }
+    if (t.brackets?.length) {
+      const bs = t.brackets
+      lines.push(
+        `税率档：${bs.length} 档，最低 ${formatMoney(bs[0].min)}，最高 ${Math.round(Number(bs[bs.length - 1].rate) * 100)}%`,
+      )
+    }
+  }
+  if (d.policies) {
+    if (d.policies.taxPolicy) {
+      lines.push(`个税政策：${d.policies.taxPolicy.name}（${d.policies.taxPolicy.effectiveFrom} 起）`)
+    }
+    if (d.policies.insurancePolicy) {
+      lines.push(
+        `五险一金政策：${d.policies.insurancePolicy.name} · ${d.policies.insurancePolicy.city}（${d.policies.insurancePolicy.effectiveFrom} 起）`,
+      )
+    }
+  }
+  return lines
+})
+
 const slipColumns = computed(() => {
   const all = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
@@ -1893,7 +1963,7 @@ onMounted(() => {
             </a-select>
           </a-form-item>
           <a-form-item>
-            <a-select v-model:value="query.source" placeholder="来源" allow-clear style="width: 130px" @change="onSearch">
+            <a-select v-model:value="query.source" placeholder="来源" allow-clear style="width: 160px" @change="onSearch">
               <a-select-option v-for="(label, key) in sourceLabel" :key="key" :value="key">{{ label }}</a-select-option>
             </a-select>
           </a-form-item>
@@ -2859,8 +2929,21 @@ onMounted(() => {
             <a-descriptions-item label="需复核">{{ slipDetail.needsReview ? '是' : '否' }}</a-descriptions-item>
             <a-descriptions-item label="备注">{{ slipDetail.notes || '-' }}</a-descriptions-item>
           </a-descriptions>
-          <a-divider style="margin: 16px 0">计算明细（政策快照）</a-divider>
-          <pre class="detail-pre">{{ JSON.stringify(slipDetail.detail, null, 2) }}</pre>
+          <a-divider style="margin: 16px 0">工资构成</a-divider>
+          <div v-if="slipBreakdownRows.length" class="slip-breakdown">
+            <div v-for="row in slipBreakdownRows" :key="row.source" class="slip-breakdown-row">
+              <div class="row-left">
+                <span class="row-name">{{ row.name }}</span>
+                <span v-if="row.count > 1" class="row-count">×{{ row.count }}</span>
+              </div>
+              <span class="row-amount" :class="{ 'amount-deduct': row.isDeduction }">{{ row.amountText }}</span>
+            </div>
+          </div>
+          <a-empty v-else description="无构成明细" />
+          <details v-if="slipPolicyLines.length" class="policy-details">
+            <summary>政策快照（审计留痕）</summary>
+            <div v-for="(line, i) in slipPolicyLines" :key="i" class="policy-line">{{ line }}</div>
+          </details>
         </template>
       </a-spin>
     </a-drawer>
@@ -2914,14 +2997,52 @@ onMounted(() => {
 .danger {
   color: #ff4d4f;
 }
-.detail-pre {
-  max-height: 360px;
-  overflow: auto;
-  background: #f6f8fa;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  padding: 12px;
+.slip-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.slip-breakdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #fafafa;
+  border-radius: 6px;
+}
+.slip-breakdown-row .row-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.slip-breakdown-row .row-name {
+  font-weight: 500;
+}
+.slip-breakdown-row .row-count {
+  color: #999;
   font-size: 12px;
+}
+.slip-breakdown-row .row-amount {
+  font-weight: 600;
+}
+.slip-breakdown-row .amount-deduct {
+  color: #ff4d4f;
+}
+.policy-details {
+  margin-top: 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.policy-details summary {
+  cursor: pointer;
+  color: #666;
+  font-size: 13px;
+}
+.policy-line {
+  margin-top: 6px;
+  color: #666;
+  font-size: 13px;
   line-height: 1.6;
 }
 </style>

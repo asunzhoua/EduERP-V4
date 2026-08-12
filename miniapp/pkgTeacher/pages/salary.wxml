@@ -43,6 +43,15 @@
       </view>
     </view>
 
+    <!-- 工资构成 -->
+    <view class="breakdown-card" wx:if="{{statistics.breakdown.length > 0}}">
+      <view class="breakdown-title">工资构成</view>
+      <view class="breakdown-row" wx:for="{{statistics.breakdown}}" wx:key="source">
+        <text class="bd-name">{{item.name}}</text>
+        <text class="bd-amount {{item.isDeduction ? 'bd-deduct' : ''}}">{{item.amountText}}</text>
+      </view>
+    </view>
+
     <!-- 记录列表 -->
     <view class="record-list">
       <view class="empty-state" wx:if="{{records.length === 0}}">

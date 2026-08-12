@@ -37,13 +37,25 @@ describe('SalaryService.getStatistics', () => {
         { status: 'PAID', amount: '500' },
       ]),
     };
+    const bySource = {
+      select: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([
+        { source: 'BASE', count: '1', amount: '8000' },
+        { source: 'DAY', count: '6', amount: '1800' },
+        { source: 'ALLOWANCE', count: '1', amount: '1000' },
+        { source: 'BONUS', count: '1', amount: '500' },
+        { source: 'DEDUCTION', count: '1', amount: '-200' },
+      ]),
+    };
     qb = {
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       clone: jest
         .fn()
         .mockReturnValueOnce(totals)
-        .mockReturnValueOnce(statusRows),
+        .mockReturnValueOnce(statusRows)
+        .mockReturnValueOnce(bySource),
     };
   });
 
@@ -101,6 +113,17 @@ describe('SalaryService.getStatistics', () => {
     expect(qb.where).toHaveBeenCalledWith('record.month = :month', {
       month: '2026-07',
     });
+  });
+
+  it('返回按来源聚合的 breakdown（数值化、金额降序、扣款保留负号）', async () => {
+    const res = await service.getStatistics({ year: 2026, month: 7 });
+    expect(res.breakdown).toEqual([
+      { source: 'BASE', count: 1, amount: 8000 },
+      { source: 'DAY', count: 6, amount: 1800 },
+      { source: 'ALLOWANCE', count: 1, amount: 1000 },
+      { source: 'BONUS', count: 1, amount: 500 },
+      { source: 'DEDUCTION', count: 1, amount: -200 },
+    ]);
   });
 });
 
