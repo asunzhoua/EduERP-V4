@@ -1,0 +1,54 @@
+<!--pages/teacher/student-picker.wxml-->
+<view class="container">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <input
+      class="search-input"
+      placeholder="搜索学生姓名/编码/手机号"
+      value="{{keyword}}"
+      bindinput="onSearch"
+    />
+    <text class="clear-btn" wx:if="{{keyword}}" bindtap="onClearSearch">清空</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error-state" wx:elif="{{error}}">
+    <view class="ic ic-warn error-ic"></view>
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="retryLoad">点击重试</view>
+  </view>
+
+  <!-- 候选学生列表 -->
+  <view class="student-list" wx:else>
+    <block wx:for="{{students}}" wx:key="studentCode" wx:for-index="idx">
+      <view class="student-card" bindtap="onSelectStudent" data-index="{{idx}}">
+        <view class="student-avatar">
+          <text>{{item.initial || '?'}}</text>
+        </view>
+        <view class="student-info">
+          <view class="student-header">
+            <text class="student-name">{{item.name}}</text>
+            <text class="student-gender">{{item.gender === 'MALE' ? '男' : '女'}}</text>
+          </view>
+          <view class="student-detail">
+            <text class="school-grade">{{item.school || '未填学校'}} · {{item.grade || '未填年级'}}</text>
+          </view>
+        </view>
+        <view class="student-code">
+          <text>{{item.studentCode}}</text>
+        </view>
+      </view>
+    </block>
+
+    <!-- 空状态 -->
+    <view class="empty" wx:if="{{students.length === 0}}">
+      <text>暂无可添加的学生</text>
+    </view>
+  </view>
+</view>

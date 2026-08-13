@@ -1,5 +1,5 @@
 // pages/teacher/class-detail.js
-const { get, del } = require('../../utils/request');
+const { get, del, post } = require('../../utils/request');
 
 const DAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
@@ -106,6 +106,47 @@ Page({
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
     });
+  },
+
+  // 添加学生：跳转候选学生选择页
+  goToAddStudent() {
+    wx.navigateTo({
+      url: `/pkgTeacher/pages/student-picker?classCode=${this.data.classCode}`,
+      fail() {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // 删除学生：确认后软退
+  onRemoveStudent(e) {
+    const { enrollmentid } = e.currentTarget.dataset;
+    const { name } = e.currentTarget.dataset;
+    if (!enrollmentid) {
+      wx.showToast({ title: '缺少报名记录', icon: 'none' });
+      return;
+    }
+    wx.showModal({
+      title: '删除学生',
+      content: `确认将 ${name || '该学生'} 移出班级？`,
+      confirmText: '删除',
+      confirmColor: '#C4483F',
+      success: (res) => {
+        if (!res.confirm) return;
+        this.doRemoveStudent(enrollmentid);
+      }
+    });
+  },
+
+  async doRemoveStudent(enrollmentId) {
+    try {
+      await post(`/enrollments/${enrollmentId}/withdraw`, { reason: '教师调整班级' });
+      wx.showToast({ title: '已移出班级', icon: 'success' });
+      this.loadClassDetail(this.data.classCode, true);
+    } catch (err) {
+      console.error('[Class Detail] 删除学生失败:', err);
+      // request.js 已 toast 后端错误
+    }
   },
 
   // 跳转学生详情

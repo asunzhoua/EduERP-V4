@@ -185,6 +185,12 @@
   margin-bottom: 16rpx;
 }
 
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
 .panel-title {
   font-size: 28rpx;
   font-weight: bold;
@@ -194,6 +200,14 @@
 .view-all {
   font-size: 24rpx;
   color: #D97B3E;
+}
+
+.add-btn {
+  font-size: 24rpx;
+  color: #fff;
+  background: #D97B3E;
+  padding: 8rpx 20rpx;
+  border-radius: 24rpx;
 }
 
 .student-list {
@@ -211,9 +225,26 @@
   border-radius: 16rpx;
 }
 
+.student-main {
+  display: flex;
+  flex-direction: column;
+}
+
 .student-name {
   font-size: 26rpx;
   color: #2E2A25;
+}
+
+.student-code-text {
+  font-size: 20rpx;
+  color: #9B9084;
+  margin-top: 4rpx;
+}
+
+.student-right {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
 }
 
 .student-status {
@@ -222,14 +253,22 @@
   border-radius: 4rpx;
 }
 
-.status-ENROLLED {
+.remove-btn {
+  font-size: 22rpx;
+  color: #C4483F;
+  padding: 6rpx 16rpx;
+  border: 1rpx solid #E5B8B3;
+  border-radius: 12rpx;
+}
+
+.status-ACTIVE {
   background: #FBEEE2;
   color: #D97B3E;
 }
 
-.status-LEAVE {
-  background: #FCF0DF;
-  color: #D98E2B;
+.status-WITHDRAWN {
+  background: #F1EDE7;
+  color: #9B9084;
 }
 
 .empty-hint {
