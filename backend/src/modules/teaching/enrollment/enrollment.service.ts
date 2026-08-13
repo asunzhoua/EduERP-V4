@@ -5,9 +5,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Brackets, Repository } from 'typeorm';
 import { EnrollmentRepository } from './enrollment.repository';
 import { ContractRepository } from '../contract/contract.repository';
+import { ContractEntity } from '../contract/contract.entity';
 import { EnrollmentEntity } from './enrollment.entity';
 import { EnrollmentStatus } from '@common/enums/enrollment-status.enum';
 import { ContractStatus } from '../contract/enums/contract-status.enum';
@@ -17,6 +18,7 @@ import { ClassStatus } from '../class/enums/class-status.enum';
 import { CourseEntity } from '../course/course.entity';
 import { LessonEntity } from '../lesson/lesson.entity';
 import { LessonStatus } from '../lesson/enums/lesson-status.enum';
+import { hasScheduleConflict } from '../class/schedule-conflict.util';
 
 /**
  * Formal state transition table.
@@ -40,7 +42,9 @@ export const VALID_ENROLLMENT_TRANSITIONS: Record<
 export interface EnrollInput {
   classCode: string;
   studentCode: string;
-  contractCode: string;
+  contractCode?: string | null;
+  /** 操作人 id（教师/管理员），写入 enrolledBy */
+  operatedBy: number;
 }
 
 @Injectable()
@@ -62,24 +66,26 @@ export class EnrollmentService {
   // ─── Enroll ───
 
   async enroll(input: EnrollInput): Promise<EnrollmentEntity> {
-    // Guard: Contract must exist and be ACTIVE
-    const contract = await this.contractRepo.findOneByCode(input.contractCode);
-    if (!contract) {
-      throw new BadRequestException(
-        `Contract not found: ${input.contractCode}`,
-      );
-    }
-    if (contract.status !== ContractStatus.ACTIVE) {
-      throw new BadRequestException(
-        `Contract ${input.contractCode} is not ACTIVE (current: ${contract.status})`,
-      );
-    }
+    const contractCode = input.contractCode || null;
 
-    // ENROLL-NEW: Contract must belong to the same student
-    if (contract.studentCode !== input.studentCode) {
-      throw new BadRequestException(
-        `Contract ${input.contractCode} does not belong to student ${input.studentCode}`,
-      );
+    // Guard: Contract must exist and be ACTIVE（合同可选，为空跳过校验）
+    if (contractCode) {
+      const contract = await this.contractRepo.findOneByCode(contractCode);
+      if (!contract) {
+        throw new BadRequestException(`Contract not found: ${contractCode}`);
+      }
+      if (contract.status !== ContractStatus.ACTIVE) {
+        throw new BadRequestException(
+          `Contract ${contractCode} is not ACTIVE (current: ${contract.status})`,
+        );
+      }
+
+      // ENROLL-NEW: Contract must belong to the same student
+      if (contract.studentCode !== input.studentCode) {
+        throw new BadRequestException(
+          `Contract ${contractCode} does not belong to student ${input.studentCode}`,
+        );
+      }
     }
 
     // Guard: Cannot enroll same student in same class twice
@@ -96,9 +102,9 @@ export class EnrollmentService {
       // If previous enrollment was WITHDRAWN, update existing record instead of INSERT
       // This avoids unique constraint violation on (classCode, studentCode)
       existing.status = EnrollmentStatus.ACTIVE;
-      existing.contractCode = input.contractCode;
+      existing.contractCode = contractCode;
       existing.withdrawReason = null;
-      existing.enrolledBy = 0;
+      existing.enrolledBy = input.operatedBy;
 
       const saved = await this.enrollmentRepo.save(existing);
       this.logger.log(
@@ -107,19 +113,99 @@ export class EnrollmentService {
       return saved;
     }
 
+    // Guard: 班级容量
+    const targetClass = await this.classRepo.findOne({
+      where: { classCode: input.classCode, deleted: false },
+    });
+    if (!targetClass) {
+      throw new BadRequestException(`班级 ${input.classCode} 不存在`);
+    }
+    if (targetClass.status !== ClassStatus.ACTIVE) {
+      throw new BadRequestException(
+        `班级 ${input.classCode} 非进行中状态（${targetClass.status}），无法添加学生`,
+      );
+    }
+    const activeCount = await this.enrollmentRepo.countActiveByClassCode(
+      input.classCode,
+    );
+    if (activeCount >= targetClass.maxStudents) {
+      throw new BadRequestException(
+        `班级 ${input.classCode} 已满（${activeCount}/${targetClass.maxStudents}）`,
+      );
+    }
+
+    // Guard: 学生维度排班冲突检测
+    await this.assertNoScheduleConflict(input.classCode, input.studentCode);
+
     const enrollment = new EnrollmentEntity();
     enrollment.classCode = input.classCode;
     enrollment.studentCode = input.studentCode;
-    enrollment.contractCode = input.contractCode;
+    enrollment.contractCode = contractCode;
     enrollment.status = EnrollmentStatus.ACTIVE;
     enrollment.withdrawReason = null;
-    enrollment.enrolledBy = 0;
+    enrollment.enrolledBy = input.operatedBy;
 
     const saved = await this.enrollmentRepo.save(enrollment);
     this.logger.log(
       `Enrollment created: class=${saved.classCode}, student=${saved.studentCode}, contract=${saved.contractCode}`,
     );
     return saved;
+  }
+
+  /**
+   * 学生维度排班冲突检测：
+   * 该学生已有 ACTIVE 报名的班级，若与目标班级「星期几有交集 + 时段重叠」，则抛 BadRequest。
+   * 时间基于 "HH:MM" 字典序比较（与 class.service 一致）。
+   */
+  private async assertNoScheduleConflict(
+    classCode: string,
+    studentCode: string,
+  ): Promise<void> {
+    const target = await this.classRepo.findOne({
+      where: { classCode, deleted: false },
+    });
+    if (
+      !target ||
+      !target.dayOfWeek?.length ||
+      !target.startTime ||
+      !target.endTime
+    ) {
+      return;
+    }
+
+    // 该学生所有 ACTIVE 报名
+    const activeEnrollments =
+      await this.enrollmentRepo.findActiveByStudentCode(studentCode);
+    const otherClassCodes = activeEnrollments
+      .map((e) => e.classCode)
+      .filter((c) => c !== classCode);
+    if (otherClassCodes.length === 0) return;
+
+    const classes = await this.classRepo.find({
+      where: { classCode: In(otherClassCodes), deleted: false },
+    });
+
+    for (const cls of classes) {
+      if (!cls.dayOfWeek?.length || !cls.startTime || !cls.endTime) continue;
+      if (
+        hasScheduleConflict(
+          {
+            dayOfWeek: cls.dayOfWeek,
+            startTime: cls.startTime,
+            endTime: cls.endTime,
+          },
+          {
+            dayOfWeek: target.dayOfWeek,
+            startTime: target.startTime,
+            endTime: target.endTime,
+          },
+        )
+      ) {
+        throw new BadRequestException(
+          `学生排班冲突：该学生已在班级 ${cls.classCode}（${cls.name || ''}）${cls.dayOfWeek.join('/')} ${cls.startTime}-${cls.endTime} 上课，与目标班级时间重叠`,
+        );
+      }
+    }
   }
 
   // ─── Read ───
@@ -234,6 +320,95 @@ export class EnrollmentService {
         enrolledAt: e.enrolledAt,
       };
     });
+  }
+
+  /**
+   * 教师可添加学生的候选池：
+   * - Teacher：归属学生 = 该老师负责（teacher_assignment effectiveTo IS NULL）的班级里 ACTIVE 报名的学生
+   * - Admin/SuperAdmin：同机构全部学生
+   * 均排除已在本班（classCode）的学生，并附带每生 ACTIVE 合同（供选合同/无需合同）。
+   */
+  async findCandidates(params: {
+    teacherId?: number;
+    classCode?: string;
+    keyword?: string;
+  }) {
+    const { teacherId, classCode, keyword } = params;
+
+    const qb = this.studentRepo.raw
+      .createQueryBuilder('student')
+      .where('student.deleted = :deleted', { deleted: false });
+
+    if (teacherId) {
+      qb.andWhere(
+        `student.studentCode IN (
+          SELECT e.studentCode FROM enrollment e
+          WHERE e.classCode IN (
+            SELECT ta.classCode FROM teacher_assignment ta
+            WHERE ta.teacherId = :teacherId AND ta.effectiveTo IS NULL
+          ) AND e.status = :activeStatus
+        )`,
+        { teacherId, activeStatus: EnrollmentStatus.ACTIVE },
+      );
+    }
+
+    // 排除已在本班的学生
+    if (classCode) {
+      qb.andWhere(
+        `student.studentCode NOT IN (
+          SELECT e.studentCode FROM enrollment e
+          WHERE e.classCode = :classCode AND e.status = :activeStatus
+        )`,
+        { classCode, activeStatus: EnrollmentStatus.ACTIVE },
+      );
+    }
+
+    if (keyword) {
+      qb.andWhere(
+        new Brackets((subQb) => {
+          subQb
+            .where('student.name LIKE :kw', { kw: `%${keyword}%` })
+            .orWhere('student.studentCode LIKE :kw', { kw: `%${keyword}%` })
+            .orWhere('student.phone LIKE :kw', { kw: `%${keyword}%` })
+            .orWhere('student.school LIKE :kw', { kw: `%${keyword}%` });
+        }),
+      );
+    }
+
+    qb.orderBy('student.createTime', 'DESC');
+    qb.take(100);
+
+    const students = await qb.getMany();
+
+    // 附带每生 ACTIVE 合同
+    const studentCodes = students.map((s) => s.studentCode);
+    const contracts =
+      studentCodes.length > 0
+        ? await this.contractRepo.findActiveByStudentCodeIn(studentCodes)
+        : [];
+
+    const contractMap = new Map<string, ContractEntity[]>();
+    contracts.forEach((c) => {
+      const list = contractMap.get(c.studentCode) ?? [];
+      list.push(c);
+      contractMap.set(c.studentCode, list);
+    });
+
+    return students.map((s) => ({
+      studentCode: s.studentCode,
+      name: s.name,
+      gender: s.gender,
+      phone: s.phone,
+      school: s.school,
+      grade: s.grade,
+      contracts: (contractMap.get(s.studentCode) ?? []).map((c) => ({
+        contractCode: c.contractCode,
+        subject: c.subject,
+        totalLessons: c.totalLessons,
+        remainingLessons: c.remainingLessons,
+        status: c.status,
+      })),
+    }));
   }
 
   // ─── State transition guard ───

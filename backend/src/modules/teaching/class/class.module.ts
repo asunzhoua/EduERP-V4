@@ -18,7 +18,7 @@ import { User } from '../../identity/entities/user.entity';
     TypeOrmModule.forFeature([ClassEntity, User]),
     EventEmitterModule,
     TeacherAssignmentModule,
-    EnrollmentModule,
+    forwardRef(() => EnrollmentModule),
     ClassroomModule,
     forwardRef(() => CourseModule),
     forwardRef(() => LessonModule),

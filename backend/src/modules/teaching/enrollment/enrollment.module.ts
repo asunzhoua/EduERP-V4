@@ -7,6 +7,7 @@ import { EnrollmentEntity } from './enrollment.entity';
 import { ContractModule } from '../contract/contract.module';
 import { StudentModule } from '../../student/student.module';
 import { DataScopeModule } from '@common/services/data-scope.module';
+import { ClassModule } from '../class/class.module';
 import { ClassEntity } from '../class/class.entity';
 import { CourseEntity } from '../course/course.entity';
 import { LessonEntity } from '../lesson/lesson.entity';
@@ -21,6 +22,7 @@ import { LessonEntity } from '../lesson/lesson.entity';
     ]),
     ContractModule,
     forwardRef(() => StudentModule),
+    forwardRef(() => ClassModule),
     DataScopeModule,
   ],
   controllers: [EnrollmentController],

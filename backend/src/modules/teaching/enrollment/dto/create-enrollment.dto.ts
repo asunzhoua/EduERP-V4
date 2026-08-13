@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
@@ -24,11 +24,12 @@ export class CreateEnrollmentDto {
   studentCode: string;
 
   @ApiProperty({
-    description: '合同编码',
+    description: '合同编码（选填：教师添加学生可不选合同）',
     example: 'CTR2026070001',
+    required: false,
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(20)
-  contractCode: string;
+  contractCode?: string;
 }

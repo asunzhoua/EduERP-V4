@@ -34,6 +34,11 @@ describe('StudentService', () => {
     findById: jest.Mock;
     findAndCount: jest.Mock;
     update: jest.Mock;
+    raw: {
+      createQueryBuilder: jest.Mock;
+      find: jest.Mock;
+      findOne: jest.Mock;
+    };
   };
   let studentParentRepo: {
     save: jest.Mock;
@@ -82,6 +87,11 @@ describe('StudentService', () => {
       findById: jest.fn(),
       findAndCount: jest.fn(),
       update: jest.fn(),
+      raw: {
+        createQueryBuilder: jest.fn(),
+        find: jest.fn(),
+        findOne: jest.fn(),
+      },
     };
 
     const mockParentRepo = {
@@ -297,7 +307,16 @@ describe('StudentService', () => {
 
   describe('findAll', () => {
     it('should return paginated results', async () => {
-      studentRepo.findAndCount.mockResolvedValue([[mockStudent], 1]);
+      const qb = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(1),
+        getMany: jest.fn().mockResolvedValue([mockStudent]),
+      };
+      studentRepo.raw.createQueryBuilder.mockReturnValue(qb);
 
       const result = await service.findAll({ page: 1, pageSize: 20 });
 
@@ -305,6 +324,30 @@ describe('StudentService', () => {
       expect(result.total).toBe(1);
       expect(result.page).toBe(1);
       expect(result.pageSize).toBe(20);
+      expect(studentRepo.raw.createQueryBuilder).toHaveBeenCalledWith(
+        'student',
+      );
+    });
+
+    it('should apply teacher scope filter via QueryBuilder', async () => {
+      const qb = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(1),
+        getMany: jest.fn().mockResolvedValue([mockStudent]),
+      };
+      studentRepo.raw.createQueryBuilder.mockReturnValue(qb);
+
+      const result = await service.findAll({ page: 1, pageSize: 20 }, 2);
+
+      expect(result.items).toHaveLength(1);
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('teacher_assignment'),
+        expect.objectContaining({ teacherId: 2 }),
+      );
     });
   });
 
@@ -671,7 +714,7 @@ describe('StudentService', () => {
 
       expect(result.name).toBe('小红');
       expect(studentRepo.save).toHaveBeenCalled();
-      const saved = studentRepo.save.mock.calls[0][0] as Student;
+      const saved = studentRepo.save.mock.calls[0][0];
       expect(saved.name).toBe('小红');
       expect(saved.grade).toBe('二年级');
       expect(saved.phone).toBe(child.phone); // phone 未被修改
@@ -679,9 +722,9 @@ describe('StudentService', () => {
 
     it('updateChild throws ForbiddenException when not bound', async () => {
       studentParentRepo.findOne.mockResolvedValue(null);
-      await expect(
-        service.updateChild(1, 2, { name: '小红' }),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.updateChild(1, 2, { name: '小红' })).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('unlinkChild removes the binding record', async () => {

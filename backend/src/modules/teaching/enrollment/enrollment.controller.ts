@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { EnrollmentService } from './enrollment.service';
+import { ClassService } from '../class/class.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { QueryEnrollmentDto } from './dto/query-enrollment.dto';
 import { WithdrawEnrollmentDto } from './dto/withdraw-enrollment.dto';
@@ -30,18 +31,47 @@ export class EnrollmentController {
   constructor(
     private readonly enrollmentService: EnrollmentService,
     private readonly dataScopeService: DataScopeService,
+    private readonly classService: ClassService,
   ) {}
 
   @Post()
-  @Roles('SuperAdmin', 'Admin')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Enroll a student in a class' })
-  async enroll(@Body() body: CreateEnrollmentDto) {
+  async enroll(@Body() body: CreateEnrollmentDto, @Req() req: AuthedRequest) {
+    // Teacher 只能给自己 PRIMARY 的班级添加学生
+    if (req.user.role === 'Teacher') {
+      await this.classService.assertPrimaryTeacher(
+        body.classCode,
+        Number(req.user.sub),
+      );
+    }
     const result = await this.enrollmentService.enroll({
       classCode: body.classCode,
       studentCode: body.studentCode,
       contractCode: body.contractCode,
+      operatedBy: req.user.sub,
     });
     return ApiResponse.success(result, 'Student enrolled');
+  }
+
+  @Get('candidates')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
+  @ApiOperation({
+    summary: 'Candidate students for adding to a class (teacher-owned)',
+  })
+  async candidates(
+    @Query('classCode') classCode: string | undefined,
+    @Query('keyword') keyword: string | undefined,
+    @Req() req: AuthedRequest,
+  ) {
+    const teacherId =
+      req.user.role === 'Teacher' ? Number(req.user.sub) : undefined;
+    const result = await this.enrollmentService.findCandidates({
+      teacherId,
+      classCode,
+      keyword,
+    });
+    return ApiResponse.success(result);
   }
 
   @Get()
@@ -67,13 +97,21 @@ export class EnrollmentController {
   }
 
   @Post(':id/withdraw')
-  @Roles('SuperAdmin', 'Admin')
+  @Roles('SuperAdmin', 'Admin', 'Teacher')
   @ApiOperation({ summary: 'Withdraw enrollment (ACTIVE → WITHDRAWN)' })
   async withdraw(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: WithdrawEnrollmentDto,
     @Req() req: AuthedRequest,
   ) {
+    // Teacher 只能退自己 PRIMARY 班级的学生
+    if (req.user.role === 'Teacher') {
+      const enrollment = await this.enrollmentService.findOne(id);
+      await this.classService.assertPrimaryTeacher(
+        enrollment.classCode,
+        Number(req.user.sub),
+      );
+    }
     const operatorId = req.user.sub;
     const result = await this.enrollmentService.withdraw(
       id,

@@ -28,9 +28,21 @@ describe('EnrollmentService', () => {
     findByClassCode: jest.Mock;
     findByStudentCode: jest.Mock;
     findByClassAndStudent: jest.Mock;
+    countActiveByClassCode: jest.Mock;
+    findActiveByStudentCode: jest.Mock;
     findMany: jest.Mock;
   };
-  let contractRepo: jest.Mocked<ContractRepository>;
+  let studentRepo: {
+    raw: { find: jest.Mock; createQueryBuilder: jest.Mock };
+  };
+  let contractRepo: {
+    save: jest.Mock;
+    findOneById: jest.Mock;
+    findOneByCode: jest.Mock;
+    findByStudentCode: jest.Mock;
+    countByStudentCode: jest.Mock;
+    findActiveByStudentCodeIn: jest.Mock;
+  };
   type MockClassRepo = { find: jest.Mock; findOne: jest.Mock };
   type MockCourseRepo = { find: jest.Mock };
   type MockLessonRepo = { createQueryBuilder: jest.Mock };
@@ -43,6 +55,7 @@ describe('EnrollmentService', () => {
     classCode: 'CL2026070001',
     studentCode: 'ST2026010001',
     contractCode: 'CT2026070001',
+    operatedBy: 42,
   };
 
   const mockEnrollment: EnrollmentEntity = {
@@ -99,6 +112,7 @@ describe('EnrollmentService', () => {
       findByStudentCode: jest.fn(),
       findByClassAndStudent: jest.fn(),
       countActiveByClassCode: jest.fn(),
+      findActiveByStudentCode: jest.fn(),
       findMany: jest.fn(),
       inTransaction: jest.fn((fn: (em: EntityManager) => Promise<unknown>) =>
         fn({ getRepository: () => emRepoMock } as unknown as EntityManager),
@@ -111,11 +125,13 @@ describe('EnrollmentService', () => {
       findOneByCode: jest.fn(),
       findByStudentCode: jest.fn(),
       countByStudentCode: jest.fn(),
+      findActiveByStudentCodeIn: jest.fn(),
     };
 
     const mockStudentRepo = {
       raw: {
         find: jest.fn(),
+        createQueryBuilder: jest.fn(),
       },
       save: jest.fn(),
       findById: jest.fn(),
@@ -153,6 +169,7 @@ describe('EnrollmentService', () => {
     service = module.get<EnrollmentService>(EnrollmentService);
     enrollmentRepo = module.get(EnrollmentRepository);
     contractRepo = module.get(ContractRepository);
+    studentRepo = module.get(StudentRepository);
     classRepo = module.get<MockClassRepo>(getRepositoryToken(ClassEntity));
     courseRepo = module.get<MockCourseRepo>(getRepositoryToken(CourseEntity));
     lessonRepo = module.get<MockLessonRepo>(getRepositoryToken(LessonEntity));
@@ -161,10 +178,20 @@ describe('EnrollmentService', () => {
   // ─── Enroll ───
 
   describe('enroll', () => {
+    beforeEach(() => {
+      // 目标班级存在且 ACTIVE，容量未满，学生无排班冲突
+      classRepo.findOne.mockResolvedValue({ ...mockClass });
+      enrollmentRepo.countActiveByClassCode.mockResolvedValue(0);
+      enrollmentRepo.findActiveByStudentCode.mockResolvedValue([]);
+    });
+
     it('should create enrollment with ACTIVE status', async () => {
       contractRepo.findOneByCode.mockResolvedValue({ ...mockActiveContract });
       enrollmentRepo.findByClassAndStudent.mockResolvedValue(null);
-      enrollmentRepo.save.mockResolvedValue({ ...mockEnrollment });
+      enrollmentRepo.save.mockResolvedValue({
+        ...mockEnrollment,
+        enrolledBy: 42,
+      });
 
       const result = await service.enroll(mockEnrollInput);
 
@@ -172,8 +199,23 @@ describe('EnrollmentService', () => {
       expect(result.classCode).toBe('CL2026070001');
       expect(result.studentCode).toBe('ST2026010001');
       expect(result.contractCode).toBe('CT2026070001');
+      expect(result.enrolledBy).toBe(42);
     });
 
+    it('should create enrollment without contract (contractCode optional)', async () => {
+      enrollmentRepo.findByClassAndStudent.mockResolvedValue(null);
+      enrollmentRepo.save.mockResolvedValue({ ...mockEnrollment });
+
+      const result = await service.enroll({
+        classCode: 'CL2026070001',
+        studentCode: 'ST2026010001',
+        contractCode: undefined,
+        operatedBy: 42,
+      });
+
+      expect(result.status).toBe(EnrollmentStatus.ACTIVE);
+      expect(contractRepo.findOneByCode).not.toHaveBeenCalled();
+    });
     it('should reject when contract not found', async () => {
       contractRepo.findOneByCode.mockResolvedValue(null);
 
@@ -219,6 +261,67 @@ describe('EnrollmentService', () => {
 
       const result = await service.enroll(mockEnrollInput);
       expect(result.status).toBe(EnrollmentStatus.ACTIVE);
+    });
+
+    it('should reject when target class does not exist', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({ ...mockActiveContract });
+      enrollmentRepo.findByClassAndStudent.mockResolvedValue(null);
+      classRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.enroll(mockEnrollInput)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should reject when target class is not ACTIVE', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({ ...mockActiveContract });
+      enrollmentRepo.findByClassAndStudent.mockResolvedValue(null);
+      classRepo.findOne.mockResolvedValue({
+        ...mockClass,
+        status: ClassStatus.DRAFT,
+      });
+
+      await expect(service.enroll(mockEnrollInput)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should reject when class is full', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({ ...mockActiveContract });
+      enrollmentRepo.findByClassAndStudent.mockResolvedValue(null);
+      enrollmentRepo.countActiveByClassCode.mockResolvedValue(20);
+
+      await expect(service.enroll(mockEnrollInput)).rejects.toThrow(/已满/);
+    });
+
+    it('should reject when student has schedule conflict with another class', async () => {
+      contractRepo.findOneByCode.mockResolvedValue({ ...mockActiveContract });
+      enrollmentRepo.findByClassAndStudent.mockResolvedValue(null);
+      enrollmentRepo.findActiveByStudentCode.mockResolvedValue([
+        { id: 9, classCode: 'CL2026070002', status: EnrollmentStatus.ACTIVE },
+      ]);
+      // 目标班级有上课时间
+      classRepo.findOne.mockResolvedValue({
+        ...mockClass,
+        classCode: 'CL2026070001',
+        dayOfWeek: [1],
+        startTime: '09:00',
+        endTime: '10:00',
+      });
+      // 冲突班级：同星期、时段重叠
+      classRepo.find.mockResolvedValue([
+        {
+          classCode: 'CL2026070002',
+          name: '冲突班级',
+          dayOfWeek: [1],
+          startTime: '09:30',
+          endTime: '10:30',
+        },
+      ]);
+
+      await expect(service.enroll(mockEnrollInput)).rejects.toThrow(
+        /学生排班冲突/,
+      );
     });
   });
 
@@ -334,6 +437,69 @@ describe('EnrollmentService', () => {
         page: 1,
         pageSize: 20,
       });
+    });
+  });
+
+  // ─── findCandidates ───
+
+  describe('findCandidates', () => {
+    const mockQb = {
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getMany: jest.fn(),
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      studentRepo.raw.createQueryBuilder.mockReturnValue(mockQb);
+      mockQb.getMany.mockResolvedValue([
+        {
+          studentCode: 'ST2026010001',
+          name: '小明',
+          gender: '男',
+          phone: '13800000001',
+          school: '一小',
+          grade: '一年级',
+        },
+      ]);
+      contractRepo.findActiveByStudentCodeIn.mockResolvedValue([
+        { ...mockActiveContract },
+      ]);
+    });
+
+    it('should build teacher-scoped query and attach active contracts', async () => {
+      const result = (await service.findCandidates({
+        teacherId: 2,
+        classCode: 'CL2026070001',
+        keyword: '小明',
+      })) as unknown as Array<{
+        studentCode: string;
+        contracts: Array<{ contractCode: string }>;
+      }>;
+
+      expect(mockQb.andWhere).toHaveBeenCalled();
+      const calls = mockQb.andWhere.mock.calls as Array<[string, unknown]>;
+      expect(calls[0][0]).toContain('teacher_assignment');
+      expect(result).toHaveLength(1);
+      expect(result[0].contracts).toHaveLength(1);
+      expect(result[0].contracts[0].contractCode).toBe('CT2026070001');
+    });
+
+    it('should return empty candidates when no students', async () => {
+      mockQb.getMany.mockResolvedValue([]);
+
+      const result = (await service.findCandidates({
+        teacherId: 2,
+        classCode: 'CL2026070001',
+      })) as unknown as Array<{
+        studentCode: string;
+        contracts: Array<{ contractCode: string }>;
+      }>;
+
+      expect(result).toEqual([]);
+      expect(contractRepo.findActiveByStudentCodeIn).not.toHaveBeenCalled();
     });
   });
 

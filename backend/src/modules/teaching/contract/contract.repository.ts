@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual } from 'typeorm';
+import { Repository, In, LessThanOrEqual } from 'typeorm';
 import { ContractEntity } from './contract.entity';
 import { ContractStatus } from './enums/contract-status.enum';
 
@@ -36,6 +36,27 @@ export class ContractRepository {
   async findByStudentCode(studentCode: string): Promise<ContractEntity[]> {
     return this.repo.find({
       where: { studentCode },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /** 某学生 ACTIVE 的合同（用于教师添加学生时选合同）。 */
+  async findActiveByStudentCode(
+    studentCode: string,
+  ): Promise<ContractEntity[]> {
+    return this.repo.find({
+      where: { studentCode, status: ContractStatus.ACTIVE },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /** 批量：多学生 ACTIVE 合同（用于教师添加学生候选池）。 */
+  async findActiveByStudentCodeIn(
+    studentCodes: string[],
+  ): Promise<ContractEntity[]> {
+    if (!studentCodes.length) return [];
+    return this.repo.find({
+      where: { studentCode: In(studentCodes), status: ContractStatus.ACTIVE },
       order: { createdAt: 'DESC' },
     });
   }

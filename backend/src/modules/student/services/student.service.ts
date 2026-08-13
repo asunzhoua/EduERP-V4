@@ -5,14 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  Repository,
-  Like,
-  Brackets,
-  In,
-  FindOptionsWhere,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { Repository, Brackets, In } from 'typeorm';
 import { Student } from '../entities/student.entity';
 import { StudentParent } from '../entities/student-parent.entity';
 import { StudentAuditLog } from '../entities/student-audit-log.entity';
@@ -151,65 +144,71 @@ export class StudentService {
     const pageSize = query.pageSize || 20;
     const skip = (page - 1) * pageSize;
 
-    const where: FindOptionsWhere<Student> = { deleted: false };
-
-    if (query.name) {
-      where.name = Like(`%${query.name}%`);
-    }
-    if (query.studentCode) {
-      where.studentCode = Like(`%${query.studentCode}%`);
-    }
-    if (query.gender) {
-      where.gender = query.gender;
-    }
-    if (query.status) {
-      where.status = query.status;
-    }
-    if (query.phone) {
-      where.phone = Like(`%${query.phone}%`);
-    }
-    if (query.school) {
-      where.school = Like(`%${query.school}%`);
-    }
-    if (query.grade) {
-      where.grade = Like(`%${query.grade}%`);
-    }
     // keyword search: OR logic across multiple fields
     // If both name and keyword are provided, they work together
     const keyword = query.keyword;
 
-    const [items, total] = await this.studentRepository.findAndCount({
-      where: ((qb: SelectQueryBuilder<Student>) => {
-        qb.where(where);
-        // Teacher 范围过滤：只返回该教师负责的 class 里的学生
-        if (teacherId) {
-          qb.andWhere(
-            `student.studentCode IN (
-              SELECT e."studentCode" FROM enrollment e
-              WHERE e."classCode" IN (
-                SELECT ta."classCode" FROM teacher_assignment ta
-                WHERE ta."teacherId" = :teacherId AND ta."effectiveTo" IS NULL AND ta."deleted" = false
-              ) AND e."deleted" = false
-            )`,
-            { teacherId },
-          );
-        }
-        if (keyword) {
-          qb.andWhere(
-            new Brackets((subQb) => {
-              subQb
-                .where('student.name LIKE :kw', { kw: `%${keyword}%` })
-                .orWhere('student.studentCode LIKE :kw', { kw: `%${keyword}%` })
-                .orWhere('student.phone LIKE :kw', { kw: `%${keyword}%` })
-                .orWhere('student.school LIKE :kw', { kw: `%${keyword}%` });
-            }),
-          );
-        }
-      }) as unknown as FindOptionsWhere<Student>,
-      skip,
-      take: pageSize,
-      order: { createTime: 'DESC' },
-    });
+    // 用 QueryBuilder 组装条件（findAndCount 的 where 回调会被 for...in 静默跳过，
+    // 导致 Teacher 归属过滤实际不生效，且原 SQL 引用了不存在的 deleted 列）
+    const qb = this.studentRepository.raw.createQueryBuilder('student');
+    qb.where('student.deleted = :deleted', { deleted: false });
+
+    if (query.name) {
+      qb.andWhere('student.name LIKE :name', { name: `%${query.name}%` });
+    }
+    if (query.studentCode) {
+      qb.andWhere('student.studentCode LIKE :studentCode', {
+        studentCode: `%${query.studentCode}%`,
+      });
+    }
+    if (query.gender) {
+      qb.andWhere('student.gender = :gender', { gender: query.gender });
+    }
+    if (query.status) {
+      qb.andWhere('student.status = :status', { status: query.status });
+    }
+    if (query.phone) {
+      qb.andWhere('student.phone LIKE :phone', { phone: `%${query.phone}%` });
+    }
+    if (query.school) {
+      qb.andWhere('student.school LIKE :school', {
+        school: `%${query.school}%`,
+      });
+    }
+    if (query.grade) {
+      qb.andWhere('student.grade LIKE :grade', { grade: `%${query.grade}%` });
+    }
+
+    // Teacher 范围过滤：只返回该教师负责的 class 里的学生
+    // 归属链路：user.id(Teacher) → teacher_assignment(effectiveTo IS NULL) → class → enrollment(ACTIVE) → student
+    if (teacherId) {
+      qb.andWhere(
+        `student.studentCode IN (
+          SELECT e.studentCode FROM enrollment e
+          WHERE e.classCode IN (
+            SELECT ta.classCode FROM teacher_assignment ta
+            WHERE ta.teacherId = :teacherId AND ta.effectiveTo IS NULL
+          ) AND e.status = :activeStatus
+        )`,
+        { teacherId, activeStatus: EnrollmentStatus.ACTIVE },
+      );
+    }
+
+    if (keyword) {
+      qb.andWhere(
+        new Brackets((subQb) => {
+          subQb
+            .where('student.name LIKE :kw', { kw: `%${keyword}%` })
+            .orWhere('student.studentCode LIKE :kw', { kw: `%${keyword}%` })
+            .orWhere('student.phone LIKE :kw', { kw: `%${keyword}%` })
+            .orWhere('student.school LIKE :kw', { kw: `%${keyword}%` });
+        }),
+      );
+    }
+
+    qb.orderBy('student.createTime', 'DESC');
+    const total = await qb.getCount();
+    const items = await qb.skip(skip).take(pageSize).getMany();
 
     return { items, total, page, pageSize };
   }

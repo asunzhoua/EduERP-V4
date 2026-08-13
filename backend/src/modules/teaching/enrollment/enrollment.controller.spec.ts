@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EnrollmentController } from './enrollment.controller';
 import { EnrollmentService } from './enrollment.service';
+import { ClassService } from '../class/class.service';
 import { DataScopeService } from '@common/services/data-scope.service';
 import { ApiResponse } from '@common/dto/api-response';
 
@@ -14,8 +15,10 @@ describe('EnrollmentController', () => {
     transfer: jest.Mock;
     findByClassCode: jest.Mock;
     findByStudentCode: jest.Mock;
+    findCandidates: jest.Mock;
   };
   let dataScopeService: { verifyStudentAccess: jest.Mock };
+  let classService: { assertPrimaryTeacher: jest.Mock };
 
   const mockEnrollment = {
     id: 1,
@@ -42,10 +45,15 @@ describe('EnrollmentController', () => {
     }),
     findByClassCode: jest.fn().mockResolvedValue([mockEnrollment]),
     findByStudentCode: jest.fn().mockResolvedValue([mockEnrollment]),
+    findCandidates: jest.fn().mockResolvedValue([mockEnrollment]),
   };
 
   const mockDataScopeService = {
     verifyStudentAccess: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockClassService = {
+    assertPrimaryTeacher: jest.fn().mockResolvedValue(undefined),
   };
 
   beforeAll(async () => {
@@ -54,12 +62,14 @@ describe('EnrollmentController', () => {
       providers: [
         { provide: EnrollmentService, useValue: mockEnrollmentService },
         { provide: DataScopeService, useValue: mockDataScopeService },
+        { provide: ClassService, useValue: mockClassService },
       ],
     }).compile();
 
     controller = module.get(EnrollmentController);
     service = module.get(EnrollmentService);
     dataScopeService = module.get(DataScopeService);
+    classService = module.get(ClassService);
   });
 
   beforeEach(() => {
@@ -82,6 +92,8 @@ describe('EnrollmentController', () => {
     });
     mockEnrollmentService.findByClassCode.mockResolvedValue([mockEnrollment]);
     mockEnrollmentService.findByStudentCode.mockResolvedValue([mockEnrollment]);
+    mockEnrollmentService.findCandidates.mockResolvedValue([mockEnrollment]);
+    mockClassService.assertPrimaryTeacher.mockResolvedValue(undefined);
   });
 
   it('should be defined', () => {
@@ -90,14 +102,15 @@ describe('EnrollmentController', () => {
 
   // 1. enroll - POST
   describe('enroll', () => {
-    it('should enroll a student into a class', async () => {
+    it('should enroll a student into a class (admin)', async () => {
       const dto = {
         classCode: 'CLS001',
         studentCode: 'STU001',
         contractCode: 'CTR001',
       };
+      const mockReq = { user: { sub: 42, role: 'Admin' } };
 
-      const result = await controller.enroll(dto);
+      const result = await controller.enroll(dto, mockReq);
 
       expect(result).toEqual(
         ApiResponse.success(mockEnrollment, 'Student enrolled'),
@@ -106,7 +119,63 @@ describe('EnrollmentController', () => {
         classCode: 'CLS001',
         studentCode: 'STU001',
         contractCode: 'CTR001',
+        operatedBy: 42,
       });
+      expect(classService.assertPrimaryTeacher).not.toHaveBeenCalled();
+    });
+
+    it('should verify PRIMARY ownership for teacher enroll', async () => {
+      const dto = {
+        classCode: 'CLS001',
+        studentCode: 'STU001',
+        contractCode: 'CTR001',
+      };
+      const mockReq = { user: { sub: 2, role: 'Teacher' } };
+
+      const result = await controller.enroll(dto, mockReq);
+
+      expect(classService.assertPrimaryTeacher).toHaveBeenCalledWith(
+        'CLS001',
+        2,
+      );
+      expect(service.enroll).toHaveBeenCalledWith({
+        classCode: 'CLS001',
+        studentCode: 'STU001',
+        contractCode: 'CTR001',
+        operatedBy: 2,
+      });
+      expect(result).toEqual(
+        ApiResponse.success(mockEnrollment, 'Student enrolled'),
+      );
+    });
+  });
+
+  // candidates - GET /enrollments/candidates
+  describe('candidates', () => {
+    it('should return teacher-owned candidates for a teacher', async () => {
+      const mockReq = { user: { sub: 2, role: 'Teacher' } };
+
+      const result = await controller.candidates('CLS001', '', mockReq);
+
+      expect(service.findCandidates).toHaveBeenCalledWith({
+        teacherId: 2,
+        classCode: 'CLS001',
+        keyword: '',
+      });
+      expect(result).toEqual(ApiResponse.success([mockEnrollment]));
+    });
+
+    it('should return all candidates for an admin (no teacherId)', async () => {
+      const mockReq = { user: { sub: 1, role: 'Admin' } };
+
+      const result = await controller.candidates('CLS001', undefined, mockReq);
+
+      expect(service.findCandidates).toHaveBeenCalledWith({
+        teacherId: undefined,
+        classCode: 'CLS001',
+        keyword: undefined,
+      });
+      expect(result).toEqual(ApiResponse.success([mockEnrollment]));
     });
   });
 
@@ -134,14 +203,29 @@ describe('EnrollmentController', () => {
 
   // 3. withdraw - POST :id/withdraw
   describe('withdraw', () => {
-    it('should withdraw an enrollment', async () => {
+    it('should withdraw an enrollment (admin)', async () => {
       const dto = { reason: '个人原因' };
-      const mockReq = { user: { sub: 42 } };
+      const mockReq = { user: { sub: 42, role: 'Admin' } };
 
       const result = await controller.withdraw(1, dto, mockReq);
 
       expect(result.data.status).toBe('WITHDRAWN');
       expect(service.withdraw).toHaveBeenCalledWith(1, '个人原因', 42);
+      expect(classService.assertPrimaryTeacher).not.toHaveBeenCalled();
+    });
+
+    it('should verify PRIMARY ownership for teacher withdraw', async () => {
+      const dto = { reason: '教师调整班级' };
+      const mockReq = { user: { sub: 2, role: 'Teacher' } };
+
+      const result = await controller.withdraw(1, dto, mockReq);
+
+      expect(classService.assertPrimaryTeacher).toHaveBeenCalledWith(
+        'CLS001',
+        2,
+      );
+      expect(service.withdraw).toHaveBeenCalledWith(1, '教师调整班级', 2);
+      expect(result.data.status).toBe('WITHDRAWN');
     });
   });
 

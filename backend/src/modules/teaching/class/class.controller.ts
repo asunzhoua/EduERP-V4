@@ -12,7 +12,6 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -167,10 +166,7 @@ export class ClassController {
     req: AuthedRequest,
   ): Promise<void> {
     if (req.user.role !== 'Teacher') return;
-    const primary = await this.classService.findPrimaryTeacher(code);
-    if (!primary || Number(primary.teacherId) !== Number(req.user.sub)) {
-      throw new ForbiddenException('You can only manage your own classes');
-    }
+    await this.classService.assertPrimaryTeacher(code, Number(req.user.sub));
   }
 
   // ─── Teacher Assignment (class-scoped) ───

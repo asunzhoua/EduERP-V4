@@ -50,6 +50,15 @@ export class EnrollmentRepository {
     });
   }
 
+  /** 某学生当前 ACTIVE 报名的班级（用于学生维度排班冲突检测）。 */
+  async findActiveByStudentCode(
+    studentCode: string,
+  ): Promise<EnrollmentEntity[]> {
+    return this.repo.find({
+      where: { studentCode, status: EnrollmentStatus.ACTIVE },
+    });
+  }
+
   async countActiveByClassCodes(
     classCodes: string[],
   ): Promise<Map<string, number>> {

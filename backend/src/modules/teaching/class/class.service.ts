@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -22,6 +23,7 @@ import { EnrollmentRepository } from '../enrollment/enrollment.repository';
 import { LessonRepository } from '../lesson/lesson.repository';
 import { LessonStatus } from '../lesson/enums/lesson-status.enum';
 import { User } from '../../identity/entities/user.entity';
+import { hasScheduleConflict } from './schedule-conflict.util';
 
 /** Allowed status transitions per ClassStateMachine */
 const VALID_TRANSITIONS: Record<ClassStatus, ClassStatus[]> = {
@@ -408,6 +410,21 @@ export class ClassService {
     return this.teacherAssignmentService.findActivePrimary(classCode);
   }
 
+  /**
+   * 校验某 Teacher 是否为该班级的 PRIMARY 老师，不是则抛 ForbiddenException。
+   * 供 Enrollment 等模块在 Teacher 操作班级学生时做归属校验。
+   */
+  async assertPrimaryTeacher(
+    classCode: string,
+    teacherId: number,
+  ): Promise<void> {
+    const primary =
+      await this.teacherAssignmentService.findActivePrimary(classCode);
+    if (!primary || Number(primary.teacherId) !== Number(teacherId)) {
+      throw new ForbiddenException('您不是该班级的主讲老师，无法管理班级学生');
+    }
+  }
+
   // ─── Activation Guard (private) ───
 
   private async guardActivation(cls: ClassEntity): Promise<void> {
@@ -495,10 +512,19 @@ export class ClassService {
         } catch {
           rowDays = [];
         }
-        const sharedDays = rowDays.filter((d) => cls.dayOfWeek.includes(d));
         if (
-          sharedDays.length > 0 &&
-          this.overlaps(row.startTime, row.endTime, cls.startTime, cls.endTime)
+          hasScheduleConflict(
+            {
+              dayOfWeek: rowDays,
+              startTime: row.startTime,
+              endTime: row.endTime,
+            },
+            {
+              dayOfWeek: cls.dayOfWeek,
+              startTime: cls.startTime,
+              endTime: cls.endTime,
+            },
+          )
         ) {
           conflicts.push(
             `教室冲突：与班级 ${row.classCode}（${row.name}）共用教室，时段重叠`,
@@ -543,10 +569,19 @@ export class ClassService {
         } catch {
           rowDays = [];
         }
-        const sharedDays = rowDays.filter((d) => cls.dayOfWeek.includes(d));
         if (
-          sharedDays.length > 0 &&
-          this.overlaps(row.startTime, row.endTime, cls.startTime, cls.endTime)
+          hasScheduleConflict(
+            {
+              dayOfWeek: rowDays,
+              startTime: row.startTime,
+              endTime: row.endTime,
+            },
+            {
+              dayOfWeek: cls.dayOfWeek,
+              startTime: cls.startTime,
+              endTime: cls.endTime,
+            },
+          )
         ) {
           conflicts.push(
             `老师排班冲突：与班级 ${row.classCode}（${row.name}）上课时段重叠`,
@@ -556,15 +591,5 @@ export class ClassService {
     }
 
     return conflicts;
-  }
-
-  /** "HH:MM" 字符串时间区间是否重叠（字典序比较）。 */
-  private overlaps(
-    aStart: string,
-    aEnd: string,
-    bStart: string,
-    bEnd: string,
-  ): boolean {
-    return aStart < bEnd && bStart < aEnd;
   }
 }
